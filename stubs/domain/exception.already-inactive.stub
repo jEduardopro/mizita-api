@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Exceptions;
+
+use DomainException;
+
+final class {{ entity }}AlreadyInactive extends DomainException
+{
+    public static function for(string $id): self
+    {
+        return new self("{{ entity }} [{$id}] is already inactive.");
+    }
+}

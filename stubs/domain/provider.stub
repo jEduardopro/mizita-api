@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }};
+
+use App\Domains\{{ domain }}\Contracts\{{ entity }}Repository;
+use App\Domains\{{ domain }}\Infrastructure\Eloquent\Eloquent{{ entity }}Repository;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
+
+final class {{ domain }}ServiceProvider extends ServiceProvider
+{
+    /**
+     * Wire this domain's ports to their infrastructure adapters.
+     */
+    public function register(): void
+    {
+        $this->app->bind({{ entity }}Repository::class, Eloquent{{ entity }}Repository::class);
+    }
+
+    public function boot(): void
+    {
+        Route::prefix('api')
+            ->middleware({{ routeMiddleware }})
+            ->group(__DIR__.'/Infrastructure/Http/routes.php');
+    }
+}

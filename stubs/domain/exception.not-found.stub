@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Exceptions;
+
+use RuntimeException;
+
+final class {{ entity }}NotFound extends RuntimeException
+{
+    public static function withId(string $id): self
+    {
+        return new self("{{ entity }} [{$id}] was not found.");
+    }
+}

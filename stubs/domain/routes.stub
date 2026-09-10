@@ -1,0 +1,13 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Domains\{{ domain }}\Infrastructure\Http\Controllers\{{ entity }}Controller;
+use Illuminate\Support\Facades\Route;
+
+/*
+| Routes owned by the {{ domain }} domain. Loaded by {{ domain }}ServiceProvider
+| under the "api" prefix and middleware group.
+*/
+
+Route::post('/{{ routePrefix }}', [{{ entity }}Controller::class, 'store']);

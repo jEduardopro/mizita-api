@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Infrastructure\Http\Controllers;
+
+use App\Domains\{{ domain }}\Application\Dtos\Create{{ entity }}Input;
+use App\Domains\{{ domain }}\Application\UseCases\Create{{ entity }};
+use App\Domains\{{ domain }}\Infrastructure\Http\Requests\Create{{ entity }}Request;
+use App\Domains\{{ domain }}\Infrastructure\Http\Resources\{{ entity }}Resource;
+use App\Http\Controllers\Controller;
+{{ controllerImports }}use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+
+final class {{ entity }}Controller extends Controller
+{
+    public function store(Create{{ entity }}Request $request, Create{{ entity }} $create{{ entity }}): JsonResponse
+    {
+        ${{ variable }} = $create{{ entity }}->handle(new Create{{ entity }}Input(
+{{ controllerInputArgs }}
+        ));
+
+        return {{ entity }}Resource::make(${{ variable }})
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
+    }
+}

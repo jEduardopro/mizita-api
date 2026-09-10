@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Exceptions;
+
+use DomainException;
+
+final class {{ entity }}{{ uniqueField }}AlreadyTaken extends DomainException
+{
+    public static function for(string $value): self
+    {
+        return new self("A {{ variable }} with {{ uniqueFieldLabel }} [{$value}] already exists.");
+    }
+}

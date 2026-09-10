@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SetBusinessContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Lets same-origin requests from the Blade views authenticate against the
         // API using the session cookie, while native clients keep using bearer tokens.
         $middleware->statefulApi();
+
+        // Applied by each tenant-scoped domain's route group.
+        $middleware->alias([
+            'business' => SetBusinessContext::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

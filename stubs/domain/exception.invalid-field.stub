@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Exceptions;
+
+use DomainException;
+
+final class Invalid{{ entity }}{{ guardField }} extends DomainException
+{
+    public static function empty(): self
+    {
+        return new self('A {{ variable }} {{ guardFieldLabel }} cannot be empty.');
+    }
+}

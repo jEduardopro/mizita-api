@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Infrastructure\Http\Resources;
+
+use App\Domains\{{ domain }}\Application\Dtos\{{ entity }}Data;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * @property-read {{ entity }}Data $resource
+ */
+final class {{ entity }}Resource extends JsonResource
+{
+    /**
+     * The business id is deliberately not serialised: the caller already
+     * operates inside a single business.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->resource->id,
+{{ resourceFields }}
+            'created_at' => $this->resource->createdAt->format(DATE_ATOM),
+        ];
+    }
+}

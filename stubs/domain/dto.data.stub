@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Application\Dtos;
+
+use App\Domains\{{ domain }}\Entities\{{ entity }};
+use DateTimeImmutable;
+
+/**
+ * Output boundary. Entities never leave the application layer, so use cases
+ * return this instead.
+ */
+final readonly class {{ entity }}Data
+{
+    public function __construct(
+        public string $id,
+{{ dataDtoProperties }}
+        public DateTimeImmutable $createdAt,
+    ) {}
+
+    public static function fromEntity({{ entity }} ${{ variable }}): self
+    {
+        return new self(
+            id: ${{ variable }}->id,
+{{ dataDtoFromEntity }}
+            createdAt: ${{ variable }}->createdAt,
+        );
+    }
+}

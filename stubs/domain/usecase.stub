@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Application\UseCases;
+
+use App\Domains\{{ domain }}\Application\Dtos\Create{{ entity }}Input;
+use App\Domains\{{ domain }}\Application\Dtos\{{ entity }}Data;
+use App\Domains\{{ domain }}\Contracts\{{ entity }}Repository;
+use App\Domains\{{ domain }}\Entities\{{ entity }};
+use App\Domains\{{ domain }}\Events\{{ entity }}Created;
+{{ useCaseImports }}use App\Shared\Contracts\Clock;
+use App\Shared\Contracts\IdGenerator;
+use Illuminate\Contracts\Events\Dispatcher;
+
+/**
+ * Depends only on interfaces, so it can be built with mocks and exercised
+ * without a database.
+ */
+final class Create{{ entity }}
+{
+    public function __construct(
+        private readonly {{ entity }}Repository ${{ variablePlural }},
+        private readonly IdGenerator $ids,
+        private readonly Clock $clock,
+{{ businessContextParam }}        private readonly Dispatcher $events,
+    ) {}
+
+    public function handle(Create{{ entity }}Input $input): {{ entity }}Data
+    {
+{{ useCaseUniqueGuard }}        ${{ variable }} = {{ entity }}::create(
+            id: $this->ids->next(),
+{{ businessIdArg }}{{ useCaseCreateArgs }}
+            now: $this->clock->now(),
+        );
+
+        $this->{{ variablePlural }}->save(${{ variable }});
+        $this->events->dispatch(new {{ entity }}Created(${{ variable }}->id));
+
+        return {{ entity }}Data::fromEntity(${{ variable }});
+    }
+}

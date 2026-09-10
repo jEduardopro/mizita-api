@@ -1,0 +1,47 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Shared\Infrastructure\Concerns;
+
+use App\Shared\Contracts\BusinessContext;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+/**
+ * Tenant safety net for Eloquent models whose table has a business_id uuid
+ * column referencing businesses.uuid.
+ *
+ * The repository already writes business_id from the entity, so this trait is
+ * defense in depth rather than the primary mechanism. When no context is bound
+ * — console commands, migrations, seeders — the scope is skipped, which is why
+ * isolation for HTTP traffic is guaranteed by the "business" route middleware.
+ */
+trait BelongsToBusiness
+{
+    public static function bootBelongsToBusiness(): void
+    {
+        static::addGlobalScope('business', function (Builder $query): void {
+            $businessId = self::currentBusinessId();
+
+            if ($businessId !== null) {
+                $query->where($query->getModel()->qualifyColumn('business_id'), $businessId);
+            }
+        });
+
+        static::creating(function (Model $model): void {
+            if (blank($model->getAttribute('business_id'))) {
+                $model->setAttribute('business_id', self::currentBusinessId());
+            }
+        });
+    }
+
+    private static function currentBusinessId(): ?string
+    {
+        if (! app()->bound(BusinessContext::class)) {
+            return null;
+        }
+
+        return app(BusinessContext::class)->currentBusinessId();
+    }
+}

@@ -1,0 +1,37 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Infrastructure\Eloquent\Mappers;
+
+use App\Domains\{{ domain }}\Entities\{{ entity }};
+use App\Domains\{{ domain }}\Infrastructure\Eloquent\Models\{{ entity }}Model;
+use DateTimeImmutable;
+
+/**
+ * Translates between the persistence model and the domain entity. Only the
+ * repository adapter uses it.
+ */
+final class {{ entity }}Mapper
+{
+    public function toEntity({{ entity }}Model $model): {{ entity }}
+    {
+        return {{ entity }}::restore(
+            // The uuid is the domain identity; the int primary key stays here.
+            id: $model->uuid,
+{{ mapperToEntity }}
+            createdAt: DateTimeImmutable::createFromInterface($model->created_at),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toAttributes({{ entity }} ${{ variable }}): array
+    {
+        return [
+            'uuid' => ${{ variable }}->id,
+{{ mapperToAttributes }}
+        ];
+    }
+}

@@ -1,0 +1,26 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\{{ domain }}\Infrastructure\Eloquent\Factories;
+
+use App\Domains\{{ domain }}\Infrastructure\Eloquent\Models\{{ entity }}Model;
+{{ factoryImports }}use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<{{ entity }}Model>
+ */
+final class {{ entity }}ModelFactory extends Factory
+{
+    protected $model = {{ entity }}Model::class;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+{{ factoryBusinessField }}{{ factoryFields }}
+        ];
+    }
+}
