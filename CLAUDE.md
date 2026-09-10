@@ -174,6 +174,7 @@ Templates live in `stubs/domain/` and `stubs/shared/`; the field parser is `app/
 ## Tooling
 
 - Backend work → the **`mizita-backend`** agent (`.claude/agents/mizita-backend.md`). It owns this architecture and writes production code only; it does not write tests.
+- Testing → the **`mizita-tester`** agent (`.claude/agents/mizita-tester.md`). It owns the Pest suite and writes tests only; it never touches production code.
 - New module → the **`/new-domain`** skill (`.claude/skills/new-domain/`), a wrapper over `make:domain`.
 
 ## Conventions
