@@ -201,18 +201,18 @@ Check the routes before building an auth screen. Verify with `grep -rn "Route::"
 
 At the time of writing, these gaps block almost every screen and are all `mizita-backend`'s work. Re-verify rather than trusting this list, and report whichever still stand:
 
-- **No `POST /login`, `POST /logout` or register endpoint exists.** Only `/sanctum/csrf-cookie` and `GET /api/user`. Since every tenant-scoped domain sits behind `auth:sanctum` + `business`, **no domain screen is reachable until a session can be established.** You can build the login screen; the endpoint it posts to is a handoff.
-- **`GET /api/user` returns the raw `User` model**, which leaks the int primary key as `id` and leaks `business_id` — both forbidden by the identity convention in `CLAUDE.md`. Do not type a front-end model against it. Ask for a `UserResource` exposing the user's **uuid**, name, email, and whether a business exists.
+- **Fortify supplies the session endpoints**: `POST /login`, `/logout`, `/register`, `/forgot-password`, `/reset-password`, plus `PUT /user/password` and `/user/profile-information`. They are form endpoints on the `web` group, not `/api` — post to them at `{ baseURL: '/' }` after `/sanctum/csrf-cookie`.
+- **`GET /api/user` returns a hand-rolled `['name', 'email']` array**, not a Resource — see `routes/api.php`. It exposes no identifier at all, so there is nothing to key a cache or a profile route on. Ask for a `UserResource` exposing the user's **uuid**, name, email, and whether a business exists.
 - **`POST /api/businesses` carries no `auth:sanctum`** — its provider uses `['api']` alone. Onboarding assumes an authenticated user.
 - **Customers exposes only `POST /customers`.** No index, show, update or destroy. A list page is blocked on the backend, and a paginated `index` is what makes `{ data, links, meta }` available.
 
 ## State of play — read before you assume any of this exists
 
-The structure above is the **target**, and the project has not reached it yet. Right now `resources/js` holds `app.tsx` mounting a single `Ping` scaffolding component onto a Blade element, one shadcn button, and `lib/api.ts`. There is no `pages/`, no `domains/`, no layouts.
+The shell is built. `@inertiajs/react`, `@tanstack/react-query`, `react-i18next` and `axios` are installed and wired: `app.tsx` runs `createInertiaApp`, `lib/query-client.ts` holds the client, `lib/api.ts` the axios instance, `lib/i18n.ts` the en/es bundles. `layouts/` has `AdminLayout`, `AuthLayout`, `AuthSplitLayout` and `PublicLayout`; `pages/` has `public/welcome`, the four `auth/` screens and `admin/dashboard`; `components/` is populated under `ui/`, `form/`, `shared/`, `public/` and `auth/`.
 
-**Neither `@inertiajs/react` nor `@tanstack/react-query` is installed.** Check `package.json` before writing an import against either. Reaching the target layout is a task in itself — adding those two dependencies, wiring `createInertiaApp` in `app.tsx`, and deleting `Ping` — and it needs `mizita-backend` for the Laravel half (the Inertia middleware and the root view, both outside your territory).
+**`domains/` is the one part that does not exist yet.** Nothing consumes a domain endpoint, because `Customers` and `Businesses` expose only `store`. The single fetch in the app targets the app-wide `/api/user` and lives in `hooks/use-current-user.ts` — that is correct placement, not a violation. Create `domains/<domain>/` when the first domain read endpoint lands, and not before.
 
-Until that lands, say so plainly in your report rather than writing code that cannot run.
+**Copy is translated, never hardcoded.** Every string goes through `useTranslation(<namespace>)` against `locales/{en,es}/{admin,auth,common,public}.json`. Both locales are kept in lockstep by `tests/Unit/Localization/TranslationParityTest.php`, so a key added to one and not the other fails the suite.
 
 ## Design
 

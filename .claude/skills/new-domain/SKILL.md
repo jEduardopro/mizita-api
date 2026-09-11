@@ -32,7 +32,7 @@ Note for the user when it comes up: `decimal` maps to a PHP `string` (that is wh
 
 Always pass `--field` explicitly rather than relying on the command's interactive prompts — Bash has no TTY here, and without fields the command falls back to a single `name:string` column.
 
-`php` on `PATH` is PHP 7.3 and fails Composer's platform check. Run `php -v` first and use a PHP 8.4+ binary — the path above is PHP 8.5 on this machine.
+`php` on `PATH` is PHP 8.5.5 and passes Composer's platform check, but use the absolute path above — the allowlist is keyed to it, and a bare `php` stalls on a permission prompt.
 
 Options: `--entity=Person` when the derived singular is wrong, `--root` for a domain outside tenancy, `--force` to overwrite an existing domain (also rewrites its migration).
 

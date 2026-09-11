@@ -252,7 +252,7 @@ Triage:
 
 ## Running commands
 
-`php` on `PATH` in this environment is PHP 7.3, and `php artisan` dies with a Composer `platform_check.php` fatal. Detect, do not assume: run `php -v` first, and if it is below 8.4 fall back to a PHP 8.4+ binary. On this machine `/opt/homebrew/opt/php/bin/php` is PHP 8.5 and works.
+`php` on `PATH` is PHP 8.5.5 and satisfies Composer's platform check. Still call `/opt/homebrew/opt/php/bin/php` explicitly: the allowlist is keyed to that exact path, and a bare `php` stalls on a permission prompt.
 
 Use `artisan test`. Direct `vendor/bin/pest` and `vendor/bin/phpunit` invocations are not allowlisted and will stall on a permission prompt.
 

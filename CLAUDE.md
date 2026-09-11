@@ -72,7 +72,7 @@ English, everywhere — class names, columns, routes, comments. The non-obvious 
 
 ## Running commands
 
-`php` on `PATH` is **PHP 7.3** and every artisan call dies with a Composer `platform_check.php` fatal. Check `php -v` first and fall back to a PHP 8.4+ binary — on this machine `/opt/homebrew/opt/php/bin/php` is PHP 8.5.
+`php` on `PATH` is PHP 8.5.5 (`/opt/homebrew/opt/php@8.5/bin/php`), so artisan runs either way. Use the absolute path below anyway: the allowlist in `.claude/settings.local.json` is keyed to it, and a bare `php` only earns a permission prompt.
 
 ```sh
 /opt/homebrew/opt/php/bin/php artisan …
@@ -304,6 +304,8 @@ resources/js/
 │   ├── shared/             used by two or more audiences
 │   ├── form/               audience-agnostic wrappers over ui/
 │   └── public/…            used by exactly one audience, split by surface
+├── locales/<lang>/         i18next bundles, one JSON per namespace
+├── types/                  ambient declarations (i18next keys, Inertia page props)
 └── hooks/  lib/
 ```
 
@@ -329,7 +331,9 @@ Other conventions:
 - `resources/js/lib/utils.ts` re-exports `cn` from the `cn` package, a compiled drop-in for `clsx` + `tailwind-merge`. It is intentional; do not swap it for the shadcn default.
 - Import through the `@/*` alias → `resources/js/*`, declared in both `tsconfig.json` and `vite.config.ts`.
 
-**State of play.** Inertia is **not installed yet**, and neither is a query client. `resources/js` currently holds `app.tsx` mounting a single `Ping` scaffolding component onto a Blade element, plus one shadcn button. The layout above is the target, and the first front-end task is to reach it: add `@inertiajs/react` and `@tanstack/react-query`, publish the root view and `HandleInertiaRequests`, then delete `Ping` and `GET /api/ping`. Do not describe any of it as done until it is.
+**State of play.** Inertia, `@tanstack/react-query`, i18next and Fortify are installed and wired: `app.tsx` runs `createInertiaApp`, `resources/views/app.blade.php` is the root view, `HandleInertiaRequests` and `SetLocale` are registered, and the `Ping` scaffolding and `GET /api/ping` are gone. Built so far: four layouts, the public landing page, the four Fortify auth pages, and an admin dashboard that already demonstrates the contract — it renders from `Inertia::render('admin/dashboard')` with no props and reads `/api/user` on mount.
+
+**`domains/` does not exist yet.** Nothing consumes a domain endpoint so far, because no tenant domain exposes more than `store`; the one fetch in the app targets the app-wide `/api/user` and so lives in `hooks/use-current-user.ts`. The folder arrives with the first domain read endpoint — the rules above are the target for when it does.
 
 ```sh
 npx tsc --noEmit     # typecheck
@@ -386,8 +390,9 @@ Each of these is a rule because getting it wrong is an incident, not a bug.
 - **Tests run on PostgreSQL, never sqlite.** Exclusion constraints, partial and expression indexes and `timestamptz` are all Postgres-only, and sqlite would report green on a double booking. `phpunit.xml` points at the `pgsql` connection and the `mizita_api_testing` database; create it once per machine with `createdb mizita_api_testing`.
 - **Only unit tests are written right now.** `tests/Feature/` holds what already exists and stays green, but new coverage goes in `tests/Unit/` until the feature-test switch in `.claude/agents/mizita-tester.md` is turned on.
 - Unit tests build a use case **with mocks alone** — no container, no migrations. That is the bar the whole architecture exists to protect.
-- Shared fakes live in `tests/Support/`: `FakeClock`, a deterministic `FakeIdGenerator`, `FakeBusinessContext`. Injecting a fake context is how tenant isolation gets asserted without a database.
-- Architecture tests belong in `tests/Arch/` and should encode the layer table above — a domain entity importing `Illuminate\*` is a test failure, not a review comment.
+- Shared fakes belong in `tests/Support/`: `FakeClock`, a deterministic `FakeIdGenerator`, `FakeBusinessContext`. Injecting a fake context is how tenant isolation gets asserted without a database. **None of them exist yet** — the first test that needs one writes it (`autoload-dev` already maps `Tests\` to `tests/`, so no configuration change).
+- Architecture tests belong in `tests/Arch/` and should encode the layer table above — a domain entity importing `Illuminate\*` is a test failure, not a review comment. **`tests/Arch/` does not exist yet** and `pest-plugin-arch` is installed and unused.
+- **Coverage status: `Businesses` and `Customers` have no tests at all.** `tests/Unit/` holds only localization and Fortify password rules; no entity, use case or mapper in either domain is covered. Nothing about the architecture is currently enforced by the suite.
 
 ## Clean code practices and SOLID principles
 
