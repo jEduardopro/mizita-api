@@ -3,11 +3,11 @@
 use App\Domains\Businesses\BusinessesServiceProvider;
 use App\Domains\Customers\CustomersServiceProvider;
 use App\Providers\AppServiceProvider;
+use App\Providers\FortifyServiceProvider;
 
 return [
     AppServiceProvider::class,
-    CustomersServiceProvider::class,
-    BusinessesServiceProvider::class,
+    FortifyServiceProvider::class,
     BusinessesServiceProvider::class,
     CustomersServiceProvider::class,
 ];

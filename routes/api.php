@@ -3,13 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
-
-// Scaffolding: lets the Ping island prove the front end reaches the API.
-// Delete it along with the island and the home view.
-Route::get('/ping', fn () => [
-    'message' => 'pong',
-    'at' => now()->toTimeString(),
-]);
+// The signed-in account, trimmed to what a client may see: the internal int
+// primary key and the tenant discriminator never leave the infrastructure layer.
+Route::get('/user', fn (Request $request) => [
+    'name' => $request->user()->name,
+    'email' => $request->user()->email,
+])->middleware('auth:sanctum');

@@ -1,46 +1,38 @@
-import type { ComponentType } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { queryClient } from '@/lib/query-client';
 
 /**
- * Mounts React islands into the markup Blade rendered.
+ * Boots the Inertia app.
  *
- * Laravel owns the routing and renders the page; React only takes over the
- * elements that ask for it. A Blade view mounts a component with:
+ * Laravel owns the routing: a controller answers a URL with
+ * `Inertia::render('admin/customers/index')` and Inertia resolves that string
+ * against `pages/`, so the page name is the file path verbatim.
  *
- *     <div data-react-component="Ping"></div>
- *     <div data-react-component="Ping" data-props='{"label":"hi"}'></div>
- *
- * Anything in `data-props` is decoded and handed to the component as initial
- * props. It is meant for small hints like an id, not for page data: data comes
- * from the API so the same endpoints serve the web and, later, the mobile app.
+ * Data does not travel through Inertia props. A page mounts and its query hooks
+ * fetch from `/api`, the same endpoints a native client will call later, which
+ * is why the QueryClient is provided here — once, above the page — so the cache
+ * survives every page transition.
  */
+const fallbackAppName = 'Mizita';
 
-type IslandModule = { default: ComponentType<any> };
+void createInertiaApp({
+    resolve: (name) =>
+        resolvePageComponent<ResolvedComponent>(
+            `./pages/${name}.tsx`,
+            import.meta.glob<ResolvedComponent>('./pages/**/*.tsx'),
+        ),
+    title: (title, page) => {
+        const appName = (page.props.name as string | undefined) ?? fallbackAppName;
 
-// Every component under islands/ is registered by filename. They are bundled
-// eagerly; switch to a lazy glob with <Suspense> if the bundle grows.
-const modules = import.meta.glob<IslandModule>('./islands/*.tsx', { eager: true });
-
-const islands: Record<string, ComponentType<any>> = Object.fromEntries(
-    Object.entries(modules).map(([path, module]) => [
-        path.replace('./islands/', '').replace('.tsx', ''),
-        module.default,
-    ]),
-);
-
-document.querySelectorAll<HTMLElement>('[data-react-component]').forEach((element) => {
-    const name = element.dataset.reactComponent as string;
-    const Component = islands[name];
-
-    if (! Component) {
-        console.error(
-            `Unknown React island "${name}". Expected resources/js/islands/${name}.tsx.`,
-        );
-
-        return;
-    }
-
-    const props = element.dataset.props ? JSON.parse(element.dataset.props) : {};
-
-    createRoot(element).render(<Component {...props} />);
+        return title ? `${title} · ${appName}` : appName;
+    },
+    // Inertia v3 creates (or hydrates) the React root itself when no `setup` is
+    // given; `withApp` is the supported hook for wrapping it in providers.
+    withApp: (app) => <QueryClientProvider client={queryClient}>{app}</QueryClientProvider>,
+    progress: {
+        color: 'var(--primary)',
+        delay: 200,
+    },
 });
