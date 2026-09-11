@@ -137,7 +137,11 @@ Opt in per file, do not flip the commented-out global in `tests/Pest.php`:
 uses(RefreshDatabase::class);
 ```
 
-Tests run on sqlite `:memory:` (`phpunit.xml`), with `QUEUE_CONNECTION=sync` and `CACHE_STORE=array`.
+Tests currently run on sqlite `:memory:` (`phpunit.xml`), with `QUEUE_CONNECTION=sync` and `CACHE_STORE=array`.
+
+**sqlite is wrong for this project and is scheduled to go.** The app targets PostgreSQL and depends on things sqlite does not have: the exclusion constraint that prevents double bookings, partial and expression indexes for per-tenant uniqueness, and `timestamptz`. Under sqlite a test can pass while the behaviour it certifies is broken — a double booking is accepted silently.
+
+So: **never write a test whose correctness depends on a constraint sqlite does not enforce** and call it green. If a task asks you to cover overlap prevention, per-tenant uniqueness or timezone-sensitive storage, mark it `->todo('blocked: suite runs on sqlite, needs PostgreSQL')` and put the switch in your handback list. `phpunit.xml` is outside your territory.
 
 Tenant tables carry `business_id` as a uuid foreign key onto `businesses.uuid`, so **always create the business row before the tenant row**. `CustomerModelFactory` already resolves its own business; when you build rows by hand, order them yourself.
 
@@ -157,6 +161,12 @@ For every use case you cover, satisfy this list and declare it in your report:
 - Determinism: fixed clock, fixed ids, no `rand()`, no real dates, no reliance on test execution order.
 
 An endpoint additionally owes: the success status code and response shape (responses are wrapped in `data`), the validation matrix from the FormRequest as a `dataset()` returning 422, 401, and 403.
+
+### Two things this product makes you responsible for
+
+**Tenant isolation is an assertion, not an assumption.** A tenant-scoped repository or endpoint owes a test where a second business's rows exist and must be absent from the result. In unit tests that is a fake `BusinessContext`; at the HTTP edge it is two businesses and two users. The same applies in reverse to the deliberately cross-tenant reads — a customer's own appointments across businesses — where the test must prove *another account's* rows do not appear.
+
+**Anything time-shaped owes a DST test.** Schedules are local-time facts and appointments are absolute instants, so every slot or schedule calculation gets a case on a spring-forward day (02:00–03:00 local does not exist) and a fall-back day (01:30 local happens twice), with a real zone such as `Europe/Madrid`. A suite that only ever tests a Tuesday in March proves nothing about the two days a year this breaks. Pure calculators take `now` as a parameter — no clock needed, no excuse for skipping it.
 
 ## What not to test
 
@@ -180,8 +190,9 @@ An endpoint additionally owes: the success status code and response shape (respo
 
 `pest-plugin-arch` is already installed and unused. Encode the layer dependency table from `CLAUDE.md` in `tests/Arch/` — it is the cheapest safety net in this repository:
 
-- `App\Domains\*\Entities`, `ValueObjects`, `Events`, `Exceptions` and `Contracts` must not depend on `Illuminate\*`, `Carbon`, or any `Infrastructure` namespace.
+- `App\Domains\*\Entities`, `ValueObjects`, `Services`, `Events`, `Exceptions` and `Contracts` must not depend on `Illuminate\*`, `Carbon`, or any `Infrastructure` namespace.
 - `App\Domains\*\Application` must not depend on Eloquent, facades, `Illuminate\Http\*`, or any `Infrastructure` namespace.
+- **No domain depends on another domain outside `Infrastructure/`.** `App\Domains\Appointments\*` may not reference `App\Domains\Services\*` except from `Appointments\Infrastructure\Gateways\`. This is the rule most easily broken by accident — a direct import compiles and the unit tests still pass — which is exactly why an arch test is worth more here than a review comment.
 - Eloquent models carry the `Model` suffix.
 - Classes are `final` and files declare `strict_types=1`.
 

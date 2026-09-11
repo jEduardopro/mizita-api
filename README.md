@@ -1,58 +1,120 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Mizita
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Multi-tenant appointment booking.** A professional signs up, creates their business, and registers
+their staff, services, customers and working hours. From then on they run their whole agenda from one
+dashboard. On the public side, anyone can search across every published business — by business or by
+service — and book an appointment, with or without an account.
 
-## About Laravel
+Mizita is a web application first, but **the API is the contract**: every screen is built on the same
+REST endpoints a native client will consume later. Nothing is rendered from data the API does not
+also expose.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Who it is for
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Professionals and their staff** — hairdressers, clinics, studios, trainers, anyone whose business
+  is booked time. They own a *Business*: its services, its people, its opening hours, its agenda.
+- **End customers** — the people booking. They can book as a guest with just a name and a way to be
+  reached, or create an account and keep their booking history across every business on the platform.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Status
 
-## Learning Laravel
+Early. Two domains exist today and both are create-only.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Area | Today |
+| --- | --- |
+| Businesses | Create only, currently unauthenticated |
+| Customers | Create only, tenant-scoped |
+| Auth | Sanctum is wired for session and token auth, but no endpoints exist yet |
+| Staff, services, availability, appointments | Not built |
+| Public catalog and booking | Not built |
+| Front end | Vite + React with a single scaffolding component |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Stack
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **Laravel 13.31** on **PHP 8.4+**
+- **PostgreSQL**
+- **Sanctum**, for both session-cookie auth (the web app, same origin) and personal access tokens
+  (the future native client)
+- **Pest** for tests, **Pint** for formatting
+- **React 19 + TypeScript** on **Vite 8**, with **Tailwind 4** and **shadcn/ui**
 
-## Agentic Development
+## Getting started
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### The PHP binary — read this first
 
-```bash
-composer require laravel/boost --dev
+`php` on `PATH` in this project's development environment is **PHP 7.3**, and every `artisan` call
+dies with a Composer `platform_check.php` fatal error. Check before you start:
 
-php artisan boost:install
+```sh
+php -v
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+If it is not 8.4+, use an explicit binary. On the maintainer's machine that is
+`/opt/homebrew/opt/php/bin/php`, and every command below assumes you substitute yours.
 
-## Contributing
+### Install
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```sh
+git clone <repo> mizita-api && cd mizita-api
 
-## Code of Conduct
+createdb mizita_api                       # PostgreSQL must be running
+cp .env.example .env                      # then set DB_USERNAME / DB_PASSWORD
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+/opt/homebrew/opt/php/bin/php composer install
+/opt/homebrew/opt/php/bin/php artisan key:generate
+/opt/homebrew/opt/php/bin/php artisan migrate
 
-## Security Vulnerabilities
+npm install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Run
+
+```sh
+/opt/homebrew/opt/php/bin/php artisan serve     # http://localhost:8000
+npm run dev                                     # Vite dev server, separate terminal
+```
+
+### Tests, formatting, typecheck
+
+```sh
+/opt/homebrew/opt/php/bin/php artisan test
+/opt/homebrew/opt/php/bin/php vendor/bin/pint --dirty
+npx tsc --noEmit
+npm run build
+```
+
+## How the code is laid out
+
+The backend is **layered DDD, one folder per domain** under `app/Domains/<Domain>/`, split into a
+framework-free domain layer, an application layer of use cases, and an infrastructure layer holding
+Eloquent and HTTP. Dependencies point inward only.
+
+Everything is multi-tenant. `Businesses` is the root domain; every other domain carries the business
+it belongs to, and route middleware — not the models — is what guarantees isolation.
+
+Identity is two-headed on purpose: every table has an internal auto-increment `id` for joins and a
+public `uuid` that is the domain identity and the only one the API ever exposes.
+
+New modules are **generated, never hand-created**:
+
+```sh
+/opt/homebrew/opt/php/bin/php artisan make:domain Services \
+  --field="name:string" \
+  --field="duration_minutes:integer" \
+  --field="price_cents:integer"
+```
+
+The front end mirrors those domains by name under `resources/js/domains/`. Laravel owns routing and
+renders the page; React takes over from there and loads its data from the API — the same endpoints
+the native client will use.
+
+## Documentation
+
+**[`CLAUDE.md`](CLAUDE.md) is the reference.** Read it before writing any code: it documents the layer
+rules, the uuid/int identity convention, how tenancy is resolved, the `make:domain` generator and its
+field DSL, and the front-end conventions. It applies to every AI coding tool, not just Claude —
+[`AGENTS.md`](AGENTS.md) points there.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Proprietary. All rights reserved.

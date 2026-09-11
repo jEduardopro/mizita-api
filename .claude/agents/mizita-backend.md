@@ -65,6 +65,16 @@ Route::prefix('api')->middleware('api')->group(__DIR__.'/Infrastructure/Http/rou
 
 `routes/api.php` is only for app-wide endpoints. Each domain's service provider is registered in `bootstrap/providers.php`.
 
+**Web routes are yours too, and they render pages, not data.** The front end is not an SPA: Laravel matches the URL and Inertia renders the React page component for it. A web route passes **page identity and route parameters only** — never a record, never a Resource.
+
+```php
+// routes/web.php
+Route::get('/admin/customers', fn () => Inertia::render('admin/customers/index'));
+Route::get('/b/{slug}', fn (string $slug) => Inertia::render('public/businesses/show', ['slug' => $slug]));
+```
+
+The page then loads its data from `/api` with axios. **Do not add data to an Inertia prop to save the front end a request** — that creates a second contract that drifts from the API the native client will use. If a screen needs data the API does not expose, the fix is an endpoint, not a prop.
+
 Ports shared across domains already exist in `app/Shared/Contracts/`: `Clock`, `IdGenerator`, `TransactionManager` — implemented by `SystemClock`, `UuidGenerator` and `EloquentTransactionManager` and bound in `app/Providers/AppServiceProvider.php` — plus `BusinessContext`, which the `business` middleware binds per request. Inject them; do not recreate them. Add a new shared port only when two or more domains genuinely need it.
 
 **Grow, don't scaffold.** Create a folder only when the first file needs it. A first slice is usually `Contracts/` + `Entities/` + `Application/UseCases/` + `Application/Dtos/` + `Infrastructure/Eloquent/`. `ValueObjects/`, `Gateways/`, `Listeners/`, `Jobs/` and `Commands/` appear when a real need appears. Never create an empty directory.
@@ -98,6 +108,23 @@ The command also registers the provider, creates `app/Shared/` on first run, and
 
 The output is a starting point, not a contract: replace the placeholder invariants with the real business rules, trim the repository port to the queries the domain actually needs, and delete the parts of the slice this module does not use. Templates live in `stubs/domain/` and `stubs/shared/`, and the field parser in `app/Console/Commands/Support/DomainField.php` — change the generated style there, never by editing every generated copy.
 
+### What the generator cannot do — the finishing checklist
+
+A generated slice **looks** finished and is not. Walk this list before you call a domain done, and say in your report which items you handled.
+
+| Gap | You write by hand |
+| --- | --- |
+| **No foreign keys between domains** | The only FK it emits is `business_id` → `businesses.uuid`. Declare `customer_id:uuid` for the column, then add the constraint, the relation and the eager loading yourself |
+| **No enums** | The backed enum, the cast, and `Rule::enum()` in the FormRequest — even though "enums over string constants" is a standing convention |
+| **No pivot tables** | The entire slice: migration, model, repository methods |
+| **Single-column indexes only** | Every composite, partial or expression index |
+| **`unique` is global, not per-tenant** | The modifier makes a column unique across *all* businesses while the generated `existsBy<Field>()` is tenant-scoped — they disagree. For per-tenant uniqueness drop the modifier and write `unique(business_id, lower(email)) where deleted_at is null` yourself |
+| **Create-only CRUD** | `index`, `show`, `update`, `destroy`, their use cases and pagination. Only `store` is generated |
+| **Nullable `date`/`datetime` is buggy** | `DomainField::requestAccessor()` tests the date branch before the nullable branch, so an omitted nullable date becomes **now** instead of `null`. Hand-write the accessor, or keep nullable timestamps out of `--field` entirely |
+| **`--force` leaves orphans** | It does not delete files from a previous run. Check `Exceptions/` for classes nothing throws |
+
+And one footgun that is not a missing feature: **provider registration is not idempotent.** `registerProvider()` looks for the FQCN, but Pint then rewrites `bootstrap/providers.php` into `use` imports plus short class names, so the next run's check misses and appends a duplicate — which registers that domain's route group twice. **Check `bootstrap/providers.php` after every `make:domain`.**
+
 ## Multi-tenant: every domain belongs to a Business
 
 `Businesses` is the root domain. Everything else is scoped to a business.
@@ -106,8 +133,23 @@ The output is a starting point, not a contract: replace the placeholder invarian
 - A use case touching tenant data injects `App\Shared\Contracts\BusinessContext` and passes `businessId: $this->business->currentBusinessId()` into `Entity::create()`.
 - **Never read `business_id` off an Eloquent model in the application layer**, and never pass it in from the HTTP request — it comes from the context port only.
 - `App\Shared\Infrastructure\Concerns\BelongsToBusiness` (global scope + `creating` hook) is a safety net on the model, not the primary mechanism.
-- The `business` route middleware aborts 403 when the authenticated user has no business. Tenant-scoped route groups use `['api', 'auth:sanctum', 'business']`.
+- The `business` route middleware aborts 403 when the authenticated caller has no business. It never binds a null context.
 - The business id is not serialised by Resources: the caller already operates inside one business.
+
+There are **three** route stacks, and the stack — not the controller — is what guarantees isolation:
+
+| Caller | Middleware | Tenant resolved from |
+| --- | --- | --- |
+| Business user | `['api', 'auth:sanctum', 'business']` | the caller's staff membership |
+| Customer with an account | `['api', 'auth:sanctum']` | **nothing — deliberately cross-tenant** |
+| Anonymous | `['api', 'throttle:…']`, plus `business.public` where a slug is present | the business slug in the URL, or nothing |
+
+`BusinessContext` is agnostic about *how* the tenant was chosen, so every use case, repository and global scope works unchanged behind a slug-resolved context. Two rules follow:
+
+- **A cross-tenant route binds no context at all.** Binding one would silently narrow a public search to a single tenant. Those endpoints filter explicitly, in a dedicated read adapter, and run outside the global scope on purpose — so a forgotten `where` there leaks other people's data.
+- **A public slug that does not resolve is 404, not 403.** A 403 confirms the slug exists.
+
+Two things here are **changing** and new code should not depend on them: today `SetBusinessContext` reads `$request->user()->business` and `users.business_id` holds the business uuid. The tenant will instead be resolved from the caller's active staff membership, and `users.business_id` is removed. Write against `BusinessContext`, never against `User::business()`.
 
 ## Soft deletes
 
@@ -148,7 +190,22 @@ Use these instead:
 | Atomicity | `TransactionManager::run(callable $work): mixed` |
 | Persistence | one repository port per aggregate |
 | External service | one gateway port per service |
+| **Another domain's data** | a port you declare, adapted through a gateway — see below |
 | Domain events | `Illuminate\Contracts\Events\Dispatcher` (an interface, so it is mockable) |
+
+### Crossing domains
+
+A domain never imports another domain — not an entity, not a DTO, not a repository. When a use case needs a neighbour's data, **the consumer declares the port**:
+
+1. A narrow interface in the *consuming* domain's `Contracts/`, returning that domain's own small DTO or value object:
+   `Appointments\Contracts\ServiceCatalog::describe(string $serviceId): ServiceSnapshot`.
+2. An adapter in the consuming domain's `Infrastructure/Gateways/` implementing it by calling the other domain's repository or use case:
+   `Appointments\Infrastructure\Gateways\ServicesServiceCatalog`.
+3. Bound in the consuming domain's service provider.
+
+The consumer owns the shape of what it needs, so the neighbour's DTOs never leak across the boundary and the use case stays constructible with a mock. For the write side and anything asynchronous, use domain events plus `Application/Listeners/` instead.
+
+**This is the rule most likely to be broken by accident**, because a direct import compiles and the tests pass. It still couples two domains permanently. If a task seems to require reaching into another domain, declare the port instead and say so in your report.
 
 Configuration reaches a use case as constructor scalars wired in the service provider — never read with `config()` inside the use case.
 
@@ -232,9 +289,27 @@ Triage:
 - **Bug fix** — identify the layer that owns the defect and fix it there; do not patch the symptom at the HTTP edge.
 - **Refactor** — no behavior change, and state explicitly what stayed identical.
 
+## Time and timezones
+
+This is a booking product, so time handling is a rule, not a preference.
+
+- **Every business carries an IANA timezone** (`Europe/Madrid`), and it is the only source of local time. Never `config('app.timezone')`, never a fixed offset, never `+02:00` baked into a string.
+- **Store instants as `timestampTz`, in UTC.** PHP works in UTC throughout, `DATE_ATOM` on the wire. Note the generator emits `dateTime`, not `timestampTz` — change it.
+- **Recurring hours are local-time facts** ("Mondays 09:00–17:00"); appointments are absolute instants. Convert **local → UTC per date**, never by adding a constant, because the offset changes across a DST boundary.
+- `Clock` is injected, always. A pure domain service takes `now` as a **parameter**, so it can be tested with no clock at all.
+
+## Security invariants
+
+Each of these is a rule because getting it wrong is an incident, not a bug. If a task would breach one, stop and say so in your report.
+
+- **Guest booking history is linked to an account only after the email is verified.** Otherwise registering with a guessed address exposes that person's appointments across every business on the platform.
+- **A public Resource is a separate class**, never a tenant Resource reused. No public endpoint returns a Customer or an appointment's customer fields.
+- **Appointment overlap is prevented by the database** — a Postgres exclusion constraint over `(staff_id, tstzrange(starts_at, ends_at))`, in raw SQL in the migration. Application-level checks cannot close the race between two simultaneous bookings; the repository catches SQLSTATE `23P01` and the controller renders **409**.
+- **Rate limiters are declared explicitly** in `AppServiceProvider::boot()` with `RateLimiter::for()` — public search, availability, booking and auth each get their own budget.
+
 ## Laravel and PHP conventions
 
-- PHP 8.3+: type everything (no bare `mixed`; array shapes get docblock generics), `final` by default, promoted readonly constructor properties, enums over string constants.
+- PHP 8.3+: type everything (no bare `mixed`; array shapes get docblock generics), `final` by default, promoted readonly constructor properties, enums over string constants — **and the generator cannot emit an enum, so write it by hand**.
 - `make:domain` emits the first migration, Eloquent model and factory of a domain. For later changes use `artisan make:migration`, and `artisan make:model` moved and renamespaced into `Infrastructure/Eloquent/Models/`. Never hand-roll a migration filename.
 - Factories live in `Infrastructure/Eloquent/Factories/<Entity>ModelFactory.php` and are wired through the model's `newFactory()`. The generator writes them; you still write no tests.
 - Eager-load in the repository adapter to avoid N+1. A use case must never know about eager loading.
