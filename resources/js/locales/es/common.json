@@ -3,10 +3,35 @@
         "dashboard": "Ir al panel",
         "logIn": "Iniciar sesión",
         "createAccount": "Crear cuenta",
-        "logOut": "Cerrar sesión"
+        "logOut": "Cerrar sesión",
+        "sections": "Secciones de la página",
+        "account": "Cuenta"
     },
     "footer": {
-        "tagline": "{{name}} — agenda de citas para equipos pequeños."
+        "tagline": "{{name}} — agenda de citas para equipos pequeños.",
+        "product": {
+            "title": "Producto",
+            "howItWorks": "Cómo funciona",
+            "benefits": "Qué incluye",
+            "pricing": "Precios"
+        },
+        "company": {
+            "title": "Empresa",
+            "about": "Quiénes somos",
+            "contact": "Contacto",
+            "help": "Ayuda"
+        },
+        "legal": {
+            "title": "Legal",
+            "privacy": "Privacidad",
+            "terms": "Términos",
+            "cookies": "Cookies"
+        },
+        "social": {
+            "title": "Síguenos",
+            "followOn": "{{name}} en {{network}}"
+        },
+        "copyright": "© {{year}} {{name}}. Todos los derechos reservados."
     },
     "actions": {
         "tryAgain": "Reintentar",

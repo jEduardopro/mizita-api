@@ -11,6 +11,33 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+
+    /*
+     * The brand ramp, exposed so `bg-brand-600`, `text-brand-300` and friends are
+     * available wherever a semantic token would be too blunt. The ramp itself never
+     * changes between themes — only the semantic tokens below point at different
+     * steps of it, which is what keeps a single blue recognisable in light and dark.
+     */
+    --color-brand-50: var(--brand-50);
+    --color-brand-100: var(--brand-100);
+    --color-brand-200: var(--brand-200);
+    --color-brand-300: var(--brand-300);
+    --color-brand-400: var(--brand-400);
+    --color-brand-500: var(--brand-500);
+    --color-brand-600: var(--brand-600);
+    --color-brand-700: var(--brand-700);
+    --color-brand-800: var(--brand-800);
+    --color-brand-900: var(--brand-900);
+    --color-brand-950: var(--brand-950);
+
+    /*
+     * The two alternating page surfaces. They are their own tokens rather than an
+     * opacity on `--muted` because they have to move in opposite directions per
+     * theme: darker than the page in light mode, lighter than it in dark mode.
+     */
+    --color-surface-muted: var(--surface-muted);
+    --color-surface-brand: var(--surface-brand);
+
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -51,73 +78,156 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Ambient motion. `tw-animate-css` only ships one-shot enter and exit
+ * animations, so the hero collage's continuous drift is defined here — the one
+ * place in the project that owns custom keyframes.
+ *
+ * The keyframes are namespaced so they can never collide with a library's own
+ * `float`, and they animate the `translate` property, which is independent of
+ * `rotate`: a piece can be tilted and drifting at once without the two fighting
+ * over one declaration.
+ *
+ * There are two directions on purpose. Pieces sharing a screen should not peak
+ * in unison, so neighbours take opposite phases and different durations, and a
+ * caller offsets them further with a negative `animation-delay`.
+ *
+ * Every caller applies these through `motion-safe:`, the house convention: a
+ * looping animation has to stop completely for a reader who asked for less
+ * motion, not merely slow down.
+ */
+@theme {
+    --animate-float-slow: mizita-float 7s ease-in-out infinite;
+    --animate-float-medium: mizita-float 5.5s ease-in-out infinite;
+    --animate-float-fast: mizita-float 4.5s ease-in-out infinite;
+    --animate-sink-slow: mizita-sink 6.2s ease-in-out infinite;
+    --animate-sink-medium: mizita-sink 5s ease-in-out infinite;
+
+    @keyframes mizita-float {
+        0%,
+        100% {
+            translate: 0 0;
+        }
+        50% {
+            translate: 0 -8px;
+        }
+    }
+
+    @keyframes mizita-sink {
+        0%,
+        100% {
+            translate: 0 0;
+        }
+        50% {
+            translate: 0 7px;
+        }
+    }
+}
+
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    /*
+     * Brand: hue 258, an ultramarine that sits between blue and indigo. It is
+     * deliberately deeper and more saturated than a stock blue — a booking product
+     * is asking a stranger to hand over their working day, so the accent has to
+     * read as trust and security rather than as a default framework colour.
+     *
+     * The ramp is set in oklch and every step is inside the sRGB gamut, so nothing
+     * is silently clipped. `brand-600` on white measures 5.17:1 and `brand-400`
+     * against the dark surface measures 7.90:1, which is what makes both themes
+     * usable for white-on-brand and brand-on-dark button text.
+     */
+    --brand-50: oklch(0.974 0.012 258);
+    --brand-100: oklch(0.945 0.026 258);
+    --brand-200: oklch(0.898 0.05 258);
+    --brand-300: oklch(0.826 0.087 258);
+    --brand-400: oklch(0.724 0.144 258);
+    --brand-500: oklch(0.626 0.202 258);
+    --brand-600: oklch(0.542 0.2 258);
+    --brand-700: oklch(0.468 0.173 258);
+    --brand-800: oklch(0.398 0.147 258);
+    --brand-900: oklch(0.343 0.127 258);
+    --brand-950: oklch(0.245 0.091 258);
+
+    /*
+     * Surfaces stay essentially neutral and carry only a few thousandths of chroma
+     * at the brand hue — enough that white next to blue does not look cold, not
+     * enough to spend the accent anywhere except an action.
+     */
+    --background: oklch(0.995 0.002 258);
+    --foreground: oklch(0.16 0.012 258);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.16 0.012 258);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.16 0.012 258);
+    --primary: var(--brand-600);
+    --primary-foreground: oklch(0.995 0.002 258);
+    --secondary: oklch(0.968 0.005 258);
+    --secondary-foreground: oklch(0.16 0.012 258);
+    --muted: oklch(0.968 0.005 258);
+    --muted-foreground: oklch(0.505 0.018 258);
+    --accent: oklch(0.968 0.005 258);
+    --accent-foreground: oklch(0.16 0.012 258);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --border: oklch(0.918 0.006 258);
+    --input: oklch(0.918 0.006 258);
+    --ring: var(--brand-500);
+    --surface-muted: oklch(0.974 0.006 258);
+    --surface-brand: oklch(0.955 0.019 258);
+    --chart-1: var(--brand-500);
+    --chart-2: var(--brand-600);
+    --chart-3: var(--brand-700);
+    --chart-4: var(--brand-800);
+    --chart-5: var(--brand-300);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: oklch(0.985 0.004 258);
+    --sidebar-foreground: oklch(0.16 0.012 258);
+    --sidebar-primary: var(--brand-600);
+    --sidebar-primary-foreground: oklch(0.995 0.002 258);
+    --sidebar-accent: oklch(0.968 0.005 258);
+    --sidebar-accent-foreground: oklch(0.16 0.012 258);
+    --sidebar-border: oklch(0.918 0.006 258);
+    --sidebar-ring: var(--brand-500);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    /*
+     * `brand-600` is far too dark to sit on a dark surface, so the accent steps up
+     * the ramp to `brand-400` and the text on it flips from near-white to the
+     * darkest brand step — 6.66:1, still comfortably past AA.
+     */
+    --background: oklch(0.16 0.008 258);
+    --foreground: oklch(0.975 0.004 258);
+    --card: oklch(0.208 0.011 258);
+    --card-foreground: oklch(0.975 0.004 258);
+    --popover: oklch(0.208 0.011 258);
+    --popover-foreground: oklch(0.975 0.004 258);
+    --primary: var(--brand-400);
+    --primary-foreground: var(--brand-950);
+    --secondary: oklch(0.268 0.013 258);
+    --secondary-foreground: oklch(0.975 0.004 258);
+    --muted: oklch(0.268 0.013 258);
+    --muted-foreground: oklch(0.72 0.022 258);
+    --accent: oklch(0.268 0.013 258);
+    --accent-foreground: oklch(0.975 0.004 258);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --ring: var(--brand-500);
+    --surface-muted: oklch(0.215 0.013 258);
+    --surface-brand: oklch(0.252 0.03 258);
+    --chart-1: var(--brand-300);
+    --chart-2: var(--brand-400);
+    --chart-3: var(--brand-500);
+    --chart-4: var(--brand-600);
+    --chart-5: var(--brand-200);
+    --sidebar: oklch(0.208 0.011 258);
+    --sidebar-foreground: oklch(0.975 0.004 258);
+    --sidebar-primary: var(--brand-400);
+    --sidebar-primary-foreground: var(--brand-950);
+    --sidebar-accent: oklch(0.268 0.013 258);
+    --sidebar-accent-foreground: oklch(0.975 0.004 258);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: var(--brand-500);
 }
 
 @layer base {

@@ -3,10 +3,35 @@
         "dashboard": "Go to dashboard",
         "logIn": "Log in",
         "createAccount": "Create account",
-        "logOut": "Log out"
+        "logOut": "Log out",
+        "sections": "Page sections",
+        "account": "Account"
     },
     "footer": {
-        "tagline": "{{name}} — appointment scheduling for small teams."
+        "tagline": "{{name}} — appointment scheduling for small teams.",
+        "product": {
+            "title": "Product",
+            "howItWorks": "How it works",
+            "benefits": "What you get",
+            "pricing": "Pricing"
+        },
+        "company": {
+            "title": "Company",
+            "about": "About us",
+            "contact": "Contact",
+            "help": "Help"
+        },
+        "legal": {
+            "title": "Legal",
+            "privacy": "Privacy",
+            "terms": "Terms",
+            "cookies": "Cookies"
+        },
+        "social": {
+            "title": "Follow us",
+            "followOn": "{{name}} on {{network}}"
+        },
+        "copyright": "© {{year}} {{name}}. All rights reserved."
     },
     "actions": {
         "tryAgain": "Try again",

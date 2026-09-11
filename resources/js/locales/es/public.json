@@ -4,19 +4,91 @@
         "eyebrow": "Gestión de citas",
         "headline": "Reservas que respetan tu jornada.",
         "lede": "{{name}} reúne tus horarios, tu equipo, tus servicios y tus días libres en un solo sitio, para que cada hueco que ofreces sea uno que puedas cumplir.",
-        "glossary": {
-            "slot": {
-                "term": "Hueco",
-                "definition": "Una hora de inicio que ya hemos contrastado con tu horario, tus días libres y todo lo que ya está reservado."
+        "cta": "Comienza gratis",
+        "steps": {
+            "eyebrow": "Cómo funciona",
+            "heading": "Tres pasos hasta tu primera reserva.",
+            "setUp": {
+                "title": "Monta tu negocio",
+                "body": "Añade tus servicios con su duración y sus márgenes, da de alta a tu equipo y fija las horas que trabaja cada persona."
             },
-            "block": {
-                "term": "Bloque",
-                "definition": "Lo que ocupa de verdad una reserva: el margen previo, el servicio y el margen posterior."
+            "share": {
+                "title": "Comparte tu página de reservas",
+                "body": "Tus clientes eligen servicio, persona y hora desde un enlace. Reservan sin crear cuenta: con su nombre y un email o un teléfono basta."
             },
-            "horizon": {
-                "term": "Horizonte",
-                "definition": "Hasta cuándo pueden reservar tus clientes. Lo fijas tú, igual que la antelación mínima, en cada negocio."
+            "run": {
+                "title": "Lleva la agenda desde un panel",
+                "body": "Cada cita entra en el calendario con su bloque completo, y ves el día del negocio y el de cada persona del equipo en la misma pantalla."
             }
+        },
+        "benefits": {
+            "eyebrow": "Qué incluye",
+            "heading": "Todo lo que hace falta para que una hora libre lo esté de verdad.",
+            "team": {
+                "term": "Servicio",
+                "title": "Tu equipo y tu catálogo",
+                "body": "Cada servicio guarda su duración, sus márgenes y su precio, y sabe qué personas del equipo pueden darlo."
+            },
+            "hours": {
+                "term": "Horario",
+                "title": "Horas semanales y días libres",
+                "body": "Defines el horario del negocio y el de cada persona, y marcas vacaciones, cierres y ausencias sin tocar nada más."
+            },
+            "slots": {
+                "term": "Hueco",
+                "title": "Horas que ya cuentan lo ocupado",
+                "body": "Cada hora que ofreces viene contrastada con tu horario, tus días libres y lo que ya está reservado, con el margen de antes y el de después incluidos."
+            },
+            "policy": {
+                "term": "Horizonte",
+                "title": "Tus reglas de reserva",
+                "body": "Cada negocio tiene su zona horaria, su antelación mínima y su fecha límite: decides con cuánto margen y hasta cuándo se te puede reservar."
+            }
+        },
+        "pricing": {
+            "eyebrow": "Precios",
+            "heading": "Empieza gratis. Paga cuando trabajes con equipo.",
+            "recommended": "Recomendado",
+            "currency": "MXN",
+            "perMonth": "/mes",
+            "plans": {
+                "free": {
+                    "name": "Gratis",
+                    "price": "$0",
+                    "summary": "Para un profesional que lleva su propia agenda.",
+                    "includes": "Incluye",
+                    "cta": "Comienza gratis",
+                    "features": {
+                        "staff": "Una sola persona: tú, con tu horario semanal.",
+                        "services": "Hasta tres servicios, cada uno con su duración, sus márgenes y su precio.",
+                        "hours": "El horario de tu negocio, en tu zona horaria.",
+                        "page": "Tu página de reservas, donde tus clientes reservan sin crear cuenta.",
+                        "slots": "Huecos que ya cuentan tu horario y lo que ya está reservado."
+                    }
+                },
+                "complete": {
+                    "name": "Completo",
+                    "price": "$200",
+                    "summary": "Para un negocio con equipo, catálogo completo y días libres.",
+                    "includes": "Todo lo de Gratis, y además",
+                    "cta": "Comienza completo",
+                    "features": {
+                        "staff": "Todo tu equipo, cada persona con su propio horario.",
+                        "services": "Servicios sin límite, y quién puede dar cada uno.",
+                        "timeOff": "Días libres: vacaciones, cierres y ausencias.",
+                        "policy": "Reglas de reserva: antelación mínima y hasta cuándo se te puede reservar.",
+                        "agenda": "El día del negocio y el de cada persona en una sola pantalla.",
+                        "reminders": "Recordatorios por email automáticos antes de cada cita.",
+                        "payments": "Cobros en línea: cobra o pide un anticipo al reservar.",
+                        "reports": "Reportes y estadísticas de tu agenda, tu equipo y tus servicios.",
+                        "googleCalendar": "Sincronización con Google Calendar, en los dos sentidos."
+                    }
+                }
+            }
+        },
+        "closing": {
+            "heading": "Abre tu agenda a reservas.",
+            "body": "Crea tu negocio, carga tus servicios y comparte tu enlace de reservas."
         }
     },
     "agendaPreview": {
@@ -26,7 +98,37 @@
         },
         "blockMeta": "{{staff}} · {{minutes}} min",
         "buffer": "Margen",
-        "openGap": "{{minutes}} min libres",
-        "footnote": "Lo reservable es lo que queda: el horario del negocio, ajustado al de cada persona, menos los días libres y menos todo lo ya reservado."
+        "openGap": "{{minutes}} min libres"
+    },
+    "heroCollage": {
+        "activity": {
+            "title": "Actividad",
+            "items": {
+                "booked": {
+                    "copy": "Nueva reserva a las 09:30",
+                    "time": "2 min"
+                },
+                "rescheduled": {
+                    "copy": "Color movido a las 11:00",
+                    "time": "18 min"
+                },
+                "reminder": {
+                    "copy": "Recordatorio enviado a Marta",
+                    "time": "1 h"
+                },
+                "customer": {
+                    "copy": "Marta ya está en tus clientes",
+                    "time": "3 h"
+                },
+                "cancelled": {
+                    "copy": "16:00 cancelada, hueco libre otra vez",
+                    "time": "Ayer"
+                }
+            }
+        },
+        "chips": {
+            "confirmed": "Cita confirmada",
+            "openSlot": "{{time}} libre"
+        }
     }
 }

@@ -4,19 +4,91 @@
         "eyebrow": "Appointment scheduling",
         "headline": "Bookings that respect the working day.",
         "lede": "{{name}} holds your opening hours, your staff, your services and your time off in one place, so every slot you offer is one you can actually keep.",
-        "glossary": {
-            "slot": {
-                "term": "Slot",
-                "definition": "A start time we have already checked against opening hours, time off and everything booked."
+        "cta": "Start free",
+        "steps": {
+            "eyebrow": "How it works",
+            "heading": "Three steps to your first booking.",
+            "setUp": {
+                "title": "Set up your business",
+                "body": "Add your services with their duration and buffers, register your staff, and set the hours each person works."
             },
-            "block": {
-                "term": "Block",
-                "definition": "What a booking really consumes: the buffer before, the service itself, the buffer after."
+            "share": {
+                "title": "Share your booking page",
+                "body": "Your customers pick a service, a person and a time from one link. They book without an account: a name and an email or a phone number is enough."
             },
-            "horizon": {
-                "term": "Horizon",
-                "definition": "How far ahead your customers may book. You set it, and the lead time, per business."
+            "run": {
+                "title": "Run the agenda from one dashboard",
+                "body": "Every appointment lands on the calendar as a full block, and you see the business's day and each staff member's day on the same screen."
             }
+        },
+        "benefits": {
+            "eyebrow": "What you get",
+            "heading": "Everything it takes for a free hour to really be free.",
+            "team": {
+                "term": "Service",
+                "title": "Your staff and your catalogue",
+                "body": "Every service keeps its duration, its buffers and its price, and knows which staff members can deliver it."
+            },
+            "hours": {
+                "term": "Schedule",
+                "title": "Weekly hours and time off",
+                "body": "Set the hours the business opens and the hours each person works, then mark holidays, closures and absences without touching anything else."
+            },
+            "slots": {
+                "term": "Slot",
+                "title": "Times that already count what is taken",
+                "body": "Every time you offer has been checked against your hours, your time off and everything already booked, with the buffer before and the buffer after included."
+            },
+            "policy": {
+                "term": "Horizon",
+                "title": "Your booking rules",
+                "body": "Each business has its own timezone, its own lead time and its own cut-off date: you decide how soon and how far ahead people may book you."
+            }
+        },
+        "pricing": {
+            "eyebrow": "Pricing",
+            "heading": "Start free. Pay when you work with a team.",
+            "recommended": "Recommended",
+            "currency": "MXN",
+            "perMonth": "/month",
+            "plans": {
+                "free": {
+                    "name": "Free",
+                    "price": "$0",
+                    "summary": "For one professional running their own agenda.",
+                    "includes": "Includes",
+                    "cta": "Start free",
+                    "features": {
+                        "staff": "One staff member: you, with your own weekly hours.",
+                        "services": "Up to three services, each with its duration, buffers and price.",
+                        "hours": "Your business hours, in your own timezone.",
+                        "page": "Your booking page, where customers book without an account.",
+                        "slots": "Slots that already count your hours and what is booked."
+                    }
+                },
+                "complete": {
+                    "name": "Complete",
+                    "price": "$200",
+                    "summary": "For a business with staff, a full catalogue and days off.",
+                    "includes": "Everything in Free, plus",
+                    "cta": "Start with Complete",
+                    "features": {
+                        "staff": "Your whole staff team, each person with their own hours.",
+                        "services": "Unlimited services, and who can deliver each one.",
+                        "timeOff": "Time off: holidays, closures and absences.",
+                        "policy": "Booking rules: lead time and how far ahead you can be booked.",
+                        "agenda": "The business's day and every staff member's day on one screen.",
+                        "reminders": "Automatic email reminders before every appointment.",
+                        "payments": "Online payments: charge or take a deposit when the booking is made.",
+                        "reports": "Reports and statistics on your agenda, your staff and your services.",
+                        "googleCalendar": "Two-way sync with Google Calendar."
+                    }
+                }
+            }
+        },
+        "closing": {
+            "heading": "Open your agenda to bookings.",
+            "body": "Create your business, add your services and share your booking link."
         }
     },
     "agendaPreview": {
@@ -26,7 +98,37 @@
         },
         "blockMeta": "{{staff}} · {{minutes}} min",
         "buffer": "Buffer",
-        "openGap": "{{minutes}} min open",
-        "footnote": "What is bookable is what is left: business hours, narrowed to the staff member's hours, minus time off, minus everything already booked."
+        "openGap": "{{minutes}} min open"
+    },
+    "heroCollage": {
+        "activity": {
+            "title": "Activity",
+            "items": {
+                "booked": {
+                    "copy": "New booking at 09:30",
+                    "time": "2 min"
+                },
+                "rescheduled": {
+                    "copy": "Colour moved to 11:00",
+                    "time": "18 min"
+                },
+                "reminder": {
+                    "copy": "Reminder sent to Marta",
+                    "time": "1 h"
+                },
+                "customer": {
+                    "copy": "Marta added to your customers",
+                    "time": "3 h"
+                },
+                "cancelled": {
+                    "copy": "16:00 cancelled, slot free again",
+                    "time": "Yesterday"
+                }
+            }
+        },
+        "chips": {
+            "confirmed": "Appointment confirmed",
+            "openSlot": "{{time}} free"
+        }
     }
 }
