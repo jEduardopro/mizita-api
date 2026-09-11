@@ -1,7 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField } from '@/components/FormField';
+import { FormField } from '@/components/form/FormField';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
 

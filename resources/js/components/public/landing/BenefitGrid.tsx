@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Section } from '@/components/Section';
+import { Section } from '@/components/public/landing/Section';
 
 /**
  * What a business gets, one card per part of the product.

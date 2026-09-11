@@ -1,6 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import { Wordmark } from '@/components/Wordmark';
+import { Wordmark } from '@/components/shared/Wordmark';
 
 type Props = {
     /** The tab title. The app name is appended by the title callback in app.tsx. */

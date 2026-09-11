@@ -4,15 +4,15 @@ import {
     ACTIVITY_SCREEN_HEIGHT,
     ACTIVITY_SCREEN_WIDTH,
     ActivityScreen,
-} from '@/components/ActivityScreen';
+} from '@/components/public/hero/ActivityScreen';
 import {
     AGENDA_SCREEN_HEIGHT,
     AGENDA_SCREEN_WIDTH,
     AgendaColumn,
     FIRST_FREE_MINUTE,
     formatAgendaTime,
-} from '@/components/AgendaColumn';
-import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/PhoneFrame';
+} from '@/components/public/hero/AgendaColumn';
+import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/public/hero/PhoneFrame';
 
 /**
  * The hero's visual: two overlapping devices showing real product screens, with

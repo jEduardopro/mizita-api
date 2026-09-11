@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Section } from '@/components/Section';
+import { Section } from '@/components/public/landing/Section';
 
 /**
  * The three steps between signing up and running a full day.

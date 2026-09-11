@@ -2,7 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wordmark } from '@/components/Wordmark';
+import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 
 type Props = {

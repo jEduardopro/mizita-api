@@ -2,8 +2,8 @@ import { Link, useForm, usePage } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField } from '@/components/FormField';
-import { FormStatus } from '@/components/FormStatus';
+import { FormField } from '@/components/form/FormField';
+import { FormStatus } from '@/components/form/FormStatus';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
 

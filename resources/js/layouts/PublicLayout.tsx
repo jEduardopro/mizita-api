@@ -1,10 +1,10 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BENEFITS_ID } from '@/components/BenefitGrid';
-import { HOW_IT_WORKS_ID } from '@/components/HowItWorks';
-import { PRICING_ID } from '@/components/PricingPlans';
-import { SectionNav, type Section } from '@/components/SectionNav';
+import { BENEFITS_ID } from '@/components/public/landing/BenefitGrid';
+import { HOW_IT_WORKS_ID } from '@/components/public/landing/HowItWorks';
+import { PRICING_ID } from '@/components/public/landing/PricingPlans';
+import { SectionNav, type Section } from '@/components/public/shell/SectionNav';
 import {
     FacebookIcon,
     InstagramIcon,
@@ -12,8 +12,8 @@ import {
     TwitterIcon,
     YoutubeIcon,
     type SocialIconProps,
-} from '@/components/SocialIcons';
-import { Wordmark } from '@/components/Wordmark';
+} from '@/components/public/shell/SocialIcons';
+import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 
 /**

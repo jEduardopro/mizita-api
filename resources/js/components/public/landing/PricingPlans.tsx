@@ -1,7 +1,7 @@
 import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
-import { AccountCta } from '@/components/AccountCta';
-import { Section } from '@/components/Section';
+import { AccountCta } from '@/components/public/landing/AccountCta';
+import { Section } from '@/components/public/landing/Section';
 
 /** Exported for the header menu, so the anchor is written down once. */
 export const PRICING_ID = 'pricing';
