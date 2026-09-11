@@ -26,7 +26,7 @@ export function AuthLayout({ title, heading, description, children, footer }: Pr
             <Head title={title} />
 
             <div className="w-full max-w-sm">
-                <Wordmark name={name} className="text-sm" />
+                <Wordmark name={name} size="sm" />
 
                 <div className="mt-10 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
                     <h1 className="font-heading text-2xl font-medium tracking-[-0.03em]">
