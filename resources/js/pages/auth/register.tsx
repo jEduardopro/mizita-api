@@ -1,6 +1,7 @@
 import { Link, useForm } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FormField } from '@/components/FormField';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
@@ -11,6 +12,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
  * valid, so there is no client-side schema here.
  */
 export default function Register() {
+    const { t } = useTranslation('auth');
     const queryClient = useQueryClient();
     const form = useForm({
         name: '',
@@ -36,17 +38,17 @@ export default function Register() {
 
     return (
         <AuthLayout
-            title="Create account"
-            heading="Create your account"
-            description="Set up the account first. Your business comes next."
+            title={t('register.title')}
+            heading={t('register.heading')}
+            description={t('register.description')}
             footer={
                 <p>
-                    Already have an account?{' '}
+                    {t('register.footer.prompt')}{' '}
                     <Link
                         href="/login"
                         className="rounded-sm font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
-                        Log in
+                        {t('register.footer.link')}
                     </Link>
                 </p>
             }
@@ -54,7 +56,7 @@ export default function Register() {
             <form onSubmit={submit} className="grid gap-5">
                 <FormField
                     id="name"
-                    label="Name"
+                    label={t('fields.name')}
                     autoComplete="name"
                     autoFocus
                     required
@@ -65,7 +67,7 @@ export default function Register() {
 
                 <FormField
                     id="email"
-                    label="Email"
+                    label={t('fields.email')}
                     type="email"
                     autoComplete="username"
                     required
@@ -76,7 +78,7 @@ export default function Register() {
 
                 <FormField
                     id="password"
-                    label="Password"
+                    label={t('fields.password')}
                     type="password"
                     autoComplete="new-password"
                     required
@@ -87,7 +89,7 @@ export default function Register() {
 
                 <FormField
                     id="password_confirmation"
-                    label="Confirm password"
+                    label={t('fields.passwordConfirmation')}
                     type="password"
                     autoComplete="new-password"
                     required
@@ -99,7 +101,7 @@ export default function Register() {
                 />
 
                 <Button type="submit" size="lg" disabled={form.processing}>
-                    {form.processing ? 'Creating account…' : 'Create account'}
+                    {form.processing ? t('register.submitting') : t('register.submit')}
                 </Button>
             </form>
         </AuthLayout>

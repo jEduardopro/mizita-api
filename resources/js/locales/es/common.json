@@ -1,0 +1,15 @@
+{
+    "nav": {
+        "dashboard": "Ir al panel",
+        "logIn": "Iniciar sesión",
+        "createAccount": "Crear cuenta",
+        "logOut": "Cerrar sesión"
+    },
+    "footer": {
+        "tagline": "{{name}} — agenda de citas para equipos pequeños."
+    },
+    "actions": {
+        "tryAgain": "Reintentar",
+        "retrying": "Reintentando…"
+    }
+}

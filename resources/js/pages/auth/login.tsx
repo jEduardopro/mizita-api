@@ -1,6 +1,7 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FormField } from '@/components/FormField';
 import { FormStatus } from '@/components/FormStatus';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
  */
 export default function Login() {
     const { status } = usePage().props;
+    const { t } = useTranslation('auth');
     const queryClient = useQueryClient();
     const form = useForm({
         email: '',
@@ -41,17 +43,17 @@ export default function Login() {
 
     return (
         <AuthLayout
-            title="Log in"
-            heading="Log in"
-            description="Pick up your agenda where you left it."
+            title={t('login.title')}
+            heading={t('login.heading')}
+            description={t('login.description')}
             footer={
                 <p>
-                    No account yet?{' '}
+                    {t('login.footer.prompt')}{' '}
                     <Link
                         href="/register"
                         className="rounded-sm font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
-                        Create one
+                        {t('login.footer.link')}
                     </Link>
                 </p>
             }
@@ -61,7 +63,7 @@ export default function Login() {
 
                 <FormField
                     id="email"
-                    label="Email"
+                    label={t('fields.email')}
                     type="email"
                     autoComplete="username"
                     autoFocus
@@ -73,7 +75,7 @@ export default function Login() {
 
                 <FormField
                     id="password"
-                    label="Password"
+                    label={t('fields.password')}
                     type="password"
                     autoComplete="current-password"
                     required
@@ -94,19 +96,19 @@ export default function Login() {
                             checked={form.data.remember}
                             onChange={(event) => form.setData('remember', event.target.checked)}
                         />
-                        Stay logged in
+                        {t('login.remember')}
                     </label>
 
                     <Link
                         href="/forgot-password"
                         className="rounded-sm text-sm text-muted-foreground underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
-                        Forgot password?
+                        {t('login.forgotPassword')}
                     </Link>
                 </div>
 
                 <Button type="submit" size="lg" disabled={form.processing}>
-                    {form.processing ? 'Logging in…' : 'Log in'}
+                    {form.processing ? t('login.submitting') : t('login.submit')}
                 </Button>
             </form>
         </AuthLayout>

@@ -1,0 +1,17 @@
+{
+    "dashboard": {
+        "title": "Dashboard",
+        "description": "Your account, and what lands here next.",
+        "account": {
+            "title": "Signed in as",
+            "loading": "Loading your account",
+            "error": "We could not load your account just now.",
+            "name": "Name",
+            "email": "Email"
+        },
+        "upNext": {
+            "title": "Nothing scheduled yet",
+            "body": "Your agenda shows up here once a business exists, with its staff, services and opening hours. Those screens are still being built."
+        }
+    }
+}

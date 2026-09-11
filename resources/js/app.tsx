@@ -1,6 +1,8 @@
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { I18nextProvider } from 'react-i18next';
+import { initI18n } from '@/lib/i18n';
 import { queryClient } from '@/lib/query-client';
 
 /**
@@ -29,8 +31,19 @@ void createInertiaApp({
         return title ? `${title} · ${appName}` : appName;
     },
     // Inertia v3 creates (or hydrates) the React root itself when no `setup` is
-    // given; `withApp` is the supported hook for wrapping it in providers.
-    withApp: (app) => <QueryClientProvider client={queryClient}>{app}</QueryClientProvider>,
+    // given; `withApp` is the supported hook for wrapping it in providers. It
+    // runs once, with the initial page, before React renders anything — which is
+    // the only moment i18next can be initialised without the first paint
+    // flashing the wrong language.
+    withApp: (app, { page }) => {
+        const i18n = initI18n(page.props.locale, page.props.supportedLocales);
+
+        return (
+            <I18nextProvider i18n={i18n}>
+                <QueryClientProvider client={queryClient}>{app}</QueryClientProvider>
+            </I18nextProvider>
+        );
+    },
     progress: {
         color: 'var(--primary)',
         delay: 200,

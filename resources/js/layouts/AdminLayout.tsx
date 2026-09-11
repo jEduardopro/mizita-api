@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Wordmark } from '@/components/Wordmark';
 import { Button } from '@/components/ui/button';
 
@@ -19,6 +20,7 @@ type Props = {
  */
 export function AdminLayout({ title, description, actions, children }: Props) {
     const { name } = usePage().props;
+    const { t } = useTranslation('common');
     const queryClient = useQueryClient();
 
     function logOut() {
@@ -50,7 +52,7 @@ export function AdminLayout({ title, description, actions, children }: Props) {
                     <Wordmark name={name} href="/dashboard" />
 
                     <Button variant="ghost" size="sm" onClick={logOut}>
-                        Log out
+                        {t('nav.logOut')}
                     </Button>
                 </div>
             </header>

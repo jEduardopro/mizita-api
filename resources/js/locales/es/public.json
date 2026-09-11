@@ -1,0 +1,32 @@
+{
+    "welcome": {
+        "title": "Agenda de citas para equipos pequeños",
+        "eyebrow": "Gestión de citas",
+        "headline": "Reservas que respetan tu jornada.",
+        "lede": "{{name}} reúne tus horarios, tu equipo, tus servicios y tus días libres en un solo sitio, para que cada hueco que ofreces sea uno que puedas cumplir.",
+        "glossary": {
+            "slot": {
+                "term": "Hueco",
+                "definition": "Una hora de inicio que ya hemos contrastado con tu horario, tus días libres y todo lo que ya está reservado."
+            },
+            "block": {
+                "term": "Bloque",
+                "definition": "Lo que ocupa de verdad una reserva: el margen previo, el servicio y el margen posterior."
+            },
+            "horizon": {
+                "term": "Horizonte",
+                "definition": "Hasta cuándo pueden reservar tus clientes. Lo fijas tú, igual que la antelación mínima, en cada negocio."
+            }
+        }
+    },
+    "agendaPreview": {
+        "services": {
+            "cutAndFinish": "Corte y peinado",
+            "colour": "Color"
+        },
+        "blockMeta": "{{staff}} · {{minutes}} min",
+        "buffer": "Margen",
+        "openGap": "{{minutes}} min libres",
+        "footnote": "Lo reservable es lo que queda: el horario del negocio, ajustado al de cada persona, menos los días libres y menos todo lo ya reservado."
+    }
+}

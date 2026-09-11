@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 /**
@@ -14,8 +15,26 @@ const MINUTES_PER_TICK = 30;
 /** A 30-minute row is 40px tall. */
 const PIXELS_PER_MINUTE = 40 / MINUTES_PER_TICK;
 
+/** The gap the illustration points at, in minutes. */
+const OPEN_GAP_MINUTES = 30;
+const OPEN_GAP_STARTS_AT = 10 * 60 + 30;
+
+/**
+ * The example is set in one business's zone, which is also what the header
+ * shows. A timezone identifier is data, not copy, so it is not translated.
+ */
+const EXAMPLE_TIMEZONE = 'Europe/Madrid';
+
+/**
+ * A real Tuesday, so the weekday name comes from `Intl` in whatever language is
+ * active instead of being a copy key that could drift from the times beside it.
+ * Pinned to a fixed date so the illustration never changes under the reader.
+ */
+const EXAMPLE_DAY = Date.UTC(2026, 0, 6);
+
 type Block = {
-    label: string;
+    /** The key of this service's name in the `public` namespace. */
+    service: 'cutAndFinish' | 'colour';
     staff: string;
     startsAt: number;
     durationMinutes: number;
@@ -26,7 +45,7 @@ type Block = {
 
 const blocks: Block[] = [
     {
-        label: 'Cut and finish',
+        service: 'cutAndFinish',
         staff: 'Ana',
         startsAt: 9 * 60 + 30,
         durationMinutes: 45,
@@ -34,7 +53,7 @@ const blocks: Block[] = [
         filled: true,
     },
     {
-        label: 'Colour',
+        service: 'colour',
         staff: 'Leo',
         startsAt: 11 * 60,
         durationMinutes: 90,
@@ -47,11 +66,33 @@ const ticks = Array.from(
     (_, index) => DAY_STARTS_AT + index * MINUTES_PER_TICK,
 );
 
-function formatTime(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
+/**
+ * Weekday names are lower case in Spanish and capitalised in English. This one
+ * heads a column, so it is title-cased either way, using the locale's own
+ * casing rules rather than ASCII ones.
+ */
+function formatWeekday(locale: string): string {
+    const weekday = new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        timeZone: 'UTC',
+    }).format(EXAMPLE_DAY);
 
-    return `${String(hours).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+    return weekday.charAt(0).toLocaleUpperCase(locale) + weekday.slice(1);
+}
+
+/**
+ * An agenda column is a 24-hour grid by product decision, not by locale: the
+ * hour labels have to stay narrow and line up with the rules behind them, and
+ * "9:00 AM" would not. `Intl` still does the formatting so digits and separators
+ * follow the language.
+ */
+function createTimeFormatter(locale: string): Intl.DateTimeFormat {
+    return new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+        timeZone: 'UTC',
+    });
 }
 
 function offsetOf(minutes: number): number {
@@ -59,12 +100,15 @@ function offsetOf(minutes: number): number {
 }
 
 export function AgendaPreview() {
+    const { t, i18n } = useTranslation('public');
+    const timeFormatter = createTimeFormatter(i18n.language);
+
     return (
         <Card className="w-full">
             <CardHeader className="flex-row items-baseline justify-between gap-4">
-                <CardTitle>Tuesday</CardTitle>
+                <CardTitle>{formatWeekday(i18n.language)}</CardTitle>
                 <span className="text-[0.6875rem] tracking-[0.14em] text-muted-foreground uppercase">
-                    Europe/Madrid
+                    {EXAMPLE_TIMEZONE}
                 </span>
             </CardHeader>
 
@@ -81,14 +125,14 @@ export function AgendaPreview() {
                             style={{ top: offsetOf(tick) }}
                         >
                             <span className="w-10 shrink-0 text-right text-[0.6875rem] leading-none tabular-nums text-muted-foreground">
-                                {formatTime(tick)}
+                                {timeFormatter.format(EXAMPLE_DAY + tick * 60_000)}
                             </span>
                             <span className="h-px flex-1 bg-border" />
                         </div>
                     ))}
 
                     {blocks.map((block) => (
-                        <div key={block.label}>
+                        <div key={block.service}>
                             <div
                                 className={
                                     block.filled
@@ -100,7 +144,9 @@ export function AgendaPreview() {
                                     height: block.durationMinutes * PIXELS_PER_MINUTE,
                                 }}
                             >
-                                <span className="text-xs font-medium">{block.label}</span>
+                                <span className="text-xs font-medium">
+                                    {t(`agendaPreview.services.${block.service}`)}
+                                </span>
                                 <span
                                     className={
                                         block.filled
@@ -108,7 +154,10 @@ export function AgendaPreview() {
                                             : 'text-[0.6875rem] text-muted-foreground'
                                     }
                                 >
-                                    {block.staff} · {block.durationMinutes} min
+                                    {t('agendaPreview.blockMeta', {
+                                        staff: block.staff,
+                                        minutes: block.durationMinutes,
+                                    })}
                                 </span>
                             </div>
 
@@ -121,22 +170,21 @@ export function AgendaPreview() {
                                     height: block.bufferMinutes * PIXELS_PER_MINUTE,
                                 }}
                             >
-                                Buffer
+                                {t('agendaPreview.buffer')}
                             </div>
                         </div>
                     ))}
 
                     <span
                         className="absolute left-13 text-[0.6875rem] text-muted-foreground"
-                        style={{ top: offsetOf(10 * 60 + 30) + 6 }}
+                        style={{ top: offsetOf(OPEN_GAP_STARTS_AT) + 6 }}
                     >
-                        30 min open
+                        {t('agendaPreview.openGap', { minutes: OPEN_GAP_MINUTES })}
                     </span>
                 </div>
 
                 <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-                    What is bookable is what is left: business hours, narrowed to the staff
-                    member's hours, minus time off, minus everything already booked.
+                    {t('agendaPreview.footnote')}
                 </p>
             </CardContent>
         </Card>

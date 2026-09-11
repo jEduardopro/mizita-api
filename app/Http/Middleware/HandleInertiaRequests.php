@@ -40,6 +40,11 @@ class HandleInertiaRequests extends Middleware
      *  - `status` is the flash string Fortify sets for password reset feedback.
      *  - `auth.isAuthenticated` is a boolean only; the dashboard fetches the
      *    signed-in user from GET /api/user.
+     *  - `locale` and `supportedLocales` are what i18next boots from, so the
+     *    first paint is already in the language SetLocale resolved for this
+     *    request - no default-language flash and no extra round trip to learn
+     *    it. The list comes from config/localization.php, the single source of
+     *    truth the frontend mirrors instead of hardcoding its own.
      *
      * @see https://inertiajs.com/shared-data
      *
@@ -54,6 +59,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'isAuthenticated' => $request->user() !== null,
             ],
+            'locale' => app()->getLocale(),
+            'supportedLocales' => config('localization.supported'),
         ];
     }
 }

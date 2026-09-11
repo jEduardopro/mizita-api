@@ -76,9 +76,12 @@ return [
     | by Laravel's translation / localization methods. This option can be
     | set to any locale for which you plan to have translation strings.
     |
+    | Which locales the platform actually supports, and how a request picks one
+    | of them, lives in config/localization.php - the single source of truth.
+    |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'es'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 

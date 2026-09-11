@@ -1,0 +1,17 @@
+{
+    "dashboard": {
+        "title": "Panel",
+        "description": "Tu cuenta y lo que llegará aquí.",
+        "account": {
+            "title": "Sesión iniciada como",
+            "loading": "Cargando tu cuenta",
+            "error": "No hemos podido cargar tu cuenta ahora mismo.",
+            "name": "Nombre",
+            "email": "Correo"
+        },
+        "upNext": {
+            "title": "Aún no hay nada en la agenda",
+            "body": "Tu agenda aparecerá aquí en cuanto exista un negocio, con su equipo, sus servicios y sus horarios. Esas pantallas todavía se están construyendo."
+        }
+    }
+}

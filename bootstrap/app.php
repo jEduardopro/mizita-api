@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetBusinessContext;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,9 +22,30 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
 
         // Inertia renders every web page, and preloaded assets get their Link headers.
-        $middleware->web(append: [
-            HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+        // SetLocale is prepended so the locale is already resolved before anything
+        // downstream can produce a translated string - a validation error above all.
+        $middleware->web(
+            append: [
+                HandleInertiaRequests::class,
+                AddLinkHeadersForPreloadedAssets::class,
+            ],
+            prepend: [
+                SetLocale::class,
+            ],
+        );
+
+        // The API answers in the caller's language too: the browser negotiates it
+        // through Accept-Language, a native client states it with X-Locale.
+        $middleware->api(prepend: [
+            SetLocale::class,
+        ]);
+
+        // The locale cookie is a plain preference, not a credential, and the
+        // frontend reads it from JavaScript to boot i18next. It also has to stay
+        // readable by SetLocale, which runs before cookies are decrypted. The name
+        // is config('localization.cookie'), inlined because config is not loaded yet.
+        $middleware->encryptCookies(except: [
+            'locale',
         ]);
 
         // Applied by each tenant-scoped domain's route group.

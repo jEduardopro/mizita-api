@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FormField } from '@/components/FormField';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function ResetPassword({ token, email }: Props) {
+    const { t } = useTranslation('auth');
     const form = useForm({
         token,
         email,
@@ -33,14 +35,14 @@ export default function ResetPassword({ token, email }: Props) {
 
     return (
         <AuthLayout
-            title="Choose a new password"
-            heading="Choose a new password"
-            description="This link works once. Pick the password you will use from now on."
+            title={t('resetPassword.title')}
+            heading={t('resetPassword.heading')}
+            description={t('resetPassword.description')}
         >
             <form onSubmit={submit} className="grid gap-5">
                 <FormField
                     id="email"
-                    label="Email"
+                    label={t('fields.email')}
                     type="email"
                     autoComplete="username"
                     readOnly
@@ -51,7 +53,7 @@ export default function ResetPassword({ token, email }: Props) {
 
                 <FormField
                     id="password"
-                    label="New password"
+                    label={t('fields.newPassword')}
                     type="password"
                     autoComplete="new-password"
                     autoFocus
@@ -63,7 +65,7 @@ export default function ResetPassword({ token, email }: Props) {
 
                 <FormField
                     id="password_confirmation"
-                    label="Confirm new password"
+                    label={t('fields.newPasswordConfirmation')}
                     type="password"
                     autoComplete="new-password"
                     required
@@ -79,7 +81,7 @@ export default function ResetPassword({ token, email }: Props) {
                 ) : null}
 
                 <Button type="submit" size="lg" disabled={form.processing}>
-                    {form.processing ? 'Saving password…' : 'Save password'}
+                    {form.processing ? t('resetPassword.submitting') : t('resetPassword.submit')}
                 </Button>
             </form>
         </AuthLayout>

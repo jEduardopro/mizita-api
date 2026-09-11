@@ -21,7 +21,7 @@ final class SetBusinessContext
     {
         $businessId = $request->user()?->business?->uuid;
 
-        abort_if($businessId === null, Response::HTTP_FORBIDDEN, 'This user does not belong to a business.');
+        abort_if($businessId === null, Response::HTTP_FORBIDDEN, __('messages.errors.no_business'));
 
         app()->instance(BusinessContext::class, new RequestBusinessContext($businessId));
 

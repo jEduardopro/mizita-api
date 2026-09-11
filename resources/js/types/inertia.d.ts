@@ -24,6 +24,15 @@ declare module '@inertiajs/core' {
             };
             /** A flash message from the session, e.g. after requesting a reset link. */
             status: string | null;
+            /**
+             * The locale the backend resolved for this request, through
+             * `?lang=` → `X-Locale` → the `locale` cookie → `Accept-Language`
+             * → `es`. It is the authority the client initialises i18next with,
+             * so page copy and server-rendered messages never disagree.
+             */
+            locale: string;
+            /** Every locale the backend is prepared to answer in. */
+            supportedLocales: string[];
         };
     }
 }

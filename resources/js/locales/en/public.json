@@ -1,0 +1,32 @@
+{
+    "welcome": {
+        "title": "Appointment scheduling for small teams",
+        "eyebrow": "Appointment scheduling",
+        "headline": "Bookings that respect the working day.",
+        "lede": "{{name}} holds your opening hours, your staff, your services and your time off in one place, so every slot you offer is one you can actually keep.",
+        "glossary": {
+            "slot": {
+                "term": "Slot",
+                "definition": "A start time we have already checked against opening hours, time off and everything booked."
+            },
+            "block": {
+                "term": "Block",
+                "definition": "What a booking really consumes: the buffer before, the service itself, the buffer after."
+            },
+            "horizon": {
+                "term": "Horizon",
+                "definition": "How far ahead your customers may book. You set it, and the lead time, per business."
+            }
+        }
+    },
+    "agendaPreview": {
+        "services": {
+            "cutAndFinish": "Cut and finish",
+            "colour": "Colour"
+        },
+        "blockMeta": "{{staff}} · {{minutes}} min",
+        "buffer": "Buffer",
+        "openGap": "{{minutes}} min open",
+        "footnote": "What is bookable is what is left: business hours, narrowed to the staff member's hours, minus time off, minus everything already booked."
+    }
+}
