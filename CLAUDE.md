@@ -389,9 +389,37 @@ Each of these is a rule because getting it wrong is an incident, not a bug.
 - Shared fakes live in `tests/Support/`: `FakeClock`, a deterministic `FakeIdGenerator`, `FakeBusinessContext`. Injecting a fake context is how tenant isolation gets asserted without a database.
 - Architecture tests belong in `tests/Arch/` and should encode the layer table above — a domain entity importing `Illuminate\*` is a test failure, not a review comment.
 
+## Clean code practices and SOLID principles
+
+Requirements on both stacks, PHP and TypeScript alike. The layered architecture above exists to make them achievable — it does not grant them, so every change is held to them.
+
+The five SOLID principles, in this project's terms:
+
+| Principle | Here it means |
+| --- | --- |
+| **Single Responsibility** | A use case orchestrates, an entity holds the rules, a mapper translates, a repository persists, a controller adapts HTTP. On the front end a component either fetches, arranges, or renders — never all three. Needing the word "and" to describe a class means it is two classes |
+| **Open/Closed** | New behaviour is a new implementation of a port, a new use case, or a new variant — never a growing `match` on a string, and never a new boolean flag on an existing entry point |
+| **Liskov Substitution** | Every adapter honours its port's full contract — same return types, same nullability, same exceptions. Every wrapper over a `components/ui/*` primitive stays substitutable for it |
+| **Interface Segregation** | Narrow ports and narrow props: the consumer declares only what it calls. Same rule as [Crossing domains](#crossing-domains), applied inside a domain too |
+| **Dependency Inversion** | Use cases depend on `Contracts/`; components depend on hooks. Concrete classes, Eloquent and URLs live at the edges |
+
+Clean code practices, the checkable floor:
+
+- Names state intent — no `$data`, `$info`, `$temp`, no abbreviations. A method name should let you predict its body.
+- Guard clauses and early returns over nesting; no `else` after a `return`.
+- No magic numbers or strings — a named constant or a backed enum.
+- No boolean flag parameters: `publish()` / `unpublish()`, never `setPublished(bool)`.
+- A rule attached to a primitive — email, slug, money, timezone, duration — is a value object, not validation scattered across use cases.
+- **Tell, don't ask**: `$appointment->cancel($now)`, never read an entity's state at the call site and decide on its behalf.
+- DRY with judgment — duplicate twice before abstracting, and **never DRY across domains**: shared code there is coupling, and the answer is a port.
+- Comments explain *why*, never *what*. Delete dead code instead of commenting it out.
+
+The full per-stack checklists and the self-check questions live in `.claude/agents/mizita-backend.md` and `.claude/agents/mizita-frontend.md`.
+
 ## Conventions
 
 - PHP 8.3+: type everything, `final` by default, promoted readonly constructor properties, enums over string constants — **the generator cannot emit an enum, so write it by hand**.
+- Clean code practices and SOLID principles are requirements, not preferences — see the section above.
 - Validation in FormRequests, authorization in policies/gates at the HTTP edge, responses through Resources.
 - Eager-load in the repository adapter; use cases must not know about eager loading.
 - Run `pint --dirty` after edits.
