@@ -34,8 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
         );
 
-        // The API answers in the caller's language too: the browser negotiates it
-        // through Accept-Language, a native client states it with X-Locale.
+        // The API answers in the caller's language too. A client states it with
+        // X-Locale on every call; nothing is inferred from Accept-Language, here
+        // or on the web stack, so the default stays Spanish until someone chooses.
         $middleware->api(prepend: [
             SetLocale::class,
         ]);

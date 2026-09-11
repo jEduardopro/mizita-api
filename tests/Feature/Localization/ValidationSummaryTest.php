@@ -33,7 +33,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Symfony's Request::create() synthesises "Accept-Language: en-us,en;q=0.5" on
-    // every test request; blanking it keeps the default-locale cases honest.
+    // every test request. SetLocale no longer reads it, but blanking it keeps the
+    // baseline free of any header the assertions do not state themselves.
     $this->withHeader('Accept-Language', '');
 });
 
@@ -78,8 +79,15 @@ describe('the plural key', function () {
             ->assertJsonPath('message', 'The name field is required. (and 2 more errors)');
     })->with([
         'X-Locale' => [['X-Locale' => 'en']],
-        'Accept-Language' => [['Accept-Language' => 'en-GB,en;q=0.9']],
     ]);
+
+    it('stays in spanish for an english browser', function () {
+        // Accept-Language is not a source, so the plural key resolved here is the
+        // Spanish one no matter what the browser advertises.
+        $this->postJson('/api/customers', ['email' => 'not-an-email', 'phone' => 123], ['Accept-Language' => 'en-US,en;q=0.9'])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'El campo nombre es obligatorio. (y 2 errores más)');
+    });
 });
 
 describe('the empty-bag fallback', function () {

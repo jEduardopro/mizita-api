@@ -23,8 +23,16 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!--
+            The suite runs on PostgreSQL, never sqlite. The app depends on things
+            sqlite does not have - the exclusion constraint that prevents double
+            bookings, partial and expression indexes for per-tenant uniqueness,
+            and timestamptz - so under sqlite a test can pass while the behaviour
+            it certifies is broken. Create the database once with:
+                createdb mizita_api_testing
+        -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_DATABASE" value="mizita_api_testing"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

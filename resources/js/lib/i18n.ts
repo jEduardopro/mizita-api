@@ -95,8 +95,8 @@ function writeLocaleCookie(locale: Locale): void {
 
 /**
  * The product's last-resort default, expressed as a detector so it sits in the
- * same ordered chain as the cookie and the browser instead of being a special
- * case somewhere else.
+ * same ordered chain as the cookie instead of being a special case somewhere
+ * else.
  */
 const productDefaultDetector: CustomDetector = {
     name: 'productDefault',
@@ -113,12 +113,15 @@ languageDetector.addDetector(productDefaultDetector);
  *
  * The server's decision wins over any client-side detection, and that ordering is
  * deliberate. Laravel already resolved the locale through `?lang=` → `X-Locale` →
- * the `locale` cookie → `Accept-Language` → `es`, and it used that answer to pick
- * the language of every validation message, mail and redirect it will send. If the
- * client re-detected independently it could reach a different conclusion — a stale
- * cookie read differently, a browser list weighted differently — and the page would
- * then disagree with the server about the same request. One decision, made once,
- * upstream.
+ * the `locale` cookie → `es`, and it used that answer to pick the language of every
+ * validation message, mail and redirect it will send. If the client re-detected
+ * independently it could reach a different conclusion — a stale cookie read
+ * differently, a default weighted differently — and the page would then disagree
+ * with the server about the same request. One decision, made once, upstream.
+ *
+ * Every step of that chain is an explicit choice, because the product is
+ * Spanish-first: it answers in Spanish until someone asks for something else, and
+ * never guesses from the browser's own language settings.
  *
  * Detection is still configured because it is the honest fallback for the case
  * where the prop is absent or names a locale this bundle cannot render.
@@ -148,7 +151,13 @@ export function initI18n(locale?: string, supportedLocales?: string[]): typeof i
                 escapeValue: false,
             },
             detection: {
-                order: ['cookie', 'navigator', 'productDefault'],
+                // `navigator` is deliberately absent, mirroring the server: the
+                // product is Spanish-first, so a visitor with an English browser
+                // is still served Spanish until they choose otherwise. Inferring
+                // the language from something nobody consciously set is exactly
+                // the behaviour the backend dropped, and leaving it here would
+                // reintroduce it on the one path that actually runs detection.
+                order: ['cookie', 'productDefault'],
                 lookupCookie: LOCALE_COOKIE,
                 // `changeLocale` owns the cookie. Letting the detector cache as
                 // well would give the same value two writers with two different

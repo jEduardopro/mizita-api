@@ -21,7 +21,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Symfony's Request::create() synthesises "Accept-Language: en-us,en;q=0.5" on
-    // every test request; blanking it keeps the default-locale case honest.
+    // every test request. SetLocale no longer reads it, but blanking it keeps the
+    // baseline free of any header the assertions do not state themselves.
     $this->withHeader('Accept-Language', '');
 });
 
@@ -53,7 +54,7 @@ it('answers the 403 in the default locale', function () {
         ->assertJsonPath('message', 'Este usuario no pertenece a ningún negocio.');
 });
 
-it('answers the 403 in the language the caller negotiated', function (array $query, array $headers) {
+it('answers the 403 in the language the caller chose', function (array $query, array $headers) {
     Sanctum::actingAs(User::factory()->create());
 
     $uri = '/api/customers'.($query === [] ? '' : '?'.http_build_query($query));
@@ -64,8 +65,16 @@ it('answers the 403 in the language the caller negotiated', function (array $que
 })->with([
     '?lang=' => [['lang' => 'en'], []],
     'X-Locale' => [[], ['X-Locale' => 'en']],
-    'Accept-Language' => [[], ['Accept-Language' => 'en-GB,en;q=0.9']],
 ]);
+
+it('answers the 403 in spanish for an english browser', function () {
+    // Accept-Language is not a source; only an explicit choice changes the language.
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson('/api/customers', ['name' => 'Ada Lovelace'], ['Accept-Language' => 'en-US,en;q=0.9'])
+        ->assertForbidden()
+        ->assertJsonPath('message', 'Este usuario no pertenece a ningún negocio.');
+});
 
 it('does not leak the translation key when the caller asks for an unsupported language', function () {
     Sanctum::actingAs(User::factory()->create());

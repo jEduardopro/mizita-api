@@ -378,7 +378,8 @@ Each of these is a rule because getting it wrong is an incident, not a bug.
 
 ## Testing
 
-- **Tests run on PostgreSQL, never sqlite.** Exclusion constraints, partial and expression indexes and `timestamptz` are all Postgres-only, and sqlite would report green on a double booking. (`phpunit.xml` still points at sqlite `:memory:` — fixing it is the first testing task.)
+- **Tests run on PostgreSQL, never sqlite.** Exclusion constraints, partial and expression indexes and `timestamptz` are all Postgres-only, and sqlite would report green on a double booking. `phpunit.xml` points at the `pgsql` connection and the `mizita_api_testing` database; create it once per machine with `createdb mizita_api_testing`.
+- **Only unit tests are written right now.** `tests/Feature/` holds what already exists and stays green, but new coverage goes in `tests/Unit/` until the feature-test switch in `.claude/agents/mizita-tester.md` is turned on.
 - Unit tests build a use case **with mocks alone** — no container, no migrations. That is the bar the whole architecture exists to protect.
 - Shared fakes live in `tests/Support/`: `FakeClock`, a deterministic `FakeIdGenerator`, `FakeBusinessContext`. Injecting a fake context is how tenant isolation gets asserted without a database.
 - Architecture tests belong in `tests/Arch/` and should encode the layer table above — a domain entity importing `Illuminate\*` is a test failure, not a review comment.

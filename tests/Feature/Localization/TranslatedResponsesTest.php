@@ -5,7 +5,7 @@ declare(strict_types=1);
 /*
 | Proves the localization stack is wired end to end, not merely that __() works:
 | a real FormRequest fails a real rule and the validator's message bag comes back
-| in the negotiated language, with the :attribute placeholder translated too.
+| in the resolved language, with the :attribute placeholder translated too.
 |
 | POST /api/businesses is deliberately the subject: it sits on the plain "api"
 | middleware group with no auth and no tenant, and the request never reaches the
@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 beforeEach(function () {
     // Symfony's Request::create() synthesises "Accept-Language: en-us,en;q=0.5" on
-    // every test request. Blanking it is what makes "answers in Spanish by default"
-    // an assertion about config, rather than about that synthetic header.
+    // every test request. SetLocale no longer reads it, but blanking it keeps the
+    // baseline free of any header the assertions do not state themselves.
     $this->withHeader('Accept-Language', '');
 });
 
@@ -43,10 +43,12 @@ it('answers a validation failure in english when the X-Locale header asks for it
         ->assertJsonPath('errors.name.0', 'The name field is required.');
 });
 
-it('answers a validation failure in english when Accept-Language asks for it', function () {
-    $this->postJson('/api/businesses', [], ['Accept-Language' => 'en-GB,en;q=0.9'])
+it('answers a validation failure in spanish for an english browser', function () {
+    // Accept-Language is not a source. A browser that never asked for English in so
+    // many words gets the Spanish the product is built around.
+    $this->postJson('/api/businesses', [], ['Accept-Language' => 'en-US,en;q=0.9'])
         ->assertStatus(422)
-        ->assertJsonPath('errors.name.0', 'The name field is required.');
+        ->assertJsonPath('errors.name.0', 'El campo nombre es obligatorio.');
 });
 
 it('answers a validation failure in english when the locale cookie asks for it', function () {

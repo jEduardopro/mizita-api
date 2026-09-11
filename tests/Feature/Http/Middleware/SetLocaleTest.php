@@ -16,6 +16,13 @@ use Symfony\Component\HttpFoundation\Response;
 | handle() directly: the wiring in bootstrap/app.php is as much part of the
 | behaviour as the resolution chain itself.
 |
+| The chain has four steps, and Accept-Language is deliberately not one of them:
+|
+|     ?lang= -> X-Locale -> the locale cookie -> config('localization.default')
+|
+| See the "Accept-Language is not a source" block at the bottom for why, and for
+| the assertions that would catch negotiation being reintroduced.
+|
 | No database is touched here.
 */
 
@@ -32,9 +39,9 @@ beforeEach(function () {
     Route::middleware('api')->get('/_test/locale/api', $probe);
 
     // Symfony's Request::create() injects a default "Accept-Language: en-us,en;q=0.5"
-    // into every test request. Left alone it silently resolves every test to "en"
-    // and makes the lower-priority sources untestable, so the baseline blanks it:
-    // a test that is about Accept-Language states the header itself.
+    // into every test request. The middleware no longer reads it, but the baseline
+    // still blanks it so that no test can be read as depending on it either way;
+    // the tests that assert it is ignored state the header themselves.
     $this->withHeader('Accept-Language', '');
 });
 
@@ -73,17 +80,12 @@ describe('each source in isolation', function () {
             ->assertExactJson(['app' => 'en', 'carbon' => 'en']);
     })->with('stacks');
 
-    it('negotiates the Accept-Language header', function (string $uri) {
-        $this->get($uri, ['Accept-Language' => 'en-GB,en;q=0.9'])
-            ->assertExactJson(['app' => 'en', 'carbon' => 'en']);
-    })->with('stacks');
-
-    it('falls back to the default when the request carries no Accept-Language header at all', function () {
-        // Request::create() always synthesises the header, so the genuinely absent
-        // case - a native client, curl - is only reachable by driving the
-        // middleware directly.
+    it('falls back to the default when the request offers nothing', function () {
+        // Driven directly rather than over HTTP, so this covers the middleware
+        // itself rather than the group wiring. Request::create() synthesises
+        // "Accept-Language: en-us,en;q=0.5" and it is left in place on purpose:
+        // an untouched request from an English browser must still resolve to es.
         $request = Request::create('/');
-        $request->headers->remove('Accept-Language');
 
         $locale = null;
 
@@ -109,14 +111,9 @@ describe('priority', function () {
             ->assertJsonPath('app', 'en');
     });
 
-    it('prefers the locale cookie over Accept-Language', function () {
+    it('prefers the locale cookie over the configured default', function () {
         $this->withUnencryptedCookie('locale', 'en')
-            ->get('/_test/locale/web', ['Accept-Language' => 'es-ES,es;q=0.9'])
-            ->assertJsonPath('app', 'en');
-    });
-
-    it('prefers Accept-Language over the configured default', function () {
-        $this->get('/_test/locale/web', ['Accept-Language' => 'en-GB,en;q=0.9'])
+            ->get('/_test/locale/web')
             ->assertJsonPath('app', 'en');
     });
 
@@ -173,30 +170,15 @@ describe('unsupported candidates', function () {
             ->assertJsonPath('app', 'en');
     });
 
-    it('lands on the default when Accept-Language offers nothing supported', function (string $uri) {
-        // Symfony's getPreferredLanguage() returns the first entry of the list it is
-        // handed when nothing in the header is acceptable. Without the guard in the
-        // middleware, Accept-Language would therefore match on every request and pin
-        // every unmatched caller to supported[0] - "es" - instead of the configured
-        // default. Moving the default to "en" is what lets this assertion tell the
-        // two apart; with the default left at "es" it would pass either way.
+    it('lands on the default when every source is unusable', function (string $uri) {
+        // The default is deliberately moved off the head of the supported list so
+        // that landing on "en" cannot be confused with silently picking supported[0].
         config(['localization.default' => 'en']);
 
-        $this->get($uri, ['Accept-Language' => 'de-DE, fr;q=0.8'])
+        $this->withUnencryptedCookie('locale', 'de')
+            ->get($uri.'?lang=fr', ['X-Locale' => 'xx'])
             ->assertExactJson(['app' => 'en', 'carbon' => 'en']);
     })->with('stacks');
-
-    it('still negotiates when the header mixes supported and unsupported languages', function () {
-        config(['localization.default' => 'en']);
-
-        $this->get('/_test/locale/web', ['Accept-Language' => 'de-DE,fr;q=0.9,es;q=0.5'])
-            ->assertJsonPath('app', 'es');
-    });
-
-    it('honours the quality values when the header offers several supported languages', function () {
-        $this->get('/_test/locale/web', ['Accept-Language' => 'es;q=0.4,en;q=0.9'])
-            ->assertJsonPath('app', 'en');
-    });
 });
 
 describe('regional tags', function () {
@@ -223,10 +205,6 @@ describe('regional tags', function () {
             ->assertJsonPath('app', 'en');
     });
 
-    it('reduces a regional tag coming from Accept-Language', function () {
-        $this->get('/_test/locale/web', ['Accept-Language' => 'en-GB'])
-            ->assertJsonPath('app', 'en');
-    });
 });
 
 describe('the locale cookie', function () {
@@ -235,18 +213,43 @@ describe('the locale cookie', function () {
             ->assertPlainCookie('locale', 'en');
     });
 
-    it('queues the cookie unencrypted so the frontend can read it', function () {
-        // config('localization.cookie') is listed in encryptCookies(except:): i18next
-        // reads it from JavaScript, and SetLocale itself runs before cookies are
-        // decrypted, so an encrypted value would be unusable at both ends.
+    it('queues the cookie so the frontend can both read and rewrite it', function () {
+        /*
+        | This cookie is a display preference with two writers by design: Laravel
+        | queues it here on ?lang=, and the browser's changeLocale() writes the same
+        | name by hand when the language switcher is used. That is why it is
+        | unencrypted - it is listed in encryptCookies(except:), and SetLocale reads
+        | it before cookies are decrypted - and why it must not be HttpOnly.
+        |
+        | HttpOnly is asserted negatively and on purpose. A browser silently discards
+        | a document.cookie write aimed at an existing HttpOnly cookie: no exception,
+        | no console warning, the switcher simply reverts on the next page load.
+        | Nothing else in this suite can see that, so if this expectation is ever
+        | relaxed the defect becomes invisible again.
+        */
         $response = $this->get('/_test/locale/web?lang=en');
 
         $cookie = collect($response->headers->getCookies())
             ->first(fn (Cookie $cookie) => $cookie->getName() === 'locale');
 
         expect($cookie)->not->toBeNull()
+            ->and($cookie->isHttpOnly())->toBeFalse()
             // Raw on the wire: an encrypted value would be a base64 payload, not "en".
-            ->and($cookie->getValue())->toBe('en');
+            ->and($cookie->getValue())->toBe('en')
+            // The rest of the attribute set, pinned so that a change to any one of
+            // them has to be a deliberate edit to this list.
+            ->and($cookie->getPath())->toBe('/')
+            ->and($cookie->getDomain())->toBeNull()
+            ->and($cookie->isSecure())->toBeFalse()
+            ->and($cookie->getSameSite())->toBe('lax')
+            // Max-Age is derived from the queue time, so it is allowed to have lost a
+            // second or two to the clock by the time it is read back here.
+            ->and($cookie->getMaxAge())->toBeGreaterThan((int) config('localization.cookie_lifetime') * 60 - 5)
+            ->and($cookie->getMaxAge())->toBeLessThanOrEqual((int) config('localization.cookie_lifetime') * 60);
+
+        // The browser-facing truth: whatever the object says, the rendered header is
+        // what decides whether document.cookie can touch this name.
+        expect(strtolower((string) $cookie))->not->toContain('httponly');
     });
 
     it('remembers the normalised base tag, not the regional tag that was sent', function () {
@@ -254,14 +257,16 @@ describe('the locale cookie', function () {
             ->assertPlainCookie('locale', 'en');
     });
 
-    it('does not remember a locale negotiated from the X-Locale header', function (string $uri) {
+    it('does not remember a locale taken from the X-Locale header', function (string $uri) {
         // A native client owns its own preference and repeats the header on every
         // call, so persisting it server-side would only create a stale second source.
         $this->get($uri, ['X-Locale' => 'en'])
             ->assertCookieMissing('locale');
     })->with('stacks');
 
-    it('does not remember a locale negotiated from Accept-Language', function (string $uri) {
+    it('queues nothing for a request whose only stated preference is ignored', function (string $uri) {
+        // Accept-Language is not a source, so a request carrying only that header
+        // has made no explicit choice and there is nothing to remember.
         $this->get($uri, ['Accept-Language' => 'en-GB,en;q=0.9'])
             ->assertCookieMissing('locale');
     })->with('stacks');
@@ -294,5 +299,69 @@ describe('the locale cookie', function () {
         $this->get('/_test/locale/api?lang=en')
             ->assertJsonPath('app', 'en')
             ->assertCookieMissing('locale');
+    });
+});
+
+describe('Accept-Language is not a source', function () {
+    /*
+    | The product is Spanish-first by decision, not by omission. An English browser
+    | landing on a Spanish business's booking page is served Spanish, because the
+    | page belongs to that business and not to the visitor's browser settings:
+    | language is an explicit choice a person makes - ?lang= today, a switcher
+    | shortly - never an inference drawn from a header they never consciously set.
+    |
+    | These are the assertions that would fail if negotiation were reintroduced,
+    | which is the only reason the header is mentioned in this file at all.
+    */
+
+    it('answers an english browser in spanish', function (string $uri) {
+        $this->get($uri, ['Accept-Language' => 'en-US,en;q=0.9'])
+            ->assertOk()
+            ->assertExactJson(['app' => 'es', 'carbon' => 'es']);
+    })->with('stacks');
+
+    it('receives the header it ignores', function () {
+        // Every other assertion in this block expects "es", which is also what a
+        // request that never carried the header would produce - so on its own the
+        // block could pass vacuously if the header were being dropped in transit.
+        // Echoing it back proves the application really sees English and answers
+        // Spanish anyway.
+        Route::middleware('web')->get('/_test/locale/echo', fn (Request $request) => [
+            'received' => $request->header('Accept-Language'),
+            'app' => App::getLocale(),
+        ]);
+
+        $this->get('/_test/locale/echo', ['Accept-Language' => 'en-US,en;q=0.9'])
+            ->assertExactJson(['received' => 'en-US,en;q=0.9', 'app' => 'es']);
+    });
+
+    it('ignores the header however it is phrased', function (string $header) {
+        $this->get('/_test/locale/web', ['Accept-Language' => $header])
+            ->assertJsonPath('app', 'es');
+    })->with([
+        'bare language' => 'en',
+        'regional tag' => 'en-GB',
+        'underscored tag' => 'en_US',
+        'weighted list' => 'en-US,en;q=0.9',
+        'english outranking spanish' => 'es;q=0.4,en;q=0.9',
+        'english behind unsupported languages' => 'de-DE,fr;q=0.9,en;q=0.5',
+    ]);
+
+    it('does not let the header override an explicit choice', function () {
+        $this->get('/_test/locale/web?lang=es', ['Accept-Language' => 'en-US,en;q=0.9'])
+            ->assertJsonPath('app', 'es');
+    });
+
+    it('does not let the header override the remembered choice in the cookie', function () {
+        $this->withUnencryptedCookie('locale', 'en')
+            ->get('/_test/locale/web', ['Accept-Language' => 'es-ES,es;q=0.9'])
+            ->assertJsonPath('app', 'en');
+    });
+
+    it('does not let the header stand in for an unusable explicit choice', function () {
+        // ?lang=fr is discarded, and resolution continues to the cookie and then the
+        // default - it must not quietly land on the header sitting underneath.
+        $this->get('/_test/locale/web?lang=fr', ['Accept-Language' => 'en-US,en;q=0.9'])
+            ->assertJsonPath('app', 'es');
     });
 });

@@ -20,8 +20,17 @@ use Symfony\Component\HttpFoundation\Response;
  *  2. X-Locale - what a native client sends; deliberately not persisted, the
  *     client owns its own preference and repeats the header on every call.
  *  3. The locale cookie - the remembered explicit choice.
- *  4. Accept-Language, negotiated against the supported list.
- *  5. config('localization.default').
+ *  4. config('localization.default'), which is Spanish.
+ *
+ * Accept-Language is deliberately absent from that chain, and must stay absent.
+ * The product is Spanish-first: an English browser landing on a Spanish
+ * business's booking page should still be served Spanish, because the page
+ * belongs to that business and not to the visitor's browser settings. Language
+ * is therefore an explicit choice a person makes - today the ?lang= parameter,
+ * shortly a language switcher in the interface - never an inference drawn from
+ * headers they never consciously set. Negotiating Accept-Language would silently
+ * override that decision, so this is a product decision rather than a gap to
+ * fill in.
  *
  * A candidate that is not in config('localization.supported') is ignored and
  * resolution falls through to the next source: the locale ends up in file paths
@@ -47,7 +56,6 @@ final class SetLocale
         $locale = $explicit
             ?? $this->supported($request->header('X-Locale'), $supported)
             ?? $this->supported($request->cookie(config('localization.cookie')), $supported)
-            ?? $this->fromAcceptLanguage($request, $supported)
             ?? config('localization.default');
 
         App::setLocale($locale);
@@ -57,37 +65,31 @@ final class SetLocale
         Carbon::setLocale($locale);
 
         if ($explicit !== null) {
-            Cookie::queue(
+            // Deliberately not HttpOnly, and it must stay that way. This cookie is
+            // a display preference, not a credential - the same reasoning that
+            // already excludes it from encryptCookies() in bootstrap/app.php - and
+            // it has two writers by design: Laravel here on ?lang=, and
+            // changeLocale() in resources/js/lib/i18n.ts. A browser silently
+            // ignores a document.cookie write onto an existing HttpOnly cookie, so
+            // "hardening" this would let only one of those writers ever win: the
+            // language switcher would appear to work, then revert on the next page
+            // load, with no error anywhere. It would also leave i18next's own
+            // cookie detector blind to a cookie Laravel had set.
+            //
+            // Queued as a Cookie instance on purpose: CookieJar::queue() is
+            // variadic and forwards array_values($parameters) to make(), which
+            // drops the keys - so passing httpOnly: false to queue() directly is
+            // silently a no-op. Naming it on make() keeps $path, $domain and
+            // $secure at their framework defaults.
+            Cookie::queue(Cookie::make(
                 config('localization.cookie'),
                 $explicit,
                 (int) config('localization.cookie_lifetime'),
-            );
+                httpOnly: false,
+            ));
         }
 
         return $next($request);
-    }
-
-    /**
-     * Negotiates the Accept-Language header against the supported locales.
-     *
-     * @param  list<string>  $supported
-     */
-    private function fromAcceptLanguage(Request $request, array $supported): ?string
-    {
-        if (! $request->hasHeader('Accept-Language')) {
-            return null;
-        }
-
-        // Symfony returns the first entry of the supplied list when nothing in
-        // the header is acceptable, which would make this source always match.
-        // Checking what was actually offered keeps the fall-through honest.
-        $offered = array_map($this->baseTag(...), $request->getLanguages());
-
-        if (array_intersect($offered, $supported) === []) {
-            return null;
-        }
-
-        return $this->supported($request->getPreferredLanguage($supported), $supported);
     }
 
     /**

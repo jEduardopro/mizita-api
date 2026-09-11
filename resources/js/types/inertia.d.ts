@@ -26,9 +26,11 @@ declare module '@inertiajs/core' {
             status: string | null;
             /**
              * The locale the backend resolved for this request, through
-             * `?lang=` → `X-Locale` → the `locale` cookie → `Accept-Language`
-             * → `es`. It is the authority the client initialises i18next with,
-             * so page copy and server-rendered messages never disagree.
+             * `?lang=` → `X-Locale` → the `locale` cookie → `es`. The browser's
+             * `Accept-Language` is deliberately not consulted: the product is
+             * Spanish-first and the language is an explicit choice, never an
+             * inference. It is the authority the client initialises i18next
+             * with, so page copy and server-rendered messages never disagree.
              */
             locale: string;
             /** Every locale the backend is prepared to answer in. */
