@@ -240,4 +240,17 @@
   html {
     @apply font-sans;
     }
+  /*
+   * Tailwind v4's Preflight no longer forces cursor: pointer on buttons, so
+   * every control falls back to the browser default arrow. Restoring it here
+   * keeps it out of components/ui, which is CLI-generated and never edited.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select:not(:disabled),
+  input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]):not(:disabled),
+  label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)) {
+    cursor: pointer;
+    }
 }
