@@ -1,11 +1,11 @@
 import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { HeroCollage } from '@/components/public/hero/HeroCollage';
 import { AccountCta } from '@/components/public/landing/AccountCta';
 import { BENEFITS_ID, BenefitGrid } from '@/components/public/landing/BenefitGrid';
 import { HOW_IT_WORKS_ID, HowItWorks } from '@/components/public/landing/HowItWorks';
 import { PRICING_ID, PricingPlans } from '@/components/public/landing/PricingPlans';
 import { Section } from '@/components/public/landing/Section';
+import { HeroCollage } from '@/components/shared/hero/HeroCollage';
 import { PublicLayout } from '@/layouts/PublicLayout';
 
 /**

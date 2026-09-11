@@ -4,15 +4,15 @@ import {
     ACTIVITY_SCREEN_HEIGHT,
     ACTIVITY_SCREEN_WIDTH,
     ActivityScreen,
-} from '@/components/public/hero/ActivityScreen';
+} from '@/components/shared/hero/ActivityScreen';
 import {
     AGENDA_SCREEN_HEIGHT,
     AGENDA_SCREEN_WIDTH,
     AgendaColumn,
     FIRST_FREE_MINUTE,
     formatAgendaTime,
-} from '@/components/public/hero/AgendaColumn';
-import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/public/hero/PhoneFrame';
+} from '@/components/shared/hero/AgendaColumn';
+import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/shared/hero/PhoneFrame';
 
 /**
  * The hero's visual: two overlapping devices showing real product screens, with
@@ -25,6 +25,17 @@ import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/public/hero/PhoneFram
  * The whole thing is decorative. It repeats nothing the headline beside it does
  * not already say, and it holds nothing focusable, so it is hidden from
  * assistive technology in one place at the root rather than piece by piece.
+ *
+ * Two audiences render it now — the public landing hero and the `auth` signup
+ * screen — which is what moved it into `shared/`. That makes the scale steps
+ * below load-bearing in two places at once: the landing page gives it a column
+ * of its own on a page with nothing else in that row, while the signup screen
+ * puts it under a headline in the narrower half of a split. Change a step and
+ * check both, not just the one you are working on.
+ *
+ * It keeps reading the `public` namespace. The chips are marketing copy, not
+ * chrome, and i18next bundles every namespace statically, so borrowing it from
+ * another audience costs nothing at runtime.
  */
 
 /**
