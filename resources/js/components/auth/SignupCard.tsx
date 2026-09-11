@@ -1,8 +1,10 @@
 import { Link, type InertiaFormProps } from '@inertiajs/react';
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { GoogleIcon } from '@/components/auth/GoogleIcon';
+import { AuthCard } from '@/components/auth/AuthCard';
+import { AuthMethodChoice } from '@/components/auth/AuthMethodChoice';
+import { LegalLink } from '@/components/auth/LegalLink';
 import { UnderlineField } from '@/components/form/UnderlineField';
 import { Button } from '@/components/ui/button';
 
@@ -50,58 +52,32 @@ export function SignupCard({ form, onSubmit }: Props) {
 
     return (
         <div className="mx-auto w-full max-w-md lg:max-w-none">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 sm:p-8 dark:shadow-black/30">
-                <h2 className="font-heading text-lg font-medium tracking-[-0.02em]">
-                    {t('register.heading')}
-                </h2>
-
+            <AuthCard
+                heading={t('register.heading')}
+                footer={
+                    <>
+                        {t('register.footer.prompt')}{' '}
+                        <Link
+                            href="/login"
+                            className="rounded-sm font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                            {t('register.footer.link')}
+                        </Link>
+                    </>
+                }
+            >
                 <div
                     key={mode}
-                    className="mt-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200"
+                    className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200"
                 >
                     {mode === 'choice' ? (
-                        <div className="grid gap-4">
-                            <div className="grid gap-2">
-                                {/*
-                                 * UI only. There is no Socialite, no provider
-                                 * config and no route behind this, so it is
-                                 * disabled rather than linked anywhere — a button
-                                 * that goes nowhere is worse than one that says
-                                 * it is not ready. `aria-describedby` ties it to
-                                 * the note so the reason is announced with it.
-                                 */}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="lg"
-                                    disabled
-                                    aria-describedby="google-soon"
-                                    className="h-12 w-full gap-3 rounded-xl text-sm"
-                                >
-                                    <GoogleIcon className="size-5" />
-                                    {t('register.methods.google')}
-                                </Button>
-
-                                <p
-                                    id="google-soon"
-                                    className="text-center text-xs text-muted-foreground"
-                                >
-                                    {t('register.methods.googleSoon')}
-                                </p>
-                            </div>
-
-                            <Divider label={t('register.divider')} />
-
-                            <Button
-                                type="button"
-                                variant="brand"
-                                size="lg"
-                                onClick={() => setMode('email')}
-                                className="h-12 w-full rounded-xl text-sm"
-                            >
-                                {t('register.methods.email')}
-                            </Button>
-                        </div>
+                        <AuthMethodChoice
+                            google={t('register.methods.google')}
+                            googleSoon={t('register.methods.googleSoon')}
+                            divider={t('register.divider')}
+                            email={t('register.methods.email')}
+                            onEmail={() => setMode('email')}
+                        />
                     ) : (
                         <form onSubmit={onSubmit} className="grid gap-2">
                             <UnderlineField
@@ -176,17 +152,7 @@ export function SignupCard({ form, onSubmit }: Props) {
                         </form>
                     )}
                 </div>
-
-                <p className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
-                    {t('register.footer.prompt')}{' '}
-                    <Link
-                        href="/login"
-                        className="rounded-sm font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                    >
-                        {t('register.footer.link')}
-                    </Link>
-                </p>
-            </div>
+            </AuthCard>
 
             {/*
              * Outside the card, the way the reference has it: it is the condition
@@ -197,8 +163,6 @@ export function SignupCard({ form, onSubmit }: Props) {
              * the markup, and the first language that puts the verb elsewhere
              * would have nowhere to put it.
              *
-             * PLACEHOLDER: both destinations are `#`, matching `PublicLayout`'s
-             * footer. Each one is a route `mizita-backend` has yet to add.
              */}
             <p className="mt-5 text-center text-xs leading-relaxed text-balance text-muted-foreground">
                 <Trans
@@ -211,39 +175,5 @@ export function SignupCard({ form, onSubmit }: Props) {
                 />
             </p>
         </div>
-    );
-}
-
-type DividerProps = { label: string };
-
-/**
- * A hairline with one word sitting in it. The word is content, not decoration —
- * it says the two things above and below it are alternatives rather than steps.
- */
-function Divider({ label }: DividerProps) {
-    return (
-        <div className="flex items-center gap-3" role="separator" aria-label={label}>
-            <span aria-hidden="true" className="h-px flex-1 bg-border" />
-            <span aria-hidden="true" className="text-xs text-muted-foreground">
-                {label}
-            </span>
-            <span aria-hidden="true" className="h-px flex-1 bg-border" />
-        </div>
-    );
-}
-
-/**
- * The anchor `Trans` clones for each tag in the legal sentence. It carries no
- * text of its own: the label comes from inside the translated string, which is
- * the only place a translator can reach it.
- */
-function LegalLink({ children }: { children?: ReactNode }) {
-    return (
-        <a
-            href="#"
-            className="rounded-sm underline underline-offset-2 transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-            {children}
-        </a>
     );
 }
