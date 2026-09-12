@@ -1,4 +1,4 @@
-import { Link, type InertiaFormProps } from '@inertiajs/react';
+import { Link, usePage, type InertiaFormProps } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -40,6 +40,14 @@ type Props = {
  */
 export function LoginCard({ form, status, onSubmit }: Props) {
     const { t } = useTranslation('auth');
+
+    // A failed Google callback redirects back here with `errors.google`, which is
+    // a shared page prop rather than part of this form: `form.errors` is empty on
+    // a fresh visit, so the card still opens on the choice panel — where the
+    // Google button, and therefore the message, belong. The server's own string
+    // is the signal, not the copy: the card says it in its own voice, in the
+    // language i18next is rendering the rest of the panel in.
+    const googleFailed = Boolean(usePage().props.errors.google);
 
     // Errors mean someone has already tried, so the card opens on the panel they
     // tried from. Inertia keeps component state when validation fails on the same
@@ -104,7 +112,10 @@ export function LoginCard({ form, status, onSubmit }: Props) {
                     {mode === 'choice' ? (
                         <AuthMethodChoice
                             google={t('login.methods.google')}
-                            googleSoon={t('login.methods.googleSoon')}
+                            googleHref="/auth/google/redirect"
+                            googleError={
+                                googleFailed ? t('login.methods.googleFailed') : undefined
+                            }
                             divider={t('login.divider')}
                             email={t('login.methods.email')}
                             onEmail={() => setMode('email')}

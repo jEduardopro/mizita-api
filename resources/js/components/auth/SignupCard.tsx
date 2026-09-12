@@ -1,4 +1,4 @@
-import { Link, type InertiaFormProps } from '@inertiajs/react';
+import { Link, usePage, type InertiaFormProps } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
@@ -33,9 +33,9 @@ type Props = {
  * between the two. The address bar stays on `/register` throughout.
  *
  * A visitor can go back. `Usar otro método` returns to the choice, which is what
- * the reference's row of small social buttons does in its second state — with one
- * method and that method disabled, a row of one dead icon reads as a bug, so the
- * way back is a link instead.
+ * the reference's row of small social buttons does in its second state — with a
+ * single alternative, a row holding one icon reads as a stray control, so the way
+ * back is a link instead.
  *
  * The panels are keyed on the mode so each one re-enters, and the name field is
  * `autoFocus`: it mounts only when someone has just asked for the form, so the
@@ -49,6 +49,12 @@ type Props = {
 export function SignupCard({ form, onSubmit }: Props) {
     const { t } = useTranslation('auth');
     const [mode, setMode] = useState<Mode>('choice');
+
+    // A failed Google callback comes back as `errors.google`, a shared page prop
+    // rather than one of this form's fields. The server's string is the signal,
+    // not the copy: the card says it in its own voice, in the language i18next is
+    // rendering the rest of the panel in.
+    const googleFailed = Boolean(usePage().props.errors.google);
 
     return (
         <div className="mx-auto w-full max-w-md lg:max-w-none">
@@ -73,7 +79,10 @@ export function SignupCard({ form, onSubmit }: Props) {
                     {mode === 'choice' ? (
                         <AuthMethodChoice
                             google={t('register.methods.google')}
-                            googleSoon={t('register.methods.googleSoon')}
+                            googleHref="/auth/google/redirect"
+                            googleError={
+                                googleFailed ? t('register.methods.googleFailed') : undefined
+                            }
                             divider={t('register.divider')}
                             email={t('register.methods.email')}
                             onEmail={() => setMode('email')}

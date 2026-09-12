@@ -37,6 +37,17 @@ return [
         // The database rejected an appointment overlapping an existing one.
         'appointment_overlap' => 'Acaban de reservar ese horario. Elige otro, por favor.',
 
+        // The Google round trip did not complete: consent was denied, the
+        // session expired, or the profile came back unusable.
+        'google_sign_in_failed' => 'No hemos podido completar el inicio de sesión con Google. Inténtalo de nuevo.',
+
+        // Google has not verified the address, so it proves nothing. The wording
+        // stays vague on purpose: it must not reveal whether an account exists.
+        'google_email_not_verified' => 'El correo de tu cuenta de Google no está verificado. Verifícalo en Google e inténtalo de nuevo.',
+
+        // The ID token failed verification, or was never an ID token.
+        'google_invalid_id_token' => 'Esa credencial de inicio de sesión con Google no es válida.',
+
     ],
 
 ];

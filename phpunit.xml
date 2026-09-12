@@ -11,6 +11,15 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!--
+            Architecture tests encode the layer dependency table from CLAUDE.md.
+            Without this suite Pest never scans the directory, so the rules would
+            sit on disk passing nothing - the failure mode of a safety net is
+            silence, which is why it is wired here rather than run by hand.
+        -->
+        <testsuite name="Arch">
+            <directory>tests/Arch</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

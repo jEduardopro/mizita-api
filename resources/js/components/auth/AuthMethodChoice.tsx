@@ -1,12 +1,13 @@
-import { useId } from 'react';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
 import { Button } from '@/components/ui/button';
 
 type Props = {
     /** The Google button's label. */
     google: string;
-    /** Why that button cannot be pressed yet. */
-    googleSoon: string;
+    /** Where the Google flow starts. A server route, not an API endpoint. */
+    googleHref: string;
+    /** What to say when a Google attempt came back without a session. */
+    googleError?: string;
     /** The one word between the two alternatives. */
     divider: string;
     /** The label of the button that opens the email form. */
@@ -22,34 +23,35 @@ type Props = {
  * component serves login and registration without either screen's namespace
  * leaking into it — the same rule `components/form/` follows.
  */
-export function AuthMethodChoice({ google, googleSoon, divider, email, onEmail }: Props) {
-    const soonId = useId();
-
+export function AuthMethodChoice({ google, googleHref, googleError, divider, email, onEmail }: Props) {
     return (
         <div className="grid gap-4">
             <div className="grid gap-2">
                 {/*
-                 * UI only. There is no Socialite, no provider config and no route
-                 * behind this, so it is disabled rather than linked anywhere — a
-                 * button that goes nowhere is worse than one that says it is not
-                 * ready. `aria-describedby` ties it to the note so the reason is
-                 * announced with it.
+                 * A plain anchor, and it has to stay one. The flow starts by
+                 * handing the browser over to Google's consent screen, so this is
+                 * a full document navigation, not a request the app makes: an
+                 * Inertia visit or an axios call would send an XHR to an origin
+                 * that answers with no CORS headers, and the redirect would
+                 * surface as an unexplained network failure instead.
                  */}
                 <Button
-                    type="button"
+                    asChild
                     variant="outline"
                     size="lg"
-                    disabled
-                    aria-describedby={soonId}
                     className="h-12 w-full gap-3 rounded-xl text-sm"
                 >
-                    <GoogleIcon className="size-5" />
-                    {google}
+                    <a href={googleHref}>
+                        <GoogleIcon className="size-5" />
+                        {google}
+                    </a>
                 </Button>
 
-                <p id={soonId} className="text-center text-xs text-muted-foreground">
-                    {googleSoon}
-                </p>
+                {googleError ? (
+                    <p role="alert" className="text-center text-xs text-destructive">
+                        {googleError}
+                    </p>
+                ) : null}
             </div>
 
             <Divider label={divider} />

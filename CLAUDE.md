@@ -149,11 +149,17 @@ uuid   uuid unique                ← the domain identity, exposed by the API
 - The int primary key never appears in an entity, DTO, Resource or event payload.
 - Models use `HasUuids` with `uniqueIds()` overridden to `['uuid']`, which leaves the primary key auto-incrementing, and `getRouteKeyName()` returning `'uuid'`.
 
+**Foreign keys reference the int primary key**, never the uuid: `foreignId('account_id')->constrained('users')`. Narrower indexes, cheaper joins, and the ordinary relational shape.
+
+The two rules meet in the repository adapter, which is the only place that may hold both halves of an identity. An entity carries a neighbour's **uuid** (`$identity->accountId`), so the adapter resolves it to the int on the way in and reads the uuid back on the way out — eager-loading the relation rather than issuing a query per row. That translation never leaks above `Infrastructure/`.
+
 ## Multi-tenant: everything belongs to a Business
 
 The system is multi-business. `Businesses` is the **root** domain — it is not scoped to itself. Every other domain is tenant-scoped by default.
 
-Tenant-scoped tables carry `business_id` as a **uuid column referencing `businesses.uuid`**, not an int FK. That keeps the mapper free of any uuid→int lookup: the entity's `businessId` maps straight to the column. Each table still has its own int primary key for its own joins.
+Tenant-scoped tables carry `business_id` as a foreign key onto **`businesses.id`**, the int primary key, per the identity rule above. The entity still carries the business **uuid** in `public readonly string $businessId`, so the repository adapter translates between the two and nothing above `Infrastructure/` ever sees the int.
+
+**`customers.business_id` and `users.business_id` still hold uuids** — they predate this rule and have not been migrated yet. Do not copy them; new tables use the int FK.
 
 Tenancy is explicit in the domain, not magic:
 
@@ -254,7 +260,7 @@ A generated slice **looks** finished and is not. Work through this list before c
 
 | Gap | What you must write by hand |
 | --- | --- |
-| **No foreign keys between domains** | The only FK it emits is the hardcoded `business_id` → `businesses.uuid`. Declare `customer_id:uuid` to get the column, then add the constraint, the relation and any eager loading yourself |
+| **No foreign keys between domains** | The only FK it emits is the hardcoded `business_id` → `businesses.uuid`, which **contradicts the int-FK rule above** — rewrite it to `businesses.id` by hand. For any other relation, declare nothing and hand-write `foreignId('customer_id')->constrained()`, the relation, and any eager loading |
 | **No enums**, despite the convention below | The backed enum class, the cast, and `Rule::enum()` in the FormRequest |
 | **No pivot tables** | The whole slice — migration, model, repository methods |
 | **Single-column indexes only** | Every composite, partial or expression index |

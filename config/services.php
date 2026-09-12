@@ -14,6 +14,17 @@ return [
     |
     */
 
+    /*
+    | Google OAuth / OpenID Connect. The same credentials serve both entry
+    | points: the browser authorization-code flow uses "redirect", while the
+    | native ID-token flow only needs "client_id" to check the token audience.
+    */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
