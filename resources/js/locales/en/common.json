@@ -1,6 +1,5 @@
 {
     "nav": {
-        "dashboard": "Go to dashboard",
         "logIn": "Log in",
         "createAccount": "Create account",
         "logOut": "Log out",

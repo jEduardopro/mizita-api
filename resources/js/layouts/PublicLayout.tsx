@@ -94,7 +94,7 @@ type Props = {
  * seeing; a section that has to clear it carries its own `scroll-mt`.
  */
 export function PublicLayout({ title, sections, children }: Props) {
-    const { name, auth } = usePage().props;
+    const { name } = usePage().props;
     const { t } = useTranslation('common');
 
     const year = new Date().getFullYear();
@@ -113,22 +113,18 @@ export function PublicLayout({ title, sections, children }: Props) {
                      * The primary action is the brand fill from the very first
                      * scroll position, so the button a visitor is looking for
                      * looks the same in the header as it does in the hero.
+                     *
+                     * The pair is unconditional: the public surface is marketing
+                     * copy, and it reads the same offer to everyone whether or
+                     * not the visitor happens to have a session open.
                      */}
                     <nav aria-label={t('nav.account')} className="flex items-center gap-1.5">
-                        {auth.isAuthenticated ? (
-                            <Button asChild variant="brand" size="sm">
-                                <Link href="/dashboard">{t('nav.dashboard')}</Link>
-                            </Button>
-                        ) : (
-                            <>
-                                <Button asChild variant="ghost" size="sm">
-                                    <Link href="/login">{t('nav.logIn')}</Link>
-                                </Button>
-                                <Button asChild variant="brand" size="sm">
-                                    <Link href="/register">{t('nav.createAccount')}</Link>
-                                </Button>
-                            </>
-                        )}
+                        <Button asChild variant="ghost" size="sm">
+                            <Link href="/login">{t('nav.logIn')}</Link>
+                        </Button>
+                        <Button asChild variant="brand" size="sm">
+                            <Link href="/register">{t('nav.createAccount')}</Link>
+                        </Button>
                     </nav>
                 </div>
             </header>

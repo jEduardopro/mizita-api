@@ -38,8 +38,6 @@ class HandleInertiaRequests extends Middleware
      *  - `errors` comes from the parent and is what turns a Fortify validation
      *    redirect back into form errors.
      *  - `status` is the flash string Fortify sets for password reset feedback.
-     *  - `auth.isAuthenticated` is a boolean only; the dashboard fetches the
-     *    signed-in user from GET /api/user.
      *  - `locale` and `supportedLocales` are what i18next boots from, so the
      *    first paint is already in the language SetLocale resolved for this
      *    request - no default-language flash and no extra round trip to learn
@@ -56,9 +54,6 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'status' => fn () => $request->session()->get('status'),
-            'auth' => [
-                'isAuthenticated' => $request->user() !== null,
-            ],
             'locale' => app()->getLocale(),
             'supportedLocales' => config('localization.supported'),
         ];

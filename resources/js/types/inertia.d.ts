@@ -19,9 +19,6 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             /** The application name, used for the wordmark and the tab title. */
             name: string;
-            auth: {
-                isAuthenticated: boolean;
-            };
             /** A flash message from the session, e.g. after requesting a reset link. */
             status: string | null;
             /**
