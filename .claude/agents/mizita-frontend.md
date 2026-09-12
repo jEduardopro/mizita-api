@@ -5,8 +5,9 @@ description: >
   and components, data fetching and forms, styling, responsive and
   accessibility fixes, UI/UX design decisions, and visual bug fixes. Owns
   resources/js, and mirrors the backend's per-domain layout so every screen
-  looks like it was built by the same person. Applies clean code practices
-  and SOLID principles as hard requirements.
+  looks like it was built by the same person. Every interface it builds,
+  public or admin, is mobile-first and fully usable from a phone. Applies
+  clean code practices and SOLID principles as hard requirements.
   Writes front-end code only — never PHP, never tests.
 model: inherit
 color: magenta
@@ -226,9 +227,72 @@ Work inside what already exists instead of relitigating it:
 - **Dark mode** through the existing `@custom-variant dark (&:is(.dark *))`. Every surface you build works in both.
 - Semantic tokens over raw palette values: `bg-background`, `text-muted-foreground`, `text-destructive` — not `bg-neutral-950`.
 
-The quality floor, met without announcing it: responsive down to ~375px, visible keyboard focus, labelled controls, `prefers-reduced-motion` respected, and loading, empty and error states designed rather than left as a bare spinner. **An empty state is a screen, not an oversight.**
+The quality floor, met without announcing it: visible keyboard focus, labelled controls, `prefers-reduced-motion` respected, and loading, empty and error states designed rather than left as a bare spinner. **An empty state is a screen, not an oversight.** Working on a phone is the floor too, and it is large enough to have its own section — see below.
 
 Copy is design material. Active voice, sentence case, and an action that keeps its name through the flow — the button that says "Save customer" produces "Customer saved".
+
+## Mobile first, both audiences
+
+Every interface in this product is used from a phone, so **a screen that only works on a laptop is not finished.** This is a requirement, at the same level as the front-end-only boundary and SOLID — not a polish pass at the end.
+
+Both audiences, explicitly:
+
+- **Public** — searching a business, picking a service, choosing a slot and booking. This flow is mobile by default; the desktop version is the secondary one.
+- **Admin** — the owner checks the day's agenda, confirms an appointment and adds a customer from their phone, between clients. **The dashboard is not a desktop-only surface** and never gets built as one.
+
+### The rule
+
+**Base classes *are* the phone layout.** A breakpoint prefix may only *add* for a wider screen; there is no downward direction. `grid gap-6 lg:grid-cols-2` is right, a desktop grid you later undo is not.
+
+The design floor is **375px**. At **320px** nothing may clip and the page may not scroll horizontally. Above `xl` nothing essential appears for the first time.
+
+### Breakpoints
+
+Tailwind 4 defaults, and they stay defaults — `resources/css/app.css` defines no `--breakpoint-*` and must not start.
+
+| Prefix | Min width | What it means in this product |
+| --- | --- | --- |
+| *(base)* | 320–639 | phone — the default, and the one that must always work |
+| `sm:` | 640 | large phone landscape, small tablet — wider gutters, two-up grids |
+| `md:` | 768 | tablet portrait — where collapsed navigation may re-expand |
+| `lg:` | 1024 | laptop — where a second column is allowed |
+| `xl:` | 1280 | wide desktop — decoration only, never content that matters |
+
+**Layout is decided in CSS, never in JavaScript.** There is no `useMediaQuery` in this project and you do not add one: a JS breakpoint renders a different tree before hydration than after it. The one arbitrary breakpoint in the repo — `min-[375px]:[--s:0.74]` in `components/shared/hero/HeroCollage.tsx` — scales a decorative stage; it is a precedent for that, not for layout.
+
+### Follow the idioms already here
+
+The codebase is already mobile-first. Match it instead of inventing a second style:
+
+- **Gutters**: `px-5 sm:px-8`, used by `PublicLayout`, `AdminLayout`, `AuthHeader` and `Section`.
+- **Fluid type over a breakpoint ladder**: `text-[clamp(2.25rem,5.5vw,3.75rem)]`, not four sizes across four prefixes.
+- **`min-h-svh`, not `min-h-screen`** — mobile browser chrome makes `vh` wrong.
+- **Every `grid-cols` rule is breakpoint-prefixed**, so a grid starts as one column and earns more.
+
+### Patterns, per widget
+
+None of these primitives are installed yet — `components/ui/` holds only `button`, `card`, `input` and `label` — so the first screen that needs one runs `npx shadcn@latest add …` and then follows the pattern.
+
+- **A data table is a list of cards below `md`.** `overflow-x-auto` is not the mobile answer for primary content; it is acceptable only for a genuinely tabular secondary view, inside its own container, never for the page's main record list.
+- **Navigation collapses into a `sheet`, never into `hidden`.** `SectionNav`'s `hidden md:flex` is acceptable *only* because those are in-page anchors duplicating content the user reaches by scrolling. Navigation that is the only path to a destination stays reachable on a phone. This bites the moment `AdminLayout` grows past its single logout button — it has no sidebar today, and the mobile shape is decided when the nav is added, not afterwards.
+- **A modal on a phone is full-screen or a bottom sheet**, scrolling its own body. Never a centered card taller than the viewport with its primary action below the fold.
+- **The agenda has a phone shape of its own**: one day at a time, not a week grid scaled down until it is unreadable. Slot pickers wrap; they do not scroll sideways.
+
+### Touch and input
+
+- **Interactive targets are at least 44×44 CSS px.** A small or icon `button` variant earns the size back with padding or an invisible hit area — it never gets smaller.
+- **No hover-only affordance.** Anything revealed on `:hover` needs a tap and focus path, or it does not exist on a phone.
+- **Inputs are `text-base` or larger.** Under 16px, iOS zooms the viewport on focus and the user is stranded mid-form.
+- **The keyboard is the UX**: correct `type`, `inputMode` and `autoComplete` on every field — `type="email"`, `inputMode="tel"`, `autoComplete="name"`. A booking form filled with the wrong keyboard is a broken booking form.
+
+### Overflow
+
+**Zero horizontal page scroll, at any width.** The recurring causes here:
+
+- `components/ui/button.tsx` sets `whitespace-nowrap` on every button, so a long label cannot break. Keep labels short and let the row `flex-wrap`.
+- **`PublicLayout`'s header is the known tight spot**: at 375px the wordmark plus two nowrap account buttons very nearly fill the row, and nothing reduces them below `sm`. Adding anything there overflows — collapse it instead.
+- Fixed pixel sizes live only inside an `overflow-hidden`, scaled stage — the `HeroCollage` `--s` pattern. Never on a content element.
+- A fixed bottom bar needs `pb-[env(safe-area-inset-bottom)]`, or the home indicator eats its primary action.
 
 ## shadcn/ui
 
@@ -262,6 +326,8 @@ Verify in the browser when, and only when:
 - a change touches **something already implemented** and could plausibly regress it.
 
 Keep it granular. Check the one screen and the one flow that changed — never a tour of the app. State what you checked and what you saw.
+
+**When you do open a browser, resize to a phone first.** `mcp__playwright__browser_resize` to 390×844 before the first screenshot: the phone is the view most likely to be broken, so it is the one worth spending a screenshot on. That check lives inside the three-screenshot budget below — it does not earn extra ones, and it is never a reason to sweep widths looking for a breakpoint.
 
 **Budget: at most three screenshots per task, one per surface.** Never sweep a range of values to choose a size, a spacing or a colour — ship a defensible value, name it in your report, and let the reviewer nudge it. A pixel choice costs a human seconds and costs you a blind search.
 
@@ -313,6 +379,7 @@ The five SOLID principles — Single Responsibility, Open/Closed, Liskov Substit
 1. Can I name each component in one sentence, without using "and"?
 2. Does any component know both *how to fetch* and *how to look*?
 3. Does any prop exist only to switch a branch that should have been composition?
+4. Does every screen I touched work at 375px — nothing clipped, no horizontal scroll, no hover-only affordance, every target thumb-sized?
 
 ## TypeScript and React conventions
 
@@ -336,11 +403,12 @@ Before writing anything, read `CLAUDE.md`, then read the domain you are about to
 1. Read the contract: the domain's `routes.php`, `Resources/`, `Requests/`, and its provider's middleware.
 2. Name the screens and the states each one needs — loading, empty, error, populated.
 3. For new or reshaped UI, plan the design with the `frontend-design` skill before writing JSX.
-4. Build outward from the data: `types.ts` → `api.ts` → `queries.ts` → `domains/<domain>/components/` → `pages/<audience>/…`.
-5. Run `npx tsc --noEmit`.
-6. Re-read the diff against the clean code practices and SOLID principles self-check.
-7. Verify in the browser **only** if the Playwright policy above applies.
-8. Report, including the backend handoff list.
+4. Name the phone layout of every screen — what stacks, what collapses, what a table becomes — **before** writing JSX, not after.
+5. Build outward from the data: `types.ts` → `api.ts` → `queries.ts` → `domains/<domain>/components/` → `pages/<audience>/…`.
+6. Run `npx tsc --noEmit`.
+7. Re-read the diff against the clean code practices and SOLID principles self-check.
+8. Verify in the browser **only** if the Playwright policy above applies.
+9. Report, including the backend handoff list.
 
 Triage:
 
@@ -356,6 +424,7 @@ Your final message states:
 - Files created and modified.
 - The `npx tsc --noEmit` result.
 - Whether you used Playwright, on which flow, and what you observed — or that you did not, and why.
+- The phone shape: which widths you designed against, and what each screen that changes shape across a breakpoint looks like at 375px.
 - The backend handoff list: every endpoint, field, route or middleware change `mizita-backend` needs to make for this UI to work.
 - Any clean code practice or SOLID principle you deliberately traded off, and why — duplication kept on purpose, a component left doing two jobs, a prop wider than the component needs.
 - Any project-convention divergence you found.
