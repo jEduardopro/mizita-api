@@ -32,6 +32,17 @@
         },
         "copyright": "© {{year}} {{name}}. Todos los derechos reservados."
     },
+    "legal": {
+        "titles": {
+            "terms": "Términos y Condiciones",
+            "privacy": "Aviso de Privacidad",
+            "cookies": "Política de Cookies"
+        },
+        "lastUpdated": "Última actualización",
+        "tableOfContents": "Índice",
+        "placeholderPrefix": "POR DEFINIR",
+        "unavailable": "No pudimos abrir el documento. Recarga la página para intentarlo otra vez."
+    },
     "actions": {
         "tryAgain": "Reintentar",
         "retrying": "Reintentando…"

@@ -3,6 +3,13 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/*
+ * The legal documents are markdown, so their type is set by element rather than
+ * by a utility on every tag. The plugin supplies the rhythm; `.prose-legal`
+ * below points its variables at this project's own tokens.
+ */
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -37,6 +44,14 @@
      */
     --color-surface-muted: var(--surface-muted);
     --color-surface-brand: var(--surface-brand);
+
+    /*
+     * The unfinished marker, and the only amber in the product. It is not a
+     * destructive state — nothing failed — so it cannot borrow `--destructive`:
+     * a fact that has not been decided yet needs to look pending, not wrong.
+     */
+    --color-warning: var(--warning);
+    --color-warning-surface: var(--warning-surface);
 
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -173,6 +188,9 @@
     --ring: var(--brand-500);
     --surface-muted: oklch(0.974 0.006 258);
     --surface-brand: oklch(0.955 0.019 258);
+    /* 5.9:1 on its own surface, so the marker is legible and not merely loud. */
+    --warning: oklch(0.52 0.125 70);
+    --warning-surface: oklch(0.958 0.05 85);
     --chart-1: var(--brand-500);
     --chart-2: var(--brand-600);
     --chart-3: var(--brand-700);
@@ -215,6 +233,8 @@
     --ring: var(--brand-500);
     --surface-muted: oklch(0.215 0.013 258);
     --surface-brand: oklch(0.252 0.03 258);
+    --warning: oklch(0.86 0.125 85);
+    --warning-surface: oklch(0.315 0.055 75);
     --chart-1: var(--brand-300);
     --chart-2: var(--brand-400);
     --chart-3: var(--brand-500);
@@ -252,5 +272,117 @@
   input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]):not(:disabled),
   label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)) {
     cursor: pointer;
+    }
+}
+
+/*
+ * The house voice, applied to prose.
+ *
+ * A legal page is the one screen written as a document rather than composed out
+ * of components, so everything it needs has to come from the element itself.
+ * The plugin's variables are pointed at the same semantic tokens every other
+ * surface uses, which is what keeps these pages reading as part of the site: one
+ * blue for links, one border hairline, both themes for free.
+ *
+ * The class is written twice on purpose. `.prose` and `.prose-legal` have equal
+ * specificity, so a single class would leave the winner up to whichever rule the
+ * build emits last; doubling it settles the question at 0,2,0 and the layer
+ * places it above the plugin's own `@layer components` regardless.
+ */
+@layer utilities {
+    .prose-legal.prose-legal {
+        --tw-prose-body: color-mix(in oklab, var(--foreground) 88%, var(--background));
+        --tw-prose-headings: var(--foreground);
+        --tw-prose-lead: var(--muted-foreground);
+        --tw-prose-links: var(--primary);
+        --tw-prose-bold: var(--foreground);
+        --tw-prose-counters: var(--muted-foreground);
+        --tw-prose-bullets: var(--brand-400);
+        --tw-prose-hr: var(--border);
+        --tw-prose-quotes: var(--foreground);
+        --tw-prose-quote-borders: var(--brand-200);
+        --tw-prose-captions: var(--muted-foreground);
+        --tw-prose-code: var(--foreground);
+        --tw-prose-th-borders: var(--border);
+        --tw-prose-td-borders: var(--border);
+
+        /*
+         * Fluid rather than a breakpoint ladder, the same way the landing page
+         * sets its headings: the measure changes continuously between a phone
+         * and a laptop, so the type that fills it should too.
+         */
+        font-size: clamp(0.9375rem, 0.88rem + 0.25vw, 1.0625rem);
+
+        :is(h1, h2, h3) {
+            font-family: var(--font-heading);
+            letter-spacing: -0.025em;
+            text-wrap: balance;
+        }
+
+        h2 {
+            font-size: 1.4em;
+            line-height: 1.25;
+            margin-top: 2.75em;
+            margin-bottom: 0.9em;
+        }
+
+        h3 {
+            font-size: 1.1em;
+            margin-top: 2em;
+            margin-bottom: 0.6em;
+        }
+
+        a {
+            font-weight: 500;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        /*
+         * Cookie and cookie-header names, set as a chip. The plugin's backtick
+         * pseudo-elements go: a name on a tinted surface already reads as a
+         * literal, and the quotes only add noise inside a table cell.
+         */
+        code {
+            background-color: var(--muted);
+            border-radius: calc(var(--radius) * 0.5);
+            padding: 0.125em 0.375em;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        code::before,
+        code::after {
+            content: none;
+        }
+
+        /*
+         * The minimum is what makes the wrapper's `overflow-x-auto` mean
+         * something on a phone: below it the cells would compress to two words
+         * per line and the table would stop being readable as a table.
+         */
+        table {
+            font-size: 0.9em;
+            min-width: 34rem;
+        }
+
+        thead th {
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            color: var(--muted-foreground);
+        }
+
+        /*
+         * The plugin flushes the outer cells against the text column, which is
+         * right for a bare table and wrong for one inside a bordered scroller:
+         * there the first word would touch the frame.
+         */
+        :is(th, td):first-child {
+            padding-inline-start: 1rem;
+        }
+
+        :is(th, td):last-child {
+            padding-inline-end: 1rem;
+        }
     }
 }

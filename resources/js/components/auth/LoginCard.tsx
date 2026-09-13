@@ -85,8 +85,8 @@ export function LoginCard({ form, status, onSubmit }: Props) {
                             i18nKey="login.legal"
                             ns="auth"
                             components={{
-                                terms: <LegalLink />,
-                                privacy: <LegalLink />,
+                                terms: <LegalLink document="terms" />,
+                                privacy: <LegalLink document="privacy" />,
                             }}
                         />
                     </p>

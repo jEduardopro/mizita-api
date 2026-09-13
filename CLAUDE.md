@@ -311,9 +311,12 @@ resources/js/
 │   ├── form/               audience-agnostic wrappers over ui/
 │   └── public/…            used by exactly one audience, split by surface
 ├── locales/<lang>/         i18next bundles, one JSON per namespace
+├── content/legal/          the legal documents — see below
 ├── types/                  ambient declarations (i18next keys, Inertia page props)
 └── hooks/  lib/
 ```
+
+`content/` is for long-form prose that is neither UI copy nor data: today the three legal documents, as `content/legal/<lang>/{terms,privacy,cookies}.md`, plus `content/legal/entity.ts`, which holds every identity fact the documents interpolate as `{{TOKEN}}` and the date each was last revised. They are markdown rather than i18next keys for two reasons: a lawyer reviewing a `.md` diff needs no developer, and `lib/i18n.ts` bundles every locale namespace **eagerly**, so prose that long would ride into the main chunk for three pages almost nobody opens. `LegalDocument` reaches them through `import.meta.glob(…, { query: '?raw' })`, which code-splits each file. A fact with a `null` value renders as a visible marker naming what is missing, never as an empty string — an unfinished contract has to look unfinished.
 
 **Audience lives in `pages/`, domain lives in `domains/`.** Inertia resolves a page by the string name the controller passes, so `pages/` has to mirror the URL — which makes the `admin` / `public` / `auth` split fall out naturally. Domains stay audience-agnostic, so `domains/customers/api.ts` is written once and used by both sides instead of being duplicated per audience.
 

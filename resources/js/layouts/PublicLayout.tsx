@@ -15,6 +15,7 @@ import {
 } from '@/components/public/shell/SocialIcons';
 import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
+import { legalDocuments } from '@/content/legal/entity';
 
 /**
  * The social profiles the footer links to.
@@ -39,8 +40,11 @@ const socialProfiles: { network: string; href: string; Icon: (props: SocialIconP
  * treats `/#pricing` as a fragment jump rather than a navigation, and from
  * anywhere else it goes home and lands on the section.
  *
- * PLACEHOLDER: the company and legal destinations are `#` until those pages
- * exist. Each one is a route `mizita-backend` has yet to add.
+ * The legal destinations come from `legalDocuments`, the same record the auth
+ * screens link through, so the three paths are declared once.
+ *
+ * PLACEHOLDER: the company destinations are `#` until those pages exist. Each
+ * one is a route `mizita-backend` has yet to add.
  */
 const footerMenu = [
     {
@@ -65,9 +69,9 @@ const footerMenu = [
         id: 'legal',
         title: 'footer.legal.title',
         links: [
-            { label: 'footer.legal.privacy', href: '#' },
-            { label: 'footer.legal.terms', href: '#' },
-            { label: 'footer.legal.cookies', href: '#' },
+            { label: 'footer.legal.privacy', href: legalDocuments.privacy.path },
+            { label: 'footer.legal.terms', href: legalDocuments.terms.path },
+            { label: 'footer.legal.cookies', href: legalDocuments.cookies.path },
         ],
     },
 ] as const;

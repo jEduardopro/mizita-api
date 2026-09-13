@@ -178,8 +178,8 @@ export function SignupCard({ form, onSubmit }: Props) {
                     i18nKey="register.legal"
                     ns="auth"
                     components={{
-                        terms: <LegalLink />,
-                        privacy: <LegalLink />,
+                        terms: <LegalLink document="terms" />,
+                        privacy: <LegalLink document="privacy" />,
                     }}
                 />
             </p>
