@@ -53,6 +53,14 @@
     --color-warning: var(--warning);
     --color-warning-surface: var(--warning-surface);
 
+    /*
+     * The one green in the product, and the counterpart of `--destructive`: it
+     * marks a check that came back clean — a business name that is still free —
+     * rather than an action, which is what the brand accent is for.
+     */
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -191,6 +199,14 @@
     /* 5.9:1 on its own surface, so the marker is legible and not merely loud. */
     --warning: oklch(0.52 0.125 70);
     --warning-surface: oklch(0.958 0.05 85);
+    /*
+     * Hue 152, a cool green that sits beside the ultramarine instead of fighting
+     * it. Held down to L 0.48 because the verdict it colours is 12px text on the
+     * white card: that measures about 4.8:1, past AA for body copy, where a
+     * brighter "success" green would land near 3:1 and be decorative only.
+     */
+    --success: oklch(0.48 0.12 152);
+    --success-foreground: oklch(0.995 0.002 258);
     --chart-1: var(--brand-500);
     --chart-2: var(--brand-600);
     --chart-3: var(--brand-700);
@@ -235,6 +251,9 @@
     --surface-brand: oklch(0.252 0.03 258);
     --warning: oklch(0.86 0.125 85);
     --warning-surface: oklch(0.315 0.055 75);
+    /* Steps up the same hue for the dark card — about 7:1 on it. */
+    --success: oklch(0.78 0.14 152);
+    --success-foreground: oklch(0.24 0.06 152);
     --chart-1: var(--brand-300);
     --chart-2: var(--brand-400);
     --chart-3: var(--brand-500);

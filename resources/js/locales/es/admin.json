@@ -13,5 +13,42 @@
             "title": "Aún no hay nada en la agenda",
             "body": "Tu agenda aparecerá aquí en cuanto exista un negocio, con su equipo, sus servicios y sus horarios. Esas pantallas todavía se están construyendo."
         }
+    },
+    "onboarding": {
+        "title": "Crea tu negocio",
+        "heading": "Crea tu negocio",
+        "description": "Con lo básico creamos tu enlace de reservas. El equipo, los servicios y los horarios vienen después.",
+        "name": {
+            "label": "Nombre del negocio",
+            "hint": "Ej. Barbería Central",
+            "available": "Nombre disponible.",
+            "taken": "Ese nombre no está disponible. Prueba con otro.",
+            "link": "Disponible. Tu enlace será {{url}}"
+        },
+        "industry": {
+            "label": "Rubro",
+            "placeholder": "Busca tu rubro",
+            "empty": "Ningún rubro coincide con lo que escribiste.",
+            "results_one": "{{count}} rubro disponible",
+            "results_other": "{{count}} rubros disponibles",
+            "loading": "Cargando los rubros…",
+            "error": "No hemos podido cargar los rubros."
+        },
+        "phone": {
+            "label": "Teléfono",
+            "optional": "Opcional",
+            "country": "País del teléfono",
+            "number": "Número de teléfono",
+            "hint": "Lo verá quien reserve, por si necesita localizarte.",
+            "countries": {
+                "MX": "México",
+                "US": "Estados Unidos"
+            }
+        },
+        "submit": "Crear negocio",
+        "submitting": "Creando negocio…",
+        "errors": {
+            "unexpected": "No hemos podido crear tu negocio. Inténtalo otra vez."
+        }
     }
 }

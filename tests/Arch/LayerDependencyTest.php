@@ -15,6 +15,14 @@ use Tests\Support\Architecture\DomainLayers;
 | Namespaces are discovered from the filesystem rather than listed, so a domain
 | added tomorrow is covered by every rule below without anyone remembering to
 | come back and add it.
+|
+| One namespace per expectation, always. pest-plugin-arch implements
+| `not->toUse($dependency)` as "run the positive expectation and require it to
+| fail", and the positive one fails at the first target namespace that does *not*
+| use the dependency. Hand it a list of namespaces and the rule therefore passes
+| unless every single one of them violates it - which is to say it never fails.
+| Passing the list to ->with() instead keeps each namespace its own expectation,
+| and a failure names the namespace that broke the rule.
 */
 
 /*
@@ -25,21 +33,21 @@ use Tests\Support\Architecture\DomainLayers;
 | Plain PHP, DateTimeImmutable and same-domain classes. Nothing else.
 */
 
-arch('the domain layer knows nothing about the framework')
-    ->expect(DomainLayers::domain())
-    ->not->toUse(['Illuminate', 'Laravel', 'Inertia', 'Symfony']);
+it('keeps the framework out of the domain layer', function (string $namespace) {
+    expect($namespace)->not->toUse(['Illuminate', 'Laravel', 'Inertia', 'Symfony']);
+})->with(fn () => DomainLayers::domain());
 
-arch('the domain layer keeps time in DateTimeImmutable, never Carbon')
-    ->expect(DomainLayers::domain())
-    ->not->toUse(['Carbon', 'Illuminate\Support\Carbon']);
+it('keeps time in the domain layer in DateTimeImmutable, never Carbon', function (string $namespace) {
+    expect($namespace)->not->toUse(['Carbon', 'Illuminate\Support\Carbon']);
+})->with(fn () => DomainLayers::domain());
 
-arch('the domain layer does not reach down into infrastructure')
-    ->expect(DomainLayers::domain())
-    ->not->toUse(DomainLayers::infrastructure());
+it('keeps the domain layer from reaching down into infrastructure', function (string $namespace) {
+    expect($namespace)->not->toUse(DomainLayers::infrastructure());
+})->with(fn () => DomainLayers::domain());
 
-arch('the domain layer does not reach out into the application layer')
-    ->expect(DomainLayers::domain())
-    ->not->toUse(DomainLayers::application());
+it('keeps the domain layer from reaching out into the application layer', function (string $namespace) {
+    expect($namespace)->not->toUse(DomainLayers::application());
+})->with(fn () => DomainLayers::domain());
 
 /*
 |--------------------------------------------------------------------------
@@ -51,23 +59,23 @@ arch('the domain layer does not reach out into the application layer')
 | here at all, and they stay thin wrappers around a use case.
 */
 
-arch('the application layer never touches Eloquent or a facade')
-    ->expect(DomainLayers::application())
-    ->not->toUse(['Illuminate\Database', 'Illuminate\Support\Facades']);
+it('keeps Eloquent and the facades out of the application layer', function (string $namespace) {
+    expect($namespace)->not->toUse(['Illuminate\Database', 'Illuminate\Support\Facades']);
+})->with(fn () => DomainLayers::application());
 
-arch('the application layer never sees an HTTP request')
-    ->expect(DomainLayers::application())
-    ->not->toUse(['Illuminate\Http', 'Symfony\Component\HttpFoundation', 'Inertia']);
+it('never lets the application layer see an HTTP request', function (string $namespace) {
+    expect($namespace)->not->toUse(['Illuminate\Http', 'Symfony\Component\HttpFoundation', 'Inertia']);
+})->with(fn () => DomainLayers::application());
 
-arch('the application layer does not reach down into infrastructure')
-    ->expect(DomainLayers::application())
-    ->not->toUse(DomainLayers::infrastructure());
+it('keeps the application layer from reaching down into infrastructure', function (string $namespace) {
+    expect($namespace)->not->toUse(DomainLayers::infrastructure());
+})->with(fn () => DomainLayers::application());
 
-arch('use cases do not reach for the container, the config or the clock')
+it('keeps use cases away from the container, the config and the clock', function (string $namespace) {
     // Time and identity arrive as injected ports. A use case that can call
     // now() is a use case whose timestamps cannot be asserted.
-    ->expect(DomainLayers::application())
-    ->not->toUse(['Illuminate\Container', 'Illuminate\Config', 'Illuminate\Foundation']);
+    expect($namespace)->not->toUse(['Illuminate\Container', 'Illuminate\Config', 'Illuminate\Foundation']);
+})->with(fn () => DomainLayers::application());
 
 /*
 |--------------------------------------------------------------------------
@@ -79,28 +87,37 @@ arch('use cases do not reach for the container, the config or the clock')
 | consumer declares, adapted in the consumer's own Infrastructure/Gateways.
 */
 
-it('keeps each domain out of every other domain, except from Infrastructure', function (string $domain) {
+it('keeps each domain out of every other domain, except from Infrastructure', function (string $namespace) {
+    $domain = explode('\\', $namespace)[2];
+
     $foreignDomains = array_values(array_filter(
         DomainLayers::domainNames(),
         static fn (string $other): bool => $other !== $domain,
     ));
 
-    expect(DomainLayers::insideOf($domain))
-        ->not->toUse(array_map(
-            static fn (string $other): string => 'App\Domains\\'.$other,
-            $foreignDomains,
-        ));
-})->with(fn () => DomainLayers::domainNames())->skip(
+    expect($namespace)->not->toUse(array_map(
+        static fn (string $other): string => 'App\Domains\\'.$other,
+        $foreignDomains,
+    ));
+})->with(fn () => [...DomainLayers::domain(), ...DomainLayers::application()])->skip(
     count(DomainLayers::domainNames()) < 2,
     'There is only one domain, so there is nothing to cross.',
 );
 
-arch('no domain imports the authentication model outside Infrastructure')
+it('keeps the authentication model out of every domain but its infrastructure', function (string $namespace) {
     // App\Models\User is deliberately one class, because Fortify and Sanctum
     // resolve it by configuration. Accounts adapts it - but only from
     // Infrastructure, where framework concretions belong.
-    ->expect([...DomainLayers::domain(), ...DomainLayers::application()])
-    ->not->toUse('App\Models');
+    expect($namespace)->not->toUse('App\Models');
+})->with(fn () => [...DomainLayers::domain(), ...DomainLayers::application()]);
+
+it('keeps spatie/laravel-permission inside infrastructure', function (string $namespace) {
+    // Roles are persisted with Spatie, and that is a persistence decision. The
+    // domain keeps its own StaffRole vocabulary precisely so the package can be
+    // replaced without touching a rule - which is only true while no entity,
+    // port or use case has ever heard of it.
+    expect($namespace)->not->toUse('Spatie');
+})->with(fn () => [...DomainLayers::domain(), ...DomainLayers::application()]);
 
 /*
 |--------------------------------------------------------------------------
@@ -108,7 +125,7 @@ arch('no domain imports the authentication model outside Infrastructure')
 |--------------------------------------------------------------------------
 |
 | The domain layer is allowed to depend on these, which is only defensible for
-| as long as they stay plain interfaces.
+| as long as they stay plain interfaces and plain values.
 */
 
 arch('the shared ports are interfaces')
@@ -118,3 +135,48 @@ arch('the shared ports are interfaces')
 arch('the shared ports drag no framework into the domain layer')
     ->expect('App\Shared\Contracts')
     ->not->toUse(['Illuminate', 'Carbon']);
+
+arch('the shared value objects drag no framework into the domain layer')
+    // Every domain layer may import these, so whatever they reach for is
+    // reached by the whole platform's domain code. A Str:: call here would
+    // quietly undo the rule above for every entity in the repository.
+    ->expect('App\Shared\ValueObjects')
+    ->not->toUse(['Illuminate', 'Laravel', 'Carbon']);
+
+/*
+|--------------------------------------------------------------------------
+| Tenancy: where the business comes from
+|--------------------------------------------------------------------------
+|
+| A tenant-scoped use case reads its business from BusinessContext, never from
+| its input. Registering the very first staff member is the one place that
+| cannot: the row it writes is what resolves the tenant, so there is no context
+| to read yet and businessId arrives as an argument.
+|
+| Both halves are written down, because an exception nobody has fenced in is
+| indistinguishable from a habit.
+*/
+
+arch('registers the first owner without a business context, because that row is what resolves the tenant')
+    ->expect('App\Domains\Staff\Application\UseCases\RegisterBusinessOwner')
+    ->not->toUse('App\Shared\Contracts\BusinessContext');
+
+it('takes the tenant from the business context in every other staff use case', function () {
+    // Written by hand rather than as an arch() rule because pest-plugin-arch's
+    // ignoring() filters the dependencies an object uses, not the objects
+    // themselves, so it cannot express "every class here except this one".
+    //
+    // Vacuous while RegisterBusinessOwner is the only class in that folder, and
+    // deliberately written now rather than later: it is the next use case added
+    // there that this rule exists to catch, and by then the reason for the
+    // exception will be less obvious than it is today.
+    $useCases = glob(dirname(__DIR__, 2).'/app/Domains/Staff/Application/UseCases/*.php') ?: [];
+
+    $withoutContext = array_values(array_filter(
+        $useCases,
+        static fn (string $file): bool => basename($file) !== 'RegisterBusinessOwner.php'
+            && ! str_contains((string) file_get_contents($file), 'App\Shared\Contracts\BusinessContext'),
+    ));
+
+    expect(array_map(basename(...), $withoutContext))->toBe([]);
+});

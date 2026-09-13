@@ -58,6 +58,41 @@ function WordmarkImage({ source, alt, className }: ImageProps) {
     );
 }
 
+type MarkProps = {
+    /**
+     * The accessible name of the mark. The artwork carries no text layer, so the
+     * app name still comes from the server rather than being written in here.
+     */
+    name: string;
+    size?: WordmarkSize;
+    className?: string;
+};
+
+/**
+ * The artwork on its own, leading nowhere.
+ *
+ * It exists for the screens a person is not allowed to leave yet — onboarding,
+ * where the header mark would otherwise be a link to a dashboard the server
+ * bounces straight back here. A mark that goes nowhere is honest; a link that
+ * returns you to where you started is not.
+ */
+export function WordmarkMark({ name, size = 'default', className }: MarkProps) {
+    return (
+        <span className={cn('inline-flex items-center', className)}>
+            <WordmarkImage
+                source={darkInkSource}
+                alt={name}
+                className={cn(sizes[size], 'dark:hidden')}
+            />
+            <WordmarkImage
+                source={lightInkSource}
+                alt=""
+                className={cn(sizes[size], 'hidden dark:block')}
+            />
+        </span>
+    );
+}
+
 type Props = {
     /**
      * The accessible name of the mark. The artwork carries no text layer, so the
@@ -91,16 +126,7 @@ export function Wordmark({ name, href = '/', size = 'default', className }: Prop
                 className,
             )}
         >
-            <WordmarkImage
-                source={darkInkSource}
-                alt={name}
-                className={cn(sizes[size], 'dark:hidden')}
-            />
-            <WordmarkImage
-                source={lightInkSource}
-                alt=""
-                className={cn(sizes[size], 'hidden dark:block')}
-            />
+            <WordmarkMark name={name} size={size} />
         </Link>
     );
 }

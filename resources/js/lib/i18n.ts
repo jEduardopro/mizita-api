@@ -5,10 +5,12 @@ import { initReactI18next } from 'react-i18next';
 import adminEn from '@/locales/en/admin.json';
 import authEn from '@/locales/en/auth.json';
 import commonEn from '@/locales/en/common.json';
+import industriesEn from '@/locales/en/industries.json';
 import publicEn from '@/locales/en/public.json';
 import adminEs from '@/locales/es/admin.json';
 import authEs from '@/locales/es/auth.json';
 import commonEs from '@/locales/es/common.json';
+import industriesEs from '@/locales/es/industries.json';
 import publicEs from '@/locales/es/public.json';
 
 /**
@@ -39,14 +41,30 @@ const FALLBACK_LOCALE: Locale = 'en';
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 /**
- * Namespaces mirror the app's own structure: shared chrome, and then one per
- * audience folder under `pages/`.
+ * Namespaces mirror the app's own structure: one per audience folder under
+ * `pages/`, plus the ones that are shared vocabulary rather than an audience.
+ * `common` is the chrome every surface draws; `industries` is the catalogue the
+ * backend keys by `key` and never labels, so the words for it belong here and
+ * are read wherever an industry is shown — today the onboarding form, tomorrow
+ * the public directory.
  */
-export const namespaces = ['common', 'auth', 'public', 'admin'] as const;
+export const namespaces = ['common', 'auth', 'public', 'admin', 'industries'] as const;
 
 const resources = {
-    es: { common: commonEs, auth: authEs, public: publicEs, admin: adminEs },
-    en: { common: commonEn, auth: authEn, public: publicEn, admin: adminEn },
+    es: {
+        common: commonEs,
+        auth: authEs,
+        public: publicEs,
+        admin: adminEs,
+        industries: industriesEs,
+    },
+    en: {
+        common: commonEn,
+        auth: authEn,
+        public: publicEn,
+        admin: adminEn,
+        industries: industriesEn,
+    },
 };
 
 /**

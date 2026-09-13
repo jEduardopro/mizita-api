@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Infrastructure\Eloquent\Models;
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Factories\BusinessModelFactory;
+use App\Domains\Industries\Infrastructure\Eloquent\Models\IndustryModel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -18,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Soft deletes track the record lifecycle. Any "active" style flag is a
  * separate business state and lives on the entity.
  */
-#[Fillable(['uuid', 'name', 'slug'])]
+#[Fillable(['uuid', 'name', 'slug', 'industry_id', 'timezone'])]
 class BusinessModel extends Model
 {
     use HasFactory;
@@ -41,6 +43,20 @@ class BusinessModel extends Model
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    /**
+     * The catalog row this business belongs to.
+     *
+     * It exists so the repository can read the industry's uuid back without a
+     * query per row: the foreign key holds the int, the entity carries the
+     * uuid, and eager loading this relation is what joins the two halves.
+     *
+     * @return BelongsTo<IndustryModel, $this>
+     */
+    public function industry(): BelongsTo
+    {
+        return $this->belongsTo(IndustryModel::class, 'industry_id');
     }
 
     /**

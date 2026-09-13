@@ -1,9 +1,9 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import { useQueryClient } from '@tanstack/react-query';
+import { Head, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
+import { useLogOut } from '@/hooks/use-log-out';
 
 type Props = {
     /** The tab title and the heading of the screen. */
@@ -21,27 +21,7 @@ type Props = {
 export function AdminLayout({ title, description, actions, children }: Props) {
     const { name } = usePage().props;
     const { t } = useTranslation('common');
-    const queryClient = useQueryClient();
-
-    function logOut() {
-        router.post(
-            '/logout',
-            {},
-            {
-                // Query keys carry no tenant discriminator, because the backend
-                // never serialises `business_id`. Dropping the cache on the way
-                // out is what stops the next session reading these rows.
-                //
-                // `onBefore` runs before the request, so the outgoing session's
-                // rows are gone the moment logout is asked for, and the same
-                // ordering holds everywhere the session changes. Returning
-                // `false` here would cancel the visit, hence the block body.
-                onBefore: () => {
-                    queryClient.clear();
-                },
-            },
-        );
-    }
+    const logOut = useLogOut();
 
     return (
         <div className="flex min-h-svh flex-col bg-background text-foreground">
@@ -51,7 +31,14 @@ export function AdminLayout({ title, description, actions, children }: Props) {
                 <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-5 sm:px-8">
                     <Wordmark name={name} href="/dashboard" />
 
-                    <Button variant="ghost" size="sm" onClick={logOut}>
+                    {/*
+                     * `sm` sets the type, not the box: the button is the only
+                     * control in this header and it is pressed from a phone, so
+                     * it is grown to the 44px tap-target floor. A ghost button
+                     * draws nothing at rest, so the extra height costs no visual
+                     * weight — it only widens where a thumb may land.
+                     */}
+                    <Button variant="ghost" size="sm" onClick={logOut} className="h-11 px-3">
                         {t('nav.logOut')}
                     </Button>
                 </div>

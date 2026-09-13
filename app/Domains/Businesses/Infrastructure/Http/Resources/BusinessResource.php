@@ -14,8 +14,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class BusinessResource extends JsonResource
 {
     /**
-     * The business id is deliberately not serialised: the caller already
-     * operates inside a single business.
+     * The business a caller owns, as the dashboard needs it.
+     *
+     * id is the uuid, never the internal key, and industry_id is the
+     * industry's uuid for the same reason. Timestamps go out as DATE_ATOM in
+     * UTC, so the client converts once, from an instant, into whatever local
+     * time it is showing.
      *
      * @return array<string, mixed>
      */
@@ -25,6 +29,8 @@ final class BusinessResource extends JsonResource
             'id' => $this->resource->id,
             'name' => $this->resource->name,
             'slug' => $this->resource->slug,
+            'timezone' => $this->resource->timezone,
+            'industry_id' => $this->resource->industryId,
             'created_at' => $this->resource->createdAt->format(DATE_ATOM),
         ];
     }

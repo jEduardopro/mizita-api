@@ -5,29 +5,45 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Entities;
 
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
+use App\Domains\Businesses\ValueObjects\Slug;
+use App\Domains\Businesses\ValueObjects\Timezone;
 use DateTimeImmutable;
 
 /**
  * Domain entity: plain PHP, no framework. It owns the business rules and
  * protects its own invariants. Persistence is handled by the repository
  * adapter through BusinessMapper.
+ *
+ * The tenant root. Every other record on the platform belongs to exactly one of
+ * these, which is why this entity carries no businessId of its own.
+ *
+ * Slug and Timezone are held as value objects and handed out as strings: the
+ * rules travel with the entity, while callers keep dealing in the primitives a
+ * DTO and a resource are made of.
  */
 final class Business
 {
     private function __construct(
         public readonly string $id,
         private string $name,
-        private string $slug,
+        private Slug $slug,
+        /** The industry's uuid. Resolving it to a foreign key is the adapter's job. */
+        public readonly string $industryId,
+        private Timezone $timezone,
         public readonly DateTimeImmutable $createdAt,
     ) {}
 
     /**
      * Creates a brand new business. Enforces creation-time rules.
+     *
+     * @throws InvalidBusinessName
      */
     public static function create(
         string $id,
         string $name,
-        string $slug,
+        Slug $slug,
+        string $industryId,
+        Timezone $timezone,
         DateTimeImmutable $now,
     ): self {
         $name = trim($name);
@@ -40,6 +56,8 @@ final class Business
             id: $id,
             name: $name,
             slug: $slug,
+            industryId: $industryId,
+            timezone: $timezone,
             createdAt: $now,
         );
     }
@@ -51,13 +69,17 @@ final class Business
     public static function restore(
         string $id,
         string $name,
-        string $slug,
+        Slug $slug,
+        string $industryId,
+        Timezone $timezone,
         DateTimeImmutable $createdAt,
     ): self {
         return new self(
             id: $id,
             name: $name,
             slug: $slug,
+            industryId: $industryId,
+            timezone: $timezone,
             createdAt: $createdAt,
         );
     }
@@ -69,6 +91,11 @@ final class Business
 
     public function slug(): string
     {
-        return $this->slug;
+        return $this->slug->value;
+    }
+
+    public function timezone(): string
+    {
+        return $this->timezone->value;
     }
 }

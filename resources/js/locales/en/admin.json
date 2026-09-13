@@ -13,5 +13,42 @@
             "title": "Nothing scheduled yet",
             "body": "Your agenda shows up here once a business exists, with its staff, services and opening hours. Those screens are still being built."
         }
+    },
+    "onboarding": {
+        "title": "Create your business",
+        "heading": "Create your business",
+        "description": "The basics are all we need to create your booking link. Staff, services and opening hours come next.",
+        "name": {
+            "label": "Business name",
+            "hint": "e.g. Central Barbershop",
+            "available": "Name available.",
+            "taken": "That name is not available. Try another one.",
+            "link": "Available. Your link will be {{url}}"
+        },
+        "industry": {
+            "label": "Industry",
+            "placeholder": "Search industries",
+            "empty": "No industry matches what you typed.",
+            "results_one": "{{count}} industry available",
+            "results_other": "{{count}} industries available",
+            "loading": "Loading industries…",
+            "error": "We could not load the industries."
+        },
+        "phone": {
+            "label": "Phone",
+            "optional": "Optional",
+            "country": "Phone country",
+            "number": "Phone number",
+            "hint": "Whoever books sees it, in case they need to reach you.",
+            "countries": {
+                "MX": "Mexico",
+                "US": "United States"
+            }
+        },
+        "submit": "Create business",
+        "submitting": "Creating business…",
+        "errors": {
+            "unexpected": "We could not create your business. Try again."
+        }
     }
 }

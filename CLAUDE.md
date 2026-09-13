@@ -25,10 +25,12 @@ Three route stacks follow, and the stack — not the controller — is what guar
 
 | Domain | Scope | Status | Purpose |
 | --- | --- | --- | --- |
-| `Businesses` | root | **exists** (create only) | The tenant: public profile, timezone, booking policy |
+| `Businesses` | root | **exists** | The tenant: public profile, timezone, booking policy. Orchestrates onboarding |
 | `Customers` | tenant | **exists** (create only) | Per-business client records, optionally linked to an account |
-| `Accounts` | root | planned | Authentication for both audiences; the transactional owner signup |
-| `Staff` | tenant | planned | People who work at the business — **also the access membership** |
+| `Accounts` | root | **exists** | Authentication for both audiences, including Google sign-in |
+| `Staff` | tenant | **exists** (owner only) | People who work at the business — **also the access membership** |
+| `Industries` | root | **exists** (read only) | Seeded catalog of business categories, keyed in English |
+| `Phones` | root | **exists** | Polymorphic phone numbers, one per owner |
 | `Services` | tenant | planned | Bookable offerings: duration, buffers, price, eligible staff |
 | `Availability` | tenant | planned | Weekly hours and time off for *both* businesses and staff; slot computation |
 | `Appointments` | tenant | planned | Booked intervals and their lifecycle |
@@ -37,7 +39,7 @@ Three route stacks follow, and the stack — not the controller — is what guar
 
 Three structural decisions worth knowing before you touch any of them:
 
-- **A staff row *is* the business membership.** `users` is pure authentication; which business a person may operate, and with what role, is a `staff` row. No staff rows means the person is an end customer. This replaces today's `users.business_id`.
+- **A staff row *is* the business membership.** `users` is pure authentication; which business a person may operate is a `staff_members` row. No staff rows means the person is an end customer. This replaced `users.business_id`, which no longer exists. The **role** is not on that row: roles and permissions are `spatie/laravel-permission`, with its teams feature on and the team being the business, so the same account can be an owner in one business and staff in another. `Staff\ValueObjects\StaffRole` stays the domain's vocabulary and names the seeded Spatie roles; nothing above `Infrastructure/` knows the package exists.
 - **Availability is one domain, not hours inside Businesses plus hours inside Staff.** `schedule_rules` carries `owner_type` + `owner_id`, so both share one entity, one calculator and one test suite. Availability = business hours ∩ staff hours − time off − booked appointments.
 - **Every unauthenticated endpoint lives in `PublicCatalog`**, so "what can an anonymous person reach?" has one answer. (`Public` alone cannot be a namespace segment — it is a PHP reserved word.)
 
@@ -67,6 +69,7 @@ English, everywhere — class names, columns, routes, comments. The non-obvious 
 - Laravel 13.31, PHP 8.4+
 - PostgreSQL (`mizita_api` locally)
 - Sanctum, already wired for both session and token auth: `bootstrap/app.php` calls `statefulApi()`, and `withExceptions` forces JSON rendering for `api/*`. Do not re-add either.
+- `spatie/laravel-permission` for roles and permissions, teams on, the team being the business. Confined to `Infrastructure/` and seeded by `StaffRoleSeeder` — see *Domains*
 - Pest for tests, Pint for formatting
 - React 19 + Vite 8 + TypeScript in `resources/js` — see [Frontend](#frontend)
 
@@ -159,16 +162,18 @@ The system is multi-business. `Businesses` is the **root** domain — it is not 
 
 Tenant-scoped tables carry `business_id` as a foreign key onto **`businesses.id`**, the int primary key, per the identity rule above. The entity still carries the business **uuid** in `public readonly string $businessId`, so the repository adapter translates between the two and nothing above `Infrastructure/` ever sees the int.
 
-**`customers.business_id` and `users.business_id` still hold uuids** — they predate this rule and have not been migrated yet. Do not copy them; new tables use the int FK.
+**`customers.business_id` still holds a uuid** — it predates this rule and has not been migrated yet. Do not copy it; new tables use the int FK. (`users.business_id` was the other offender and is gone.)
 
 Tenancy is explicit in the domain, not magic:
 
 - The entity carries `public readonly string $businessId`.
 - The use case injects `App\Shared\Contracts\BusinessContext` and passes `businessId: $this->business->currentBusinessId()` into `Entity::create()`. A unit test injects a fake context and can assert isolation with no database.
-- `App\Http\Middleware\SetBusinessContext` (alias `business`, registered in `bootstrap/app.php`) resolves the business and **aborts 403** when the caller has none. It never binds a null context.
+- `App\Http\Middleware\SetBusinessContext` (alias `business`, registered in `bootstrap/app.php`) resolves the business from the caller's **staff membership** through `App\Shared\Contracts\BusinessMembership`, and **aborts 403** when the caller has none. It never binds a null context. A caller with more than one membership picks with an `X-Business` header carrying the business uuid, validated against their memberships; with no header it gets the owner membership, else the oldest. The middleware also calls `setPermissionsTeamId()` with the business's int key — without it every `can()` and `hasRole()` check silently matches nothing.
 - `App\Shared\Infrastructure\Concerns\BelongsToBusiness` adds a global scope and a `creating` hook to the model. It is a safety net — the repository already writes `business_id` from the entity. When no context is bound (console, migrations, seeders) the scope is skipped, which is why HTTP isolation is guaranteed by the route middleware, not by the trait.
 
-**Today** the middleware reads `$request->user()->business`, and `users.business_id` holds the business uuid. **That is changing**: the tenant will be resolved from the caller's active staff membership, and `users.business_id` is removed — see *Domains* above. Write new code against `BusinessContext`, never against `User::business()`.
+**The trait is incompatible with an int `business_id`**: it writes and filters the column with the context *uuid*, so on a new tenant table it would compare a bigint to a uuid and Postgres would raise `22P02`. Do not add it to a table following the int-FK rule until a sibling trait exists that memoises uuid→int per request. `staff_members` also omits it for a second reason: it is the table that *resolves* the tenant, so it must be queryable before any context is bound.
+
+Write new code against `BusinessContext`. `User::business()` is gone.
 
 Tenant-scoped domains expose routes under `['api', 'auth:sanctum', 'business']`; root domains get `['api']`.
 
@@ -207,7 +212,11 @@ The bar: `new CreateCustomer(...)` must be constructible with mocks alone — no
 - `IdGenerator::next(): string` → `UuidGenerator` (`Str::uuid7()`, time-ordered). Lets an entity carry its identity before it is persisted.
 - `TransactionManager::run(callable): mixed` → `EloquentTransactionManager`. Keeps `DB::transaction()` out of use cases.
 
-Inject them; do not recreate them. Add a new shared port only when two or more domains need it.
+Inject them; do not recreate them. Add a new shared port only when two or more domains need it — or when the consumer is the HTTP kernel, which is not a domain and has no `Contracts/` of its own: `BusinessMembership` and `BusinessTeamKey` are there for that reason, each implemented by the domain that owns the data.
+
+**Domain exceptions carry their own HTTP classification.** `Exceptions/` may not import `Illuminate`, so the mapping cannot be a `render()` method on the exception; and a central `match` over class names in `bootstrap/app.php` is the growing switch this project forbids. Instead an exception implements `App\Shared\Contracts\DomainFailure`, returning a stable `errorCode()` — which is also its key under `messages.errors` — and a `DomainFailureKind`. `App\Http\Exceptions\RenderDomainFailure` turns the kind into 422/409/404/403/401 and the code into a translated message, registered once against the interface. A new exception needs no wiring, only the two methods and a key in **both** locale files.
+
+The message on the wire is always the translation, never `getMessage()`: those are English developer strings that interpolate identifiers.
 
 ## Routes
 
@@ -342,7 +351,9 @@ Other conventions:
 
 **State of play.** Inertia, `@tanstack/react-query`, i18next and Fortify are installed and wired: `app.tsx` runs `createInertiaApp`, `resources/views/app.blade.php` is the root view, `HandleInertiaRequests` and `SetLocale` are registered, and the `Ping` scaffolding and `GET /api/ping` are gone. Built so far: four layouts, the public landing page, the four Fortify auth pages, and an admin dashboard that already demonstrates the contract — it renders from `Inertia::render('admin/dashboard')` with no props and reads `/api/user` on mount.
 
-**`domains/` does not exist yet.** Nothing consumes a domain endpoint so far, because no tenant domain exposes more than `store`; the one fetch in the app targets the app-wide `/api/user` and so lives in `hooks/use-current-user.ts`. The folder arrives with the first domain read endpoint — the rules above are the target for when it does.
+**`domains/` now exists**, created by the onboarding screen: `domains/industries/` (the catalog the combobox reads) and `domains/businesses/` (the live name check and the create mutation). They are the worked example of the rules above — audience-agnostic, no barrel files, contract transcribed from the Resources. Note the one composition rule they demonstrate: the onboarding form needs both domains, and it gets them because the **page** calls each domain's hook and passes the result down. A domain never imports another domain.
+
+`components/form/` holds the audience-agnostic wrappers that screen uses — `ComboboxField` (an in-flow listbox, deliberately not a popover, because at phone width an anchored layer collides with the keyboard), `PhoneField`, `FormAlert` and `FieldMessage`, which owns the one rule every field shares: a server `error` supersedes a `hint`. `lib/http.ts` is the only module that knows Laravel's `{ message, errors }` envelope, so a 422 through axios renders exactly like a 422 through a Fortify post.
 
 ```sh
 npx tsc --noEmit     # typecheck

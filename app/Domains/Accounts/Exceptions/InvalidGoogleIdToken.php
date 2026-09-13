@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domains\Accounts\Exceptions;
 
+use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 use Throwable;
 
-final class InvalidGoogleIdToken extends DomainException
+final class InvalidGoogleIdToken extends DomainException implements DomainFailure
 {
     /**
      * The credential is not shaped like a JWT, so it cannot be an ID token.
@@ -28,5 +30,19 @@ final class InvalidGoogleIdToken extends DomainException
     public static function missingSubject(): self
     {
         return new self('The Google ID token carries no subject claim.');
+    }
+
+    public function errorCode(): string
+    {
+        return 'google_invalid_id_token';
+    }
+
+    /**
+     * The credential itself did not check out, so the caller is not
+     * authenticated at all - the same 401 GoogleIdTokenController returns.
+     */
+    public function kind(): DomainFailureKind
+    {
+        return DomainFailureKind::Unauthenticated;
     }
 }

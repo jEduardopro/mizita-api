@@ -30,6 +30,11 @@ return [
         // A caller reached a tenant-scoped route without belonging to a business.
         'no_business' => 'Este usuario no pertenece a ningún negocio.',
 
+        // A caller asked to operate a business they are not a member of. The
+        // distinction from no_business matters: this one does have businesses,
+        // just not the one requested. The wording names none of them.
+        'business_not_accessible' => 'No tienes acceso a ese negocio.',
+
         // A public slug that resolves to nothing. The wording says "not found"
         // and nothing more: confirming that a slug exists is an information leak.
         'business_not_found' => 'No hemos encontrado ese negocio.',
@@ -47,6 +52,34 @@ return [
 
         // The ID token failed verification, or was never an ID token.
         'google_invalid_id_token' => 'Esa credencial de inicio de sesión con Google no es válida.',
+
+        // Accounts. None of these name the address involved: an error body that
+        // confirms an email is registered is an account enumeration oracle.
+        'account_already_registered' => 'Ya existe una cuenta con ese correo.',
+        'account_not_found' => 'No hemos encontrado esa cuenta.',
+        'invalid_account_email' => 'Ese correo electrónico no es válido.',
+        'invalid_account_name' => 'Ese nombre no es válido.',
+        'invalid_provider_user_id' => 'No hemos podido identificar esa cuenta de inicio de sesión.',
+        'social_identity_already_linked' => 'Esa cuenta de inicio de sesión ya está vinculada a otra cuenta.',
+
+        // Business onboarding. The wording never repeats the name, slug or
+        // timezone that was rejected - the caller already knows what it sent.
+        'business_name_taken' => 'Ya existe un negocio con ese nombre.',
+        'business_slug_taken' => 'Esa dirección web ya está en uso. Elige otra.',
+        'owner_already_has_business' => 'Ya tienes un negocio registrado.',
+        'business_name_not_sluggable' => 'Ese nombre no se puede convertir en una dirección web. Usa letras o números.',
+        'unknown_industry' => 'Ese rubro no está entre los que admitimos.',
+        'invalid_timezone' => 'Esa zona horaria no es válida.',
+        'invalid_business_name' => 'Ese nombre de negocio no es válido.',
+        'invalid_business_slug' => 'Esa dirección web no es válida.',
+        'industry_not_found' => 'No hemos encontrado ese rubro.',
+        'staff_member_not_found' => 'No hemos encontrado a esa persona del equipo.',
+
+        // Customers.
+        'customer_not_found' => 'No hemos encontrado a ese cliente.',
+        'customer_name_taken' => 'Ya existe un cliente con ese nombre.',
+        'customer_already_inactive' => 'Ese cliente ya está inactivo.',
+        'invalid_customer_name' => 'Ese nombre de cliente no es válido.',
 
     ],
 

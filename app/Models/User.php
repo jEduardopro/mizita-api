@@ -3,23 +3,22 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['uuid', 'business_id', 'name', 'email', 'email_verified_at', 'password'])]
+#[Fillable(['uuid', 'name', 'email', 'email_verified_at', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasUuids, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable;
 
     /**
      * The uuid column carries the public identity - it is what the Accounts
@@ -35,17 +34,6 @@ class User extends Authenticatable
     public function uniqueIds(): array
     {
         return ['uuid'];
-    }
-
-    /**
-     * The business this user operates in. Keyed on the business uuid, which
-     * is the tenant discriminator used across the schema.
-     *
-     * @return BelongsTo<BusinessModel, $this>
-     */
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(BusinessModel::class, 'business_id', 'uuid');
     }
 
     /**

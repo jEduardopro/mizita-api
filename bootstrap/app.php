@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Exceptions\RenderDomainFailure;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RedirectIfOnboarded;
+use App\Http\Middleware\RequireBusinessMembership;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetLocale;
+use App\Shared\Contracts\DomainFailure;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -49,12 +53,26 @@ return Application::configure(basePath: dirname(__DIR__))
             'locale',
         ]);
 
-        // Applied by each tenant-scoped domain's route group.
+        // "business" is applied by each tenant-scoped domain's route group and
+        // resolves the tenant. The other two guard the onboarding step and run
+        // on web routes after "auth": they only decide whether the caller is on
+        // the right page yet, and bind nothing.
         $middleware->alias([
             'business' => SetBusinessContext::class,
+            'onboarded' => RequireBusinessMembership::class,
+            'onboarding' => RedirectIfOnboarded::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Every domain exception implements DomainFailure and carries its own
+        // error code and kind, and Laravel matches a renderer by the first
+        // parameter's type. Typing against the interface therefore covers every
+        // domain that exists and every one still to come: this is the only line
+        // needed, and a new failure never comes back here.
+        $exceptions->render(function (DomainFailure $failure, Request $request) {
+            return app(RenderDomainFailure::class)($failure, $request);
+        });
+
         $exceptions->shouldRenderJsonWhen(
             // An Inertia visit must never get a JSON error body: a ValidationException
             // has to stay a redirect back with errors, or every auth form fails silently.

@@ -222,8 +222,10 @@ return [
         'token' => 'token',
 
         // Businesses.
-        'slug' => 'identificador',
+        'industry_id' => 'rubro',
         'timezone' => 'zona horaria',
+        'phone.country_code' => 'país del teléfono',
+        'phone.national_number' => 'número de teléfono',
 
         // Customers.
         'phone' => 'teléfono',

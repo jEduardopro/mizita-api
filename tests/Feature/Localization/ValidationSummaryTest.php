@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
+use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Models\User;
+use Database\Seeders\StaffRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\PermissionRegistrar;
 
 /*
 | The top-level "message" of a 422 is built by ValidationException::summarize(),
@@ -24,9 +27,11 @@ use Laravel\Sanctum\Sanctum;
 | pair, and a regression in one is invisible to a test that only covers the
 | other. Both counts are covered below.
 |
-| The plural case needs a third failing field: POST /api/businesses validates two
-| fields and so can never produce more than two messages. POST /api/customers has
-| three, which is why this file needs a connection and an authenticated caller.
+| Both endpoints need an authenticated caller: POST /api/businesses is onboarding
+| and sits behind auth:sanctum, and POST /api/customers additionally needs a
+| tenant, which is now a staff membership rather than a column on the user. The
+| singular case leaves exactly two fields failing, because a third would count
+| into the plural key.
 */
 
 uses(RefreshDatabase::class);
@@ -36,18 +41,31 @@ beforeEach(function () {
     // every test request. SetLocale no longer reads it, but blanking it keeps the
     // baseline free of any header the assertions do not state themselves.
     $this->withHeader('Accept-Language', '');
+
+    // Spatie caches its registry while RefreshDatabase rolls the rows back, so a
+    // stale entry would outlive the roles it points at.
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
 
 describe('the singular key', function () {
-    // Two failing fields: one message in the summary, one counted after it.
-    it('translates the summary line of a 422 with exactly two errors', function () {
-        $this->postJson('/api/businesses', [])
+    beforeEach(function () {
+        // Onboarding, so no business is needed - and none exists yet, which is
+        // exactly the caller this endpoint serves.
+        Sanctum::actingAs(User::factory()->create());
+    });
+
+    // Two failing fields: one message in the summary, one counted after it. The
+    // industry is the only field sent, and it is valid, so it does not count.
+    $onlyIndustry = ['industry_id' => '01930000-0000-7000-8000-0000000000f1'];
+
+    it('translates the summary line of a 422 with exactly two errors', function () use ($onlyIndustry) {
+        $this->postJson('/api/businesses', $onlyIndustry)
             ->assertStatus(422)
             ->assertJsonPath('message', 'El campo nombre es obligatorio. (y 1 error más)');
     });
 
-    it('keeps the english summary line intact for two errors', function () {
-        $this->postJson('/api/businesses?lang=en', [])
+    it('keeps the english summary line intact for two errors', function () use ($onlyIndustry) {
+        $this->postJson('/api/businesses?lang=en', $onlyIndustry)
             ->assertStatus(422)
             ->assertJsonPath('message', 'The name field is required. (and 1 more error)');
     });
@@ -55,8 +73,17 @@ describe('the singular key', function () {
 
 describe('the plural key', function () {
     beforeEach(function () {
+        $this->seed(StaffRoleSeeder::class);
+
         $business = BusinessModel::factory()->create();
-        Sanctum::actingAs(User::factory()->create(['business_id' => $business->uuid]));
+        $owner = User::factory()->create();
+
+        StaffMemberModel::factory()->owner()->create([
+            'business_id' => $business->id,
+            'account_id' => $owner->id,
+        ]);
+
+        Sanctum::actingAs($owner);
     });
 
     // Three failing fields: one message in the summary, two counted after it - so

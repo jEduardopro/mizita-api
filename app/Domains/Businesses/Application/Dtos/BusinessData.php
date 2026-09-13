@@ -17,6 +17,8 @@ final readonly class BusinessData
         public string $id,
         public string $name,
         public string $slug,
+        public string $timezone,
+        public string $industryId,
         public DateTimeImmutable $createdAt,
     ) {}
 
@@ -26,6 +28,8 @@ final readonly class BusinessData
             id: $business->id,
             name: $business->name(),
             slug: $business->slug(),
+            timezone: $business->timezone(),
+            industryId: $business->industryId,
             createdAt: $business->createdAt,
         );
     }
