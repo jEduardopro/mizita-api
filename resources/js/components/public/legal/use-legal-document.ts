@@ -2,16 +2,10 @@ import { useEffect, useState } from 'react';
 import { parseLegalContent, type LegalContent } from '@/components/public/legal/legal-content';
 import type { LegalDocumentName } from '@/content/legal/entity';
 
-// Fifty kilobytes of prose nobody reads on the way to booking, so unlike the
-// i18next catalogues these are not bundled: `import.meta.glob` without `eager`
-// leaves each file in a chunk of its own.
-
-/** The languages a document is actually written in. */
 const CONTENT_LOCALES = ['es', 'en'] as const;
 
 export type ContentLocale = (typeof CONTENT_LOCALES)[number];
 
-/** A missing translation shows the Spanish text: a legal notice is never blank. */
 const FALLBACK_LOCALE: ContentLocale = 'es';
 
 const sources = import.meta.glob<string>('../../../content/legal/*/*.md', {
@@ -27,7 +21,6 @@ function isContentLocale(value: string): value is ContentLocale {
     return (CONTENT_LOCALES as readonly string[]).includes(value);
 }
 
-/** A regional tag resolves to its base language, so `es-MX` reads Spanish. */
 export function resolveContentLocale(language: string): ContentLocale {
     const base = language.split('-')[0].toLowerCase();
 
@@ -55,8 +48,6 @@ export function useLegalDocument(
             return;
         }
 
-        // A language switched mid-read starts a second load while the first is
-        // still in flight, and the two can land in either order.
         let current = true;
 
         setState({ status: 'loading' });

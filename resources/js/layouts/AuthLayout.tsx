@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Wordmark } from '@/components/shared/Wordmark';
 
 type Props = {
-    /** The tab title. The app name is appended by the title callback in app.tsx. */
     title: string;
     heading: string;
     description: string;

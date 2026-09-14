@@ -3,10 +3,6 @@ import { LegalBody } from "@/components/public/legal/LegalBody";
 import { useLegalDocument } from "@/components/public/legal/use-legal-document";
 import { legalUpdatedOn, type LegalDocumentName } from "@/content/legal/entity";
 
-/**
- * The parts are built into a local date on purpose: `new Date('2026-09-12')` is
- * parsed as UTC midnight, which in Mexico City is the evening of the 11th.
- */
 function formatRevisionDate(isoDate: string, language: string): string {
     const [year, month, day] = isoDate.split("-").map(Number);
 

@@ -8,14 +8,7 @@ use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use Tests\Support\Businesses\OnboardingFixtures;
 
-/*
-| Pure PHP, no container: the tenant root carries no businessId of its own, and
-| every rule it protects is enforced here rather than restated by the use case.
-*/
-
 beforeEach(function () {
-    // A factory rather than a fixture, so each test varies the one field it is
-    // about and states the rest by omission.
     $this->createBusiness = fn (string $name = OnboardingFixtures::NAME): Business => Business::create(
         id: OnboardingFixtures::GENERATED_BUSINESS_ID,
         name: $name,
@@ -39,7 +32,6 @@ describe('creating a business', function () {
     });
 
     it('hands its value objects out as the primitives a DTO is made of', function () {
-        // The rules travel with the entity; callers keep dealing in strings.
         $business = ($this->createBusiness)();
 
         expect($business->slug())->toBeString()
@@ -51,8 +43,6 @@ describe('creating a business', function () {
     });
 
     it('keeps accents and punctuation in the name, which is not a slug', function (string $name) {
-        // The address is folded to ASCII; the trading name is not, because it
-        // is what customers read.
         expect(($this->createBusiness)($name)->name())->toBe($name);
     })->with([
         'accents' => 'Barbería Ñandú',
@@ -73,16 +63,12 @@ describe('creating a business', function () {
     ]);
 
     it('accepts a single character, since only emptiness is refused', function () {
-        // A minimum length is an HTTP concern and lives in the FormRequest. The
-        // entity refuses only what makes no business.
         expect(($this->createBusiness)('X')->name())->toBe('X');
     });
 });
 
 describe('rehydrating from storage', function () {
     it('skips the creation-time rules by design', function () {
-        // The row was valid when it was written. Re-checking on the way out
-        // would make one lax old write unreadable rather than merely odd.
         $business = Business::restore(
             id: OnboardingFixtures::GENERATED_BUSINESS_ID,
             name: '',

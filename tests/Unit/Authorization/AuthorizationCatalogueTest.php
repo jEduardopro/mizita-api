@@ -6,17 +6,6 @@ use App\Domains\Staff\Infrastructure\Permissions\SeededStaffRole;
 use App\Shared\ValueObjects\AuthorizationScope;
 use PHPUnit\Framework\Assert;
 
-/*
-| config/authorization.php is the whole access model, and the seeder and the
-| template cloner both read it rather than deciding anything themselves. That
-| makes every mistake in it a mistake in the database: a role granted a
-| permission nobody defined, a permission whose locale key resolves to itself,
-| an owner role marked as a template.
-|
-| Pure PHP over a require, so none of this needs a container, a connection or a
-| seeded row. The file is plain data and an enum; requiring it costs nothing.
-*/
-
 /**
  * @return array<string, array<string, array<string, mixed>>>
  */
@@ -34,18 +23,6 @@ function mizitaCatalogueSection(string $section): array
 }
 
 /**
- * Which domain directory owns each permission module.
- *
- * Written down rather than derived: a permission module is a lowercase word and
- * a domain directory is a StudlyCase plural, and no single transformation covers
- * both "business" -> "Businesses" and "staff" -> "Staff" - Str::plural('staff')
- * returns 'staff', so ucfirst of it happens to work while ucfirst of the plural
- * of 'business' does not agree with anything reliable. Guessing would make this
- * rule fail on a correct entry, which is worse than an entry here.
- *
- * Adding a permission for a domain that does not exist therefore takes two
- * deliberate acts: a line here, and the directory it names.
- *
  * @return array<string, string>
  */
 function mizitaDomainForModule(): array
@@ -62,8 +39,6 @@ function mizitaModuleOf(string $permissionName): string
 }
 
 /**
- * The permissions '*' stands for, expanded exactly as AuthorizationSeeder does.
- *
  * @param  array<string, mixed>  $role
  * @return list<string>
  */
@@ -122,9 +97,6 @@ describe('the shape of an entry', function () {
     });
 
     it('gives every permission a module to be grouped under', function () {
-        // Not persisted, deliberately: which checkboxes sit together on the roles
-        // screen must never become a migration. That only holds while every
-        // permission has one.
         foreach (mizitaCatalogueSection('permissions') as $name => $permission) {
             expect($permission['module'] ?? '')->toBeString()->not->toBe('', "permission [{$name}]");
         }
@@ -140,10 +112,6 @@ describe('the shape of an entry', function () {
     });
 
     it('leaves every derived slug unique, because the database says they are', function (string $section) {
-        // permissions (slug, guard_name) is unique and roles mirror it per
-        // business. The slug is the name with dots turned into dashes, so
-        // "staff.manage" and a future "staff-manage" would collide on insert
-        // rather than here.
         $slugs = array_map(
             static fn (string $name): string => str_replace('.', '-', $name),
             array_keys(mizitaCatalogueSection($section)),
@@ -165,9 +133,6 @@ describe('what a role is allowed to grant', function () {
     });
 
     it('never lets a grant cross a scope', function () {
-        // Where "a business owner must never hold a platform permission" lives.
-        // Today no platform permission exists, so this is the rule that has to be
-        // standing before the first one lands rather than after.
         $permissions = mizitaCatalogueSection('permissions');
 
         foreach (mizitaCatalogueSection('roles') as $name => $role) {
@@ -181,8 +146,6 @@ describe('what a role is allowed to grant', function () {
     });
 
     it('expands the wildcard into something rather than nothing', function () {
-        // A role written as '*' that resolves to an empty list is a role with no
-        // permissions at all, which is not what anybody meant by it.
         foreach (mizitaCatalogueSection('roles') as $name => $role) {
             if ($role['permissions'] !== '*') {
                 continue;
@@ -195,15 +158,10 @@ describe('what a role is allowed to grant', function () {
 
 describe('the owner role', function () {
     it('is never a template', function () {
-        // A security invariant, not a style choice: ownsAnyBusiness() matches
-        // roles.name = 'owner' across every team, so a cloned owner would let one
-        // account quietly come to own two businesses.
         expect(mizitaCatalogueSection('roles')['owner']['template'])->toBeFalse();
     });
 
     it('pins the primary key the single-owner index names literally', function () {
-        // model_has_roles_single_owner_unique cannot look a name up, so it writes
-        // role_id = 1. The two agree on one number or the index protects nothing.
         expect(mizitaCatalogueSection('roles')['owner']['id'])->toBe(SeededStaffRole::OWNER_ID);
     });
 
@@ -214,10 +172,6 @@ describe('the owner role', function () {
 
 describe('the staff role', function () {
     it('exists only as a per-business clone', function () {
-        // The one line that keeps Role::findByParam() unambiguous: it matches
-        // "business_id is null or business_id = <team>" and returns first() with
-        // no order, so a global row sharing a template name makes role assignment
-        // attach an undefined one of the two.
         expect(mizitaCatalogueSection('roles')['staff']['template'])->toBeTrue();
     });
 
@@ -228,7 +182,6 @@ describe('the staff role', function () {
 
 describe('the honesty rule', function () {
     it('names a module this repository has a domain for', function () {
-        // What mechanically stops services.create landing before Services does.
         $modules = array_unique(array_map(
             mizitaModuleOf(...),
             array_keys(mizitaCatalogueSection('permissions')),
@@ -249,9 +202,6 @@ describe('the honesty rule', function () {
 
 describe('the labels the catalogue promises', function () {
     it('resolves every entry in every locale', function (string $section) {
-        // The description column stores a translation key and there is no foreign
-        // key from a database string to a locale file, so a missing entry surfaces
-        // as the key itself echoed back at the caller.
         $expected = [];
 
         foreach (array_keys(mizitaCatalogueSection($section)) as $name) {

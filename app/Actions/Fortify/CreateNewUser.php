@@ -29,9 +29,6 @@ class CreateNewUser implements CreatesNewUsers
                 'max:255',
                 Rule::unique(User::class),
             ],
-            // The only flow without a confirmation field: the signup screen has a
-            // reveal toggle instead. Reset and update keep it, where a typo would
-            // lock someone out of an account they already own.
             'password' => $this->passwordRules(confirmed: false),
         ])->validate();
 

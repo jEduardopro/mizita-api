@@ -5,13 +5,25 @@ declare(strict_types=1);
 namespace App\Domains\{{ domain }}\Application\Dtos;
 
 {{ inputDtoImports }}
-/**
- * Input boundary for Create{{ entity }}. Framework free: the controller maps
- * the HTTP request into this object.
- */
 final readonly class Create{{ entity }}Input
 {
-    public function __construct(
+{{ inputDtoConstants }}    public function __construct(
 {{ inputDtoProperties }}
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $payload
+{{ inputDtoFromRequestThrows }}     */
+    public static function fromRequest(array $payload): self
+    {
+        return new self(
+{{ inputDtoFromRequestArgs }}
+        );
+    }
+
+{{ inputDtoThrows }}    public function validate(): void
+    {
+{{ inputDtoValidateCalls }}
+    }
+{{ inputDtoHelpers }}{{ inputDtoValidators }}
 }

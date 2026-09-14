@@ -5,13 +5,6 @@ declare(strict_types=1);
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Domains\Businesses\ValueObjects\Timezone;
 
-/*
-| Pure PHP. The zone is the single source of local time for every hour a
-| business ever publishes, so what is asserted is the exact identifier stored -
-| a zone that resolves to the right offset but is spelled differently would
-| fail every later comparison.
-*/
-
 describe('accepting an identifier', function () {
     it('accepts an IANA identifier and stores it verbatim', function (string $identifier) {
         expect(Timezone::fromString($identifier)->value)->toBe($identifier);
@@ -24,10 +17,6 @@ describe('accepting an identifier', function () {
     ]);
 
     it('accepts a backward compatible alias, spelled the way it arrived', function (string $alias) {
-        // A browser reporting Asia/Calcutta is reporting a zone that works, and
-        // refusing it would lock that person out of onboarding. PHP hands the
-        // identifier back as given, so the alias is not silently rewritten to
-        // its modern name either.
         expect(Timezone::fromString($alias)->value)->toBe($alias);
     })->with([
         'Asia/Calcutta' => 'Asia/Calcutta',
@@ -42,10 +31,6 @@ describe('accepting an identifier', function () {
 
 describe('refusing an identifier', function () {
     it('refuses the wrong case, because matching is exact', function (string $value) {
-        // DateTimeZone's constructor is case insensitive where the identifier
-        // list is not. Constructing without the membership check would store
-        // the string as typed, and every later comparison against the canonical
-        // spelling would fail.
         expect(fn () => Timezone::fromString($value))
             ->toThrow(InvalidBusinessTimezone::class, "[{$value}] is not a valid IANA time zone identifier.");
     })->with([
@@ -75,9 +60,6 @@ describe('refusing an identifier', function () {
 
 describe('rehydrating from storage', function () {
     it('accepts a stored value fromString would refuse', function (string $stored) {
-        // A tzdata update is enough to retire an identifier. Failing here would
-        // make the business impossible to load at all, rather than merely wrong
-        // about its opening hours - so the check lives on the way in.
         expect(Timezone::restore($stored)->value)->toBe($stored);
     })->with([
         'a retired identifier' => 'Europe/Atlantis',
@@ -93,8 +75,6 @@ describe('equality', function () {
     });
 
     it('treats an alias and the zone it points at as different values', function () {
-        // Same instants, different identifiers. Equality is about the stored
-        // string, because that is what a later conversion reads.
         expect(Timezone::fromString('Asia/Calcutta')->equals(Timezone::fromString('Asia/Kolkata')))->toBeFalse();
     });
 });

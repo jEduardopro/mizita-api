@@ -2,28 +2,9 @@
 
 declare(strict_types=1);
 
-/*
-| The same guard FrontendTranslationParityTest gives the i18next bundles,
-| applied to the legal documents in resources/js/content/legal.
-|
-| It is needed for a heavier reason. A JSON bundle that drifts renders a key
-| instead of a sentence; a legal document that drifts states one thing to a
-| Spanish reader and another to an English one. A clause dropped from one
-| translation, or a {{TOKEN}} that names the operator in Spanish and nowhere in
-| English, is a defect in the contract itself - and the only runtime that would
-| notice is a person reading it, or a court.
-|
-| These files were in fact edited out of sync while they were being written,
-| which is why the parity is asserted here rather than trusted to review.
-|
-| Pure PHP over markdown files: no container, no node, no build step.
-*/
-
 use PHPUnit\Framework\Assert;
 
 /**
- * The documents a locale ships, by name - "cookies", "privacy", "terms".
- *
  * @return list<string>
  */
 function mizitaLegalDocumentIds(string $locale): array
@@ -54,12 +35,6 @@ function mizitaLoadLegalDocument(string $locale, string $document): string
 }
 
 /**
- * The "## " headings a document carries.
- *
- * Mirrors SECTION_LINE in components/public/legal/legal-content.ts, which is
- * what builds the table of contents: two hashes followed by whitespace, so a
- * deeper "### " heading is not a section.
- *
  * @return list<string>
  */
 function mizitaLegalSections(string $markdown): array
@@ -70,13 +45,6 @@ function mizitaLegalSections(string $markdown): array
 }
 
 /**
- * Every {{TOKEN}} occurrence in a document, in order and with repeats kept.
- *
- * The multiset matters, not the set: a fact stated three times in Spanish and
- * twice in English is still a document that says less in one language.
- *
- * Mirrors the TOKEN pattern in components/public/legal/rehype-legal-facts.ts.
- *
  * @return list<string>
  */
 function mizitaLegalTokens(string $markdown): array
@@ -90,13 +58,6 @@ function mizitaLegalTokens(string $markdown): array
 }
 
 /**
- * The keys declared in `legalFacts` in entity.ts.
- *
- * Read with a regex rather than executed: the suite has no TypeScript runtime,
- * and the declaration is a flat object literal whose keys are the whole
- * contract. The block is bounded so the sibling `legalDocuments` and
- * `legalUpdatedOn` objects cannot be mistaken for facts.
- *
  * @return list<string>
  */
 function mizitaDeclaredLegalFacts(): array
@@ -142,9 +103,6 @@ it('ships the same legal documents in every supported locale', function () {
 });
 
 it('declares every interpolated fact in entity.ts', function () {
-    // An undeclared token does not fail, LegalDocument renders it as an
-    // "unknown" marker in the middle of the prose. The suite should be what
-    // notices that, not a reader.
     $declared = mizitaDeclaredLegalFacts();
 
     foreach (['en', 'es'] as $locale) {
@@ -165,9 +123,6 @@ it('declares every interpolated fact in entity.ts', function () {
 });
 
 it('writes the same number of sections in both locales', function (string $document) {
-    // The table of contents and the clause numbering are both derived from the
-    // "## " headings, so a clause missing from one translation is a document
-    // that grants or reserves something in only one language.
     $en = mizitaLegalSections(mizitaLoadLegalDocument('en', $document));
     $es = mizitaLegalSections(mizitaLoadLegalDocument('es', $document));
 

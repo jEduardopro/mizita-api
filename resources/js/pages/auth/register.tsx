@@ -6,11 +6,6 @@ import { SignupCard, type SignupForm } from '@/components/auth/SignupCard';
 import { Button } from '@/components/ui/button';
 import { AuthSplitLayout } from '@/layouts/AuthSplitLayout';
 
-/**
- * Registration is the one flow without a confirmation field — the card offers a
- * reveal toggle instead. Reset and update keep the confirmation, where a typo
- * locks a person out of an account they already own.
- */
 export default function Register() {
     const { t } = useTranslation('auth');
     const queryClient = useQueryClient();
@@ -24,9 +19,6 @@ export default function Register() {
         event.preventDefault();
 
         form.post('/register', {
-            // Cleared before the request, not after: `onSuccess` runs once the
-            // dashboard has mounted and would drop the query it just started.
-            // Block body, because returning a value cancels the visit.
             onBefore: () => {
                 queryClient.clear();
             },

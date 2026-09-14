@@ -11,22 +11,6 @@ use App\Shared\ValueObjects\InvalidPhoneNumber;
 use App\Shared\ValueObjects\PhoneNumberType;
 use Tests\Support\PhoneNumbers;
 
-/*
-| Both directions, with no connection.
-|
-| The model is filled with setRawAttributes, which is what a row read back from
-| Postgres looks like before any cast runs: json in the jsonb column, a string in
-| the smallint one. Going through setAttribute instead would ask the model for
-| its connection's date format, and the point of a mapper test is that it needs
-| no database.
-|
-| The one thing worth watching here is the identity swap. phones.phoneable_id
-| holds the owner's int primary key, and the domain has never heard of it, so the
-| owner uuid travels in and out as a parameter. A mapper that started reading the
-| column instead would hand the domain an integer where a uuid belongs, and every
-| subsequent lookup would miss.
-*/
-
 const PHONE_MAPPER_UUID = '01930000-0000-7000-8000-0000000000c1';
 
 const PHONE_MAPPER_OWNER_UUID = '01930000-0000-7000-8000-0000000000c2';
@@ -39,8 +23,6 @@ function phoneMapperCreatedAt(): DateTimeImmutable
 }
 
 /**
- * A row as the database hands it back: every value in its column's raw form.
- *
  * @param  array<string, mixed>  $overrides
  */
 function phoneRow(array $overrides = []): PhoneModel
@@ -56,13 +38,9 @@ function phoneRow(array $overrides = []): PhoneModel
         'national_number' => PhoneNumbers::MX_NATIONAL_NUMBER,
         'calling_code' => '52',
         'e164' => PhoneNumbers::MX_E164,
-        // The spelling is pinned once, where the mapper writes it; this fixture
-        // only has to be a row the mapper can read, so it asks the enum.
         'number_type' => PhoneNumberType::FixedLineOrMobile->value,
         'geo_description' => PhoneNumbers::MX_GEO_DESCRIPTION,
         'timezones' => json_encode([PhoneNumbers::MX_TIMEZONE]),
-        // A DateTimeInterface rather than a string on purpose: casting a string
-        // would need the connection's date format.
         'created_at' => phoneMapperCreatedAt(),
         ...$overrides,
     ], true);
@@ -95,11 +73,6 @@ describe('entity to row', function () {
     });
 
     it('spreads the number across its seven columns', function () {
-        // number_type is written as a literal here on purpose, and it is the one
-        // place in the suite that names the string. phones.number_type is a
-        // storage contract - rows already hold it, and no check constraint
-        // guards it - so a rename has to fail somewhere, and a test that only
-        // ever writes PhoneNumberType::FixedLineOrMobile->value never would.
         expect($this->mapper->toAttributes(aPhoneEntity(), PHONE_MAPPER_OWNER_KEY))->toBe([
             'uuid' => PHONE_MAPPER_UUID,
             'phoneable_type' => 'business',
@@ -124,7 +97,6 @@ describe('entity to row', function () {
     ]);
 
     it('never writes the internal primary key', function () {
-        // uuid public, int internal: the row's own id is the database's business.
         expect($this->mapper->toAttributes(aPhoneEntity(), PHONE_MAPPER_OWNER_KEY))->not->toHaveKey('id');
     });
 
@@ -200,9 +172,6 @@ describe('row to entity', function () {
     });
 
     it('refuses a row whose parts have stopped agreeing', function () {
-        // A hand-repaired row, or a migration that moved one column and not the
-        // other, must not come back as a number that would be dialled
-        // differently from the one that was stored.
         expect(fn () => $this->mapper->toEntity(phoneRow(['e164' => '+525599999999']), PHONE_MAPPER_OWNER_UUID))
             ->toThrow(InvalidPhoneNumber::class);
     });
@@ -223,7 +192,6 @@ it('survives a full round trip without losing a fact', function () {
 
     $attributes = $this->mapper->toAttributes($phone, PHONE_MAPPER_OWNER_KEY);
 
-    // Exactly what Eloquent writes: the array cast is json in the column.
     $row = phoneRow([
         ...$attributes,
         'timezones' => json_encode($attributes['timezones']),
@@ -242,7 +210,6 @@ it('survives a full round trip without losing a fact', function () {
         ->and($restored->number()->e164())->toBe($phone->number()->e164())
         ->and($restored->number()->type())->toBe($phone->number()->type())
         ->and($restored->number()->geoDescription())->toBeNull()
-        // The order is a fact about the number, so it survives the json column.
         ->and($restored->number()->timezones())
         ->toBe(['America/New_York', 'America/Chicago', 'Pacific/Honolulu']);
 });

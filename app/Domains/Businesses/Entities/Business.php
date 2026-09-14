@@ -9,21 +9,12 @@ use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use DateTimeImmutable;
 
-/**
- * The tenant root. Every other record on the platform belongs to exactly one of
- * these, which is why this entity carries no businessId of its own.
- *
- * Slug and Timezone are held as value objects and handed out as strings: the
- * rules travel with the entity, while callers keep dealing in the primitives a
- * DTO and a resource are made of.
- */
 final class Business
 {
     private function __construct(
         public readonly string $id,
         private string $name,
         private Slug $slug,
-        /** The industry's uuid. Resolving it to a foreign key is the adapter's job. */
         public readonly string $industryId,
         private Timezone $timezone,
         public readonly DateTimeImmutable $createdAt,
@@ -56,7 +47,6 @@ final class Business
         );
     }
 
-    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $name,

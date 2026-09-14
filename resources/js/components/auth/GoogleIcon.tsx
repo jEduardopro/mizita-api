@@ -1,13 +1,5 @@
 import type { SVGProps } from 'react';
 
-/**
- * Drawn by hand because `lucide-react` v1 removed every brand glyph. The four
- * segments are fixed by Google's brand guidelines, so this mark deliberately does
- * not use `currentColor` — which also makes it correct in both themes.
- *
- * `aria-hidden` is unconditional: it only ever sits inside a control that already
- * says "Google" in its own label.
- */
 export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <svg

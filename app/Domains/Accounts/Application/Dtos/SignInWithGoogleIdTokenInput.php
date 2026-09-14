@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Accounts\Application\Dtos;
 
-/**
- * Carries the raw, unverified credential: verifying it is the use case's first act.
- */
+use App\Domains\Accounts\Exceptions\InvalidGoogleIdToken;
+
 final readonly class SignInWithGoogleIdTokenInput
 {
     public function __construct(
@@ -19,7 +18,27 @@ final readonly class SignInWithGoogleIdTokenInput
     public static function fromRequest(array $payload): self
     {
         return new self(
-            idToken: (string) $payload['id_token'],
+            idToken: self::textOrEmpty($payload['id_token'] ?? null),
         );
+    }
+
+    /**
+     * @throws InvalidGoogleIdToken
+     */
+    public function validate(): void
+    {
+        $this->validateIdToken();
+    }
+
+    private static function textOrEmpty(mixed $value): string
+    {
+        return is_string($value) ? $value : '';
+    }
+
+    private function validateIdToken(): void
+    {
+        if (trim($this->idToken) === '') {
+            throw InvalidGoogleIdToken::notAJsonWebToken();
+        }
     }
 }

@@ -12,8 +12,6 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        // Reference data first: a staff member cannot be saved before the role
-        // it is assigned exists. Both catalogs are idempotent.
         $this->call(IndustrySeeder::class);
         $this->call(AuthorizationSeeder::class);
 

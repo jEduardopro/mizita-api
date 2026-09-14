@@ -46,10 +46,6 @@ class FortifyServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * The pages carry identity only: the reset password page needs the token and
-     * the email because they are route and query parameters, not records.
-     */
     private function registerViews(): void
     {
         Fortify::loginView(fn () => Inertia::render('auth/login'));

@@ -10,19 +10,6 @@ return new class extends Migration
 {
     private const FOREIGN_KEY = 'model_has_roles_business_id_foreign';
 
-    /**
-     * The package ships the team column with an index and no foreign key,
-     * because it cannot know what a team is. Without the constraint, deleting a
-     * business leaves role rows granting access at a business that no longer
-     * exists - rows inherited by whoever next takes that id from the sequence.
-     *
-     * Raw SQL because the column is Spatie's: naming it through the package's
-     * own configuration keeps the constraint pointing wherever the team key is
-     * configured to live.
-     *
-     * Cascade rather than restrict: a deleted tenant takes its access with it,
-     * the same way staff_members already cascades.
-     */
     public function up(): void
     {
         $table = StaffRoleAssignments::ASSIGNMENTS_TABLE;

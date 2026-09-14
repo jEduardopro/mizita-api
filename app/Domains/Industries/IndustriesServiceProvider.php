@@ -16,7 +16,6 @@ final class IndustriesServiceProvider extends ServiceProvider
         $this->app->bind(IndustryRepository::class, EloquentIndustryRepository::class);
     }
 
-    /** A root domain, so no business context is bound: it is the same list for every caller. */
     public function boot(): void
     {
         Route::prefix('api')

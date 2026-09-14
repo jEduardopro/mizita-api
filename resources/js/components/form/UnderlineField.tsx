@@ -8,35 +8,16 @@ type Props = Omit<ComponentProps<'input'>, 'placeholder'> & {
     id: string;
     label: string;
     hint?: string;
-    /** The message Laravel sent back for this field, if any. */
     error?: string;
-    /** Passing the pair rather than a boolean keeps the toggle from ever
-     * shipping without an accessible name. */
     reveal?: { show: string; hide: string };
 };
 
-/**
- * The floating label rests on the line while the field is empty and rises once
- * it has a value or focus, decided by `:placeholder-shown` through Tailwind's
- * `peer`. That costs no state and gets browser autofill right for free: the
- * label lifts because the field genuinely has a value, not because React was
- * told about it.
- *
- * The two states are one arbitrary variant rather than a
- * `peer-placeholder-shown` / `peer-focus` pair, which would set the same
- * properties from two variants and leave the winner to Tailwind's ordering.
- *
- * Focus is a 2px bar rather than a ring: a 1px colour change is too quiet to be
- * a keyboard focus indicator on a borderless field, and `components/ui/input.tsx`
- * is generated, so its ring is switched off here rather than edited there.
- */
 export function UnderlineField({ id, label, hint, error, reveal, className, ...props }: Props) {
     const [revealed, setRevealed] = useState(false);
 
     const hintId = `${id}-hint`;
     const errorId = `${id}-error`;
 
-    // One message per field, the same rule `FieldMessage` states for its siblings.
     const showHint = hint !== undefined && ! error;
 
     const describedBy = showHint ? hintId : error ? errorId : undefined;
@@ -48,8 +29,6 @@ export function UnderlineField({ id, label, hint, error, reveal, className, ...p
             <div className="relative">
                 <Input
                     id={id}
-                    // The mechanism behind the floating label, not copy: a single
-                    // space is what makes `:placeholder-shown` mean "empty".
                     placeholder=" "
                     aria-invalid={!! error}
                     aria-describedby={describedBy}
@@ -74,8 +53,6 @@ export function UnderlineField({ id, label, hint, error, reveal, className, ...p
                     {label}
                 </Label>
 
-                {/* Inherits the error colour, so a field being corrected stays
-                    red while focused instead of flipping to brand mid-fix. */}
                 <span
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-primary transition-transform duration-200 peer-focus-visible:scale-x-100 peer-aria-invalid:bg-destructive motion-reduce:transition-none"

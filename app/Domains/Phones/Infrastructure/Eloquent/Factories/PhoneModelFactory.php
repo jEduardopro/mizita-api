@@ -18,10 +18,6 @@ final class PhoneModelFactory extends Factory
     protected $model = PhoneModel::class;
 
     /**
-     * One fixed, real number rather than random digits: the seven columns are
-     * checked against each other on rehydration, so generated digits would give
-     * a fixture the application itself refuses to read back.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

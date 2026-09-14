@@ -2,31 +2,9 @@
 
 declare(strict_types=1);
 
-/*
-| Keeps every locale's catalogues in step. A missing key does not fail loudly at
-| runtime - Laravel silently echoes the key itself back to the user - so the only
-| place it can be caught is here, as the files grow.
-|
-| Two kinds of catalogue are covered, because the framework resolves keys against
-| both. A dotted key like validation.required is split by Translator::parseKey()
-| and looked up in lang/<locale>/validation.php; a key with no dot, such as the
-| "(and :count more errors)" sentence ValidationException::summarize() builds its
-| message from, is only ever found in lang/<locale>.json. Walking the PHP files
-| alone would leave the JSON catalogues unguarded.
-|
-| Pure PHP on purpose: the catalogues are plain arrays, so this needs no
-| container, no translator and no database.
-*/
-
 use PHPUnit\Framework\Assert;
 
 /**
- * Flattens a catalogue into a dot-notated key => value map.
- *
- * JSON catalogues are flat and their keys are whole sentences that may contain a
- * dot themselves ("The given data was invalid."). Returning the map rather than
- * re-resolving each key by splitting on "." later is what keeps those intact.
- *
  * @param  array<array-key, mixed>  $translations
  * @return array<string, mixed>
  */
@@ -50,10 +28,6 @@ function mizitaFlattenTranslations(array $translations, string $prefix = ''): ar
 }
 
 /**
- * The catalogues a locale ships, identified by a name that does not vary with the
- * locale: "validation.php" for lang/<locale>/validation.php, and "json" for the
- * lang/<locale>.json catalogue, whose real filename is the locale itself.
- *
  * @return list<string>
  */
 function mizitaCatalogueIds(string $locale): array

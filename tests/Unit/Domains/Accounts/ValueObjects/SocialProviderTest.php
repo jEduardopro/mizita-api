@@ -5,8 +5,6 @@ declare(strict_types=1);
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 
 it('backs google with the string that is stored and sent on the wire', function () {
-    // The backing value is a persisted contract: changing it orphans every
-    // social_identities row already written.
     expect(SocialProvider::Google->value)->toBe('google');
 });
 

@@ -314,7 +314,7 @@ npx shadcn@latest add dialog table form
 
 So **do not add `clsx` or `tailwind-merge`**; you would end up with two merge engines resolving the same `className` with different conflict tables. And do not delete `lib/utils.ts` either — `components.json` declares `aliases.utils: "@/lib/utils"`, and a future `shadcn add` can emit an import against that alias. Hand-written code may import `cn` from `"cn"`, matching what the generator produces.
 
-**`lib/api.ts` is correct.** The axios instance, its headers and its XSRF handling are deliberate and commented. Extend it with interceptors if the task needs them; do not rewrite it.
+**`lib/api.ts` is correct.** The axios instance, its headers and its XSRF handling are deliberate — the one surviving comment in that file marks the `withXSRFToken` line as such. Extend it with interceptors if the task needs them; do not rewrite it.
 
 ## Verification with Playwright
 
@@ -371,7 +371,12 @@ The five SOLID principles — Single Responsibility, Open/Closed, Liskov Substit
 - **Derive state, do not mirror it.** That is SRP applied to state: exactly one owner per piece of it.
 - **DRY with judgment.** Two similar components are fine; extract on the third. When a second audience needs one, **promote** it to `components/`, `hooks/` or `lib/` per the layout laws — never import sideways between domains.
 - **Delete dead code**, commented-out JSX and unused props. `noUnusedLocals` and `noUnusedParameters` will point at them.
-- **Comments explain why, never what.**
+- **You write no comments.** Not "few", not "only the good ones" — none. No `//` line, no JSDoc block, no section banner. A component name, a `const` with a real name, or a smaller component says it better and cannot go stale; a JSX block that needs a comment to be understood is a component. Three things are not your comments and must survive untouched:
+  - **Annotations a tool reads**: `@ts-expect-error`, `eslint-disable`, `/* @vite-ignore */`, a vendored file's `@license` banner. These are contract, not prose. (There are none in `resources/js` today, and the `@ts-ignore` ban below is why.)
+  - **A comment recording a bug, an issue or a deliberate oddity** — why the Sonner rules in `resources/css/app.css` sit outside `@layer`, why `.prose-legal` is written twice, why `app.tsx` passes `setup` to Inertia, the `withXSRFToken` line in `lib/api.ts`. One or two lines, and only where the next reader would otherwise "fix" it back. This is a narrow exception, not a re-entry for rationale.
+  - **A comment the user asked for**, when the task says so.
+
+  This covers `.ts`, `.tsx` and `.css` alike. `components/ui/*` is already comment-free and stays that way.
 - **No `any`, no `!` to silence the compiler, no `@ts-ignore`.** A type that fights you means the shape is wrong — usually an SRP or ISP smell, not a TypeScript problem.
 
 ### Self-check before reporting
@@ -436,16 +441,17 @@ Your final message states:
 
 The real `Customers` domain: `POST /api/customers` behind `['api','auth:sanctum','business']`, `CustomerResource` exposing `id, name, email, phone, created_at`, and `CreateCustomerRequest` requiring `name` (max 255) with `email` and `phone` nullable.
 
+Note that not one line of it carries a comment.
+
+`resources/js/domains/customers/types.ts` — transcribed from `CustomerResource::toArray()`. `business_id` is deliberately absent: the caller already operates inside a single business.
+
 ```ts
-// resources/js/domains/customers/types.ts
-// Transcribed from CustomerResource::toArray(). business_id is deliberately
-// absent: the caller already operates inside a single business.
 export type Customer = {
-    id: string; // uuid
+    id: string;
     name: string;
     email: string | null;
     phone: string | null;
-    created_at: string; // ISO 8601
+    created_at: string;
 };
 
 export type CreateCustomerPayload = {
@@ -455,9 +461,9 @@ export type CreateCustomerPayload = {
 };
 ```
 
+`resources/js/domains/customers/api.ts` — the only place that names a Customers URL or knows about the `data` envelope.
+
 ```ts
-// resources/js/domains/customers/api.ts
-// The only place that names a Customers URL or knows about the `data` envelope.
 import { api } from '@/lib/api';
 import type { CreateCustomerPayload, Customer } from './types';
 
@@ -468,8 +474,9 @@ export async function createCustomer(payload: CreateCustomerPayload): Promise<Cu
 }
 ```
 
+`resources/js/domains/customers/queries.ts`
+
 ```ts
-// resources/js/domains/customers/queries.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createCustomer } from './api';
 
@@ -484,16 +491,14 @@ export function useCreateCustomer() {
 
     return useMutation({
         mutationFn: createCustomer,
-        // Invalidate the narrowest key that actually went stale.
         onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.list() }),
     });
 }
 ```
 
+`resources/js/pages/admin/customers/index.tsx` — rendered by `Inertia::render('admin/customers/index')`. The page name is this file's path, verbatim. No data arrives as a prop; the hook fetches it.
+
 ```tsx
-// resources/js/pages/admin/customers/index.tsx
-// Rendered by Inertia::render('admin/customers/index'). The page name is this
-// file's path, verbatim. No data arrives as a prop — the hook fetches it.
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { CustomerTable } from '@/domains/customers/components/CustomerTable';
 import { useCustomers } from '@/domains/customers/queries';
@@ -522,12 +527,12 @@ const onSubmit = form.handleSubmit(async (values) => {
         await createCustomer.mutateAsync(values);
         toast.success('Customer saved');
     } catch (error) {
-        // Maps { errors: { name: ['…'] } } onto the fields, and the top-level
-        // message onto root.server for a form-level alert.
         applyServerErrors(error, form.setError);
     }
 });
 ```
+
+`applyServerErrors` maps `{ errors: { name: ['…'] } }` onto the fields and sends the top-level message to a toast.
 
 `applyServerErrors` lives in `lib/http.ts`, because every form in every domain needs exactly this and none of them should write it twice. `CreateCustomerRequest` stays the only definition of what is valid.
 

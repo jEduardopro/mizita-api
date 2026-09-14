@@ -13,15 +13,6 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 
 return new class extends Migration
 {
-    /**
-     * Retires users.business_id in favour of the membership table. Everyone who
-     * had the column set had created the business themselves - there was no
-     * other way to acquire it - so owner is the faithful reading, not a guess.
-     *
-     * down() puts the empty column back and leaves the memberships alone. One
-     * account can hold several memberships and a single column cannot express
-     * that, so refilling it would mean picking one and discarding the rest.
-     */
     public function up(): void
     {
         if ($this->hasAccountsToMigrate()) {
@@ -39,11 +30,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Memberships first, because that is the half granting access: if the roles
-     * cannot be written - the seeder has not run yet - the accounts still reach
-     * their business, and only what they may do there is missing.
-     */
     private function migrateAccounts(): void
     {
         $this->insertMemberships();
@@ -51,10 +37,6 @@ return new class extends Migration
         $ownerRoleId = $this->ownerRoleId();
 
         if ($ownerRoleId === null) {
-            // Roles are seeded, and a migration must not assume a seeder has
-            // run. Failing here would leave the schema half migrated, and
-            // continuing in silence would leave owners with no role at all -
-            // so the memberships stand and the gap is reported.
             $this->warn(
                 'Owner role not found: memberships were migrated without a role assignment. '.
                 'Run AuthorizationSeeder, then give those accounts the owner role at their business.'
@@ -66,23 +48,11 @@ return new class extends Migration
         $this->assignOwnerRole($ownerRoleId);
     }
 
-    /**
-     * Asked before anything is written, so a fresh install neither reports a
-     * missing role nor implies work was done.
-     */
     private function hasAccountsToMigrate(): bool
     {
         return DB::table('users')->whereNotNull('business_id')->exists();
     }
 
-    /**
-     * gen_random_uuid() is v4 while IdGenerator emits uuid7. Accepted here and
-     * nowhere else: this is a one-shot backfill of pre-production rows, and
-     * minting ids in PHP would buy ordering nothing reads.
-     *
-     * The conflict target is the partial unique index from the staff_members
-     * migration, so a membership somebody already created is left as it is.
-     */
     private function insertMemberships(): void
     {
         DB::statement(<<<'SQL'
@@ -96,13 +66,6 @@ return new class extends Migration
         SQL);
     }
 
-    /**
-     * Written straight onto Spatie's pivot rather than through its API, because
-     * every call it offers is scoped to the current team - and the team is per
-     * row here. model_type is the morph alias, which is what getMorphClass()
-     * returns now that the map is enforced; writing the class name instead would
-     * produce rows no role check matches.
-     */
     private function assignOwnerRole(int $ownerRoleId): void
     {
         DB::statement(<<<'SQL'
@@ -116,10 +79,6 @@ return new class extends Migration
         SQL, [$ownerRoleId, (new User)->getMorphClass()]);
     }
 
-    /**
-     * Looked up by name rather than by SeededStaffRole::OWNER_ID, so a database
-     * whose roles were seeded before those ids were fixed still migrates.
-     */
     private function ownerRoleId(): ?int
     {
         $id = DB::table('roles')
@@ -129,7 +88,6 @@ return new class extends Migration
         return $id === null ? null : (int) $id;
     }
 
-    /** Both channels, because a migration that leaves work behind must not be missable. */
     private function warn(string $message): void
     {
         (new ConsoleOutput)->writeln('<comment>'.$message.'</comment>');

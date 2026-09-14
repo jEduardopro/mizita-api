@@ -12,25 +12,19 @@ export type { ComboboxOption };
 export type ComboboxOptionsStatus = 'pending' | 'error' | 'ready';
 
 type Messages = {
-    /** Nothing matched what was typed. */
     empty: string;
-    /** The list itself could not be loaded. */
     optionsError: string;
     retry: string;
-    /** How many rows are showing, announced to a screen reader. */
     results: string;
 };
 
-/** Three rows of roughly option height, so the panel opens at its real size. */
 const SKELETON_ROWS = [0, 1, 2];
 
 type PanelProps = {
     listId: string;
-    /** Names the listbox, which is a different element from the input. */
     label: string;
     options: readonly ComboboxOption[];
     selectedValue: string | null;
-    /** The virtually focused row, or -1. */
     activeIndex: number;
     optionId: (index: number) => string;
     onSelect: (option: ComboboxOption) => void;
@@ -76,8 +70,6 @@ function ComboboxPanel({
                 id={listId}
                 role="listbox"
                 aria-label={label}
-                // Keeps focus in the box, so the blur that would close the list
-                // before the click landed never happens.
                 onMouseDown={(event) => event.preventDefault()}
                 className="max-h-[min(18rem,45svh)] overflow-y-auto overscroll-contain"
             >
@@ -108,23 +100,16 @@ function ComboboxPanel({
 type Props = Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'role' | 'list'> & {
     id: string;
     label: string;
-    /** The choices, already in the order they should be offered. */
     options: readonly ComboboxOption[];
     value: string | null;
     onChange: (value: string | null) => void;
     optionsStatus: ComboboxOptionsStatus;
     onRetryOptions?: () => void;
-    /** Every string this field can say, pre-translated by the caller. */
     messages: Messages;
     error?: string;
     hint?: string;
 };
 
-/**
- * The list is in flow, drawn under the input, rather than floated in a layer
- * anchored to it. On a phone with the keyboard up an anchored popover either
- * covers the field being typed into or flips above it and covers the label.
- */
 export function ComboboxField({
     id,
     label,
@@ -158,7 +143,6 @@ export function ComboboxField({
                         aria-activedescendant={combobox.activeOptionId}
                         aria-invalid={!! error}
                         aria-describedby={message?.id}
-                        // The browser's own suggestion panel would cover this one.
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck={false}
@@ -193,8 +177,6 @@ export function ComboboxField({
                     />
                 ) : null}
 
-                {/* Outside the panel, because a retry button inside it could not
-                    be reached by keyboard: tabbing would close what it sits in. */}
                 {optionsStatus === 'error' ? (
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="text-xs text-muted-foreground">{messages.optionsError}</p>

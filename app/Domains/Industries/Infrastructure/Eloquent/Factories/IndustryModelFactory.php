@@ -26,7 +26,6 @@ final class IndustryModelFactory extends Factory
         ];
     }
 
-    /** A retired catalog row: still resolvable, no longer offered. */
     public function inactive(): self
     {
         return $this->state(fn (): array => ['active' => false]);

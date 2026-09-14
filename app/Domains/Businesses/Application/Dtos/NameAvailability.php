@@ -6,15 +6,10 @@ namespace App\Domains\Businesses\Application\Dtos;
 
 use App\Domains\Businesses\ValueObjects\NameUnavailabilityReason;
 
-/**
- * An answer, never an exception: the question is expected to come back no, and a
- * refusal the caller asked for is not a failure.
- */
 final readonly class NameAvailability
 {
     private function __construct(
         public bool $available,
-        /** The address the name would get, when it is free. */
         public ?string $slug,
         public ?NameUnavailabilityReason $reason,
     ) {}

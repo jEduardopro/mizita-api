@@ -16,28 +16,8 @@ use libphonenumber\PhoneNumberToTimeZonesMapper;
 use libphonenumber\PhoneNumberType as LibPhoneNumberType;
 use libphonenumber\PhoneNumberUtil;
 
-/**
- * The only class in the codebase allowed to import libphonenumber.
- *
- * Two checks stack here and answer different questions: the library says whether
- * a number is real anywhere, CountryCode says whether the platform operates
- * there. A Spanish mobile passes the first and fails the second, and both
- * rejections are a null, because to the person filling in the form they mean the
- * same thing.
- *
- * The library's type enum is mapped in a total match below rather than on
- * PhoneNumberType, because a shared value object is imported by every domain's
- * entities and whatever it reaches for is reached by all of them. An upgrade
- * that adds a type therefore fails here, with an UnhandledMatchError on the
- * first parse.
- */
 final class LibPhoneNumberParser implements PhoneNumberParser
 {
-    /**
-     * One fixed locale on purpose: what the geocoder returns is stored as a
-     * coarse geographic fact, not display copy, so it must not vary with whoever
-     * happened to submit the form.
-     */
     private const GEOCODING_LOCALE = 'en';
 
     private readonly PhoneNumberUtil $numbers;
@@ -46,12 +26,6 @@ final class LibPhoneNumberParser implements PhoneNumberParser
 
     private readonly PhoneNumberToTimeZonesMapper $timezones;
 
-    /**
-     * The library exposes its three helpers only as singletons, each loading a
-     * slab of metadata on first use. They are resolved here rather than injected
-     * because there is no container binding to inject - and this class is itself
-     * bound as a singleton, so the cost is paid once per process.
-     */
     public function __construct()
     {
         $this->numbers = PhoneNumberUtil::getInstance();
@@ -67,9 +41,6 @@ final class LibPhoneNumberParser implements PhoneNumberParser
             return null;
         }
 
-        // Where the number actually belongs, which is not necessarily where the
-        // caller said it does: a US-declared +52 number reaches this line, and
-        // this is where it stops.
         if ($this->regionOf($parsed) !== $country) {
             return null;
         }
@@ -95,13 +66,6 @@ final class LibPhoneNumberParser implements PhoneNumberParser
         );
     }
 
-    /**
-     * People type their own number as they say it, so the same digits arrive
-     * bare, spaced, hyphenated, or already carrying the dial code. The second
-     * attempt covers the one shape the region hint cannot rescue: a number
-     * written with a leading international prefix the library does not
-     * recognise on its own.
-     */
     private function read(string $number, CountryCode $country): ?LibPhoneNumber
     {
         if ($number === '') {
@@ -111,7 +75,6 @@ final class LibPhoneNumberParser implements PhoneNumberParser
         try {
             return $this->numbers->parse($number, $country->value);
         } catch (NumberParseException) {
-            // Fall through to the retry.
         }
 
         try {
@@ -121,7 +84,6 @@ final class LibPhoneNumberParser implements PhoneNumberParser
         }
     }
 
-    /** The platform country the number belongs to, or null for anywhere else. */
     private function regionOf(LibPhoneNumber $parsed): ?CountryCode
     {
         $region = $this->numbers->getRegionCodeForNumber($parsed);
@@ -166,9 +128,6 @@ final class LibPhoneNumberParser implements PhoneNumberParser
      */
     private function timezonesOf(LibPhoneNumber $parsed): array
     {
-        // The mapper answers with a one-element sentinel rather than an empty
-        // list when it cannot place a number, and 'Etc/Unknown' is not a zone
-        // anything can convert with - so it never reaches the column.
         return array_values(array_filter(
             $this->timezones->getTimeZonesForNumber($parsed),
             static fn (string $timezone): bool => $timezone !== PhoneNumberToTimeZonesMapper::UNKNOWN_TIMEZONE,

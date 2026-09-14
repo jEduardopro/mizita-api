@@ -4,19 +4,7 @@ declare(strict_types=1);
 
 use Inertia\Testing\AssertableInertia;
 
-/*
-| The locale props are what i18next boots from, so the first paint is already in
-| the resolved language. SetLocale is prepended to the web group and
-| HandleInertiaRequests appended to it, which is the ordering these assertions
-| depend on: share() reads app()->getLocale() after SetLocale has run.
-|
-| No database is touched here.
-*/
-
 beforeEach(function () {
-    // Symfony's Request::create() synthesises "Accept-Language: en-us,en;q=0.5" on
-    // every test request. SetLocale no longer reads it, but blanking it keeps the
-    // baseline free of any header the assertions do not state themselves.
     $this->withHeader('Accept-Language', '');
 });
 
@@ -41,9 +29,6 @@ it('shares the locale the request chose, not the application default', function 
 ]);
 
 it('boots the page in spanish for an english browser', function () {
-    // Accept-Language is not a source: the product is Spanish-first and language is
-    // an explicit choice. If negotiation came back, the first paint would be the
-    // first place it showed - i18next boots from this prop.
     $this->get('/', ['Accept-Language' => 'en-US,en;q=0.9'])
         ->assertInertia(fn (AssertableInertia $page) => $page->where('locale', 'es'));
 });
@@ -56,8 +41,6 @@ it('shares the supported list straight from config, so the frontend mirrors one 
 });
 
 it('renders the root document in the resolved language', function () {
-    // app.blade.php sets <html lang> from app()->getLocale(); it is the first thing
-    // a screen reader and a search engine read, and it is set before any JS runs.
     $this->get('/?lang=en')->assertSee('<html lang="en"', escape: false);
     $this->get('/')->assertSee('<html lang="es"', escape: false);
 });

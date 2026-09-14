@@ -9,14 +9,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Runs after `auth`, which guarantees there is a user to ask about. A redirect
- * rather than the 403 SetBusinessContext raises, because this guards a page
- * visit: a fresh account with no business has done nothing wrong.
- *
- * Like SetBusinessContext, it reaches memberships only through the shared port
- * and must never import App\Domains\Staff\*.
- */
 final class RequireBusinessMembership
 {
     public function __construct(

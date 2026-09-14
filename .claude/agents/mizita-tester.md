@@ -186,6 +186,7 @@ For every use case you cover, satisfy this list and declare it in your report:
 - One test per domain exception the handoff declares, asserting the exception class and, where the message carries data, the message.
 - Every branch and guard in the use case.
 - Every entity invariant, tested **at the entity level** through its named constructor — not duplicated at the use case level.
+- Every rule in the input DTO's `validate()`, tested **at the DTO level**: build the DTO directly, call `validate()`, assert the exception class and that it implements `DomainFailure`. A `dataset()` of bad payloads is the right shape. Also assert that a valid DTO's `validate()` returns without throwing, and that `fromRequest()` survives a payload with keys missing — that is the case a caller who never saw a FormRequest produces, and it must come back as a domain failure rather than a PHP error.
 - Side effects: the event was dispatched, with the right payload, exactly once.
 - Non-effects: nothing persisted, nothing dispatched, when the use case throws.
 - Edges: empty string, whitespace-only, `null` for every optional, maximum length, unicode and accents, duplicates, and `restore()` deliberately skipping creation-time invariants.
@@ -217,6 +218,18 @@ An endpoint additionally owes: the success status code and response shape (respo
 - `beforeEach()` for shared arrange; keep each test's own arrange to what varies.
 - Iterate with `--filter` or a directory argument; run the full suite once at the end, not on every edit.
 
+## You write no comments
+
+Not "few", not "only the good ones" — none. No `//` line, no prose docblock, no `/* |----- */` file banner, no narration of an arrange block. A test that needs a comment to be understood needs a better `it()` name, a `describe()` around it, or a named variable — and unlike a comment, those three are read out loud when the suite fails. Delete commented-out assertions rather than parking them.
+
+Three things are not your comments and must survive untouched:
+
+- **Laravel and Pest scaffold** you did not write: `tests/Pest.php`, `tests/TestCase.php`, `tests/Feature/ExampleTest.php`, `tests/Unit/ExampleTest.php`. In particular the commented-out `->use(RefreshDatabase::class)` in `tests/Pest.php` is the documented global switch, not dead code.
+- **Annotations a tool reads**: `@var`, `@template`, `@extends`, `@param`/`@return` carrying generics or an array shape, `@throws`. A docblock holding only tags survives whole; one mixing prose with tags keeps the tags and loses the prose.
+- **A comment the user asked for**, when the task says so.
+
+Never strip a line starting with `#` — this repo has zero hash comments and only real attributes.
+
 ## Architecture tests
 
 `pest-plugin-arch` is already installed and unused. Encode the layer dependency table from `CLAUDE.md` in `tests/Arch/` — it is the cheapest safety net in this repository:
@@ -226,6 +239,8 @@ An endpoint additionally owes: the success status code and response shape (respo
 - **No domain depends on another domain outside `Infrastructure/`.** `App\Domains\Appointments\*` may not reference `App\Domains\Services\*` except from `Appointments\Infrastructure\Gateways\`. This is the rule most easily broken by accident — a direct import compiles and the unit tests still pass — which is exactly why an arch test is worth more here than a review comment.
 - Eloquent models carry the `Model` suffix.
 - Classes are `final` and files declare `strict_types=1`.
+- **Every class under `Application/Dtos/` that declares `fromRequest()` also declares `validate()`.** No whitelist: a DTO built from an untrusted array validates, and one built from value objects has no `fromRequest()` in the first place.
+- **Every use case taking such a DTO calls `$input->validate();` as the first statement of `handle()`.** Reflection cannot see a method body, so read the source and assert on the first statement — a coarse text assertion is fine and is what stops the rule rotting.
 
 ## Adapt to the project, not to this file
 
@@ -280,8 +295,11 @@ Never claim a test passes that you did not run.
 
 ## Worked example
 
+Note that not one line of it carries a comment, `@var` aside.
+
+`tests/Support/FakeClock.php`
+
 ```php
-// tests/Support/FakeClock.php
 namespace Tests\Support;
 
 use App\Shared\Contracts\Clock;
@@ -302,8 +320,11 @@ final class FakeClock implements Clock
         $this->now = $this->now->add(new DateInterval($interval));
     }
 }
+```
 
-// tests/Support/FixedIdGenerator.php — hands out known uuids, so the DTO id is assertable
+`tests/Support/FixedIdGenerator.php` — hands out known uuids, so the DTO id is assertable
+
+```php
 final class FixedIdGenerator implements IdGenerator
 {
     /** @var list<string> */
@@ -319,8 +340,11 @@ final class FixedIdGenerator implements IdGenerator
         return array_shift($this->ids) ?? throw new RuntimeException('FixedIdGenerator ran out of ids.');
     }
 }
+```
 
-// tests/Unit/Domains/Customers/Entities/CustomerTest.php — pure PHP, no container
+`tests/Unit/Domains/Customers/Entities/CustomerTest.php` — pure PHP, no container
+
+```php
 it('creates a customer with the given business and trims the name', function () {
     $customer = Customer::create(
         id: 'customer-uuid',
@@ -343,13 +367,35 @@ it('rejects a blank name', function (string $name) {
 })->with(['empty' => '', 'spaces' => '   ', 'tab' => "\t"]);
 
 it('skips creation-time invariants when restoring from persistence', function () {
-    // restore() rehydrates whatever is already stored; it is not a second validation gate.
     $customer = Customer::restore('id', 'business-uuid', '', null, null, new DateTimeImmutable());
 
     expect($customer->name())->toBe('');
 });
+```
 
-// tests/Unit/Domains/Customers/Application/UseCases/CreateCustomerTest.php
+`tests/Unit/Domains/Customers/Application/Dtos/CreateCustomerInputTest.php` — the rules are asserted where they live, with no use case and no container
+
+```php
+it('accepts a well formed payload', function () {
+    $input = CreateCustomerInput::fromRequest(['name' => 'Ada', 'email' => 'ada@example.com']);
+
+    expect(fn () => $input->validate())->not->toThrow(Throwable::class)
+        ->and($input->phone)->toBeNull();
+});
+
+it('rejects a payload the form request would have rejected', function (array $payload, string $exception) {
+    expect(fn () => CreateCustomerInput::fromRequest($payload)->validate())->toThrow($exception);
+})->with([
+    'missing name' => [[], InvalidCustomerName::class],
+    'blank name' => [['name' => '   '], InvalidCustomerName::class],
+    'name too long' => [['name' => str_repeat('a', 256)], InvalidCustomerName::class],
+    'malformed email' => [['name' => 'Ada', 'email' => 'not-an-email'], InvalidCustomerEmail::class],
+]);
+```
+
+`tests/Unit/Domains/Customers/Application/UseCases/CreateCustomerTest.php`
+
+```php
 beforeEach(function () {
     $this->customers = Mockery::mock(CustomerRepository::class);
     $this->events = Mockery::mock(Dispatcher::class);
@@ -383,7 +429,6 @@ it('persists the customer and returns its data', function () {
 });
 
 it('scopes the customer to the current business', function () {
-    // The whole reason BusinessContext is a port: tenant isolation is assertable with no database.
     $this->customers->shouldReceive('save')->once();
     $this->events->shouldReceive('dispatch')->once();
 
@@ -398,8 +443,11 @@ it('saves nothing when the name is invalid', function () {
     expect(fn () => $this->useCase->handle(new CreateCustomerInput('   ', null, null)))
         ->toThrow(InvalidCustomerName::class);
 });
+```
 
-// tests/Feature/Domains/Customers/CreateCustomerEndpointTest.php
+`tests/Feature/Domains/Customers/CreateCustomerEndpointTest.php`
+
+```php
 uses(RefreshDatabase::class);
 
 it('creates a customer for the authenticated user business', function () {

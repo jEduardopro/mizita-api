@@ -8,19 +8,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Guard;
 
-/**
- * Retires the global template roles that used to stand in for businesses created
- * before roles were cloned per business. That row is the one the design forbids:
- * Role::findByParam() matches "business_id is null or business_id = <team>" with
- * no ORDER BY, so it would attach an undefined one of the two.
- *
- * The three steps must run in this order. Deleting the global rows before the
- * assignments have been moved would cascade somebody's access away, and an
- * assignment that cannot be moved stops the migration rather than being revoked.
- *
- * down() is deliberately empty: re-creating the ambiguous global row and moving
- * live assignments back onto it is not a rollback but a regression.
- */
 return new class extends Migration
 {
     public function up(): void
@@ -31,8 +18,6 @@ return new class extends Migration
             return;
         }
 
-        // Derived exactly as the seeder derives it, so this migration can never
-        // move rows the seeder would not have written.
         $guard = Guard::getDefaultName(User::class);
 
         foreach ($templates as $name => $definition) {
@@ -48,18 +33,13 @@ return new class extends Migration
         $this->forgetPermissionCache();
     }
 
-    public function down(): void
-    {
-        // See the class docblock: there is nothing safe to undo here.
-    }
+    // Deliberately empty: re-creating the ambiguous global role row and moving live
+    // assignments back onto it is a regression, not a rollback.
+    public function down(): void {}
 
     /**
-     * Every business, soft deleted ones included: an assignment may still point
-     * at the global row from a business that has since been closed, and the
-     * re-pointing step needs somewhere to move it.
-     *
      * @param  array<string, mixed>  $definition
-     * @return list<int> the role ids this call created
+     * @return list<int>
      */
     private function cloneForBusinessesWithout(string $name, array $definition, string $guard): array
     {
@@ -88,10 +68,6 @@ return new class extends Migration
     }
 
     /**
-     * Only the clones this run created, deliberately: a clone that was already
-     * there belongs to its business, and re-applying a template over it would
-     * restore whatever the owner had revoked.
-     *
      * @param  list<int>  $roleIds
      * @param  array<string, mixed>  $definition
      */
@@ -121,10 +97,6 @@ return new class extends Migration
     }
 
     /**
-     * An insert rather than an update because the team column is part of this
-     * table's primary key: adding the clone's row and letting the later cascade
-     * take the template's away is the same outcome with no in-place key rewrite.
-     *
      * @param  list<string>  $names
      */
     private function repointAssignmentsOffGlobalTemplates(array $names, string $guard): void
@@ -200,11 +172,6 @@ return new class extends Migration
             ->delete();
     }
 
-    /**
-     * Runtime critical, not housekeeping: every clone created from here on takes
-     * its id from this sequence inside the transaction that onboards a business,
-     * so a sequence left behind by a hand-pinned id breaks signup.
-     */
     private function syncRoleIdSequence(): void
     {
         $roles = $this->table('roles');

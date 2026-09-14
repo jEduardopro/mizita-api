@@ -9,7 +9,6 @@ import { FormStatus } from '@/components/form/FormStatus';
 import { UnderlineField } from '@/components/form/UnderlineField';
 import { Button } from '@/components/ui/button';
 
-/** Exactly what Fortify's login attempt reads. Nothing else. */
 export type LoginForm = {
     email: string;
     password: string;
@@ -20,7 +19,6 @@ type Mode = 'choice' | 'email';
 
 type Props = {
     form: InertiaFormProps<LoginForm>;
-    /** The flash message from the session, e.g. after a password reset. */
     status: string | null;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -28,14 +26,8 @@ type Props = {
 export function LoginCard({ form, status, onSubmit }: Props) {
     const { t } = useTranslation('auth');
 
-    // A failed Google callback redirects back with `errors.google`, a shared page
-    // prop rather than one of this form's fields. The server's string is the
-    // signal, not the copy: the card says it in its own voice and language.
     const googleFailed = Boolean(usePage().props.errors.google);
 
-    // Errors mean someone has already tried, so the card opens on the panel they
-    // tried from — otherwise a "wrong credentials" message would sit behind the
-    // choice panel, unread, on any path that remounts.
     const [mode, setMode] = useState<Mode>(() =>
         Object.keys(form.errors).length > 0 ? 'email' : 'choice',
     );
@@ -57,9 +49,6 @@ export function LoginCard({ form, status, onSubmit }: Props) {
             }
             legal={
                 <>
-                    {/* `Trans` keeps the sentence whole: splitting it into a
-                        prefix, link labels and a joiner would hard-code Spanish
-                        word order into the markup. */}
                     <p className="text-balance">
                         <Trans
                             i18nKey="login.legal"
@@ -77,8 +66,6 @@ export function LoginCard({ form, status, onSubmit }: Props) {
             }
         >
             <div className="grid gap-5">
-                {/* Above both panels: the flash after a password reset arrives on
-                    a fresh visit, which mounts on the choice panel. */}
                 <FormStatus message={status} />
 
                 <div
@@ -128,9 +115,6 @@ export function LoginCard({ form, status, onSubmit }: Props) {
                                 }}
                             />
 
-                            {/* Wrapping rather than shrinking, so on a phone the
-                                whole link drops to its own line instead of
-                                breaking either phrase in two. */}
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                                 <label
                                     htmlFor="remember"

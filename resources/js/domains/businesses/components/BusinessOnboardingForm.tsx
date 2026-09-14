@@ -25,7 +25,6 @@ import { resolvedTimezone } from '@/lib/timezone';
 
 const DASHBOARD_URL = '/dashboard';
 
-/** The product sells in Mexico first, so the prefix starts there. */
 const DEFAULT_PHONE_COUNTRY: PhoneCountryCode = 'MX';
 
 const COUNTRY_NAME_KEYS = {
@@ -33,13 +32,6 @@ const COUNTRY_NAME_KEYS = {
     US: 'onboarding.phone.countries.US',
 } as const satisfies Record<PhoneCountryCode, string>;
 
-/**
- * A malformed phone is rejected field by field, and Laravel keys a nested
- * rejection by its path, so it can arrive under any of these. The field shows
- * whichever came back, because it draws the pair as one thing with one message.
- * Whether the number is real and reachable is judged by the use case instead,
- * and arrives as a form-level message with no `errors` key at all.
- */
 const PHONE_ERROR_FIELDS = ['phone', 'phone.country_code', 'phone.national_number'] as const;
 
 type AdminTranslate = TFunction<'admin'>;
@@ -49,14 +41,8 @@ type NameVerdict = {
     hintTone?: HintTone;
 };
 
-/**
- * A URL has almost no break opportunities, so a business named as one long word
- * would be a single token wider than a 320px screen and would push the page
- * sideways. A real address is far shorter than this cap.
- */
 const MAX_PREVIEW_CHARACTERS = 34;
 
-/** The booking address, shown without a scheme: it is read, not clicked. */
 function bookingUrl(slug: string): string {
     const url = `${window.location.host}/${slug}`;
 
@@ -65,11 +51,6 @@ function bookingUrl(slug: string): string {
         : url;
 }
 
-/**
- * `checking` stays silent because a "Checking…" that comes and goes in half a
- * second is the flicker this feature exists to avoid, and `unknown` stays silent
- * because a question that never reached the server says nothing about the name.
- */
 function nameVerdict(status: NameStatus, slug: string | null, t: AdminTranslate): NameVerdict {
     if (status === 'taken') {
         return { hint: t('onboarding.name.taken'), hintTone: 'critical' };
@@ -113,14 +94,6 @@ type FormValues = {
     phoneNumber: string;
 };
 
-/**
- * Nothing is validated on the way out: an industry nobody picked is sent as an
- * empty string, because `CreateBusinessRequest` is the only authority on what is
- * required. A blank phone omits the key entirely, since it is optional.
- *
- * No slug is ever sent. Deriving one is the server's rule, and the availability
- * check only previews its answer.
- */
 function payloadFrom({
     name,
     industryId,
@@ -146,7 +119,6 @@ function payloadFrom({
 }
 
 type Props = {
-    /** A prop rather than a hook: a domain never reaches sideways into another. */
     industries: {
         options: readonly ComboboxOption[];
         isPending: boolean;
@@ -196,14 +168,10 @@ export function BusinessOnboardingForm({ industries }: Props) {
             onSubmit={(event) => void submit(event)}
             className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 sm:p-8 dark:shadow-black/30"
         >
-            {/* No alert above the fields: the submission message is announced as
-                a toast instead, the same way on every screen. */}
             <div className="grid gap-5">
                 <FormField
                     id="name"
                     label={t('onboarding.name.label')}
-                    // Written inside the box, because the line underneath belongs
-                    // to the verdict and two things cannot share it.
                     placeholder={t('onboarding.name.hint')}
                     autoComplete="organization"
                     autoFocus
@@ -272,8 +240,6 @@ export function BusinessOnboardingForm({ industries }: Props) {
                     error={phoneErrorFrom(fieldErrors)}
                 />
 
-                {/* A name the check called taken does not disable this button:
-                    the check is an affordance and the server is the authority. */}
                 <Button
                     type="submit"
                     variant="brand"

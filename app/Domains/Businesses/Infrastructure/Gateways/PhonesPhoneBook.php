@@ -10,10 +10,6 @@ use App\Domains\Phones\Application\UseCases\AttachPhone;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Shared\ValueObjects\PhoneNumber;
 
-/**
- * Naming the owner type is this class's only real decision, so the constant never
- * travels up into a use case with no reason to know Phones holds anything else.
- */
 final class PhonesPhoneBook implements PhoneBook
 {
     public function __construct(

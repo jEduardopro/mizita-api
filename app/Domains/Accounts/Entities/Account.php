@@ -8,14 +8,6 @@ use App\Domains\Accounts\Exceptions\InvalidAccountEmail;
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
 use DateTimeImmutable;
 
-/**
- * An Account is who a person is on the platform, independent of any business.
- *
- * It deliberately does not carry the password hash. Credentials are an
- * authentication concern handled at the infrastructure edge, and keeping the
- * hash out of the entity means no write path through this domain can overwrite
- * one by accident.
- */
 final class Account
 {
     private function __construct(
@@ -41,7 +33,6 @@ final class Account
         );
     }
 
-    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $name,
@@ -58,7 +49,6 @@ final class Account
         );
     }
 
-    /** Verifying twice keeps the first timestamp: when it happened is a fact, not a flag. */
     public function verifyEmail(DateTimeImmutable $now): void
     {
         if ($this->emailVerifiedAt !== null) {

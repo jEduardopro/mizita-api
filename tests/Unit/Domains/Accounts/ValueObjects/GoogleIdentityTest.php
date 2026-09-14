@@ -29,8 +29,6 @@ it('defaults the avatar url to null when Google supplies no picture', function (
 });
 
 it('keeps an unverified flag as it was given', function () {
-    // Downgrading this to true anywhere would defeat the takeover guard, so the
-    // value object stores what Google said and nothing else.
     $identity = new GoogleIdentity('104729183746501928374', 'ada@example.com', false, 'Ada Lovelace');
 
     expect($identity->emailVerified)->toBeFalse();
@@ -68,8 +66,6 @@ it('rejects a blank email', function (string $email) {
 ]);
 
 it('checks the subject before the email, so a tokenless credential is named as such', function () {
-    // Both claims are missing here. The subject is the one that decides which
-    // account a caller reaches, so it is the failure worth reporting.
     expect(fn () => new GoogleIdentity('', '', true, 'Ada'))
         ->toThrow(InvalidGoogleIdToken::class);
 });

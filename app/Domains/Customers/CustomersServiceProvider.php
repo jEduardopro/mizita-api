@@ -20,9 +20,6 @@ final class CustomersServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Matches PhoneOwnerType::Customer. enforceMorphMap rather than
-        // morphMap, so an unmapped model raises instead of quietly writing its
-        // FQCN into a varchar(32) that would truncate it.
         Relation::enforceMorphMap(['customer' => CustomerModel::class]);
 
         Route::prefix('api')

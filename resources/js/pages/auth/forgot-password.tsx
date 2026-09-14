@@ -6,10 +6,6 @@ import { FormStatus } from '@/components/form/FormStatus';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
 
-/**
- * Fortify's flash `status` is the only confirmation the screen gets: whether the
- * address exists is never revealed.
- */
 export default function ForgotPassword() {
     const { status } = usePage().props;
     const { t } = useTranslation('auth');

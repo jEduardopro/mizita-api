@@ -7,15 +7,14 @@ namespace App\Console\Commands\Support;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
-/**
- * Syntax: name:type[:modifier]... for example "email:email:unique" or
- * "price:decimal(8,2):nullable". Modifiers are nullable, unique and index.
- */
 final class DomainField
 {
+    public const MAXIMUM_TEXT_LENGTH = 255;
+
+    public const MAXIMUM_EMAIL_LENGTH = 254;
+
     private const MODIFIERS = ['nullable', 'unique', 'index'];
 
-    /** DSL type => [blueprint method, php type, cast, faker expression]. */
     private const TYPES = [
         'string' => ['string', 'string', null, 'fake()->word()'],
         'text' => ['text', 'string', null, 'fake()->paragraph()'],
@@ -33,7 +32,7 @@ final class DomainField
 
     /**
      * @param  array<int, string>  $modifiers
-     * @param  array<int, string>  $typeArguments  e.g. ['8', '2'] for decimal(8,2)
+     * @param  array<int, string>  $typeArguments
      */
     private function __construct(
         public readonly string $name,
@@ -89,7 +88,6 @@ final class DomainField
         return ! $this->isNullable();
     }
 
-    /** A field whose emptiness is worth guarding against in the entity. */
     public function isTextual(): bool
     {
         return in_array($this->type, ['string', 'text', 'email'], true);
@@ -183,8 +181,8 @@ final class DomainField
             'json' => 'array',
         };
 
-        if (in_array($this->type, ['string', 'email', 'uuid'], true)) {
-            $rules[] = 'max:255';
+        if ($this->hasMaximumLength() || $this->type === 'uuid') {
+            $rules[] = 'max:'.$this->maximumLength();
         }
 
         return $rules;
@@ -197,18 +195,172 @@ final class DomainField
         return "'{$this->name}' => [{$rules}],";
     }
 
-    public function requestAccessor(): string
+    public function readsAsText(): bool
     {
-        return match (true) {
-            $this->type === 'boolean' => "\$request->boolean('{$this->name}')",
-            in_array($this->type, ['integer', 'bigInteger'], true) => $this->isNullable()
-                ? "\$request->has('{$this->name}') ? \$request->integer('{$this->name}') : null"
-                : "\$request->integer('{$this->name}')",
-            $this->needsDateImport() => "new DateTimeImmutable(\$request->string('{$this->name}')->toString())",
-            $this->type === 'json' => "\$request->array('{$this->name}')",
-            $this->isNullable() => "\$request->string('{$this->name}')->toString() ?: null",
-            default => "\$request->string('{$this->name}')->toString()",
+        return in_array($this->type, ['string', 'text', 'email', 'uuid'], true);
+    }
+
+    public function payloadAccessor(): string
+    {
+        $value = "\$payload['{$this->name}'] ?? null";
+
+        if ($this->readsAsText()) {
+            return $this->isNullable()
+                ? sprintf('self::%sOrNull(%s)', $this->property(), $value)
+                : sprintf('self::textOrEmpty(%s)', $value);
+        }
+
+        if ($this->needsDateImport()) {
+            return $this->isNullable()
+                ? sprintf('self::%sOrNull(%s)', $this->property(), $value)
+                : sprintf('self::%sOrNow(%s)', $this->property(), $value);
+        }
+
+        if ($this->type === 'decimal') {
+            return $this->isNullable()
+                ? sprintf('self::decimalOrNull(%s)', $value)
+                : sprintf('self::decimalOrEmpty(%s)', $value);
+        }
+
+        $key = "\$payload['{$this->name}']";
+
+        if ($this->isNullable()) {
+            return match ($this->type) {
+                'integer', 'bigInteger' => "isset({$key}) ? (int) {$key} : null",
+                'boolean' => "isset({$key}) ? (bool) {$key} : null",
+                'float' => "isset({$key}) ? (float) {$key} : null",
+                'json' => "isset({$key}) ? (array) {$key} : null",
+            };
+        }
+
+        return match ($this->type) {
+            'integer', 'bigInteger' => "(int) ({$key} ?? 0)",
+            'boolean' => "(bool) ({$key} ?? false)",
+            'float' => "(float) ({$key} ?? 0.0)",
+            'json' => "(array) ({$key} ?? [])",
         };
+    }
+
+    public function isValidatable(): bool
+    {
+        return $this->validationFailures() !== [];
+    }
+
+    public function refusesUnreadableText(): bool
+    {
+        return $this->readsAsText() && $this->isNullable();
+    }
+
+    public function hasMaximumLength(): bool
+    {
+        return in_array($this->type, ['string', 'email'], true);
+    }
+
+    public function maximumLength(): int
+    {
+        return $this->type === 'email' ? self::MAXIMUM_EMAIL_LENGTH : self::MAXIMUM_TEXT_LENGTH;
+    }
+
+    public function needsUuidPattern(): bool
+    {
+        return $this->type === 'uuid';
+    }
+
+    public function maximumLengthConstant(): string
+    {
+        return 'MAXIMUM_'.strtoupper($this->name).'_LENGTH';
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function validationFailures(): array
+    {
+        if (! in_array($this->type, ['string', 'text', 'email', 'uuid'], true)) {
+            return [];
+        }
+
+        $failures = [];
+
+        if ($this->isRequired() && ! $this->needsUuidPattern()) {
+            $failures[] = 'empty';
+        }
+
+        if (in_array($this->type, ['email', 'uuid'], true)) {
+            $failures[] = 'malformed';
+        }
+
+        if ($this->hasMaximumLength()) {
+            $failures[] = 'tooLong';
+        }
+
+        return $failures;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function constructorFailures(): array
+    {
+        $failures = $this->validationFailures();
+
+        if ($this->refusesUnreadableText() && ! in_array('malformed', $failures, true)) {
+            array_unshift($failures, 'malformed');
+        }
+
+        return $failures;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function validatorBody(string $exception): array
+    {
+        $property = '$this->'.$this->property();
+        $lines = [];
+
+        if ($this->isNullable()) {
+            $lines[] = "if ({$property} === null) {";
+            $lines[] = '    return;';
+            $lines[] = '}';
+            $lines[] = '';
+            $subject = $property;
+        } elseif (in_array('empty', $this->validationFailures(), true)) {
+            $subject = '$'.$this->property();
+            $lines[] = "{$subject} = trim({$property});";
+            $lines[] = '';
+            $lines[] = "if ({$subject} === '') {";
+            $lines[] = "    throw {$exception}::empty();";
+            $lines[] = '}';
+            $lines[] = '';
+        } else {
+            $subject = $property;
+        }
+
+        if ($this->hasMaximumLength()) {
+            $lines[] = sprintf('if (mb_strlen(%s) > self::%s) {', $subject, $this->maximumLengthConstant());
+            $lines[] = "    throw {$exception}::tooLong();";
+            $lines[] = '}';
+            $lines[] = '';
+        }
+
+        if ($this->type === 'email') {
+            $lines[] = "if (filter_var({$subject}, FILTER_VALIDATE_EMAIL) === false) {";
+            $lines[] = "    throw {$exception}::malformed();";
+            $lines[] = '}';
+            $lines[] = '';
+        }
+
+        if ($this->needsUuidPattern()) {
+            $lines[] = "if (preg_match(self::UUID_PATTERN, {$subject}) !== 1) {";
+            $lines[] = "    throw {$exception}::malformed();";
+            $lines[] = '}';
+            $lines[] = '';
+        }
+
+        array_pop($lines);
+
+        return $lines;
     }
 
     public function resourceValue(): string

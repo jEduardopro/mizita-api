@@ -17,7 +17,6 @@
         "forceConsistentCasingInFileNames": true,
         "noEmit": true,
         "types": ["vite/client", "node"],
-        // TypeScript 7 removed `baseUrl`, so these have to be relative paths.
         "paths": {
             "@/*": ["./resources/js/*"]
         }

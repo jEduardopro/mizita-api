@@ -8,7 +8,6 @@ import { Section } from '@/components/public/landing/Section';
 import { HeroCollage } from '@/components/shared/hero/HeroCollage';
 import { PublicLayout } from '@/layouts/PublicLayout';
 
-/** The labels are each section's own eyebrow, so the two cannot drift. */
 const menu = [
     { id: HOW_IT_WORKS_ID, labelKey: 'welcome.steps.eyebrow' },
     { id: BENEFITS_ID, labelKey: 'welcome.benefits.eyebrow' },

@@ -6,7 +6,6 @@ type ListProps = {
     sections: LegalSection[];
 };
 
-/** Numbered because the documents number themselves: a clause is cited by number. */
 function ClauseList({ sections }: ListProps) {
     return (
         <ol className="border-l border-border">
@@ -36,11 +35,6 @@ type Props = {
     sections: LegalSection[];
 };
 
-/**
- * A sticky rail beside the text on a laptop; on a phone a native `details` above
- * it — no state, keyboard operable by construction, and nothing that can hold
- * focus once it is closed.
- */
 export function LegalToc({ sections }: Props) {
     const { t } = useTranslation("common");
 
@@ -69,9 +63,6 @@ export function LegalToc({ sections }: Props) {
             </nav>
 
             <nav aria-label={label} className="hidden lg:block">
-                {/* An eyebrow rather than a heading: the nav is already named by
-                    its label, and a heading here would sit in the document
-                    outline between the title and the first clause. */}
                 <p className="mb-3 pl-3.5 text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                     {label}
                 </p>

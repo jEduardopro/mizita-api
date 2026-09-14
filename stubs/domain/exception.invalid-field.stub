@@ -4,12 +4,20 @@ declare(strict_types=1);
 
 namespace App\Domains\{{ domain }}\Exceptions;
 
+use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 
-final class Invalid{{ entity }}{{ guardField }} extends DomainException
+final class Invalid{{ entity }}{{ invalidField }} extends DomainException implements DomainFailure
 {
-    public static function empty(): self
+{{ invalidFieldConstructors }}
+    public function errorCode(): string
     {
-        return new self('A {{ variable }} {{ guardFieldLabel }} cannot be empty.');
+        return '{{ invalidFieldErrorCode }}';
+    }
+
+    public function kind(): DomainFailureKind
+    {
+        return DomainFailureKind::Invalid;
     }
 }

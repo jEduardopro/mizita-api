@@ -8,10 +8,6 @@ use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Shared\ValueObjects\PhoneNumber;
 use DateTimeImmutable;
 
-/**
- * The number itself is a PhoneNumber, so the rules about what a number may look
- * like live there and are never re-checked here.
- */
 final class Phone
 {
     private function __construct(
@@ -38,7 +34,6 @@ final class Phone
         );
     }
 
-    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         PhoneOwnerType $ownerType,
@@ -55,7 +50,6 @@ final class Phone
         );
     }
 
-    /** One phone per owner, so a change is never a second row. */
     public function changeNumber(PhoneNumber $number): void
     {
         $this->number = $number;

@@ -1,16 +1,9 @@
 import type { ReactNode, SVGProps } from 'react';
 
-// Drawn by hand because `lucide-react` v1 removed every brand icon, in lucide's
-// own geometry so they sit in the same family and `currentColor` recolours them.
-
 export type SocialIconProps = SVGProps<SVGSVGElement>;
 
 type GlyphProps = SocialIconProps & { children: ReactNode };
 
-/**
- * `aria-hidden` is unconditional: every one of these sits inside a link that
- * already carries the accessible name.
- */
 function Glyph({ children, ...props }: GlyphProps) {
     return (
         <svg

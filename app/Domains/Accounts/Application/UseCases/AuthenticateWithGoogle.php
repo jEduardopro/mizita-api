@@ -22,10 +22,6 @@ use App\Shared\Contracts\IdGenerator;
 use App\Shared\Contracts\TransactionManager;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * No BusinessContext: Accounts is a root domain. An account exists before, and
- * independently of, any business, so binding a tenant here would be wrong.
- */
 final class AuthenticateWithGoogle
 {
     public function __construct(
@@ -44,16 +40,12 @@ final class AuthenticateWithGoogle
             $input->googleUserId,
         );
 
-        // Recognising a returning person by the provider's subject, never by
-        // their email: a subject is permanent, an address can be reassigned.
         if ($identity !== null) {
             return AuthenticatedAccountData::forExistingAccount(
                 $this->accounts->findById($identity->accountId),
             );
         }
 
-        // The account takeover guard. An unverified Google address proves
-        // nothing, so nothing is written and nothing is announced.
         if (! $input->emailVerified) {
             throw GoogleEmailNotVerified::forEmail($input->email);
         }
@@ -63,23 +55,12 @@ final class AuthenticateWithGoogle
                 fn (): AuthenticationOutcome => $this->linkOrRegister($input),
             );
 
-            // Announced only now that the work has committed. Dispatching
-            // inside the closure would deliver AccountRegistered for a row a
-            // later rollback took away, and a listener cannot un-send an email.
             foreach ($outcome->events as $event) {
                 $this->events->dispatch($event);
             }
 
             return $outcome->account;
         } catch (AccountAlreadyRegistered|SocialIdentityAlreadyLinked $conflict) {
-            // Two concurrent sign ins for the same new Google user both saw an
-            // empty table and both tried to write. The recovery has to happen
-            // out here: Postgres aborts a transaction at the first failed
-            // statement, so nothing further can run inside the closure above.
-            //
-            // Both callers wanted the same outcome - this person is signed in -
-            // so the loser adopts the winner's rows instead of being told about
-            // a conflict it has no way to act on.
             return $this->adoptConcurrentRegistration($input, $conflict);
         }
     }
@@ -96,15 +77,6 @@ final class AuthenticateWithGoogle
         return $this->register($input, $email);
     }
 
-    /**
-     * Exactly one attempt. If the rows still are not there, the unique index
-     * fired for some reason other than a race and a retry loop would hide that,
-     * so the original failure is rethrown untouched.
-     *
-     * The verified-email guard is deliberately not repeated: this path is only
-     * reachable once that guard has passed, and re-checking would make it look
-     * like a second way in.
-     */
     private function adoptConcurrentRegistration(
         AuthenticateWithGoogleInput $input,
         AccountAlreadyRegistered|SocialIdentityAlreadyLinked $conflict,
@@ -122,7 +94,6 @@ final class AuthenticateWithGoogle
 
         $account = $this->accounts->findByEmail($this->normalizedEmail($input->email));
 
-        // Nothing this request created, so isNewAccount stays false either way.
         if ($account !== null) {
             return AuthenticatedAccountData::forExistingAccount($account);
         }
@@ -132,8 +103,6 @@ final class AuthenticateWithGoogle
 
     private function claim(Account $account, string $googleUserId): AuthenticationOutcome
     {
-        // Getting this far means the guard above proved Google verified the
-        // address, so control of it is proven for this account too.
         $account->verifyEmail($this->clock->now());
         $this->accounts->save($account);
 
@@ -159,13 +128,10 @@ final class AuthenticateWithGoogle
 
         return new AuthenticationOutcome(
             AuthenticatedAccountData::forNewAccount($account),
-            // Order is the contract: an account is announced before anything
-            // that refers to it.
             [$registered, $linked],
         );
     }
 
-    /** Hands the event back rather than dispatching it, for the caller to fire once the work has committed. */
     private function link(Account $account, string $googleUserId): SocialIdentityLinked
     {
         $identity = SocialIdentity::link(

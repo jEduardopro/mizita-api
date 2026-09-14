@@ -12,35 +12,15 @@ use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\FakeBusinessMembership;
 
-/*
-| The 403 this middleware aborts with is a translated string rather than a
-| literal, so its body follows whatever SetLocale resolved. SetLocale is
-| prepended to the api group and "business" is a route-level alias, so SetLocale
-| has always run by the time __() is called here.
-|
-| This file needs a connection: the tenant is resolved from the caller's staff
-| membership, which is a row - users.business_id is gone, and a user column was
-| never able to express a person who works at two businesses anyway.
-*/
-
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    // Symfony's Request::create() synthesises "Accept-Language: en-us,en;q=0.5" on
-    // every test request. SetLocale no longer reads it, but blanking it keeps the
-    // baseline free of any header the assertions do not state themselves.
     $this->withHeader('Accept-Language', '');
 
-    // Spatie serves its registry from cache, and RefreshDatabase rolls the rows
-    // back between tests: without this, a later test reads roles that no longer
-    // exist and every assignment fails with RoleDoesNotExist.
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
 
 it('lets a caller who belongs to a business through', function () {
-    // The whole chain, unfaked: a membership row is what makes this account a
-    // business user, and the role assignment it carries is what the tenant
-    // resolver orders by - so the roles have to be seeded first.
     $this->seed(AuthorizationSeeder::class);
 
     $business = BusinessModel::factory()->create();
@@ -58,8 +38,6 @@ it('lets a caller who belongs to a business through', function () {
 });
 
 it('rejects an authenticated caller who belongs to no business', function () {
-    // No membership row at all, asked of the real resolver: a plain account is
-    // an end customer, not a business user.
     Sanctum::actingAs(User::factory()->create());
 
     $this->postJson('/api/customers', ['name' => 'Ada Lovelace'])
@@ -72,11 +50,6 @@ it('rejects an unauthenticated caller before it ever looks for a business', func
 });
 
 describe('the language of the refusal', function () {
-    /*
-    | These are about the message, not about how membership resolves, so the
-    | precondition is stated through the port instead of arranged as the absence
-    | of rows. The test above is the one that proves the real resolver agrees.
-    */
     beforeEach(function () {
         $this->app->instance(BusinessMembership::class, new FakeBusinessMembership);
 
@@ -101,7 +74,6 @@ describe('the language of the refusal', function () {
     ]);
 
     it('answers the 403 in spanish for an english browser', function () {
-        // Accept-Language is not a source; only an explicit choice changes the language.
         $this->postJson('/api/customers', ['name' => 'Ada Lovelace'], ['Accept-Language' => 'en-US,en;q=0.9'])
             ->assertForbidden()
             ->assertJsonPath('message', 'Este usuario no pertenece a ningún negocio.');

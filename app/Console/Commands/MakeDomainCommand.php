@@ -26,7 +26,6 @@ final class MakeDomainCommand extends Command
 
     protected $description = 'Generate a new DDD domain module under app/Domains';
 
-    /** Stub => target path, relative to app/Domains/{domain}. Conditional stubs are added by domainFiles(). */
     private const DOMAIN_FILES = [
         'contract.repository.stub' => 'Contracts/{{ entity }}Repository.php',
         'entity.stub' => 'Entities/{{ entity }}.php',
@@ -46,7 +45,6 @@ final class MakeDomainCommand extends Command
         'provider.stub' => '{{ domain }}ServiceProvider.php',
     ];
 
-    /** Stub => target path, relative to the app path. */
     private const SHARED_FILES = [
         'contract.clock.stub' => 'Shared/Contracts/Clock.php',
         'contract.id-generator.stub' => 'Shared/Contracts/IdGenerator.php',
@@ -59,17 +57,17 @@ final class MakeDomainCommand extends Command
         'concern.belongs-to-business.stub' => 'Shared/Infrastructure/Concerns/BelongsToBusiness.php',
     ];
 
-    /** BusinessContext is absent on purpose: SetBusinessContext binds it per request. */
     private const SHARED_BINDINGS = [
         'Clock' => 'SystemClock',
         'IdGenerator' => 'UuidGenerator',
         'TransactionManager' => 'EloquentTransactionManager',
     ];
 
-    /** Folder names the flat pre-layered layout used at a domain root. */
     private const LEGACY_FOLDERS = ['Dtos', 'UseCases', 'Jobs', 'Commands', 'Listeners'];
 
-    /** @var array<int, string> paths written during this run, formatted with Pint before finishing */
+    private const UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iD';
+
+    /** @var array<int, string> */
     private array $touched = [];
 
     /** @var array<int, DomainField> */
@@ -111,6 +109,7 @@ final class MakeDomainCommand extends Command
 
         $this->writeSharedKernel($files, $replacements);
         $this->writeDomainFiles($files, $domainPath, $replacements);
+        $this->writeFieldExceptions($files, $domainPath, $replacements);
         $this->writeMigration($files, $replacements['{{ table }}'], $replacements);
         $this->registerProvider($files, $domain);
         $this->warnAboutLegacyFolders($files, $domainPath, $domain);
@@ -130,8 +129,6 @@ final class MakeDomainCommand extends Command
     }
 
     /**
-     * A non-TTY caller has no way to answer a prompt, so it must always pass --field.
-     *
      * @return array<int, DomainField>
      */
     private function resolveFields(): array
@@ -210,10 +207,10 @@ final class MakeDomainCommand extends Command
             '{{ routePrefix }}' => Str::kebab(Str::plural($entity)),
             '{{ variable }}' => $variable,
             '{{ variablePlural }}' => Str::camel(Str::plural($entity)),
-            '{{ guardField }}' => $guard?->studly() ?? '',
-            '{{ guardFieldLabel }}' => $guard !== null ? str_replace('_', ' ', $guard->name) : '',
+            '{{ entitySnake }}' => Str::snake($entity),
             '{{ uniqueField }}' => $unique?->studly() ?? '',
             '{{ uniqueFieldLabel }}' => $unique !== null ? str_replace('_', ' ', $unique->name) : '',
+            '{{ uniqueFieldSnake }}' => $unique?->name ?? '',
         ];
 
         $replacements['{{ migrationFields }}'] = $this->indentLines(
@@ -222,7 +219,6 @@ final class MakeDomainCommand extends Command
         );
         $replacements['{{ migrationBusinessField }}'] = $this->tenantScoped
             ? $this->indentLines([
-                '// Tenant discriminator: references businesses.uuid, not its int key.',
                 "\$table->uuid('business_id')->index();",
                 "\$table->foreign('business_id')->references('uuid')->on('businesses')->cascadeOnDelete();",
             ], 12)."\n"
@@ -303,8 +299,6 @@ final class MakeDomainCommand extends Command
         $replacements['{{ entityBehavior }}'] = $activeField === null ? '' : implode("\n", [
             '',
             '    /**',
-            '     * Business state, distinct from the soft delete on the record.',
-            '     *',
             sprintf('     * @throws %sAlreadyInactive', $entity),
             '     */',
             '    public function deactivate(): void',
@@ -317,11 +311,32 @@ final class MakeDomainCommand extends Command
             '    }',
         ]);
 
-        $replacements['{{ inputDtoImports }}'] = $this->importBlock($this->dateImport());
+        $validatable = $this->validatableFields();
+
+        $replacements['{{ inputDtoImports }}'] = $this->importBlock(array_merge(
+            $this->dateImport(),
+            array_map(
+                fn (DomainField $f) => "App\\Domains\\{$domain}\\Exceptions\\Invalid{$entity}{$f->studly()}",
+                $this->textualFields(),
+            ),
+        ));
         $replacements['{{ inputDtoProperties }}'] = $this->indentLines(
             array_map(fn (DomainField $f) => sprintf('public %s $%s,', $f->phpType(), $f->property()), $this->fields),
             8,
         );
+        $replacements['{{ inputDtoConstants }}'] = $this->inputDtoConstants($validatable);
+        $replacements['{{ inputDtoFromRequestArgs }}'] = $this->indentLines(
+            array_map(fn (DomainField $f) => sprintf('%s: %s,', $f->property(), $f->payloadAccessor()), $this->fields),
+            12,
+        );
+        $replacements['{{ inputDtoFromRequestThrows }}'] = $this->inputDtoFromRequestThrows($entity);
+        $replacements['{{ inputDtoThrows }}'] = $this->inputDtoThrows($entity, $validatable);
+        $replacements['{{ inputDtoValidateCalls }}'] = $this->indentLines(
+            array_map(fn (DomainField $f) => sprintf('$this->validate%s();', $f->studly()), $validatable),
+            8,
+        );
+        $replacements['{{ inputDtoHelpers }}'] = $this->inputDtoHelpers($entity);
+        $replacements['{{ inputDtoValidators }}'] = $this->inputDtoValidators($entity, $validatable);
         $replacements['{{ dataDtoProperties }}'] = $this->indentLines(array_merge(
             $this->tenantScoped ? ['public string $businessId,'] : [],
             array_map(fn (DomainField $f) => sprintf('public %s $%s,', $f->phpType(), $f->property()), $this->fields),
@@ -348,11 +363,6 @@ final class MakeDomainCommand extends Command
             array_map(fn (DomainField $f) => sprintf("'%s' => %s,", $f->name, $f->resourceValue()), $this->fields),
             12,
         );
-        $replacements['{{ controllerInputArgs }}'] = $this->indentLines(
-            array_map(fn (DomainField $f) => sprintf('%s: %s,', $f->property(), $f->requestAccessor()), $this->fields),
-            12,
-        );
-        $replacements['{{ controllerImports }}'] = $this->importBlock($this->dateImport());
         $replacements['{{ routeMiddleware }}'] = $this->tenantScoped
             ? "['api', 'auth:sanctum', 'business']"
             : "['api']";
@@ -399,7 +409,243 @@ final class MakeDomainCommand extends Command
         return $replacements;
     }
 
-    /** The field whose emptiness create() guards against. */
+    /**
+     * @return array<int, DomainField>
+     */
+    private function validatableFields(): array
+    {
+        return array_values(array_filter(
+            $this->fields,
+            fn (DomainField $field) => $field->isValidatable(),
+        ));
+    }
+
+    /**
+     * @return array<int, DomainField>
+     */
+    private function textualFields(): array
+    {
+        return array_values(array_filter(
+            $this->fields,
+            fn (DomainField $field) => $field->readsAsText(),
+        ));
+    }
+
+    /**
+     * @param  array<int, DomainField>  $validatable
+     */
+    private function inputDtoConstants(array $validatable): string
+    {
+        $constants = [];
+
+        foreach ($validatable as $field) {
+            if ($field->hasMaximumLength()) {
+                $constants[] = sprintf(
+                    'private const %s = %d;',
+                    $field->maximumLengthConstant(),
+                    $field->maximumLength(),
+                );
+            }
+        }
+
+        foreach ($validatable as $field) {
+            if ($field->needsUuidPattern()) {
+                $constants[] = "private const UUID_PATTERN = '".self::UUID_PATTERN."';";
+
+                break;
+            }
+        }
+
+        return implode('', array_map(fn (string $line) => "    {$line}\n\n", $constants));
+    }
+
+    /**
+     * @param  array<int, DomainField>  $validatable
+     */
+    private function inputDtoThrows(string $entity, array $validatable): string
+    {
+        if ($validatable === []) {
+            return '';
+        }
+
+        $exceptions = array_map(
+            fn (DomainField $field) => "     * @throws Invalid{$entity}{$field->studly()}",
+            $validatable,
+        );
+
+        return implode("\n", ['    /**', ...$exceptions, '     */', '']);
+    }
+
+    private function inputDtoFromRequestThrows(string $entity): string
+    {
+        $refusing = array_filter($this->fields, fn (DomainField $field) => $field->refusesUnreadableText());
+
+        if ($refusing === []) {
+            return '';
+        }
+
+        $exceptions = array_map(
+            fn (DomainField $field) => "     * @throws Invalid{$entity}{$field->studly()}",
+            $refusing,
+        );
+
+        return implode("\n", ['     *', ...$exceptions, '']);
+    }
+
+    private function inputDtoHelpers(string $entity): string
+    {
+        $blocks = array_merge(
+            $this->textOrEmptyHelper(),
+            $this->unreadableTextHelpers($entity),
+            $this->decimalHelpers(),
+            $this->dateHelpers(),
+        );
+
+        if ($blocks === []) {
+            return '';
+        }
+
+        return "\n".implode("\n\n", array_map(fn (array $lines) => implode("\n", $lines), $blocks))."\n";
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function textOrEmptyHelper(): array
+    {
+        foreach ($this->fields as $field) {
+            if ($field->readsAsText() && $field->isRequired()) {
+                return [[
+                    '    private static function textOrEmpty(mixed $value): string',
+                    '    {',
+                    "        return is_string(\$value) ? \$value : '';",
+                    '    }',
+                ]];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function unreadableTextHelpers(string $entity): array
+    {
+        $blocks = [];
+
+        foreach ($this->fields as $field) {
+            if (! $field->refusesUnreadableText()) {
+                continue;
+            }
+
+            $blocks[] = [
+                sprintf('    private static function %sOrNull(mixed $value): ?string', $field->property()),
+                '    {',
+                "        if (\$value === null || \$value === '') {",
+                '            return null;',
+                '        }',
+                '',
+                '        if (! is_string($value)) {',
+                sprintf('            throw Invalid%s%s::malformed();', $entity, $field->studly()),
+                '        }',
+                '',
+                '        return $value;',
+                '    }',
+            ];
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function decimalHelpers(): array
+    {
+        $blocks = [];
+
+        foreach ($this->fields as $field) {
+            if ($field->type !== 'decimal') {
+                continue;
+            }
+
+            if ($field->isNullable()) {
+                $blocks['nullable'] = [
+                    '    private static function decimalOrNull(mixed $value): ?string',
+                    '    {',
+                    '        return is_scalar($value) ? (string) $value : null;',
+                    '    }',
+                ];
+
+                continue;
+            }
+
+            $blocks['required'] = [
+                '    private static function decimalOrEmpty(mixed $value): string',
+                '    {',
+                "        return is_scalar(\$value) ? (string) \$value : '';",
+                '    }',
+            ];
+        }
+
+        return array_values($blocks);
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function dateHelpers(): array
+    {
+        $blocks = [];
+
+        foreach ($this->fields as $field) {
+            if (! $field->needsDateImport()) {
+                continue;
+            }
+
+            $blocks[] = $field->isNullable()
+                ? [
+                    sprintf('    private static function %sOrNull(mixed $value): ?DateTimeImmutable', $field->property()),
+                    '    {',
+                    '        return is_string($value) ? new DateTimeImmutable($value) : null;',
+                    '    }',
+                ]
+                : [
+                    sprintf('    private static function %sOrNow(mixed $value): DateTimeImmutable', $field->property()),
+                    '    {',
+                    "        return new DateTimeImmutable(is_string(\$value) ? \$value : 'now');",
+                    '    }',
+                ];
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * @param  array<int, DomainField>  $validatable
+     */
+    private function inputDtoValidators(string $entity, array $validatable): string
+    {
+        $methods = [];
+
+        foreach ($validatable as $field) {
+            $body = array_map(
+                fn (string $line) => $line === '' ? '' : '        '.$line,
+                $field->validatorBody("Invalid{$entity}{$field->studly()}"),
+            );
+
+            $methods[] = implode("\n", [
+                sprintf('    private function validate%s(): void', $field->studly()),
+                '    {',
+                ...$body,
+                '    }',
+            ]);
+        }
+
+        return $methods === [] ? '' : "\n".implode("\n\n", $methods);
+    }
+
     private function guardField(): ?DomainField
     {
         foreach ($this->fields as $field) {
@@ -501,10 +747,6 @@ final class MakeDomainCommand extends Command
     {
         $files = self::DOMAIN_FILES;
 
-        if ($this->guardField() !== null) {
-            $files['exception.invalid-field.stub'] = 'Exceptions/Invalid{{ entity }}'.$replacements['{{ guardField }}'].'.php';
-        }
-
         if ($this->uniqueField() !== null) {
             $files['exception.field-taken.stub'] = 'Exceptions/{{ entity }}'.$replacements['{{ uniqueField }}'].'AlreadyTaken.php';
         }
@@ -524,7 +766,6 @@ final class MakeDomainCommand extends Command
         foreach (self::SHARED_FILES as $stub => $target) {
             $path = app_path($target);
 
-            // The shared kernel is identical for every domain: write it once.
             if ($files->exists($path)) {
                 continue;
             }
@@ -550,6 +791,57 @@ final class MakeDomainCommand extends Command
     /**
      * @param  array<string, string>  $replacements
      */
+    private function writeFieldExceptions(Filesystem $files, string $domainPath, array $replacements): void
+    {
+        $entity = $replacements['{{ entity }}'];
+
+        foreach ($this->textualFields() as $field) {
+            $path = sprintf('%s/Exceptions/Invalid%s%s.php', $domainPath, $entity, $field->studly());
+
+            $this->putFile($files, $path, $this->render($files, 'domain/exception.invalid-field.stub', [
+                ...$replacements,
+                '{{ invalidField }}' => $field->studly(),
+                '{{ invalidFieldErrorCode }}' => sprintf(
+                    'invalid_%s_%s',
+                    $replacements['{{ entitySnake }}'],
+                    $field->name,
+                ),
+                '{{ invalidFieldConstructors }}' => $this->invalidFieldConstructors(
+                    $field,
+                    $replacements['{{ variable }}'],
+                ),
+            ]));
+        }
+    }
+
+    private function invalidFieldConstructors(DomainField $field, string $variable): string
+    {
+        $label = str_replace('_', ' ', $field->name);
+        $methods = [];
+
+        foreach ($field->constructorFailures() as $failure) {
+            $message = match (true) {
+                $failure === 'empty' => "A {$variable} {$label} cannot be empty.",
+                $failure === 'malformed' && $field->type === 'email' => "The {$label} offered is not a valid email address.",
+                $failure === 'malformed' && $field->type === 'uuid' => "The {$label} offered is not a valid identifier.",
+                $failure === 'malformed' => "The {$label} offered is not readable text.",
+                default => "The {$label} offered is longer than a {$variable} {$label} may be.",
+            };
+
+            $methods[] = implode("\n", [
+                sprintf('    public static function %s(): self', $failure),
+                '    {',
+                sprintf("        return new self('%s');", $message),
+                '    }',
+            ]);
+        }
+
+        return implode("\n\n", $methods)."\n";
+    }
+
+    /**
+     * @param  array<string, string>  $replacements
+     */
     private function writeMigration(Filesystem $files, string $table, array $replacements): void
     {
         $existing = $files->glob(database_path("migrations/*_create_{$table}_table.php"));
@@ -561,7 +853,6 @@ final class MakeDomainCommand extends Command
             return;
         }
 
-        // Reuse the existing filename on --force so no duplicate migration appears.
         $path = $existing[0] ?? database_path('migrations/'.date('Y_m_d_His')."_create_{$table}_table.php");
 
         $this->putFile($files, $path, $this->render($files, 'domain/migration.stub', $replacements));
@@ -579,7 +870,6 @@ final class MakeDomainCommand extends Command
             return;
         }
 
-        // Append as the last entry of the returned array.
         $updated = preg_replace('/\n\];/', "\n    {$class},\n];", $contents, 1);
 
         if ($updated === null || $updated === $contents) {
@@ -601,8 +891,6 @@ final class MakeDomainCommand extends Command
         $imports = '';
         $bindings = '';
 
-        // Check each binding separately: a single missing adapter must still
-        // get wired, even when the others are already bound.
         foreach (self::SHARED_BINDINGS as $port => $adapter) {
             if (str_contains($contents, "bind({$port}::class")) {
                 continue;
@@ -654,7 +942,6 @@ final class MakeDomainCommand extends Command
         }
     }
 
-    /** A tenant-scoped table references businesses.uuid, so that migration must run first. */
     private function warnAboutMigrationOrder(Filesystem $files, string $table): void
     {
         if (! $this->tenantScoped) {
@@ -681,7 +968,6 @@ final class MakeDomainCommand extends Command
         }
     }
 
-    /** Import order depends on the entity name, so no fixed stub ordering is correct for every domain. */
     private function format(): void
     {
         $pint = base_path('vendor/bin/pint');

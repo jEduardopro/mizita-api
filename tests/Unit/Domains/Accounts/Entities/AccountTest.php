@@ -52,9 +52,6 @@ describe('registerWithVerifiedEmail', function () {
     ]);
 
     it('rejects a blank name', function (string $name) {
-        // An account with no name has nothing to greet a person by, and the
-        // provider always sends one - a blank one means something went wrong
-        // upstream, not that this person is nameless.
         expect(fn () => Account::registerWithVerifiedEmail('account-uuid', $name, 'ada@example.com', new DateTimeImmutable))
             ->toThrow(InvalidAccountName::class, 'An account name cannot be empty.');
     })->with([
@@ -182,8 +179,6 @@ describe('verifyEmail', function () {
 });
 
 it('never exposes a password hash', function () {
-    // Credentials are an authentication concern. Keeping them off the entity is
-    // what stops a write path through this domain overwriting one by accident.
     $properties = array_map(
         static fn (ReflectionProperty $property): string => $property->getName(),
         (new ReflectionClass(Account::class))->getProperties(),

@@ -8,20 +8,11 @@ use App\Domains\Accounts\Entities\SocialIdentity;
 use App\Domains\Accounts\Infrastructure\Eloquent\Models\SocialIdentityModel;
 use DateTimeImmutable;
 
-/**
- * Translates between the persistence model and the domain entity. Only the
- * repository adapter uses it.
- *
- * account_id is the users int primary key in the database and the account uuid
- * on the entity, so this mapper takes the uuid as a parameter on the way in
- * and the resolved int on the way out: neither number is invented here.
- */
 final class SocialIdentityMapper
 {
     public function toEntity(SocialIdentityModel $model, string $accountId): SocialIdentity
     {
         return SocialIdentity::restore(
-            // The uuid is the domain identity; the int primary key stays here.
             id: $model->uuid,
             accountId: $accountId,
             provider: $model->provider,

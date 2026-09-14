@@ -9,18 +9,14 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
-/**
- * Reads the domain tree off disk so the architecture rules apply to whatever is
- * in the repository, not to a list someone has to remember to update.
- *
- * A class rather than test-file functions because arch expectations are
- * evaluated while the files are being loaded, and Pest loads them in
- * alphabetical order: a helper defined in one test file is not yet available
- * to another.
- */
 final class DomainLayers
 {
-    /** The layers that make up the domain layer proper - plain PHP, no framework. */
+    /** @var list<class-string>|null */
+    private static ?array $applicationClasses = null;
+
+    /** @var list<string>|null */
+    private static ?array $applicationFiles = null;
+
     public const DOMAIN = ['Contracts', 'Entities', 'ValueObjects', 'Services', 'Events', 'Exceptions'];
 
     /**
@@ -68,10 +64,6 @@ final class DomainLayers
     }
 
     /**
-     * Resolves the given sub-namespaces for every domain, keeping only those
-     * that exist: an arch expectation over an empty namespace fails, and "this
-     * domain has no ValueObjects yet" is not a failure.
-     *
      * @return list<string>
      */
     public static function namespacesFor(string ...$layers): array
@@ -90,8 +82,6 @@ final class DomainLayers
     }
 
     /**
-     * The non-infrastructure namespaces belonging to one domain.
-     *
      * @return list<string>
      */
     public static function insideOf(string $domain): array
@@ -105,18 +95,14 @@ final class DomainLayers
     }
 
     /**
-     * Every class the project defines under app/, as fully qualified names
-     * derived from the PSR-4 root. Reading the filesystem rather than the
-     * autoloader's classmap keeps this honest about what is in the repository.
-     *
-     * Files that declare no class of their own name are skipped without being
-     * loaded: a domain's routes.php sits inside the PSR-4 root, and autoloading
-     * it would execute Route:: calls against a container that is not there.
-     *
      * @return list<class-string>
      */
     public static function applicationClasses(): array
     {
+        if (self::$applicationClasses !== null) {
+            return self::$applicationClasses;
+        }
+
         $root = dirname(__DIR__, 3).'/app';
         $classes = [];
 
@@ -140,21 +126,18 @@ final class DomainLayers
 
         sort($classes);
 
-        return $classes;
+        return self::$applicationClasses = $classes;
     }
 
     /**
-     * Every PHP file the project defines under app/, as a path relative to it.
-     *
-     * Paths rather than class names, and every file rather than only those that
-     * declare a class: a rule about what may appear in the source - an import,
-     * a vendor namespace - has to be able to see a file the autoloader never
-     * loads, and a relative path is what makes a failure readable.
-     *
      * @return list<string>
      */
     public static function applicationFiles(): array
     {
+        if (self::$applicationFiles !== null) {
+            return self::$applicationFiles;
+        }
+
         $root = dirname(__DIR__, 3).'/app';
         $paths = [];
 
@@ -171,7 +154,7 @@ final class DomainLayers
 
         sort($paths);
 
-        return $paths;
+        return self::$applicationFiles = $paths;
     }
 
     private static function declaresClass(SplFileInfo $file): bool

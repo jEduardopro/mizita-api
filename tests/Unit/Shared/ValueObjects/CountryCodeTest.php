@@ -4,16 +4,7 @@ declare(strict_types=1);
 
 use App\Shared\ValueObjects\CountryCode;
 
-/*
-| dialCode() is the only place +52 and +1 are written down in the codebase.
-| That claim is worth something only while a test pins the values, so this file
-| is what turns it from a comment into a fact: changing a dial code by accident
-| fails here instead of silently re-routing every number of that country.
-*/
-
 it('backs each country with the ISO 3166-1 alpha-2 code that is stored', function (CountryCode $country, string $stored) {
-    // The backing value is a persisted contract: changing it orphans every row
-    // already written with the old one.
     expect($country->value)->toBe($stored);
 })->with([
     'Mexico' => [CountryCode::Mx, 'MX'],
@@ -28,8 +19,6 @@ it('knows the E.164 calling code of every country it supports', function (Countr
 ]);
 
 it('exposes exactly the countries the platform operates in', function () {
-    // Adding a country is a deliberate act: it needs a dial code here and a
-    // line in whatever validates the choice, so it should not pass unnoticed.
     expect(array_column(CountryCode::cases(), 'value'))->toBe(['MX', 'US']);
 });
 

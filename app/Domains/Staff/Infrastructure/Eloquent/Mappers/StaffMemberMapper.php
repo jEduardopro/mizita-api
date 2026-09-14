@@ -9,11 +9,6 @@ use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use DateTimeImmutable;
 
-/**
- * Three of the entity's values are not on the model's row: business_id and
- * account_id are int primary keys in the database and uuids on the entity, and
- * the role lives in Spatie's tables. All three are passed in resolved.
- */
 final class StaffMemberMapper
 {
     public function toEntity(
@@ -32,9 +27,6 @@ final class StaffMemberMapper
     }
 
     /**
-     * The membership fact alone: the role is written separately, by
-     * StaffRoleAssignments.
-     *
      * @return array<string, mixed>
      */
     public function toAttributes(StaffMember $member, int $businessKey, int $accountKey): array

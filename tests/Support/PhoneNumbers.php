@@ -8,20 +8,6 @@ use App\Shared\ValueObjects\CountryCode;
 use App\Shared\ValueObjects\PhoneNumber;
 use App\Shared\ValueObjects\PhoneNumberType;
 
-/**
- * The fixed phone numbers the unit suite uses, in one place.
- *
- * A PhoneNumber now carries seven facts, and six of them are metadata a parser
- * established rather than anything a test cares about. Spreading those literals
- * across every file that needs "a valid number" would mean seven lines of noise
- * per fixture and seven places to edit when one of them changes.
- *
- * Every default below is what libphonenumber actually returns for the number in
- * question, verified against the library, so a fixture is never a number the
- * platform would have rejected at the edge. Pass an argument only when the fact
- * itself is what a test is about - the defaults stop being true of the number
- * once its digits change.
- */
 final class PhoneNumbers
 {
     public const MX_NATIONAL_NUMBER = '5512345678';
@@ -65,10 +51,6 @@ final class PhoneNumbers
     }
 
     /**
-     * The E.164 form is composed rather than passed, because PhoneNumber::of()
-     * rejects a pair that disagrees - and a fixture whose parts contradict each
-     * other is a test about that invariant, which writes its own literals.
-     *
      * @param  list<string>  $timezones
      */
     public static function in(

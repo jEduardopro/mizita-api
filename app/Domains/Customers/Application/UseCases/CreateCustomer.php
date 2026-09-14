@@ -26,6 +26,8 @@ final class CreateCustomer
 
     public function handle(CreateCustomerInput $input): CustomerData
     {
+        $input->validate();
+
         $customer = Customer::create(
             id: $this->ids->next(),
             businessId: $this->business->currentBusinessId(),

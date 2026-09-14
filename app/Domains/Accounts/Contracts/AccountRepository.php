@@ -15,12 +15,10 @@ interface AccountRepository
      */
     public function findById(string $id): Account;
 
-    /** Null means no account uses this address, which callers branch on. Matching is case insensitive. */
     public function findByEmail(string $email): ?Account;
 
     /**
-     * @throws AccountAlreadyRegistered when a concurrent writer claimed the
-     *                                  address between the caller's lookup and this write
+     * @throws AccountAlreadyRegistered
      */
     public function save(Account $account): void;
 }

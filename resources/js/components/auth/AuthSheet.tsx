@@ -11,7 +11,6 @@ type Props = {
     legal: ReactNode;
 };
 
-/** A sibling of `AuthCard`, not a variant: the sheet is the page's own chrome. */
 export function AuthSheet({ heading, description, children, footer, legal }: Props) {
     const { name } = usePage().props;
 
@@ -22,8 +21,6 @@ export function AuthSheet({ heading, description, children, footer, legal }: Pro
                 <SupportPhoneLink />
             </div>
 
-            {/* `justify-center` absorbs the height change when the panel swaps,
-                so the brand row and the legal line stay put. */}
             <div className="flex flex-1 flex-col justify-center py-10">
                 <h2 className="font-heading text-2xl font-medium tracking-[-0.02em]">{heading}</h2>
 

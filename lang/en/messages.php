@@ -72,6 +72,7 @@ return [
         'invalid_timezone' => 'That time zone is not valid.',
         'invalid_business_name' => 'That business name is not valid.',
         'invalid_business_slug' => 'That web address is not valid.',
+        'invalid_business_owner' => 'We could not identify the account registering this business.',
 
         // One sentence for every way a phone number is turned down - a country
         // we do not operate in, or digits that are not a number within one we
@@ -86,6 +87,8 @@ return [
         'customer_name_taken' => 'There is already a customer with that name.',
         'customer_already_inactive' => 'That customer is already inactive.',
         'invalid_customer_name' => 'That customer name is not valid.',
+        'invalid_customer_email' => 'That customer email address is not valid.',
+        'invalid_customer_phone' => 'That customer phone number is not valid.',
 
     ],
 

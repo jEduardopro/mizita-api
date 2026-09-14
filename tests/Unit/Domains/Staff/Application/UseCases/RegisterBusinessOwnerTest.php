@@ -19,14 +19,6 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\FakeClock;
 use Tests\Support\FixedIdGenerator;
 
-/*
-| Built from mocks alone: no container, no migrations, no database.
-|
-| Four absences are the design of this use case - no business context, no
-| transaction manager, no dispatcher, and no HTTP slice anywhere in the domain -
-| and the last describe() in this file is what holds the first three in place.
-*/
-
 const REGISTERED_MEMBER_ID = '01930000-0000-7000-8000-0000000000c1';
 const OWNED_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b1';
 const OWNER_ACCOUNT = '01930000-0000-7000-8000-0000000000a1';
@@ -71,8 +63,6 @@ describe('registering the owner', function () {
     });
 
     it('registers at the business the input names', function (string $businessId) {
-        // The business arrives as an argument and nowhere else: this row is
-        // what will later resolve the tenant, so there is no context to read.
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
 
         $saved = null;
@@ -101,8 +91,6 @@ describe('registering the owner', function () {
 
 describe('the event it earned', function () {
     it('hands the event back instead of dispatching one', function () {
-        // It runs inside the caller's transaction, so announcing from in here
-        // would deliver an event for a row a later rollback takes away.
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
         $this->staffMembers->shouldReceive('save')->once();
 
@@ -112,14 +100,10 @@ describe('the event it earned', function () {
             ->and($registration->events[0])->toBeInstanceOf(StaffMemberRegistered::class)
             ->and($registration->events[0]->id)->toBe(REGISTERED_MEMBER_ID)
             ->and($registration->events[0]->businessId)->toBe(OWNED_BUSINESS_ID)
-            // The role travels with the event so a listener that treats an
-            // owner differently does not have to read the row back.
             ->and($registration->events[0]->role)->toBe(StaffRole::Owner);
     });
 
     it('keeps no state between calls', function () {
-        // Returning the events rather than accumulating them into a property is
-        // what stops one registration's list leaking into the next.
         $useCase = new RegisterBusinessOwner(
             $this->staffMembers,
             new FixedIdGenerator(REGISTERED_MEMBER_ID, '01930000-0000-7000-8000-0000000000c2'),
@@ -140,8 +124,6 @@ describe('the event it earned', function () {
 
 describe('an account that already owns a business', function () {
     it('refuses, naming the account', function () {
-        // The courtesy check: it turns the ordinary case - somebody signing up
-        // twice - into a clean refusal rather than a constraint violation.
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->once()
             ->with(OWNER_ACCOUNT)->andReturn(true);
 
@@ -152,8 +134,6 @@ describe('an account that already owns a business', function () {
     });
 
     it('asks the question platform-wide, not at one business', function () {
-        // One owned business per account is a platform rule, so the guard is
-        // deliberately unscoped: the business being registered is not passed.
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->once()
             ->with(OWNER_ACCOUNT)->andReturn(true);
 
@@ -161,9 +141,6 @@ describe('an account that already owns a business', function () {
     });
 
     it('lets the racing conflict out untouched when the index is what refuses', function () {
-        // Two concurrent signups both pass the guard; the partial unique index
-        // rejects the loser and the repository reports the same failure. No
-        // recovery here - the caller's transaction is what rolls back.
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
 
         $conflict = AccountAlreadyOwnsBusiness::forAccount(OWNER_ACCOUNT);
@@ -182,10 +159,6 @@ describe('an account that already owns a business', function () {
 
 describe('what it deliberately does not depend on', function () {
     it('takes no business context, no transaction manager and no dispatcher', function () {
-        // The single named exception to the rule that a tenant-scoped use case
-        // reads its business from the context, held in place by a test rather
-        // than by a comment: the row it writes is what resolves the tenant, so
-        // at this point there is no tenant to read.
         $ports = array_map(
             static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
             (new ReflectionClass(RegisterBusinessOwner::class))->getConstructor()->getParameters(),

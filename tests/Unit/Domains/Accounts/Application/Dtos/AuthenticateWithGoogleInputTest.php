@@ -6,13 +6,6 @@ use App\Domains\Accounts\Application\Dtos\AuthenticateWithGoogleInput;
 use App\Domains\Accounts\Exceptions\InvalidGoogleIdToken;
 use App\Domains\Accounts\ValueObjects\GoogleIdentity;
 
-/*
-| This DTO has a file of its own because it carries a rule rather than just
-| fields: its constructor is sealed so a GoogleIdentity is the only way in.
-| That is what makes "the subject is present" a structural guarantee for every
-| caller of the use case instead of a check somebody has to remember.
-*/
-
 it('maps every field across from the verified identity', function () {
     $input = AuthenticateWithGoogleInput::fromGoogleIdentity(new GoogleIdentity(
         sub: '104729183746501928374',
@@ -46,9 +39,6 @@ it('carries an unverified flag through untouched, for the guard to act on', func
 });
 
 it('cannot be built without an identity', function () {
-    // The seal is the point: a second constructor would be a second set of
-    // checks to keep in sync, and the one that got forgotten would be the one
-    // that let an empty subject through.
     expect((new ReflectionClass(AuthenticateWithGoogleInput::class))->getConstructor()?->isPrivate())
         ->toBeTrue();
 });

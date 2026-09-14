@@ -5,7 +5,6 @@ import { FormField } from '@/components/form/FormField';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
 
-/** Identity carried by the reset link, not data: the token is a credential. */
 type Props = {
     token: string;
     email: string;

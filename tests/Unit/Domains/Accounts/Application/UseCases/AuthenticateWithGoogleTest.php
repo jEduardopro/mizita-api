@@ -23,18 +23,6 @@ use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
 
-/*
-| Built from mocks alone: no container, no migrations, no database. Accounts is
-| a root domain, so there is deliberately no BusinessContext here - an account
-| exists before, and independently of, any business.
-*/
-
-/**
- * Returns the throwable a callable raised, so a test can assert on the very
- * instance rather than on its class. expect()->toThrow() checks the type and
- * the message, which is one assertion short when the contract is "this exact
- * exception comes back out, untouched".
- */
 function mizitaCatch(callable $work): ?Throwable
 {
     try {
@@ -61,8 +49,6 @@ beforeEach(function () {
         $this->events,
     );
 
-    // Records whether a write happened inside the transaction, for the tests
-    // that care; harmless for the ones that do not.
     $this->insideTransaction = [];
     $this->recordTransactionState = function (): bool {
         $this->insideTransaction[] = $this->transactions->isRunning();
@@ -103,8 +89,6 @@ describe('a returning person whose Google account is already linked', function (
     });
 
     it('finds them by subject even when the Google email no longer matches the stored one', function () {
-        // The subject is permanent; an address can be reassigned. Matching on
-        // email here would strand the person with a second account.
         $this->socialIdentities->shouldReceive('findByProviderUserId')->once()
             ->with(SocialProvider::Google, GoogleFixtures::SUB)
             ->andReturn(GoogleFixtures::storedIdentity());
@@ -124,8 +108,6 @@ describe('a returning person whose Google account is already linked', function (
     });
 
     it('signs them in even when Google reports the email as unverified', function () {
-        // The guard protects account creation and claiming. Someone already
-        // linked by subject has nothing left to take over.
         $this->socialIdentities->shouldReceive('findByProviderUserId')->andReturn(GoogleFixtures::storedIdentity());
         $this->accounts->shouldReceive('findById')->once()->andReturn(GoogleFixtures::storedAccount());
 
@@ -155,9 +137,6 @@ describe('a returning person whose Google account is already linked', function (
 
 describe('the account takeover guard', function () {
     beforeEach(function () {
-        // Exactly once, in every test below: the guard throws on the first
-        // lookup and never reaches the concurrent-registration recovery, which
-        // would otherwise be a second way past it.
         $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
     });
 
@@ -167,8 +146,6 @@ describe('the account takeover guard', function () {
     });
 
     it('writes nothing when it refuses', function () {
-        // Stated as expectations, not as an absence of them: an address nobody
-        // has proven control of must never reach a save.
         $this->accounts->shouldNotReceive('save');
         $this->socialIdentities->shouldNotReceive('save');
 
@@ -262,8 +239,6 @@ describe('an existing account claimed by Google for the first time', function ()
     });
 
     it('matches the address case insensitively', function (string $googleEmail) {
-        // Google spells the address however the person typed it; one address is
-        // one account, so the lookup is always normalized first.
         $this->accounts->shouldReceive('findByEmail')->once()->with('ada@example.com')
             ->andReturn(GoogleFixtures::storedAccount());
         $this->accounts->shouldReceive('save')->once();
@@ -293,8 +268,6 @@ describe('an existing account claimed by Google for the first time', function ()
     });
 
     it('keeps the original verification timestamp when the email was already verified', function () {
-        // When it happened is a fact, not a flag: a second proof does not
-        // rewrite the first one.
         $verifiedAt = new DateTimeImmutable('2025-05-01T08:30:00+00:00');
         $this->accounts->shouldReceive('findByEmail')->andReturn(GoogleFixtures::storedAccount(emailVerifiedAt: $verifiedAt));
 
@@ -360,8 +333,6 @@ describe('a first-time visitor', function () {
     });
 
     it('announces the registration before the link', function () {
-        // A listener on SocialIdentityLinked may reasonably expect the account
-        // it points at to have been announced already.
         $this->accounts->shouldReceive('save')->once();
         $this->socialIdentities->shouldReceive('save')->once();
 
@@ -404,9 +375,6 @@ describe('a first-time visitor', function () {
     });
 
     it('refuses to register a blank name, writing and announcing nothing', function () {
-        // GoogleIdentity proves the subject and the email are there, but says
-        // nothing about the name, so this invariant is the entity's and it has
-        // to hold from here too.
         $this->accounts->shouldNotReceive('save');
         $this->socialIdentities->shouldNotReceive('save');
         $this->events->shouldNotReceive('dispatch');
@@ -438,15 +406,6 @@ describe('a first-time visitor', function () {
 });
 
 describe('a race with a concurrent sign in', function () {
-    /*
-    | Two requests for the same brand-new Google user both read an empty table
-    | and both try to write; the unique index lets exactly one through. Both
-    | wanted the same outcome - this person is signed in - so the loser adopts
-    | the winner's rows. Nothing here needs a database: the repository doubles
-    | throw the same domain exceptions the Eloquent adapters translate the
-    | constraint violation into.
-    */
-
     it('adopts the winner account when the address was registered first', function () {
         $winner = GoogleFixtures::storedAccount(emailVerifiedAt: GoogleFixtures::now());
 
@@ -472,8 +431,6 @@ describe('a race with a concurrent sign in', function () {
     });
 
     it('recovers outside the transaction, which Postgres has already aborted', function () {
-        // The first failed statement poisons the transaction, so the re-read
-        // cannot run inside it. That is a correctness rule, not a style choice.
         $lookupsInsideTransaction = [];
         $recordLookup = function () use (&$lookupsInsideTransaction): void {
             $lookupsInsideTransaction[] = $this->transactions->isRunning();
@@ -505,8 +462,6 @@ describe('a race with a concurrent sign in', function () {
     });
 
     it('adopts the account behind the address when the link was written first', function () {
-        // The winner claimed an account that already existed, so the loser's
-        // re-read finds no link yet but does find the account.
         $existing = GoogleFixtures::storedAccount(emailVerifiedAt: GoogleFixtures::now());
 
         $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()->andReturn(null, null);
@@ -525,9 +480,6 @@ describe('a race with a concurrent sign in', function () {
     });
 
     it('announces nothing it did not commit', function () {
-        // The winner already announced the registration and the link. The
-        // loser's own dispatches went down with its transaction, and the rows
-        // it adopts are not news.
         $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()
             ->andReturn(null, GoogleFixtures::storedIdentity());
         $this->accounts->shouldReceive('findByEmail')->once()->andReturn(null);
@@ -543,9 +495,6 @@ describe('a race with a concurrent sign in', function () {
     });
 
     it('rethrows the address conflict untouched when the rows are still not there', function () {
-        // Not a race then: the unique index fired for some other reason, and a
-        // retry loop would hide it. Exactly one re-read of each lookup, and the
-        // very same exception instance back out - identity, not just type.
         $conflict = AccountAlreadyRegistered::withEmail('ada@example.com');
 
         $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()->andReturn(null, null);
@@ -566,18 +515,12 @@ describe('a race with a concurrent sign in', function () {
         $this->accounts->shouldReceive('save')->once();
         $this->socialIdentities->shouldReceive('save')->once()->andThrow($conflict);
 
-        // The account was written and then unwritten. Nothing committed, so
-        // nothing may be announced.
         $this->events->shouldNotReceive('dispatch');
 
         expect(mizitaCatch(fn () => $this->useCase->handle(GoogleFixtures::input())))->toBe($conflict);
     });
 
     it('announces no registration for work that was rolled back', function () {
-        // The register path writes the account, then loses the race on the
-        // link. Announcing AccountRegistered for a row the rollback took away
-        // would send a welcome email nobody can act on, and a listener cannot
-        // un-send one - which is why the events wait for the commit.
         $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()
             ->andReturn(null, GoogleFixtures::storedIdentity());
         $this->accounts->shouldReceive('findByEmail')->once()->andReturn(null);
@@ -590,9 +533,6 @@ describe('a race with a concurrent sign in', function () {
 
         $data = $this->useCase->handle(GoogleFixtures::input());
 
-        // Asserted so the test cannot pass for the wrong reason: only the adopt
-        // path produces this, so the conflict did escape the transaction and
-        // was recovered from, rather than being quietly swallowed.
         expect($data->id)->toBe(GoogleFixtures::EXISTING_ACCOUNT_ID)
             ->and($data->isNewAccount)->toBeFalse();
     });

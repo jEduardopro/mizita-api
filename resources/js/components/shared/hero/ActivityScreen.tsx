@@ -4,10 +4,6 @@ import { useTranslation } from 'react-i18next';
 export const ACTIVITY_SCREEN_WIDTH = 176;
 export const ACTIVITY_SCREEN_HEIGHT = 308;
 
-/**
- * The keys are written out one at a time rather than built from an id, so a
- * renamed key stops compiling here instead of rendering an empty row.
- */
 const events = [
     {
         id: 'booked',

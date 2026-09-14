@@ -15,6 +15,16 @@ final class InvalidBusinessName extends DomainException implements DomainFailure
         return new self('A business name cannot be empty.');
     }
 
+    public static function tooShort(string $name): self
+    {
+        return new self("[{$name}] is too short for a business name.");
+    }
+
+    public static function tooLong(string $name): self
+    {
+        return new self("[{$name}] is too long for a business name.");
+    }
+
     public function errorCode(): string
     {
         return 'invalid_business_name';

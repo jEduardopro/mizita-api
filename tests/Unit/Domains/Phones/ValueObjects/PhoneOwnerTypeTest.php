@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 
-/*
-| These backing values are what phones.phoneable_type holds, and the alias every
-| owning domain registers with Relation::enforceMorphMap. Changing one orphans
-| every row already written with the old alias and silently breaks the morph map
-| of a domain this one does not even import - which is exactly why they are
-| pinned here rather than trusted to stay put.
-*/
-
 it('backs each owner with the morph alias the database stores', function (PhoneOwnerType $ownerType, string $alias) {
     expect($ownerType->value)->toBe($alias);
 })->with([

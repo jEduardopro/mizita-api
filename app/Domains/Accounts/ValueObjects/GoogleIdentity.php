@@ -7,12 +7,6 @@ namespace App\Domains\Accounts\ValueObjects;
 use App\Domains\Accounts\Exceptions\InvalidAccountEmail;
 use App\Domains\Accounts\Exceptions\InvalidGoogleIdToken;
 
-/**
- * A person as Google describes them, once their credential has been verified.
- *
- * Immutable and self-validating, so any code holding one knows the subject is
- * present and the email is well formed - whichever entry point produced it.
- */
 final readonly class GoogleIdentity
 {
     public string $sub;
@@ -28,8 +22,6 @@ final readonly class GoogleIdentity
     ) {
         $sub = trim($sub);
 
-        // An empty subject would collide with every other empty subject already
-        // stored, handing one caller somebody else's account.
         if ($sub === '') {
             throw InvalidGoogleIdToken::missingSubject();
         }

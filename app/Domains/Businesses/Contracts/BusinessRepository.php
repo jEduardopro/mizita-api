@@ -16,24 +16,16 @@ interface BusinessRepository
      */
     public function findById(string $id): Business;
 
-    /**
-     * Whether any live business trades under this name, compared case
-     * insensitively: "Barbería López" and "barbería lópez" are one name to a
-     * customer, so they have to be one name here too.
-     */
     public function existsByName(string $name): bool;
 
     /**
-     * The base itself and its numbered variants, in one read, so the allocator
-     * can pick a free suffix without a query per attempt.
-     *
      * @return list<string>
      */
     public function slugsMatching(string $base): array;
 
     /**
-     * @throws BusinessNameAlreadyTaken when another business won the name
-     * @throws BusinessSlugAlreadyTaken when another business won the address
+     * @throws BusinessNameAlreadyTaken
+     * @throws BusinessSlugAlreadyTaken
      */
     public function save(Business $business): void;
 

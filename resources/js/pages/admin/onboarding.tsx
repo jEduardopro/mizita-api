@@ -3,10 +3,6 @@ import { BusinessOnboardingForm } from '@/domains/businesses/components/Business
 import { useIndustryOptions } from '@/domains/industries/queries';
 import { OnboardingLayout } from '@/layouts/OnboardingLayout';
 
-/**
- * The industry catalogue is read here and handed to the form: Businesses and
- * Industries never import each other, and a page is where they meet.
- */
 export default function Onboarding() {
     const { t } = useTranslation('admin');
     const industries = useIndustryOptions();

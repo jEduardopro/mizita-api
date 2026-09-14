@@ -7,10 +7,6 @@ namespace App\Domains\Businesses\Application\Dtos;
 use App\Domains\Businesses\Entities\Business;
 use DateTimeImmutable;
 
-/**
- * Output boundary. Entities never leave the application layer, so use cases
- * return this instead.
- */
 final readonly class BusinessData
 {
     public function __construct(

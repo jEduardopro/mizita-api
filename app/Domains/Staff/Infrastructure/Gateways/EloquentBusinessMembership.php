@@ -11,23 +11,10 @@ use App\Models\User;
 use App\Shared\Contracts\BusinessMembership;
 use Illuminate\Database\Query\JoinClause;
 
-/**
- * The platform's tenant resolver, so its one query has to run with nothing
- * resolved yet: no business context and no Spatie team id. That is why the role
- * is reached by joining the assignment tables rather than through Spatie's API,
- * every read of which is scoped to the current team - the team here is precisely
- * what is being looked for.
- */
 final class EloquentBusinessMembership implements BusinessMembership
 {
     /**
-     * Ordered owner first and then by membership age, so a caller taking the
-     * head of the list gets the business they registered. The owner test is a
-     * left join: a membership whose role assignment is missing still resolves
-     * and just sorts last, because failing to resolve a tenant is a worse
-     * outcome than resolving one in an unexpected order.
-     *
-     * @return list<string> business uuids
+     * @return list<string>
      */
     public function businessIdsFor(string $accountId): array
     {

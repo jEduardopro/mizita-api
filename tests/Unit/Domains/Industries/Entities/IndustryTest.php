@@ -7,11 +7,6 @@ use App\Domains\Industries\Exceptions\IndustryAlreadyActive;
 use App\Domains\Industries\Exceptions\IndustryAlreadyInactive;
 use App\Domains\Industries\Exceptions\InvalidIndustryKey;
 
-/*
-| Pure PHP: the entity is built by hand, with a fixed instant passed in. No
-| container, no clock, no database.
-*/
-
 const INDUSTRY_ID = '01930000-0000-7000-8000-0000000000a1';
 
 function industryCreatedAt(): DateTimeImmutable
@@ -31,7 +26,6 @@ describe('create', function () {
         expect($industry->id)->toBe(INDUSTRY_ID)
             ->and($industry->key())->toBe('barbershop')
             ->and($industry->position())->toBe(3)
-            // A new row is offered from the start: retiring one is a later act.
             ->and($industry->isActive())->toBeTrue()
             ->and($industry->createdAt)->toEqual(industryCreatedAt());
     });
@@ -52,8 +46,6 @@ describe('create', function () {
     ]);
 
     it('accepts a position of zero and a negative one', function (int $position) {
-        // Position is an ordering hint the seeder owns, not a rule the entity
-        // has an opinion about.
         expect(Industry::create(INDUSTRY_ID, 'barbershop', $position, industryCreatedAt())->position())
             ->toBe($position);
     })->with([
@@ -87,8 +79,6 @@ describe('restore', function () {
     });
 
     it('skips the creation-time rules by design', function () {
-        // restore() rehydrates what is already stored; it is not a second
-        // validation gate, and it does not trim either.
         $industry = Industry::restore(INDUSTRY_ID, '  ', 1, true, industryCreatedAt());
 
         expect($industry->key())->toBe('  ');
@@ -97,8 +87,6 @@ describe('restore', function () {
 
 describe('activate and deactivate', function () {
     it('retires an industry from the catalog without deleting the record', function () {
-        // Business state, not record lifecycle: businesses already pointing at
-        // the row must keep resolving it.
         $industry = Industry::create(INDUSTRY_ID, 'barbershop', 1, industryCreatedAt());
 
         $industry->deactivate();

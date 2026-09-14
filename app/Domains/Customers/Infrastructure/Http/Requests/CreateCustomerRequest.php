@@ -15,7 +15,7 @@ final class CreateCustomerRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['nullable', 'email', 'max:254'],
             'phone' => ['nullable', 'string', 'max:255'],
         ];
     }

@@ -6,15 +6,10 @@ use App\Domains\Businesses\Application\Dtos\CheckBusinessNameAvailabilityInput;
 use App\Domains\Businesses\Application\Dtos\NameAvailability;
 use App\Domains\Businesses\Application\UseCases\CheckBusinessNameAvailability;
 use App\Domains\Businesses\Contracts\BusinessRepository;
+use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\Services\SlugAllocator;
 use App\Domains\Businesses\ValueObjects\NameUnavailabilityReason;
 use Tests\Support\Businesses\OnboardingFixtures;
-
-/*
-| Built from mocks alone. The form asks this on every pause in typing, so the
-| contract is that it answers - it never throws, whatever it is handed, and the
-| last describe() in this file is the one that holds that down.
-*/
 
 beforeEach(function () {
     $this->businesses = Mockery::mock(BusinessRepository::class);
@@ -27,8 +22,6 @@ beforeEach(function () {
 
 describe('a name that is free', function () {
     it('says yes and shows the address the name would get', function () {
-        // The slug is part of the answer because somebody choosing a name
-        // deserves to see the address it gives them before they commit.
         $this->businesses->shouldReceive('existsByName')->once()
             ->with(OnboardingFixtures::NAME)->andReturn(false);
         $this->businesses->shouldReceive('slugsMatching')->once()
@@ -43,8 +36,6 @@ describe('a name that is free', function () {
     });
 
     it('shows the numbered address when the base one is spoken for', function () {
-        // The name is free but the address is not, which happens whenever a
-        // name folds onto an existing slug.
         $this->businesses->shouldReceive('existsByName')->andReturn(false);
         $this->businesses->shouldReceive('slugsMatching')->once()
             ->with(OnboardingFixtures::SLUG)->andReturn([OnboardingFixtures::SLUG]);
@@ -74,7 +65,6 @@ describe('a name that is taken', function () {
         expect($answer->available)->toBeFalse()
             ->and($answer->reason)->toBe(NameUnavailabilityReason::Taken)
             ->and($answer->reason->value)->toBe('taken')
-            // No address is offered for a name nobody can use.
             ->and($answer->slug)->toBeNull();
     });
 
@@ -88,8 +78,6 @@ describe('a name that is taken', function () {
 
 describe('a name that produces no address at all', function () {
     it('says no, and says that writing it in letters and digits is the fix', function (string $name) {
-        // Different advice from "taken": one says pick another name, the other
-        // says write this one differently.
         $this->businesses->shouldNotReceive('existsByName');
         $this->businesses->shouldNotReceive('slugsMatching');
 
@@ -100,39 +88,68 @@ describe('a name that produces no address at all', function () {
             ->and($answer->reason->value)->toBe('not_sluggable')
             ->and($answer->slug)->toBeNull();
     })->with([
-        'empty' => '',
-        'whitespace' => '   ',
         'punctuation only' => '!!! ???',
         'a script the alphabet does not cover' => '北京 沙龙',
-        'emoji' => '💇',
+        'emoji' => '💇💇',
         'a reserved word' => 'Admin',
         'a reserved word padded' => '  login  ',
     ]);
 });
 
-describe('the contract that it always answers', function () {
-    it('never throws, whatever it is handed', function (string $name) {
-        // A refusal the caller asked for is not a failure. The whole reason
-        // Slug has a nullable twin is this method.
+describe('a name the length bounds refuse before an address is even considered', function () {
+    it('refuses it without asking the repository anything', function (string $name) {
+        $this->businesses->shouldNotReceive('existsByName');
+        $this->businesses->shouldNotReceive('slugsMatching');
+
+        expect(fn () => ($this->ask)($name))->toThrow(InvalidBusinessName::class);
+    })->with([
+        'empty' => '',
+        'whitespace' => '   ',
+        'one character' => 'B',
+        'one character padded' => '  B  ',
+        'one emoji' => '💇',
+        'longer than the column allows' => str_repeat('a', 121),
+    ]);
+
+    it('says a blank name is empty rather than short, because the advice differs', function () {
+        $this->businesses->shouldNotReceive('existsByName');
+
+        expect(fn () => ($this->ask)('   '))
+            ->toThrow(InvalidBusinessName::class, 'A business name cannot be empty.');
+    });
+
+    it('names the offending length in the refusal it hands back', function () {
+        $this->businesses->shouldNotReceive('existsByName');
+
+        expect(fn () => ($this->ask)('B'))
+            ->toThrow(InvalidBusinessName::class, '[B] is too short for a business name.');
+    });
+});
+
+describe('the contract that it answers rather than throws, for every name the edge lets through', function () {
+    it('answers any name within the bounds the form request already enforces', function (string $name) {
         $this->businesses->shouldReceive('existsByName')->andReturn(false);
         $this->businesses->shouldReceive('slugsMatching')->andReturn([]);
 
         expect(($this->ask)($name))->toBeInstanceOf(NameAvailability::class);
     })->with([
-        'empty' => '',
-        'one character' => 'B',
         'punctuation' => '@@@',
         'reserved' => 'dashboard',
         'accented' => 'Barbería Ñandú',
+        'the shortest name allowed' => 'Bo',
+        'the longest name allowed' => str_repeat('a', 120),
         'very long' => 'Barbería La Esquina de Don José Luis Martínez en el Centro Histórico de la Ciudad',
         'a LIKE wildcard' => '100% Barbería_Ñandú',
         'another script' => 'Салон Красоты',
     ]);
 
+    it('answers a name with no usable address instead of failing, which is why Slug has a nullable twin', function () {
+        $this->businesses->shouldNotReceive('existsByName');
+
+        expect(($this->ask)('北京 沙龙')->reason)->toBe(NameUnavailabilityReason::NotSluggable);
+    });
+
     it('is advisory: a free answer is not a reservation', function () {
-        // Two people can be told the same free name at the same moment. Only
-        // the partial unique index settles it, and OnboardBusiness checks again
-        // on the way in - which is why nothing here writes.
         $this->businesses->shouldReceive('existsByName')->twice()->andReturn(false);
         $this->businesses->shouldReceive('slugsMatching')->twice()->andReturn([]);
         $this->businesses->shouldNotReceive('save');

@@ -10,13 +10,6 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 use Throwable;
 
-/**
- * Another request linked this provider user first.
- *
- * This is the storage layer's uniqueness rule reaching the domain in domain
- * terms. It says nothing about what to do next: a caller racing itself should
- * adopt the winner's link, not report a conflict.
- */
 final class SocialIdentityAlreadyLinked extends DomainException implements DomainFailure
 {
     public static function forProviderUser(

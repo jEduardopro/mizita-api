@@ -9,10 +9,8 @@ use App\Domains\Staff\StaffServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\FortifyServiceProvider;
 
-// Written and maintained by hand. make:domain appends to this file and its
-// check for an already registered provider misses once Pint has rewritten the
-// entry into a short class name, so a second run adds a duplicate - which
-// registers that domain's route group twice. Every entry below appears once.
+// Maintained by hand: make:domain's "already registered?" check misses once Pint has rewritten
+// an entry into a short class name, and a duplicated provider registers its route group twice.
 return [
     AppServiceProvider::class,
     FortifyServiceProvider::class,

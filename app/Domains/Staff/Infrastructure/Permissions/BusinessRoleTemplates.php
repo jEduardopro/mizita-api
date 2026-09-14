@@ -11,27 +11,8 @@ use Spatie\Permission\Guard;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-/**
- * Gives a business its own copy of every role the catalogue marks as a template,
- * which is what makes a role editable per business.
- *
- * Runs once, when the business is created, and is deliberately not re-applied:
- * re-running the template over a clone would revoke whatever the owner changed.
- */
 final class BusinessRoleTemplates
 {
-    /**
-     * Role::query()->firstOrCreate(), never Role::create(). The static create()
-     * runs findByParam(), which with teams on also matches a row whose team is
-     * null - so it can throw RoleAlreadyExists against a row that is not the one
-     * being created. The query builder skips that lookup entirely, and the
-     * unique on (business_id, name, guard_name) makes the create half safe
-     * against a concurrent signup.
-     *
-     * The owner role is excluded by construction rather than by name: it is
-     * template => false in the catalogue, so no code path here could clone it.
-     * A second owner row would let an account quietly come to own two businesses.
-     */
     public function cloneFor(int $businessKey): void
     {
         $guard = Guard::getDefaultName(User::class);
@@ -68,13 +49,6 @@ final class BusinessRoleTemplates
     }
 
     /**
-     * Query builder rather than givePermissionTo(): that helper resolves names
-     * through the registrar cache, and this runs inside the transaction that
-     * creates the business, where the cache is a liability rather than a saving.
-     *
-     * '*' is not expanded here, and no template uses it. A template that ever
-     * needs it can have it, in the same one place the seeder expands it.
-     *
      * @param  array<string, mixed>  $definition
      */
     private function grant(int $roleId, array $definition, string $guard): void

@@ -20,10 +20,6 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable;
 
     /**
-     * Load-bearing: every writer of this table, Fortify's registration action and
-     * the factory included, must produce a uuid or the unique constraint rejects
-     * the row. The primary key stays an auto-incrementing int.
-     *
      * @return array<int, string>
      */
     public function uniqueIds(): array

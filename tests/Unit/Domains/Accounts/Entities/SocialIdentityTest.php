@@ -38,8 +38,6 @@ describe('link', function () {
     });
 
     it('leaves the subject otherwise untouched, so it still matches what the provider sends', function (string $sub) {
-        // Beyond trimming, a subject is an opaque string: case folding or any
-        // reformatting would stop a returning person being recognised.
         $identity = SocialIdentity::link('identity-uuid', 'account-uuid', SocialProvider::Google, $sub, new DateTimeImmutable);
 
         expect($identity->providerUserId)->toBe($sub);
@@ -51,8 +49,6 @@ describe('link', function () {
     ]);
 
     it('rejects a blank provider subject, which would match every other blank one', function (string $sub) {
-        // The guard lives here and not only where a GoogleIdentity is parsed,
-        // so no caller can route around it by building an entity directly.
         expect(fn () => SocialIdentity::link('identity-uuid', 'account-uuid', SocialProvider::Google, $sub, new DateTimeImmutable))
             ->toThrow(InvalidProviderUserId::class, 'A provider user id cannot be empty.');
     })->with([
@@ -100,8 +96,6 @@ describe('restore', function () {
 });
 
 it('is immutable once created', function () {
-    // Re-pointing a link at another account would hand one person another
-    // person's identity, so every property is readonly.
     $identity = SocialIdentity::link(
         'identity-uuid',
         'account-uuid',

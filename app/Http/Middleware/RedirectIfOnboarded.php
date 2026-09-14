@@ -9,13 +9,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * The mirror of RequireBusinessMembership. Two guards rather than one taking a
- * flag, so each route declares what it requires and neither grows a branch.
- *
- * Like SetBusinessContext, it reaches memberships only through the shared port
- * and must never import App\Domains\Staff\*.
- */
 final class RedirectIfOnboarded
 {
     public function __construct(

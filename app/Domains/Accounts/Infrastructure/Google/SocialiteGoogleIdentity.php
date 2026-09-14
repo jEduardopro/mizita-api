@@ -7,11 +7,6 @@ namespace App\Domains\Accounts\Infrastructure\Google;
 use App\Domains\Accounts\ValueObjects\GoogleIdentity;
 use Laravel\Socialite\AbstractUser as SocialiteUser;
 
-/**
- * One translator serves both entry points: GoogleProvider::mapUserToObject()
- * calls setRaw(), so the raw claims are present whether they came from a
- * verified ID token or from the userinfo endpoint.
- */
 final class SocialiteGoogleIdentity
 {
     private const EMAIL_VERIFIED_CLAIM = 'email_verified';
@@ -27,11 +22,6 @@ final class SocialiteGoogleIdentity
         );
     }
 
-    /**
-     * Google sends a boolean here, but has historically sent the string "true"
-     * from the userinfo endpoint. Anything it does not recognise reads as
-     * unverified, which is the safe direction for this flag.
-     */
     private function hasVerifiedEmail(SocialiteUser $user): bool
     {
         $claim = $user->getRaw()[self::EMAIL_VERIFIED_CLAIM] ?? false;

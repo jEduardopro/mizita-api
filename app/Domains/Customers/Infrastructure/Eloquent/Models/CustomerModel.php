@@ -23,9 +23,6 @@ class CustomerModel extends Model
     protected $table = 'customers';
 
     /**
-     * Overridden so the primary key stays an auto-incrementing int; uuid carries
-     * the public identity.
-     *
      * @return array<int, string>
      */
     public function uniqueIds(): array

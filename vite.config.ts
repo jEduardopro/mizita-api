@@ -6,8 +6,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
     plugins: [
-        // No `fonts` entry here: shadcn's preset ships Geist through
-        // @fontsource-variable/geist and overrides --font-sans in app.css.
+        // No `fonts` entry on purpose: Geist ships through @fontsource-variable/geist.
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,

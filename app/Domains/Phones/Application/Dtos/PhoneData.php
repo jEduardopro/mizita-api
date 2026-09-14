@@ -9,10 +9,6 @@ use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Shared\ValueObjects\PhoneNumber;
 use DateTimeImmutable;
 
-/**
- * Output boundary. Entities never leave the application layer, so use cases
- * return this instead.
- */
 final readonly class PhoneData
 {
     public function __construct(

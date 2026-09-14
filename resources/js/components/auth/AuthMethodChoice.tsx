@@ -3,9 +3,7 @@ import { Button } from '@/components/ui/button';
 
 type Props = {
     google: string;
-    /** Where the Google flow starts. A server route, not an API endpoint. */
     googleHref: string;
-    /** What to say when a Google attempt came back without a session. */
     googleError?: string;
     divider: string;
     email: string;
@@ -16,10 +14,6 @@ export function AuthMethodChoice({ google, googleHref, googleError, divider, ema
     return (
         <div className="grid gap-4">
             <div className="grid gap-2">
-                {/* A plain anchor, and it has to stay one: the flow hands the
-                    browser to Google's consent screen, so it is a full document
-                    navigation. An Inertia visit or an axios call would send an
-                    XHR to an origin that answers with no CORS headers. */}
                 <Button
                     asChild
                     variant="outline"

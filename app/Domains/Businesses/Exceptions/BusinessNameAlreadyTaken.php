@@ -9,14 +9,6 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 use Throwable;
 
-/**
- * Another business already trades under this name.
- *
- * Raised twice on purpose: once by the use case, which reads before it writes,
- * and again by the repository when the partial unique index fires because two
- * signups raced past that read. The second is the authoritative one - the read
- * only exists so the common case gets a message instead of a stack trace.
- */
 final class BusinessNameAlreadyTaken extends DomainException implements DomainFailure
 {
     public static function for(string $name, ?Throwable $previous = null): self

@@ -3,7 +3,6 @@ import { Section } from '@/components/public/landing/Section';
 
 const benefits = ['team', 'hours', 'slots', 'policy'] as const;
 
-/** Exported for the header menu, so the anchor is written down once. */
 export const BENEFITS_ID = 'what-you-get';
 
 export function BenefitGrid() {
@@ -22,8 +21,6 @@ export function BenefitGrid() {
                 {t('welcome.benefits.heading')}
             </h2>
 
-            {/* The rules between the cards are the gaps in a tinted grid, and the
-                padding turns the outermost gap into a frame. */}
             <div className="mt-10 grid gap-px overflow-hidden rounded-xl bg-border p-px sm:mt-12 sm:grid-cols-2">
                 {benefits.map((benefit) => (
                     <article

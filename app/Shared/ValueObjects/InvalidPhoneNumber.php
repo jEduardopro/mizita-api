@@ -6,11 +6,6 @@ namespace App\Shared\ValueObjects;
 
 use InvalidArgumentException;
 
-/**
- * Deliberately not a DomainFailure: a PhoneNumber is only ever assembled from
- * facts a parser has already established, so this firing means a mapper lost one
- * of them - a programming error, not something to show a user.
- */
 final class InvalidPhoneNumber extends InvalidArgumentException
 {
     public static function empty(): self

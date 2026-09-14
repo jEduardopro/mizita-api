@@ -32,8 +32,6 @@ final class GoogleCallbackController extends Controller
 
             $identity = $identities->toGoogleIdentity($googleUser);
         } catch (Throwable) {
-            // Denied consent, a stale "state" value or a profile we cannot read.
-            // The person lands back on the form, never on a 500.
             return $this->backToLogin('messages.errors.google_sign_in_failed');
         }
 
@@ -45,14 +43,11 @@ final class GoogleCallbackController extends Controller
 
         $authenticator->startSessionFor($account->id);
 
-        // Mandatory, not defensive: a fresh session id is what closes session
-        // fixation, where an attacker plants a known id before the sign in.
         $request->session()->regenerate();
 
         return redirect()->intended((string) config('fortify.home'));
     }
 
-    /** The errors bag is already a shared Inertia prop, so the login page renders this unwired. */
     private function backToLogin(string $messageKey): RedirectResponse
     {
         return redirect()->route('login')->withErrors(['google' => (string) __($messageKey)]);

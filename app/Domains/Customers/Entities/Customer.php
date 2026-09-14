@@ -42,7 +42,6 @@ final class Customer
         );
     }
 
-    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $businessId,

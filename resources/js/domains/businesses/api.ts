@@ -1,8 +1,6 @@
 import { api } from '@/lib/api';
 import type { Business, BusinessNameAvailability, CreateBusinessPayload } from './types';
 
-// The only place that names a Businesses URL or unwraps the `data` envelope.
-
 export async function checkBusinessNameAvailability(
     name: string,
     signal?: AbortSignal,

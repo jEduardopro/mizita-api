@@ -10,10 +10,6 @@ use App\Domains\Businesses\Infrastructure\Http\Requests\CheckBusinessNameAvailab
 use App\Domains\Businesses\Infrastructure\Http\Resources\BusinessNameAvailabilityResource;
 use App\Http\Controllers\Controller;
 
-/**
- * Always 200: a name being taken is an answer to the question asked, not a
- * failed request.
- */
 final class BusinessNameAvailabilityController extends Controller
 {
     public function __invoke(

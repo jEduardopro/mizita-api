@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 
 type PhoneCountry = {
     code: string;
-    /** Pre-translated, and already carrying the dial code, e.g. `Mexico (+52)`. */
     label: string;
 };
 
@@ -13,9 +12,7 @@ type Props = {
     id: string;
     label: string;
     optionalLabel: string;
-    /** The accessible name of the country control. */
     countryLabel: string;
-    /** The accessible name of the number control. */
     numberLabel: string;
     countries: readonly PhoneCountry[];
     country: string;
@@ -26,10 +23,6 @@ type Props = {
     hint?: string;
 };
 
-/**
- * No mask and no `maxLength`: how a phone number may be written is a validation
- * rule, and the FormRequest owns those.
- */
 export function PhoneField({
     id,
     label,
@@ -54,8 +47,6 @@ export function PhoneField({
                 <span className="text-xs font-normal text-muted-foreground">{optionalLabel}</span>
             </span>
 
-            {/* One row, always: `min-w-0` on the number is what keeps the pair
-                inside a 320px screen instead of pushing the page sideways. */}
             <div className="flex items-end gap-2">
                 <div className="relative shrink-0">
                     <select

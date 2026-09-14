@@ -44,14 +44,18 @@ It also registers the provider in `bootstrap/providers.php`, creates `app/Shared
 
 Conventions baked in: an auto-incrementing int `id` for internal joins plus a unique `uuid` carrying the public identity; `SoftDeletes` on every model; and, unless `--root`, a `business_id` uuid column referencing `businesses.uuid` with routes behind `['api', 'auth:sanctum', 'business']`.
 
-The declared fields also drive behavior — the first required textual field gets the not-empty invariant, the first `unique` field produces `existsBy<Field>()` and the duplicate guard, and an `active:boolean` field produces `deactivate()`.
+The declared fields also drive behavior — the first required textual field gets the not-empty invariant, the first `unique` field produces `existsBy<Field>()` and the duplicate guard, and an `active:boolean` field produces `deactivate()`. They also drive the input DTO's `fromRequest()` and `validate()`, and the use case opens with `$input->validate();`.
+
+The generated code carries no comments. If you find one in the output, the stub under `stubs/domain/` is the bug.
 
 ## After running
 
 1. Review the generated migration, then `artisan migrate`.
 2. Replace the placeholder invariants in `Entities/<Entity>.php` with the actual business rules.
-3. Trim `Contracts/<Entity>Repository.php` to the queries the domain really needs, and update the Eloquent adapter to match.
-4. Delete the parts of the slice the module does not need — the scaffold is a starting point, not a contract.
+3. Fill in `validate()` on `Application/Dtos/Create<Entity>Input.php`. The generator emits one `private function validate<Field>()` per column from the same rules it wrote into the FormRequest; anything the FormRequest gained by hand — a `min:`, a nested array, a per-tenant rule — has to be mirrored there too, because that copy is the one a console command or a queued job actually runs. Anything needing a repository, a clock or a parser stays in the use case.
+4. Add the `messages.errors` key for every new exception to **both** `lang/en/messages.php` and `lang/es/messages.php`, or `TranslationParityTest` fails.
+5. Trim `Contracts/<Entity>Repository.php` to the queries the domain really needs, and update the Eloquent adapter to match.
+6. Delete the parts of the slice the module does not need — the scaffold is a starting point, not a contract.
 
 Verify with `artisan route:list --path=<prefix>`.
 

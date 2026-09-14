@@ -1,7 +1,5 @@
 import { isAxiosError } from 'axios';
 
-// The only module that knows Laravel's `{ message, errors }` envelope.
-
 const VALIDATION_STATUS = 422;
 
 export type FieldErrors = Record<string, string>;
@@ -56,12 +54,6 @@ export function fieldErrorsFrom(error: unknown): FieldErrors {
     return fieldErrors;
 }
 
-/**
- * A 422 carries the server's own sentence, already written in the caller's
- * language because `lib/api.ts` sends `X-Locale` — it is rendered verbatim and
- * never re-translated. Anything else falls back to the caller's copy: a 500 body
- * is a stack trace, never something to put in front of a person.
- */
 export function formMessageFrom(error: unknown, fallback: string): string {
     const message = propertyOf(validationBody(error), 'message');
 

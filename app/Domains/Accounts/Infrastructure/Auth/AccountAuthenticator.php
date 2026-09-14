@@ -8,17 +8,10 @@ use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-/**
- * Use cases deal in account uuids; the guard and Sanctum deal in the
- * authenticatable. Resolving one into the other happens here instead of leaking
- * a query into a controller.
- */
 final class AccountAuthenticator
 {
-    /** Names the token a native client receives, so it is revocable on its own. */
     private const NATIVE_TOKEN_NAME = 'native';
 
-    /** The caller regenerates the session id afterwards. */
     public function startSessionFor(string $accountId): void
     {
         Auth::login($this->userOrFail($accountId), remember: true);

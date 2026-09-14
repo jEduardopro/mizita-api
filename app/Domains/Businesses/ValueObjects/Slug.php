@@ -8,19 +8,8 @@ use App\Domains\Businesses\Exceptions\BusinessNameNotSluggable;
 use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use InvalidArgumentException;
 
-/**
- * The public web address of a business, derived from its name. Everything that
- * emits one goes through here, which is what lets the repository state as an
- * invariant that a slug never contains a LIKE wildcard.
- *
- * The normaliser uses an explicit table rather than Str::slug, which Illuminate
- * bans from the domain layer, or iconv, whose output depends on the process
- * locale - under several common ones "á" comes back as `"a`, and a public
- * address that changes with a server setting is not one a business can print.
- */
 final readonly class Slug
 {
-    /** A second business with the same name is "-2" because the first, unsuffixed, is conceptually "-1". */
     public const FIRST_SUFFIX = 2;
 
     private const MAXIMUM_LENGTH = 60;
@@ -30,9 +19,6 @@ final readonly class Slug
     private const SHAPE = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
     /**
-     * A slug is a first path segment in the making, and one that shadows /admin
-     * or /terms is a routing bug waiting for a deploy.
-     *
      * @var list<string>
      */
     private const RESERVED = [
@@ -52,8 +38,6 @@ final readonly class Slug
     ];
 
     /**
-     * Keys are lowercase only: the name is folded before the table is applied.
-     *
      * @var array<string, string>
      */
     private const TRANSLITERATIONS = [
@@ -74,11 +58,6 @@ final readonly class Slug
         public string $value,
     ) {}
 
-    /**
-     * The nullable twin exists so the availability endpoint can answer "that
-     * name will not work" without throwing for a question callers are expected
-     * to ask.
-     */
     public static function tryFromName(string $name): ?self
     {
         $value = self::normalize($name);
@@ -91,29 +70,20 @@ final readonly class Slug
     }
 
     /**
-     * @throws BusinessNameNotSluggable when the name leaves nothing behind
+     * @throws BusinessNameNotSluggable
      */
     public static function fromName(string $name): self
     {
         return self::tryFromName($name) ?? throw BusinessNameNotSluggable::forName($name);
     }
 
-    /**
-     * Callable by a mapper and by nothing else. A slug written before this class
-     * existed is still that business's address, and refusing to load it would
-     * turn a lax old write into a record nobody can open. The rule is enforced
-     * on the way in, by fromName and fromString.
-     */
     public static function restore(string $value): self
     {
         return new self($value);
     }
 
     /**
-     * For anything that is not a rehydration - an import, a console command, a
-     * future edit endpoint.
-     *
-     * @throws InvalidBusinessSlug when the value is not one this class could have produced
+     * @throws InvalidBusinessSlug
      */
     public static function fromString(string $value): self
     {
@@ -129,13 +99,7 @@ final readonly class Slug
     }
 
     /**
-     * Truncating the base first means a slug at the length limit yields a
-     * shortened variant rather than "base-2", which no longer matches the base
-     * the allocator searched for. Two businesses with near-identical 60
-     * character names can therefore both be offered it; the partial unique
-     * index settles that, and the loser is told the address is taken.
-     *
-     * @throws InvalidArgumentException when asked for a suffix below the first one
+     * @throws InvalidArgumentException
      */
     public function withSuffix(int $n): self
     {
@@ -163,13 +127,11 @@ final readonly class Slug
     {
         $folded = strtr(mb_strtolower(trim($name), 'UTF-8'), self::TRANSLITERATIONS);
 
-        // Null when the name is not valid UTF-8, which is a slug of nothing.
         $hyphenated = preg_replace('/[^a-z0-9]+/u', self::SEPARATOR, $folded) ?? '';
 
         return self::truncate(trim($hyphenated, self::SEPARATOR));
     }
 
-    /** Cuts at the last word boundary that fits; a single word longer than the limit is clipped. */
     private static function truncate(string $value): string
     {
         if (strlen($value) <= self::MAXIMUM_LENGTH) {

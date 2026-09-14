@@ -8,13 +8,6 @@ use App\Shared\ValueObjects\PhoneNumber;
 use App\Shared\ValueObjects\PhoneNumberType;
 use Tests\Support\PhoneNumbers;
 
-/*
-| Pure PHP: the entity is built by hand with a fixed instant. The rules about
-| what a number may look like belong to PhoneNumber and are deliberately not
-| re-checked here - the entity takes one already built, which is what lets the
-| parser change without this file moving.
-*/
-
 function phoneCreatedAt(): DateTimeImmutable
 {
     return new DateTimeImmutable('2026-01-01T12:00:00+00:00');
@@ -42,9 +35,6 @@ it('creates a phone for the owner it was given', function () {
 });
 
 it('holds the number whole, metadata included, instead of taking it apart', function () {
-    // The payoff of one value object rather than two: the entity never reads
-    // inside a PhoneNumber, so growing the number by five facts did not change
-    // a line of it.
     $number = PhoneNumbers::american(
         type: PhoneNumberType::TollFree,
         geoDescription: null,
@@ -82,8 +72,6 @@ it('rehydrates a phone exactly as it was stored', function () {
 });
 
 it('reaches a new number on the same record', function () {
-    // One phone per owner: a change moves the record, it is never a second row,
-    // so neither the id nor the owner may move with the number.
     $phone = Phone::create('phone-1', PhoneOwnerType::Business, 'business-1', aPhoneNumber(), phoneCreatedAt());
 
     $phone->changeNumber(PhoneNumbers::american());
@@ -96,8 +84,6 @@ it('reaches a new number on the same record', function () {
 });
 
 it('accepts a change to the number it already holds', function () {
-    // Re-submitting the same number is an ordinary thing for a form to do, and
-    // it is not a conflict.
     $phone = Phone::create('phone-1', PhoneOwnerType::Business, 'business-1', aPhoneNumber(), phoneCreatedAt());
 
     $phone->changeNumber(aPhoneNumber());

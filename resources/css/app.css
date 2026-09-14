@@ -3,7 +3,6 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-/* The legal documents are markdown, so their type is set by element. */
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -15,10 +14,6 @@
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
 
-    /*
-     * The ramp itself never changes between themes — only the semantic tokens
-     * below point at different steps of it.
-     */
     --color-brand-50: var(--brand-50);
     --color-brand-100: var(--brand-100);
     --color-brand-200: var(--brand-200);
@@ -31,18 +26,9 @@
     --color-brand-900: var(--brand-900);
     --color-brand-950: var(--brand-950);
 
-    /*
-     * Their own tokens rather than an opacity on `--muted`, because they move in
-     * opposite directions per theme: darker than the page in light, lighter in
-     * dark.
-     */
     --color-surface-muted: var(--surface-muted);
     --color-surface-brand: var(--surface-brand);
 
-    /*
-     * The unfinished marker. It cannot borrow `--destructive`: a fact nobody has
-     * decided yet needs to look pending, not wrong.
-     */
     --color-warning: var(--warning);
     --color-warning-surface: var(--warning-surface);
 
@@ -89,15 +75,6 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/*
- * `tw-animate-css` only ships one-shot enter and exit animations, so the hero
- * collage's continuous drift is defined here. The keyframes are namespaced so
- * they cannot collide with a library's own `float`, and they animate
- * `translate`, which is independent of `rotate`.
- *
- * Callers apply these through `motion-safe:`: a looping animation has to stop
- * completely for a reader who asked for less motion, not merely slow down.
- */
 @theme {
     --animate-float-slow: mizita-float 7s ease-in-out infinite;
     --animate-float-medium: mizita-float 5.5s ease-in-out infinite;
@@ -127,12 +104,6 @@
 }
 
 :root {
-    /*
-     * Brand: hue 258, an ultramarine between blue and indigo. Every step is
-     * inside the sRGB gamut, so nothing is silently clipped. `brand-600` on
-     * white measures 5.17:1 and `brand-400` on the dark surface 7.90:1, which is
-     * what makes white-on-brand and brand-on-dark button text usable.
-     */
     --brand-50: oklch(0.974 0.012 258);
     --brand-100: oklch(0.945 0.026 258);
     --brand-200: oklch(0.898 0.05 258);
@@ -145,10 +116,6 @@
     --brand-900: oklch(0.343 0.127 258);
     --brand-950: oklch(0.245 0.091 258);
 
-    /*
-     * Surfaces carry only a few thousandths of chroma at the brand hue — enough
-     * that white next to blue does not look cold.
-     */
     --background: oklch(0.995 0.002 258);
     --foreground: oklch(0.16 0.012 258);
     --card: oklch(1 0 0);
@@ -169,13 +136,8 @@
     --ring: var(--brand-500);
     --surface-muted: oklch(0.974 0.006 258);
     --surface-brand: oklch(0.955 0.019 258);
-    /* 5.9:1 on its own surface, so the marker is legible and not merely loud. */
     --warning: oklch(0.52 0.125 70);
     --warning-surface: oklch(0.958 0.05 85);
-    /*
-     * Held down to L 0.48 because the verdict it colours is 12px text on the
-     * white card: about 4.8:1, where a brighter green would land near 3:1.
-     */
     --success: oklch(0.48 0.12 152);
     --success-foreground: oklch(0.995 0.002 258);
     --chart-1: var(--brand-500);
@@ -195,10 +157,6 @@
 }
 
 .dark {
-    /*
-     * `brand-600` is too dark for a dark surface, so the accent steps up to
-     * `brand-400` and the text on it flips to the darkest brand step — 6.66:1.
-     */
     --background: oklch(0.16 0.008 258);
     --foreground: oklch(0.975 0.004 258);
     --card: oklch(0.208 0.011 258);
@@ -221,7 +179,6 @@
     --surface-brand: oklch(0.252 0.03 258);
     --warning: oklch(0.86 0.125 85);
     --warning-surface: oklch(0.315 0.055 75);
-    /* Steps up the same hue for the dark card — about 7:1 on it. */
     --success: oklch(0.78 0.14 152);
     --success-foreground: oklch(0.24 0.06 152);
     --chart-1: var(--brand-300);
@@ -249,11 +206,8 @@
   html {
     @apply font-sans;
     }
-  /*
-   * Tailwind v4's Preflight no longer forces cursor: pointer on buttons, so
-   * every control falls back to the browser default arrow. Restoring it here
-   * keeps it out of components/ui, which is CLI-generated and never edited.
-   */
+  /* Tailwind v4's Preflight dropped cursor: pointer on controls. Restored here
+   * rather than in components/ui, which is CLI-generated and never edited. */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   summary,
@@ -264,19 +218,12 @@
     }
 }
 
-/*
- * Sonner injects its own stylesheet at runtime, unlayered and after this file,
- * so these rules stay outside `@layer` on purpose: anything in a layer loses to
- * an unlayered declaration however specific it is. The repeated selector is how
- * a rule outranks the library's own. They live here rather than in
- * `components/ui/sonner.tsx`, which is generated and stays regenerable.
- */
+/* Outside `@layer` on purpose: Sonner injects an unlayered stylesheet at
+ * runtime, and anything in a layer loses to it however specific it is. */
 [data-sonner-toaster][data-sonner-toaster] {
     font-family: var(--font-sans);
 }
 
-/* The surface stays the popover token so the sentence keeps its contrast; the
- * accent is spent on the edge and the icon. */
 [data-sonner-toast][data-type='error'] {
     --normal-border: color-mix(in oklab, var(--destructive) 30%, var(--popover));
 }
@@ -285,30 +232,19 @@
     color: var(--destructive);
 }
 
-/*
- * The close button draws at 20px. The pseudo-element takes the tap target to
- * 44px without changing anything that is drawn.
- */
 [data-sonner-toast] [data-close-button]::after {
     content: '';
     position: absolute;
     inset: -12px;
 }
 
-/*
- * The library's own focus ring is a translucent black shadow, which all but
- * disappears on a dark surface.
- */
 [data-sonner-toast] [data-close-button]:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
 }
 
-/*
- * The class is written twice on purpose: `.prose` and `.prose-legal` have equal
- * specificity, so a single class would leave the winner up to whichever rule the
- * build emits last.
- */
+/* The class is written twice on purpose: `.prose` and `.prose-legal` have equal
+ * specificity, so a single class would let emit order pick the winner. */
 @layer utilities {
     .prose-legal.prose-legal {
         --tw-prose-body: color-mix(in oklab, var(--foreground) 88%, var(--background));
@@ -353,7 +289,6 @@
             text-underline-offset: 3px;
         }
 
-        /* Set as a chip, so the plugin's backtick pseudo-elements go. */
         code {
             background-color: var(--muted);
             border-radius: calc(var(--radius) * 0.5);
@@ -367,10 +302,6 @@
             content: none;
         }
 
-        /*
-         * The minimum is what makes the wrapper's `overflow-x-auto` mean
-         * something on a phone: below it the cells compress to two words a line.
-         */
         table {
             font-size: 0.9em;
             min-width: 34rem;
@@ -382,10 +313,6 @@
             color: var(--muted-foreground);
         }
 
-        /*
-         * The plugin flushes the outer cells against the text column, so inside
-         * a bordered scroller the first word would touch the frame.
-         */
         :is(th, td):first-child {
             padding-inline-start: 1rem;
         }

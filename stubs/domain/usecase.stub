@@ -13,10 +13,6 @@ use App\Domains\{{ domain }}\Events\{{ entity }}Created;
 use App\Shared\Contracts\IdGenerator;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Depends only on interfaces, so it can be built with mocks and exercised
- * without a database.
- */
 final class Create{{ entity }}
 {
     public function __construct(
@@ -28,6 +24,8 @@ final class Create{{ entity }}
 
     public function handle(Create{{ entity }}Input $input): {{ entity }}Data
     {
+        $input->validate();
+
 {{ useCaseUniqueGuard }}        ${{ variable }} = {{ entity }}::create(
             id: $this->ids->next(),
 {{ businessIdArg }}{{ useCaseCreateArgs }}

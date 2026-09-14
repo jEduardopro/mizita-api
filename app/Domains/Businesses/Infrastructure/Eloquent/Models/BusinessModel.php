@@ -23,9 +23,6 @@ class BusinessModel extends Model
     protected $table = 'businesses';
 
     /**
-     * Overridden so the primary key stays an auto-incrementing int; uuid carries
-     * the public identity.
-     *
      * @return array<int, string>
      */
     public function uniqueIds(): array
@@ -39,9 +36,6 @@ class BusinessModel extends Model
     }
 
     /**
-     * Eager loaded so the repository can read the industry's uuid back without a
-     * query per row: the foreign key holds the int, the entity carries the uuid.
-     *
      * @return BelongsTo<IndustryModel, $this>
      */
     public function industry(): BelongsTo

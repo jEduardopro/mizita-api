@@ -4,12 +4,24 @@ declare(strict_types=1);
 
 namespace App\Domains\{{ domain }}\Exceptions;
 
+use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 
-final class {{ entity }}{{ uniqueField }}AlreadyTaken extends DomainException
+final class {{ entity }}{{ uniqueField }}AlreadyTaken extends DomainException implements DomainFailure
 {
     public static function for(string $value): self
     {
         return new self("A {{ variable }} with {{ uniqueFieldLabel }} [{$value}] already exists.");
+    }
+
+    public function errorCode(): string
+    {
+        return '{{ entitySnake }}_{{ uniqueFieldSnake }}_taken';
+    }
+
+    public function kind(): DomainFailureKind
+    {
+        return DomainFailureKind::Conflict;
     }
 }

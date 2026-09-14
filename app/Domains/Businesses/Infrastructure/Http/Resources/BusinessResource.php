@@ -14,9 +14,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class BusinessResource extends JsonResource
 {
     /**
-     * Every id is a uuid, never an internal key, and timestamps go out as
-     * DATE_ATOM in UTC so the client converts once, from an instant.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

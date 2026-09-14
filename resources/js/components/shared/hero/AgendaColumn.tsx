@@ -1,40 +1,26 @@
 import { useTranslation } from 'react-i18next';
 
-// A still, not live data. Drawn at the size of a phone screen and never scaled
-// afterwards: a transform would soften the hour rules, which are a single pixel.
-
-/** Minutes from midnight. The column runs 09:00 to 13:00. */
 const DAY_STARTS_AT = 9 * 60;
 const DAY_ENDS_AT = 13 * 60;
 const MINUTES_PER_TICK = 30;
 
-/** A 30-minute row is 40px tall. */
 const PIXELS_PER_MINUTE = 40 / MINUTES_PER_TICK;
 
-/** The gap the illustration points at, in minutes. */
 const OPEN_GAP_MINUTES = 30;
 const OPEN_GAP_STARTS_AT = 10 * 60 + 30;
 
-/**
- * The first minute nothing is booked any more. The collage's slot chip reads
- * this, so the two can never claim different things about the same day.
- */
 export const FIRST_FREE_MINUTE = 12 * 60 + 45;
 
-/** A timezone identifier is data, not copy, so it is not translated. */
 const EXAMPLE_TIMEZONE = 'Europe/Madrid';
 
-/** A real Tuesday, pinned so the illustration never changes under the reader. */
 const EXAMPLE_DAY = Date.UTC(2026, 0, 6);
 
 export const AGENDA_SCREEN_WIDTH = 194;
 
-/** The phone around this column is sized from the content, not the other way. */
 export const AGENDA_SCREEN_HEIGHT =
     12 + 14 + 10 + (DAY_ENDS_AT - DAY_STARTS_AT) * PIXELS_PER_MINUTE + 12;
 
 type Block = {
-    /** The key of this service's name in the `public` namespace. */
     service: 'cutAndFinish' | 'colour';
     staff: string;
     startsAt: number;
@@ -66,7 +52,6 @@ const ticks = Array.from(
     (_, index) => DAY_STARTS_AT + index * MINUTES_PER_TICK,
 );
 
-/** Title-cased with the locale's own rules: Spanish weekdays are lower case. */
 function formatWeekday(locale: string): string {
     const weekday = new Intl.DateTimeFormat(locale, {
         weekday: 'long',
@@ -76,10 +61,6 @@ function formatWeekday(locale: string): string {
     return weekday.charAt(0).toLocaleUpperCase(locale) + weekday.slice(1);
 }
 
-/**
- * A 24-hour grid by product decision, not by locale: the hour labels have to
- * stay narrow and line up with the rules behind them, and "9:00 AM" would not.
- */
 export function formatAgendaTime(locale: string, minutes: number): string {
     return new Intl.DateTimeFormat(locale, {
         hour: '2-digit',

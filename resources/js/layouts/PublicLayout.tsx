@@ -17,7 +17,6 @@ import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 import { legalDocuments } from '@/content/legal/entity';
 
-/** PLACEHOLDER: every `href` is `#` until the accounts exist. */
 const socialProfiles: { network: string; href: string; Icon: (props: SocialIconProps) => ReactNode }[] = [
     { network: 'Facebook', href: '#', Icon: FacebookIcon },
     { network: 'Instagram', href: '#', Icon: InstagramIcon },
@@ -26,13 +25,6 @@ const socialProfiles: { network: string; href: string; Icon: (props: SocialIconP
     { network: 'YouTube', href: '#', Icon: YoutubeIcon },
 ];
 
-/**
- * The product anchors are absolute paths so the footer works from every public
- * page: on the landing page the browser treats `/#pricing` as a fragment jump,
- * and from anywhere else it goes home and lands on the section.
- *
- * PLACEHOLDER: the company destinations are `#` until those routes exist.
- */
 const footerMenu = [
     {
         id: 'product',
@@ -64,9 +56,7 @@ const footerMenu = [
 ] as const;
 
 type Props = {
-    /** The tab title. The app name is appended by the title callback in app.tsx. */
     title?: string;
-    /** An in-page menu, for a page long enough to need one. */
     sections?: Section[];
     children: ReactNode;
 };
@@ -87,8 +77,6 @@ export function PublicLayout({ title, sections, children }: Props) {
 
                     {sections === undefined ? null : <SectionNav sections={sections} />}
 
-                    {/* Unconditional: the public surface makes the same offer to
-                        everyone, session or not. */}
                     <nav aria-label={t('nav.account')} className="flex items-center gap-1.5">
                         <Button asChild variant="ghost" size="sm">
                             <Link href="/login">{t('nav.logIn')}</Link>
@@ -139,8 +127,6 @@ export function PublicLayout({ title, sections, children }: Props) {
                     </div>
 
                     <div className="mt-12 flex flex-col gap-5 border-t border-border pt-6 sm:flex-row-reverse sm:items-center sm:justify-between">
-                        {/* Icon links carry no text, so each is named by its
-                            `aria-label` and reads as a whole sentence. */}
                         <ul aria-label={t('footer.social.title')} className="flex items-center gap-1">
                             {socialProfiles.map(({ network, href, Icon }) => (
                                 <li key={network}>

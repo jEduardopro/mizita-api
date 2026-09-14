@@ -238,7 +238,13 @@ The five SOLID principles — Single Responsibility, Open/Closed, Liskov Substit
 - **Fail fast and loud.** Invariants throw a domain exception from `Exceptions/`. Never return `null` to signal failure, and never swallow an exception in an empty `catch`.
 - **No static mutable state**, no singletons of your own, no service location.
 - **DRY with judgment.** Duplicate twice before abstracting — a wrong abstraction costs more than the duplication it removed. Never DRY *across* domains: shared code there is coupling, and the answer is a port or a deliberate shared-kernel addition.
-- **Comments explain why, never what.** Delete commented-out code and generator leftovers rather than parking them.
+- **You write no comments.** Not "few", not "only the good ones" — none. No `//` line, no prose docblock, no section banner, no narration of a guard clause. A name, a guard clause or a smaller method says it better and cannot go stale; if a comment feels necessary to explain *what* something does, rename it or split it. Delete commented-out code and generator leftovers rather than parking them. Four things are not your comments and must survive untouched:
+  - **Code you did not write.** Published vendor config is off limits — `config/app.php`, `config/fortify.php` (including its commented-out `Features::…` switches, which are the documented on/off mechanism), `config/permission.php`, `config/sanctum.php` and the rest of the Laravel and Spatie skeleton. Only `config/authorization.php` and `config/localization.php` are ours.
+  - **Annotations a tool reads**, which are contract and not prose: `@var`, `@template`, `@extends`, `@use`, `@property-read`, `@param`/`@return` carrying generics or an array shape, `@throws`. A docblock holding only tags survives whole; one mixing prose with tags keeps the tags and loses the prose. A `@param string $name` that only restates the signature is prose, so it goes. `TransactionManager`'s `@template TReturn` is the one place its generic return type exists — deleting it makes every `run()` call site resolve to `mixed`.
+  - **A comment recording a bug, an issue or a deliberate oddity** — the `make:domain` duplicate-provider note in `bootstrap/providers.php`, the `all_with_bc` note in `Timezone`, the missing-`boot()` note in `PhonesServiceProvider`. One or two lines, and only where the next reader would otherwise "fix" it back. This is a narrow exception, not a re-entry for rationale.
+  - **A comment the user asked for**, when the task says so.
+
+  Never strip a line starting with `#`: this repo has zero hash comments and eight real attributes (`#[Fillable]`, `#[Hidden]`).
 
 ### Self-check before reporting
 
@@ -274,11 +280,48 @@ Every table carries an auto-incrementing `id` (bigint) **and** a unique `uuid` c
 public function handle(CreateServiceInput $input): ServiceData
 ```
 
-No other public methods, no static state. The flow is always: input DTO → load or build the entity through the repository port → invoke entity behavior → `$repo->save($entity)` → dispatch domain events → return an output DTO built from the entity.
+No other public methods, no static state. The flow is always: `$input->validate()` → load or build the entity through the repository port → invoke entity behavior → `$repo->save($entity)` → dispatch domain events → return an output DTO built from the entity.
+
+**`handle()` opens with `$input->validate();`, as its first statement, always** — whenever the input DTO has one. That is what makes the rules unskippable: HTTP, artisan, queue, seeder and test all arrive through this door, and only the HTTP one ever saw a FormRequest.
 
 Failures throw a domain exception from `Exceptions/` — never return `null` to signal failure, and never return an HTTP response.
 
-DTOs are `final readonly class` with promoted typed properties. Mapping a `Request` into an input DTO happens in the **controller**, not in the DTO, so DTOs stay framework-free.
+### Input DTOs validate themselves
+
+DTOs are `final readonly class` with promoted typed properties, and they stay framework-free — `Application/` may not import `Illuminate`, enforced by `tests/Arch/LayerDependencyTest.php`.
+
+An input DTO built from an untrusted array carries two methods:
+
+- **`public static function fromRequest(array $payload, …): self`** — takes the validated payload array, never the `Request`, and assembles nested child DTOs itself. The controller hands the payload over and does nothing else. Read **defensively**: `$payload['name'] ?? ''`, never `$payload['name']`, because a caller who skipped the FormRequest hands over whatever array they have and a missing key must become a domain failure, not a PHP error. A value the body cannot be trusted to carry — the authenticated caller's id above all — is a separate parameter.
+- **`public function validate(): void`** — throws a `DomainFailure` from its own domain's `Exceptions/` on the first problem, returns silently otherwise. One small `private function validate<Field>()` per rule, and a nested child's rules are asserted by calling that child's `validate()`.
+
+```php
+public function validate(): void
+{
+    $this->validateName();
+    $this->validateTimezone();
+    $this->phone?->validate();
+}
+
+private function validateName(): void
+{
+    $name = trim($this->name);
+
+    if ($name === '') {
+        throw InvalidBusinessName::empty();
+    }
+
+    if (mb_strlen($name) > self::MAXIMUM_NAME_LENGTH) {
+        throw InvalidBusinessName::tooLong($name);
+    }
+}
+```
+
+**Every rule its FormRequest states, `validate()` states again.** That duplication is the point: the FormRequest only runs over HTTP, and its copy is what paints per-field errors in the browser, while the DTO's copy is the one guaranteed to run. Reuse an existing `errorCode()` wherever the meaning fits; a genuinely new code needs a key in **both** `lang/en/messages.php` and `lang/es/messages.php` or `TranslationParityTest` fails.
+
+`validate()` decides only what the payload alone can decide: presence, non-empty, length, format, enum membership, uuid shape, cross-field consistency, and a pure value object's own constructor such as `Timezone::fromString()`. Anything needing a collaborator — uniqueness, catalogue membership, a parser, an ownership check — stays in the use case, because a DTO has no repository and no clock. Hand-rolled PHP only: no `Validator::make`, no `Rule`, no `ValidationException`.
+
+A DTO built domain-to-domain from value objects that already validate themselves — `AttachPhoneInput`, `AuthenticateWithGoogleInput` — has no `fromRequest()` and needs no `validate()`: a second set of checks is a second set to keep in sync. Output DTOs never have one.
 
 ## Thin adapters
 
@@ -350,7 +393,7 @@ Each of these is a rule because getting it wrong is an incident, not a bug. If a
 - `make:domain` emits the first migration, Eloquent model and factory of a domain. For later changes use `artisan make:migration`, and `artisan make:model` moved and renamespaced into `Infrastructure/Eloquent/Models/`. Never hand-roll a migration filename.
 - Factories live in `Infrastructure/Eloquent/Factories/<Entity>ModelFactory.php` and are wired through the model's `newFactory()`. The generator writes them; you still write no tests.
 - Eager-load in the repository adapter to avoid N+1. A use case must never know about eager loading.
-- Validation in FormRequests. Authorization in policies/gates at the HTTP edge, unless the rule is genuine domain logic.
+- Shape validation in FormRequests **and again in the input DTO's `validate()`** — see [Input DTOs validate themselves](#input-dtos-validate-themselves). Business rules in the use case or deeper, never at the edge. Authorization in policies/gates at the HTTP edge, unless the rule is genuine domain logic.
 - API responses go through Resources.
 - Sanctum already covers both session and token auth (`bootstrap/app.php` calls `statefulApi()`), and `withExceptions` already forces JSON rendering for `api/*`. Do not re-add either.
 
@@ -380,8 +423,11 @@ Never claim something was verified that you did not actually run.
 
 ## Worked example
 
+Note that not one line of it carries a comment, `@throws` aside.
+
+`app/Domains/Services/Contracts/ServiceRepository.php`
+
 ```php
-// app/Domains/Services/Contracts/ServiceRepository.php
 interface ServiceRepository
 {
     public function existsBySlug(string $slug): bool;
@@ -391,8 +437,11 @@ interface ServiceRepository
 
     public function save(Service $service): void;
 }
+```
 
-// app/Domains/Services/Entities/Service.php — pure PHP, zero framework imports
+`app/Domains/Services/Entities/Service.php` — pure PHP, zero framework imports
+
+```php
 final class Service
 {
     private function __construct(
@@ -412,7 +461,6 @@ final class Service
         return new self($id, $slug, $name, true, $now);
     }
 
-    /** Rehydration from persistence; skips creation-time rules by design. */
     public static function restore(string $id, string $slug, string $name, bool $active, DateTimeImmutable $createdAt): self
     {
         return new self($id, $slug, $name, $active, $createdAt);
@@ -437,17 +485,62 @@ final class Service
         return $this->active;
     }
 }
+```
 
-// app/Domains/Services/Application/Dtos/CreateServiceInput.php
+`app/Domains/Services/Application/Dtos/CreateServiceInput.php`
+
+```php
 final readonly class CreateServiceInput
 {
+    private const MAXIMUM_NAME_LENGTH = 120;
+
     public function __construct(
         public string $slug,
         public string $name,
     ) {}
-}
 
-// app/Domains/Services/Application/UseCases/CreateService.php
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public static function fromRequest(array $payload): self
+    {
+        return new self(
+            slug: (string) ($payload['slug'] ?? ''),
+            name: (string) ($payload['name'] ?? ''),
+        );
+    }
+
+    public function validate(): void
+    {
+        $this->validateSlug();
+        $this->validateName();
+    }
+
+    private function validateSlug(): void
+    {
+        if (trim($this->slug) === '') {
+            throw InvalidServiceSlug::empty();
+        }
+    }
+
+    private function validateName(): void
+    {
+        $name = trim($this->name);
+
+        if ($name === '') {
+            throw InvalidServiceName::empty();
+        }
+
+        if (mb_strlen($name) > self::MAXIMUM_NAME_LENGTH) {
+            throw InvalidServiceName::tooLong($name);
+        }
+    }
+}
+```
+
+`app/Domains/Services/Application/UseCases/CreateService.php`
+
+```php
 final class CreateService
 {
     public function __construct(
@@ -459,6 +552,8 @@ final class CreateService
 
     public function handle(CreateServiceInput $input): ServiceData
     {
+        $input->validate();
+
         if ($this->services->existsBySlug($input->slug)) {
             throw ServiceSlugAlreadyTaken::for($input->slug);
         }
@@ -476,8 +571,11 @@ final class CreateService
         return ServiceData::fromEntity($service);
     }
 }
+```
 
-// app/Domains/Services/ServicesServiceProvider.php — register in bootstrap/providers.php
+`app/Domains/Services/ServicesServiceProvider.php` — register it in `bootstrap/providers.php`
+
+```php
 public function register(): void
 {
     $this->app->bind(ServiceRepository::class, EloquentServiceRepository::class);

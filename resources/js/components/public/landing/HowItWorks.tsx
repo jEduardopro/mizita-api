@@ -1,10 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Section } from '@/components/public/landing/Section';
 
-/** Numbered because they are genuinely ordered, not for decoration. */
 const steps = ['setUp', 'share', 'run'] as const;
 
-/** Exported for the header menu, so the anchor is written down once. */
 export const HOW_IT_WORKS_ID = 'how-it-works';
 
 export function HowItWorks() {

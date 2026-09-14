@@ -9,14 +9,6 @@ use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Staff\Infrastructure\Permissions\BusinessRoleTemplates;
 use App\Shared\Contracts\BusinessTeamKey;
 
-/**
- * Staff's class name stops at this file, so nothing above Infrastructure learns
- * that roles are a Staff concern - or that they are Spatie rows at all.
- *
- * BusinessNotFound travels out unchanged, unlike the Staff exception
- * StaffOwnerRegistrar translates: it is already this domain's own, and it means
- * the business row is missing mid-transaction - a bug, not a caller's problem.
- */
 final class StaffRoleProvisioner implements RoleProvisioner
 {
     public function __construct(
@@ -25,7 +17,7 @@ final class StaffRoleProvisioner implements RoleProvisioner
     ) {}
 
     /**
-     * @throws BusinessNotFound when the business has not been saved yet
+     * @throws BusinessNotFound
      */
     public function provisionFor(string $businessId): void
     {

@@ -7,11 +7,6 @@ type Props = {
     children?: ReactNode;
 };
 
-/**
- * The anchor `Trans` clones for each tag in a legal sentence. It carries no text
- * of its own: the label comes from inside the translated string, which is the
- * only place a translator can reach it.
- */
 export function LegalLink({ document, children }: Props) {
     return (
         <Link

@@ -16,9 +16,6 @@ final class BusinessModelFactory extends Factory
     protected $model = BusinessModel::class;
 
     /**
-     * The slug is built from the same words as the name, the way onboarding
-     * builds it, so a fixture looks like a row the application would write.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

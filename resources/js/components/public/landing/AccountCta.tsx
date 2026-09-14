@@ -6,17 +6,11 @@ import { Button } from '@/components/ui/button';
 type Props = {
     size?: 'default' | 'lg' | 'xl';
     showLogIn?: boolean;
-    /** Pre-translated, because the caller owns the namespace the copy lives in. */
     label?: string;
-    /** Only the primary action. The log-in button is outlined wherever it appears. */
     variant?: 'brand' | 'brand-outline';
     className?: string;
 };
 
-/**
- * It never reacts to the visitor's session: the landing page is marketing copy
- * and makes the same offer to everyone, signed in or not.
- */
 export function AccountCta({
     size = 'default',
     showLogIn = true,

@@ -9,8 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * The native client's credential, together with the account it belongs to.
- *
  * @property-read AuthenticatedAccountData $resource
  */
 final class AccessTokenResource extends JsonResource

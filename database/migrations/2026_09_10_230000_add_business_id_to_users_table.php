@@ -8,10 +8,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Users belong to one business. Nullable so the first user can exist
-     * before any business does.
-     */
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {

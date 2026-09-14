@@ -15,10 +15,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Unauthenticated by design - it is the sign in - so the rate limiter on its
- * route group is the only thing standing between it and the internet.
- */
 final class GoogleIdTokenController extends Controller
 {
     public function __invoke(

@@ -8,23 +8,11 @@ use App\Domains\Industries\Infrastructure\Eloquent\Models\IndustryModel;
 use App\Shared\Contracts\IdGenerator;
 use Illuminate\Database\Seeder;
 
-/**
- * Idempotent: rows are matched on their key, so re-running updates the order and
- * never duplicates. It deliberately does not touch "active" - a row someone
- * retired on purpose must stay retired across the next deployment.
- */
 final class IndustrySeeder extends Seeder
 {
-    /** Positions are spaced so a new industry can be slotted between two without renumbering. */
     private const POSITION_STEP = 10;
 
     /**
-     * English alphabetical order, which is what the position column encodes.
-     *
-     * Two pairs read alike and are not: "beauty" is the broad beauty business
-     * while "hair_salon" is the salon itself, and "restoration" is damage
-     * restoration, not "restaurant".
-     *
      * @var list<string>
      */
     private const KEYS = [
@@ -97,8 +85,6 @@ final class IndustrySeeder extends Seeder
     {
         $industry = IndustryModel::query()->firstOrNew(['key' => $key]);
 
-        // Assigned here rather than left to the model's creating hook, because
-        // seeders run with model events muted.
         $industry->uuid ??= $this->ids->next();
         $industry->position = $position;
 

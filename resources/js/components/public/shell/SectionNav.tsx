@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useActiveSection } from '@/hooks/use-active-section';
 
 export type Section = {
-    /** The `id` of the element on the page this entry scrolls to. */
     id: string;
     label: string;
 };
@@ -14,11 +13,6 @@ type Props = {
     className?: string;
 };
 
-/**
- * Hidden below `md`: these are in-page anchors duplicating content the visitor
- * reaches by scrolling, and a narrow header only has room for the account
- * buttons.
- */
 export function SectionNav({ sections, className }: Props) {
     const { t } = useTranslation('common');
     const activeId = useActiveSection(sections.map((section) => section.id));
@@ -32,18 +26,12 @@ export function SectionNav({ sections, className }: Props) {
 
         event.preventDefault();
 
-        // Read per click, so a preference changed mid-session is honoured
-        // without a reload.
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         section.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
 
-        // Reading order follows the click: without this the next Tab would carry
-        // on through the header instead of into the section that just arrived.
         section.focus({ preventScroll: true });
 
-        // Leaves the anchor in the address bar so the position is shareable,
-        // without the jump a real hash change would cause.
         window.history.replaceState(null, '', `#${id}`);
     }
 

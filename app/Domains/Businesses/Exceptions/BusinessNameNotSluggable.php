@@ -8,14 +8,6 @@ use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 
-/**
- * Nothing usable survived turning this name into a web address.
- *
- * A name written entirely in a script the slug alphabet does not cover, or made
- * only of punctuation, leaves an empty string behind. A business with no
- * address cannot be published, so onboarding stops here instead of inventing
- * one the owner never chose.
- */
 final class BusinessNameNotSluggable extends DomainException implements DomainFailure
 {
     public static function forName(string $name): self

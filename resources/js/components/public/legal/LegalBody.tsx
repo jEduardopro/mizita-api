@@ -4,7 +4,6 @@ import { LegalMarkdown } from '@/components/public/legal/LegalMarkdown';
 import { LegalToc } from '@/components/public/legal/LegalToc';
 import type { LegalDocumentState } from '@/components/public/legal/use-legal-document';
 
-/** Irregular on purpose: an even stack of bars reads as a loading graphic. */
 const PLACEHOLDER_LINES = ['w-full', 'w-[97%]', 'w-[88%]', 'w-[94%]', 'w-[62%]'];
 
 function LegalBodySkeleton() {

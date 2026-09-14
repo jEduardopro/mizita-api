@@ -6,12 +6,6 @@ use App\Domains\Accounts\Entities\SocialIdentity;
 use App\Domains\Accounts\Infrastructure\Eloquent\Mappers\SocialIdentityMapper;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 
-/*
-| Only the entity -> attributes direction is a unit test. toEntity() reads
-| $model->created_at, whose cast asks the model for its connection's date
-| format, so that direction belongs in a feature test.
-*/
-
 beforeEach(function () {
     $this->mapper = new SocialIdentityMapper;
 });
@@ -34,8 +28,6 @@ it('writes the uuid, the account key, the provider and the provider user id', fu
 });
 
 it('joins on the account int key, not on the account uuid the entity carries', function () {
-    // account_id references the users primary key. Writing the uuid there
-    // would either fail the foreign key or, worse, match another row's id.
     $identity = SocialIdentity::restore(
         'identity-uuid',
         'account-uuid',

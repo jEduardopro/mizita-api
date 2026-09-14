@@ -12,7 +12,6 @@ export const businessKeys = {
     nameAvailabilityFor: (name: string) => [...businessKeys.nameAvailability(), name] as const,
 };
 
-/** `unknown` is a failed question, not a failed name: it renders nothing at all. */
 export type NameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'unknown';
 
 type NameAvailability = {
@@ -20,14 +19,6 @@ type NameAvailability = {
     slug: string | null;
 };
 
-/**
- * `settled` makes one bug impossible: a verdict that describes a name other than
- * the one on screen. Every intermediate state collapses to `checking`, and for
- * the same reason there is no `keepPreviousData`.
- *
- * The key keeps the typed case, because slugification is the server's rule and
- * folding case here would be a guess at it.
- */
 export function useBusinessNameAvailability(name: string): NameAvailability {
     const trimmed = name.trim();
     const debounced = useDebouncedValue(trimmed, NAME_CHECK_DEBOUNCE_MS);
@@ -52,8 +43,6 @@ export function useBusinessNameAvailability(name: string): NameAvailability {
         return { status: 'unknown', slug: null };
     }
 
-    // The tick between the key changing and the request starting says nothing
-    // about the name itself.
     if (! query.data) {
         return { status: 'checking', slug: null };
     }
@@ -69,8 +58,6 @@ export function useCreateBusiness() {
     return useMutation({
         mutationFn: createBusiness,
         onSuccess: () => {
-            // Removed rather than invalidated: these lookups are now lies and no
-            // observer is left to refetch for.
             queryClient.removeQueries({ queryKey: businessKeys.nameAvailability() });
         },
     });

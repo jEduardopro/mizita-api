@@ -10,11 +10,6 @@ const surfaces: Record<SectionTone, string> = {
 };
 
 type Props = {
-    /**
-     * The anchor the header menu scrolls to. A section with an id becomes a
-     * focus target and takes its accessible name from its heading, so that
-     * heading must carry `id="<id>-heading"`.
-     */
     id?: string;
     tone?: SectionTone;
     className?: string;

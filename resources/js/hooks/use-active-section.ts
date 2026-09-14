@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react';
 
-/**
- * A narrow strip below the sticky header rather than the whole viewport: a
- * section becomes current as its heading clears the header. Observing the full
- * viewport would keep two long sections current at once.
- */
 const OBSERVED_BAND = '-20% 0px -70% 0px';
 
 export function useActiveSection(ids: string[]): string | undefined {
-    // Callers build the list while rendering, so it is a new array every time.
-    // Keying the effect on the joined ids keeps one observer alive instead.
     const key = ids.join(',');
     const [activeId, setActiveId] = useState<string>();
 
@@ -35,9 +28,6 @@ export function useActiveSection(ids: string[]): string | undefined {
                     }
                 }
 
-                // Resolved in document order, so while two sections share the
-                // band the one higher up the page wins — the same one whose
-                // heading the reader has just passed.
                 setActiveId(sectionIds.find((id) => inBand.has(id)));
             },
             { rootMargin: OBSERVED_BAND },

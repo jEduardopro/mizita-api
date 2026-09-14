@@ -2,10 +2,6 @@ import { cn } from 'cn';
 
 export type HintTone = 'muted' | 'positive' | 'critical';
 
-/**
- * `positive` is a token of its own rather than the brand accent: the accent
- * means "this is the action", and a verdict is not something to press.
- */
 const tones: Record<HintTone, string> = {
     muted: 'text-muted-foreground',
     positive: 'font-medium text-success',
@@ -13,7 +9,6 @@ const tones: Record<HintTone, string> = {
 };
 
 type FieldMessageState = {
-    /** The id the field points `aria-describedby` at. */
     id: string;
     text: string;
     tone: HintTone;
@@ -21,17 +16,11 @@ type FieldMessageState = {
 
 type Field = {
     id: string;
-    /** The message Laravel sent back for this field, if any. */
     error?: string;
     hint?: string;
     hintTone?: HintTone;
 };
 
-/**
- * One message per field: an error supersedes the hint rather than stacking under
- * it, because repeating the rule is noise once the server has said what was
- * wrong. Every field reads the rule from here so none of them can drift.
- */
 export function fieldMessage({ id, error, hint, hintTone = 'muted' }: Field): FieldMessageState | null {
     if (error) {
         return { id: `${id}-error`, text: error, tone: 'critical' };
@@ -46,10 +35,6 @@ export function fieldMessage({ id, error, hint, hintTone = 'muted' }: Field): Fi
 
 type Props = {
     message: FieldMessageState | null;
-    /**
-     * Holds the row's height while there is nothing to say, so the button
-     * underneath does not move while a thumb is over it.
-     */
     reserveSpace?: boolean;
 };
 

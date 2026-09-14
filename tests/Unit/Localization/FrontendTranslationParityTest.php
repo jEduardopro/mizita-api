@@ -2,28 +2,9 @@
 
 declare(strict_types=1);
 
-/*
-| The same guard TranslationParityTest gives lang/, applied to the i18next
-| bundles in resources/js/locales.
-|
-| It is needed for the same reason and one more: a missing key does not fail
-| loudly, i18next simply renders the key itself, so "auth.login.title" appears
-| on the page where the heading should be. The one runtime that would notice is
-| a person reading the site in Spanish.
-|
-| Pure PHP over JSON files: no container, no node, no build step.
-*/
-
 use PHPUnit\Framework\Assert;
 
 /**
- * Flattens a bundle into a dot-notated key => value map.
- *
- * Deliberately its own copy of the walk rather than a call into
- * TranslationParityTest: Pest loads test files in alphabetical order, so a
- * helper borrowed from a sibling file exists in a full run and is undefined the
- * moment someone runs this one file on its own.
- *
  * @param  array<array-key, mixed>  $translations
  * @return array<string, mixed>
  */
@@ -47,8 +28,6 @@ function mizitaFlattenFrontendBundle(array $translations, string $prefix = ''): 
 }
 
 /**
- * The bundles a locale ships, by file name - "auth.json", "common.json".
- *
  * @return list<string>
  */
 function mizitaFrontendBundleIds(string $locale): array
@@ -79,8 +58,6 @@ function mizitaLoadFrontendBundle(string $locale, string $bundle): array
 }
 
 /**
- * The {{placeholders}} a string interpolates, sorted and deduplicated.
- *
  * @return list<string>
  */
 function mizitaInterpolations(string $translation): array
@@ -146,8 +123,6 @@ it('leaves no translation string empty', function (string $bundle) {
 })->with(mizitaFrontendBundleIds('en'));
 
 it('interpolates the same placeholders in both locales', function (string $bundle) {
-    // A translation that drops {{name}} does not fail, it renders a sentence
-    // with a hole in it. Same key, same variables, in every locale.
     $en = mizitaFlattenFrontendBundle(mizitaLoadFrontendBundle('en', $bundle));
     $es = mizitaFlattenFrontendBundle(mizitaLoadFrontendBundle('es', $bundle));
 

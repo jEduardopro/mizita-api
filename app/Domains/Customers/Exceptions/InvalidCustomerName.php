@@ -15,6 +15,11 @@ final class InvalidCustomerName extends DomainException implements DomainFailure
         return new self('A customer name cannot be empty.');
     }
 
+    public static function tooLong(): self
+    {
+        return new self('The name offered is longer than a customer name may be.');
+    }
+
     public function errorCode(): string
     {
         return 'invalid_customer_name';

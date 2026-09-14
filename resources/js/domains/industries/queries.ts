@@ -8,13 +8,8 @@ import industriesEn from '@/locales/en/industries.json';
 import { listIndustries } from './api';
 import type { Industry } from './types';
 
-/**
- * Seeded reference data that changes about once a year. `gcTime` matches, or the
- * catalogue would be collected as soon as the only screen using it unmounts.
- */
 const CATALOG_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
-/** Pinned last: `other` is the escape hatch, not an entry in the alphabet. */
 const PINNED_LAST = 'other';
 
 export const industryKeys = {
@@ -33,11 +28,6 @@ export function useIndustries() {
 
 type IndustryKey = keyof typeof industriesEn;
 
-/**
- * The server owns the list and the front end owns the words, so the two can
- * drift by one deploy. An untranslated key renders as itself — plainly wrong to
- * look at, and still pickable — rather than as a blank row.
- */
 function isTranslated(key: string): key is IndustryKey {
     return key in industriesEn;
 }
@@ -49,13 +39,6 @@ function toOption(industry: Industry, t: TFunction<'industries'>): ComboboxOptio
     };
 }
 
-/**
- * The collator is what makes this correct rather than merely sorted: a code
- * point comparison puts `Éxito del cliente` after `Ventas` in Spanish.
- *
- * The pinned row is recognised by its label, because an option carries the
- * server's uuid and a uuid says nothing about which row is the escape hatch.
- */
 export function sortIndustryOptions(options: ComboboxOption[], language: string): ComboboxOption[] {
     const pinnedLabel = i18n.t(PINNED_LAST, { ns: 'industries', lng: language });
     const collator = new Intl.Collator(language, { sensitivity: 'base' });
@@ -79,7 +62,6 @@ type IndustryChoices = {
     refetch: () => void;
 };
 
-/** Ordering depends on the language, which is not a form's concern. */
 export function useIndustryOptions(): IndustryChoices {
     const { data, isPending, isError, refetch } = useIndustries();
     const { t, i18n: instance } = useTranslation('industries');

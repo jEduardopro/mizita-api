@@ -12,15 +12,6 @@ use App\Shared\ValueObjects\PhoneNumber;
 use App\Shared\ValueObjects\PhoneNumberType;
 use DateTimeImmutable;
 
-/**
- * A PhoneNumber spreads across seven columns because each is a fact the platform
- * checked rather than one it can recompute. PhoneNumber::of() re-checks that the
- * three that must agree still do, so a row assembled by hand cannot come back as
- * a number that would be dialled differently from the one stored.
- *
- * The owner uuid travels as a parameter rather than a column: the table holds
- * the owner's int primary key, and resolving the two is the repository's job.
- */
 final class PhoneMapper
 {
     public function toEntity(PhoneModel $model, string $ownerId): Phone

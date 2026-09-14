@@ -8,7 +8,6 @@ import { LegalLink } from '@/components/auth/LegalLink';
 import { UnderlineField } from '@/components/form/UnderlineField';
 import { Button } from '@/components/ui/button';
 
-/** Exactly the payload Fortify's `CreateNewUser` validates. Nothing else. */
 export type SignupForm = {
     name: string;
     email: string;
@@ -26,9 +25,6 @@ export function SignupCard({ form, onSubmit }: Props) {
     const { t } = useTranslation('auth');
     const [mode, setMode] = useState<Mode>('choice');
 
-    // A failed Google callback comes back as `errors.google`, a shared page prop
-    // rather than one of this form's fields. The server's string is the signal,
-    // not the copy: the card says it in its own voice and language.
     const googleFailed = Boolean(usePage().props.errors.google);
 
     return (
@@ -86,10 +82,6 @@ export function SignupCard({ form, onSubmit }: Props) {
                                 error={form.errors.email}
                             />
 
-                            {/* A hint, not a `minLength`: a native constraint
-                                blocks the submit with a bubble written in the
-                                browser's language, next to a form answering in
-                                the locale Laravel resolved. */}
                             <UnderlineField
                                 id="password"
                                 label={t('fields.password')}
@@ -129,9 +121,6 @@ export function SignupCard({ form, onSubmit }: Props) {
                 </div>
             </AuthCard>
 
-            {/* `Trans` keeps the sentence whole: splitting it into a prefix, link
-                labels and a joiner would hard-code Spanish word order into the
-                markup. */}
             <p className="mt-5 text-center text-xs leading-relaxed text-balance text-muted-foreground">
                 <Trans
                     i18nKey="register.legal"

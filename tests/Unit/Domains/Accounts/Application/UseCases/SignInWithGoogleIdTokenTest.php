@@ -20,13 +20,6 @@ use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
 
-/*
-| AuthenticateWithGoogle is collaborated with as the concrete class, not behind
-| a port - a use case composing a use case inside its own domain. So it is the
-| real thing here, built from the same mocks, and the assertions below reach
-| through it to the repositories it drives.
-*/
-
 beforeEach(function () {
     $this->verifier = Mockery::mock(GoogleIdentityVerifier::class);
     $this->accounts = Mockery::mock(AccountRepository::class);
@@ -66,8 +59,6 @@ it('signs in the account behind a verified token', function () {
 });
 
 it('registers a first-time visitor from the identity the token asserts', function () {
-    // The whole translation from credential to account, in one pass: every
-    // field on the new account comes from the verified identity.
     $this->verifier->shouldReceive('verify')->once()
         ->andReturn(GoogleFixtures::identity(
             sub: 'google-subject-9000',
@@ -103,8 +94,6 @@ it('registers a first-time visitor from the identity the token asserts', functio
 });
 
 it('carries the unverified flag through to the takeover guard', function () {
-    // Verifying the token proves who signed it, not that Google checked the
-    // address on it. The guard still has to run.
     $this->verifier->shouldReceive('verify')->once()
         ->andReturn(GoogleFixtures::identity(emailVerified: false));
     $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
@@ -121,8 +110,6 @@ it('propagates an unverifiable token and never authenticates on it', function ()
     $this->verifier->shouldReceive('verify')->once()->with('forged.or.expired')
         ->andThrow(InvalidGoogleIdToken::unverifiable(new RuntimeException('bad signature')));
 
-    // Nothing downstream may run: an unverified credential must not reach a
-    // single lookup, let alone a write.
     $this->socialIdentities->shouldNotReceive('findByProviderUserId');
     $this->accounts->shouldNotReceive('findById');
     $this->accounts->shouldNotReceive('findByEmail');
@@ -148,8 +135,6 @@ it('propagates every way a credential can fail verification', function (InvalidG
 ]);
 
 it('hands the verifier exactly the token it was given, unaltered', function (string $idToken) {
-    // The token is an opaque credential: trimming or re-casing it would change
-    // what gets verified.
     $this->verifier->shouldReceive('verify')->once()->with($idToken)
         ->andThrow(InvalidGoogleIdToken::notAJsonWebToken());
 
@@ -157,6 +142,21 @@ it('hands the verifier exactly the token it was given, unaltered', function (str
         ->toThrow(InvalidGoogleIdToken::class);
 })->with([
     'padded' => '  a.valid.token  ',
-    'empty' => '',
     'mixed case' => 'A.Valid.Token',
+    'not shaped like a jwt at all' => 'nonsense',
+]);
+
+it('refuses a blank credential before the verifier is ever consulted', function (string $idToken) {
+    $this->verifier->shouldNotReceive('verify');
+    $this->socialIdentities->shouldNotReceive('findByProviderUserId');
+    $this->accounts->shouldNotReceive('findByEmail');
+    $this->accounts->shouldNotReceive('save');
+    $this->events->shouldNotReceive('dispatch');
+
+    expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput($idToken)))
+        ->toThrow(InvalidGoogleIdToken::class, 'The supplied credential is not a Google ID token.');
+})->with([
+    'empty' => '',
+    'spaces' => '   ',
+    'tab' => "\t",
 ]);

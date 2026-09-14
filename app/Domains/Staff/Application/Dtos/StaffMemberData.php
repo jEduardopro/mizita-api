@@ -8,12 +8,6 @@ use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use DateTimeImmutable;
 
-/**
- * Output boundary. Entities never leave the application layer, so use cases
- * return this instead.
- *
- * Both identifiers are uuids, as everywhere above Infrastructure.
- */
 final readonly class StaffMemberData
 {
     public function __construct(

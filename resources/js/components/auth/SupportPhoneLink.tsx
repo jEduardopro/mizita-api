@@ -1,7 +1,6 @@
 import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 
-/** `href` is the E.164 digits a dialler needs, `label` the form a person reads. */
 const supportPhone = {
     href: 'tel:+528421133477',
     label: '+52 842 113 3477',
@@ -15,8 +14,6 @@ export function SupportPhoneLink({ className }: Props) {
     const { t } = useTranslation('auth');
 
     return (
-        // A bare string of digits is not an accessible name, so the link is
-        // labelled with the whole sentence and shows only the number.
         <a
             href={supportPhone.href}
             aria-label={t('shell.callUs', { phone: supportPhone.label })}

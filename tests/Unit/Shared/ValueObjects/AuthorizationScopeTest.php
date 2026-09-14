@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 use App\Shared\ValueObjects\AuthorizationScope;
 
-/*
-| A backed enum whose values are a storage contract: the scope column on both
-| permissions and roles carries a check constraint written from these strings, so
-| renaming one here without a migration fails at the database rather than here.
-| The values are pinned as literals for that reason - reading them back off the
-| enum would assert nothing.
-*/
-
 it('spells the two planes exactly as the check constraint does', function () {
     expect(AuthorizationScope::Platform->value)->toBe('platform')
         ->and(AuthorizationScope::Business->value)->toBe('business');

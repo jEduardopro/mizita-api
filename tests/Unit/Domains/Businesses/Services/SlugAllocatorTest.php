@@ -5,12 +5,6 @@ declare(strict_types=1);
 use App\Domains\Businesses\Services\SlugAllocator;
 use App\Domains\Businesses\ValueObjects\Slug;
 
-/*
-| A pure domain service: the candidates are handed to it, so it is instantiated
-| for real - there is nothing to double, and doubling the thing under test would
-| assert only that the test can write a list.
-*/
-
 beforeEach(function () {
     $this->allocator = new SlugAllocator;
     $this->base = Slug::fromName('Barbería López');
@@ -22,8 +16,6 @@ it('hands out the base itself when nothing holds it', function () {
 });
 
 it('starts numbering at two when the base is taken', function () {
-    // The unsuffixed business is conceptually the first, so the second one is
-    // "-2" rather than "-1".
     expect($this->allocator->allocate($this->base, ['barberia-lopez'])->value)->toBe('barberia-lopez-2');
 });
 
@@ -44,25 +36,16 @@ it('takes the next number when the base and some variants are taken', function (
 ]);
 
 it('fills a gap in the sequence rather than counting past it', function () {
-    // A business gave up "-2" and the row went with it. The lowest free number
-    // is the one to hand out; skipping to the end would number by history
-    // instead of by what is free.
     expect($this->allocator->allocate($this->base, ['barberia-lopez', 'barberia-lopez-3'])->value)
         ->toBe('barberia-lopez-2');
 });
 
 it('hands out the bare base when only numbered variants are taken', function () {
-    // The base itself is free - whoever held it is gone - so nothing needs a
-    // number at all.
     expect($this->allocator->allocate($this->base, ['barberia-lopez-2', 'barberia-lopez-3'])->value)
         ->toBe('barberia-lopez');
 });
 
 it('ignores a slug that merely starts with the base', function () {
-    // The case that motivated the design: "barberia-lopez-madrid" is a
-    // different name that happens to begin the same way, and letting it consume
-    // suffix 2 would make the numbering lie about how many businesses share a
-    // name.
     expect($this->allocator->allocate($this->base, ['barberia-lopez-madrid'])->value)
         ->toBe('barberia-lopez');
 
@@ -82,17 +65,12 @@ it('ignores every near miss the repository may have handed it', function (string
 ]);
 
 it('is not fooled by regex metacharacters in the base', function () {
-    // The base is quoted before it is matched. A slug cannot contain a dot
-    // today, but the allocator must not be the thing standing between a future
-    // alphabet change and a wrong answer.
     $dotted = Slug::restore('barberia.lopez');
 
     expect($this->allocator->allocate($dotted, ['barberiaxlopez'])->value)->toBe('barberia.lopez');
 });
 
 it('treats a suffix written with a leading zero as the number it spells', function () {
-    // "-02" is not a slug this platform writes, but if one is in the table it
-    // occupies two, and handing two out again would collide.
     expect($this->allocator->allocate($this->base, ['barberia-lopez', 'barberia-lopez-02'])->value)
         ->toBe('barberia-lopez-3');
 });
@@ -107,6 +85,5 @@ it('shortens a base at the length limit so the numbered address still fits', fun
 });
 
 it('returns the very base it was given when the base is free', function () {
-    // Identity, not just an equal value: nothing is rebuilt on the free path.
     expect($this->allocator->allocate($this->base, []))->toBe($this->base);
 });

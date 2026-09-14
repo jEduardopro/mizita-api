@@ -3,14 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { AccountCta } from '@/components/public/landing/AccountCta';
 import { Section } from '@/components/public/landing/Section';
 
-/** Exported for the header menu, so the anchor is written down once. */
 export const PRICING_ID = 'pricing';
 
-/**
- * The keys are listed one at a time rather than read out of the catalogue as an
- * array, which keeps `t()` checked against the catalogue shape: a renamed key
- * stops compiling here instead of rendering an empty bullet.
- */
 const plans = [
     {
         name: 'free',
@@ -69,9 +63,6 @@ export function PricingPlans() {
                                 : 'border-border',
                         )}
                     >
-                        {/* The name and the badge are each a single word, so at a
-                            320px width the unwrapped pair pushed the grid
-                            sideways. */}
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <h3 className="font-heading text-3xl leading-snug font-medium tracking-[-0.015em]">
                                 {t(`welcome.pricing.plans.${plan.name}.name`)}
@@ -109,8 +100,6 @@ export function PricingPlans() {
                         <ul className="mt-4 space-y-2.5">
                             {plan.features.map((feature) => (
                                 <li key={feature} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
-                                    {/* The same small square the wordmark uses for
-                                        a booked block. */}
                                     <span
                                         aria-hidden="true"
                                         className="mt-[0.4375rem] size-1.5 shrink-0 rounded-[2px] bg-primary/60"
@@ -120,8 +109,6 @@ export function PricingPlans() {
                             ))}
                         </ul>
 
-                        {/* `mt-auto` keeps both cards' buttons on one line whatever
-                            the copy does above them. */}
                         <AccountCta
                             className="mt-auto w-full pt-8 *:w-full *:rounded-lg"
                             size="xl"

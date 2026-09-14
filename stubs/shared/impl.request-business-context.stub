@@ -6,10 +6,6 @@ namespace App\Shared\Infrastructure;
 
 use App\Shared\Contracts\BusinessContext;
 
-/**
- * Immutable holder bound into the container per request by the
- * SetBusinessContext middleware.
- */
 final readonly class RequestBusinessContext implements BusinessContext
 {
     public function __construct(

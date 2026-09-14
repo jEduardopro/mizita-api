@@ -8,11 +8,6 @@ use App\Domains\Accounts\Entities\Account;
 use App\Models\User;
 use DateTimeImmutable;
 
-/**
- * The model is App\Models\User rather than one this domain owns: users is
- * Fortify's and Sanctum's authenticatable and has to stay a single Eloquent
- * class. That deliberate divergence from one model per domain stops here.
- */
 final class AccountMapper
 {
     public function toEntity(User $model): Account
@@ -29,9 +24,6 @@ final class AccountMapper
     }
 
     /**
-     * The password is deliberately absent: omitting the attribute is what stops
-     * linking Google to an existing password account from wiping that password.
-     *
      * @return array<string, mixed>
      */
     public function toAttributes(Account $account): array

@@ -21,9 +21,6 @@ class IndustryModel extends Model
     protected $table = 'industries';
 
     /**
-     * Overridden so the primary key stays an auto-incrementing int; uuid carries
-     * the public identity.
-     *
      * @return array<int, string>
      */
     public function uniqueIds(): array

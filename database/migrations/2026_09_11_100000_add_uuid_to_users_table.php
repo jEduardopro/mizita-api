@@ -10,21 +10,12 @@ use Illuminate\Support\Str;
 
 return new class extends Migration
 {
-    /**
-     * The users table predates the uuid-public / int-internal convention, and
-     * the Account entity needs a uuid identity like every other aggregate.
-     *
-     * The column is added nullable, backfilled, then tightened, so existing
-     * rows survive the change.
-     */
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {
             $table->uuid('uuid')->nullable()->after('id');
         });
 
-        // One statement per row: the table is small at this point, and a single
-        // update cannot produce a distinct uuid per row portably.
         foreach (DB::table('users')->whereNull('uuid')->pluck('id') as $id) {
             DB::table('users')->where('id', $id)->update(['uuid' => (string) Str::uuid7()]);
         }

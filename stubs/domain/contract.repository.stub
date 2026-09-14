@@ -7,10 +7,6 @@ namespace App\Domains\{{ domain }}\Contracts;
 use App\Domains\{{ domain }}\Entities\{{ entity }};
 use App\Domains\{{ domain }}\Exceptions\{{ entity }}NotFound;
 
-/**
- * Port for {{ entity }} persistence. It speaks entities, never Eloquent models
- * or query builders, so use cases stay independent of the database.
- */
 interface {{ entity }}Repository
 {
     /**
@@ -21,8 +17,6 @@ interface {{ entity }}Repository
     public function save({{ entity }} ${{ variable }}): void;
 
     /**
-     * Soft deletes the record. Reads stop returning it; the row is kept.
-     *
      * @throws {{ entity }}NotFound
      */
     public function delete(string $id): void;

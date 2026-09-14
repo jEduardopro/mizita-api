@@ -5,11 +5,6 @@ declare(strict_types=1);
 namespace App\Domains\{{ domain }}\Entities;
 
 {{ entityImports }}
-/**
- * Domain entity: plain PHP, no framework. It owns the business rules and
- * protects its own invariants. Persistence is handled by the repository
- * adapter through {{ entity }}Mapper.
- */
 final class {{ entity }}
 {
     private function __construct(
@@ -18,9 +13,6 @@ final class {{ entity }}
         public readonly DateTimeImmutable $createdAt,
     ) {}
 
-    /**
-     * Creates a brand new {{ variable }}. Enforces creation-time rules.
-     */
     public static function create(
 {{ entityCreateParams }}
         DateTimeImmutable $now,
@@ -32,10 +24,6 @@ final class {{ entity }}
         );
     }
 
-    /**
-     * Rehydrates a {{ variable }} from storage. Skips creation-time rules by
-     * design: the data was already valid when it was written.
-     */
     public static function restore(
 {{ entityRestoreParams }}
         DateTimeImmutable $createdAt,

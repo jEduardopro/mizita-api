@@ -1,18 +1,11 @@
-// The documents are the source of truth for their own title and clause list, so
-// neither is restated in a translation file.
-
 export type LegalSection = {
-    /** The slug the heading carries as its `id`, and the index links to. */
     id: string;
-    /** The clause number the document gives itself, when it numbers its clauses. */
     ordinal: string | null;
-    /** The heading without that number — the index sets the two in their own columns. */
     label: string;
 };
 
 export type LegalContent = {
     title: string;
-    /** The document with that title removed, so the heading is never set twice. */
     body: string;
     sections: LegalSection[];
 };
@@ -20,10 +13,8 @@ export type LegalContent = {
 const TITLE_LINE = /^#\s+(.*)$/;
 const SECTION_LINE = /^##\s+(.*)$/;
 
-/** `1.`, `12.` or `3.1.` at the head of a heading, and the text after it. */
 const NUMBERED_HEADING = /^(\d+(?:\.\d+)*)\.\s+(.*)$/;
 
-/** Decomposing first is what makes `Términos` and `Terminos` the same slug. */
 export function slugify(text: string): string {
     return text
         .normalize('NFD')

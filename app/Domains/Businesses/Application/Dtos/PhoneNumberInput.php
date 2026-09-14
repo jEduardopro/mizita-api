@@ -4,17 +4,43 @@ declare(strict_types=1);
 
 namespace App\Domains\Businesses\Application\Dtos;
 
-/**
- * A phone number exactly as the caller typed it, so that "no phone was offered"
- * and "a phone was offered and turned out not to be real" cannot be confused:
- * the first is a null PhoneNumberInput, the second is this object reaching the
- * use case and being rejected there.
- */
+use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
+
 final readonly class PhoneNumberInput
 {
+    private const COUNTRY_CODE_LENGTH = 2;
+
+    private const MAXIMUM_NATIONAL_NUMBER_LENGTH = 24;
+
     public function __construct(
-        /** An ISO 3166-1 alpha-2 code as submitted; not yet known to be one we serve. */
         public string $countryCode,
         public string $nationalNumber,
     ) {}
+
+    /**
+     * @throws UnsupportedPhoneNumber
+     */
+    public function validate(): void
+    {
+        $this->validateCountryCode();
+        $this->validateNationalNumber();
+    }
+
+    private function validateCountryCode(): void
+    {
+        if (mb_strlen($this->countryCode) !== self::COUNTRY_CODE_LENGTH) {
+            throw UnsupportedPhoneNumber::inCountry($this->countryCode);
+        }
+    }
+
+    private function validateNationalNumber(): void
+    {
+        if (trim($this->nationalNumber) === '') {
+            throw UnsupportedPhoneNumber::malformed($this->countryCode);
+        }
+
+        if (mb_strlen($this->nationalNumber) > self::MAXIMUM_NATIONAL_NUMBER_LENGTH) {
+            throw UnsupportedPhoneNumber::malformed($this->countryCode);
+        }
+    }
 }

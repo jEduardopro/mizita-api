@@ -23,11 +23,6 @@ use Illuminate\Support\ServiceProvider;
 
 final class BusinessesServiceProvider extends ServiceProvider
 {
-    /**
-     * BusinessTeamKey is a shared port rather than one of this domain's, because
-     * its consumer is the HTTP edge and must not import Businesses. It is bound
-     * here because this domain owns the table it reads.
-     */
     public function register(): void
     {
         $this->app->bind(BusinessRepository::class, EloquentBusinessRepository::class);
@@ -40,17 +35,8 @@ final class BusinessesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // enforceMorphMap, not morphMap: an unmapped model fails loudly instead
-        // of quietly storing its class name into rows that outlive any refactor.
-        // The calls merge, so each domain declares only its own.
         Relation::enforceMorphMap(['business' => BusinessModel::class]);
 
-        // Onboarding runs without the "business" middleware on purpose: these
-        // are the routes that produce the membership that middleware demands, so
-        // adding the alias "for consistency" would close signup.
-        //
-        // No throttle on the group either - each route declares its own, because
-        // a budget that suits the write starves the typeahead beside it.
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum'])
             ->group(__DIR__.'/Infrastructure/Http/onboarding.php');

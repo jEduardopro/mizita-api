@@ -7,7 +7,6 @@ type Props = {
     footer: ReactNode;
 };
 
-/** The chrome only. Login uses `AuthSheet`, its sibling, rather than a flag here. */
 export function AuthCard({ heading, description, children, footer }: Props) {
     return (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 sm:p-8 dark:shadow-black/30">

@@ -14,10 +14,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class IndustryResource extends JsonResource
 {
     /**
-     * Deliberately no label: the human-readable name is a translation, keyed by
-     * "key" in the frontend's i18next "industries" namespace, so a new language
-     * is a JSON file on the client and never a migration here.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

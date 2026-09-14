@@ -11,11 +11,6 @@ use App\Domains\Phones\Entities\Phone;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
 
-/**
- * An upsert, not an insert: an owner has at most one phone, enforced by a partial
- * unique index, so a second call has to move the existing record rather than
- * race the constraint with a new row.
- */
 final class AttachPhone
 {
     public function __construct(

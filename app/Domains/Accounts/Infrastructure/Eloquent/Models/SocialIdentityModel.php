@@ -12,12 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-/**
- * Unlinking a provider keeps the history, which is why the provider uniqueness
- * index is partial on deleted_at.
- *
- * Not tenant scoped: Accounts is a root domain.
- */
 #[Fillable(['uuid', 'account_id', 'provider', 'provider_user_id'])]
 class SocialIdentityModel extends Model
 {
@@ -35,9 +29,6 @@ class SocialIdentityModel extends Model
     }
 
     /**
-     * Overridden so the primary key stays an auto-incrementing int; uuid carries
-     * the public identity.
-     *
      * @return array<int, string>
      */
     public function uniqueIds(): array

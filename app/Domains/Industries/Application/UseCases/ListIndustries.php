@@ -8,10 +8,6 @@ use App\Domains\Industries\Application\Dtos\IndustryData;
 use App\Domains\Industries\Contracts\IndustryRepository;
 use App\Domains\Industries\Entities\Industry;
 
-/**
- * No input DTO: the catalog is the same for every caller, because it belongs to
- * the platform and not to a tenant.
- */
 final class ListIndustries
 {
     public function __construct(

@@ -22,15 +22,6 @@ final class AccountsServiceProvider extends ServiceProvider
         $this->app->bind(GoogleIdentityVerifier::class, SocialiteGoogleIdentityVerifier::class);
     }
 
-    /**
-     * Two route groups, deliberately. The OAuth redirect and callback are browser
-     * navigations: Socialite stores a "state" value in the session on the way out
-     * and compares it on the way back, which only works on the "web" stack.
-     *
-     * The ID token endpoint is a real API call, unauthenticated by design, so it
-     * carries its own rate limit. Accounts is a root domain, so neither group
-     * binds a business context.
-     */
     public function boot(): void
     {
         Route::middleware('web')

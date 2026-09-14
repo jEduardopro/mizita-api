@@ -8,14 +8,6 @@ use App\Shared\Contracts\BusinessContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Only for tables whose business_id is a uuid referencing businesses.uuid.
- *
- * Defense in depth, not the primary mechanism: the repository already writes
- * business_id from the entity, and when no context is bound - console commands,
- * migrations, seeders - the scope is skipped. Isolation for HTTP traffic is
- * guaranteed by the "business" route middleware.
- */
 trait BelongsToBusiness
 {
     public static function bootBelongsToBusiness(): void

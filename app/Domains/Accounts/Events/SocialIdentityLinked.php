@@ -6,9 +6,6 @@ namespace App\Domains\Accounts\Events;
 
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 
-/**
- * Domain event: a plain readonly payload carrying identifiers, not entities.
- */
 final readonly class SocialIdentityLinked
 {
     public function __construct(

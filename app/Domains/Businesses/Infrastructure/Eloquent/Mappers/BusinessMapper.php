@@ -12,14 +12,6 @@ use DateTimeImmutable;
 
 final class BusinessMapper
 {
-    /**
-     * Expects the industry relation to be loaded: the entity carries the
-     * industry's uuid and the row carries its int foreign key.
-     *
-     * Slug and Timezone are restored, not validated - this is the one class
-     * their trusting constructors are for, because a read of a row the database
-     * already accepted must not fail.
-     */
     public function toEntity(BusinessModel $model): Business
     {
         return Business::restore(
@@ -33,9 +25,6 @@ final class BusinessMapper
     }
 
     /**
-     * The industry key is passed in rather than looked up: a mapper that queries
-     * is a repository with a different name.
-     *
      * @return array<string, mixed>
      */
     public function toAttributes(Business $business, int $industryKey): array

@@ -7,13 +7,6 @@ namespace Tests\Support;
 use App\Shared\Contracts\IdGenerator;
 use RuntimeException;
 
-/**
- * An IdGenerator handing out a known queue of identifiers, in order.
- *
- * Knowing the ids up front is what lets a test assert the id on the output DTO
- * and the id on a dispatched event are the same value the use case generated,
- * instead of merely asserting "some uuid".
- */
 final class FixedIdGenerator implements IdGenerator
 {
     /** @var list<string> */

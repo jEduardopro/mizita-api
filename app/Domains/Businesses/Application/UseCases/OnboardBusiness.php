@@ -18,6 +18,8 @@ use App\Domains\Businesses\Events\BusinessCreated;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
 use App\Domains\Businesses\Exceptions\BusinessNameNotSluggable;
 use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
+use App\Domains\Businesses\Exceptions\InvalidBusinessName;
+use App\Domains\Businesses\Exceptions\InvalidBusinessOwner;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Domains\Businesses\Exceptions\OwnerAlreadyHasBusiness;
 use App\Domains\Businesses\Exceptions\UnknownIndustry;
@@ -33,10 +35,6 @@ use App\Shared\ValueObjects\CountryCode;
 use App\Shared\ValueObjects\PhoneNumber;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * No BusinessContext: this is the use case that brings a tenant into existence,
- * so the business it creates is the answer, not the input.
- */
 final class OnboardBusiness
 {
     public function __construct(
@@ -54,20 +52,20 @@ final class OnboardBusiness
     ) {}
 
     /**
-     * @throws UnsupportedPhoneNumber when the number offered is not real, or its country is not served
-     * @throws UnknownIndustry when the chosen industry is not in the catalog
-     * @throws BusinessNameNotSluggable when the name yields no usable address
-     * @throws InvalidBusinessTimezone when the time zone is not an IANA identifier
-     * @throws BusinessNameAlreadyTaken when the name is, or has just been, taken
-     * @throws BusinessSlugAlreadyTaken when a concurrent signup won the address
-     * @throws OwnerAlreadyHasBusiness when the caller already owns a business
+     * @throws InvalidBusinessOwner
+     * @throws InvalidBusinessName
+     * @throws UnsupportedPhoneNumber
+     * @throws UnknownIndustry
+     * @throws BusinessNameNotSluggable
+     * @throws InvalidBusinessTimezone
+     * @throws BusinessNameAlreadyTaken
+     * @throws BusinessSlugAlreadyTaken
+     * @throws OwnerAlreadyHasBusiness
      */
     public function handle(OnboardBusinessInput $input): BusinessData
     {
-        // Everything down to the transaction is a read or a pure computation,
-        // kept outside it deliberately: holding a transaction open across work
-        // that writes nothing buys no atomicity and costs a connection. The
-        // phone goes first because rejecting it touches nothing at all.
+        $input->validate();
+
         $phone = $this->parsedPhoneNumber($input->phone);
 
         if (! $this->industries->exists($input->industryId)) {
@@ -88,9 +86,6 @@ final class OnboardBusiness
             fn (): OnboardingOutcome => $this->register($input, $name, $slug, $timezone, $phone),
         );
 
-        // Announced only now that the work has committed. Dispatching inside
-        // the closure would deliver BusinessCreated for a row a later rollback
-        // took away, and a listener cannot un-send a welcome email.
         foreach ($outcome->events as $event) {
             $this->events->dispatch($event);
         }
@@ -98,12 +93,6 @@ final class OnboardBusiness
         return $outcome->business;
     }
 
-    /**
-     * There is no recovery when a concurrent signup wins the name or the slug,
-     * by design: onboarding is a deliberate one-shot action by a person who
-     * typed the name they wanted, so adopting the winner's business would hand
-     * them somebody else's company.
-     */
     private function register(
         OnboardBusinessInput $input,
         string $name,
@@ -122,8 +111,6 @@ final class OnboardBusiness
 
         $this->businesses->save($business);
 
-        // Before the owner, because registering one assigns a role at this
-        // business and a role that does not exist yet cannot be assigned.
         $this->roles->provisionFor($business->id);
 
         $ownerEvents = $this->owners->registerOwner($business->id, $input->ownerAccountId);
@@ -134,8 +121,6 @@ final class OnboardBusiness
 
         return new OnboardingOutcome(
             BusinessData::fromEntity($business),
-            // Order is the contract: a business is announced before anything
-            // that refers to it.
             [new BusinessCreated($business->id), ...$ownerEvents],
         );
     }
@@ -149,9 +134,6 @@ final class OnboardBusiness
             return null;
         }
 
-        // The country arrives as a string because which countries the platform
-        // serves is a business decision, not the shape of a field, so the edge
-        // is not the place that gets to rule on it.
         $country = CountryCode::tryFrom($submitted->countryCode);
 
         if ($country === null) {

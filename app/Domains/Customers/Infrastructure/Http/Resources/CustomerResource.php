@@ -14,9 +14,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class CustomerResource extends JsonResource
 {
     /**
-     * The business id is deliberately not serialised: the caller already
-     * operates inside a single business.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

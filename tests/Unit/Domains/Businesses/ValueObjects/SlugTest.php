@@ -6,15 +6,6 @@ use App\Domains\Businesses\Exceptions\BusinessNameNotSluggable;
 use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use App\Domains\Businesses\ValueObjects\Slug;
 
-/*
-| Pure PHP: a value object has no ports to double and nothing to boot.
-|
-| The alphabet and the length are load-bearing beyond this class - a slug is a
-| first path segment in the making, and the repository states as an invariant
-| that one never carries a LIKE wildcard - so what is asserted here is the
-| output character for character, never merely that something came back.
-*/
-
 describe('normalising a name', function () {
     it('turns a name into the address it will publish', function (string $name, string $expected) {
         expect(Slug::fromName($name)->value)->toBe($expected);
@@ -28,8 +19,6 @@ describe('normalising a name', function () {
     ]);
 
     it('collapses every run of separators into exactly one hyphen', function (string $name, string $expected) {
-        // Spaces, punctuation and the hyphens an owner typed are one thing to
-        // the normaliser: whatever is not alphanumeric is a word boundary.
         expect(Slug::fromName($name)->value)->toBe($expected);
     })->with([
         'repeated spaces' => ['Salón   de   Belleza', 'salon-de-belleza'],
@@ -50,8 +39,6 @@ describe('normalising a name', function () {
     ]);
 
     it('drops what the transliteration table does not cover instead of mangling it', function () {
-        // The table is explicit precisely so unknown scripts fail visibly here
-        // rather than coming back differently on somebody else's machine.
         expect(Slug::fromName('Salon 北京')->value)->toBe('salon');
     });
 });
@@ -70,8 +57,6 @@ describe('names that produce no address', function () {
     ]);
 
     it('refuses every reserved word, whatever case it was typed in', function (string $reserved) {
-        // A slug that shadows /admin or /terms is a routing bug waiting for a
-        // deploy, so the list is asserted entry by entry rather than sampled.
         expect(fn () => Slug::fromName($reserved))->toThrow(BusinessNameNotSluggable::class)
             ->and(Slug::tryFromName(strtoupper($reserved)))->toBeNull()
             ->and(Slug::tryFromName("  {$reserved}  "))->toBeNull();
@@ -81,8 +66,6 @@ describe('names that produce no address', function () {
     ]);
 
     it('allows a name that merely contains a reserved word', function () {
-        // Only the whole address is reserved; "admin" inside a longer one
-        // shadows no route.
         expect(Slug::fromName('Admin Barbers')->value)->toBe('admin-barbers');
     });
 
@@ -95,9 +78,6 @@ describe('names that produce no address', function () {
             $thrown = true;
         }
 
-        // The two are one rule with two answers, so they have to disagree about
-        // nothing: the availability endpoint depends on the nullable twin
-        // refusing exactly what onboarding refuses.
         expect($thrown)->toBe(Slug::tryFromName($name) === null);
     })->with([
         'usable' => 'Barbería Ñandú',
@@ -134,9 +114,6 @@ describe('the sixty character limit', function () {
     });
 
     it('measures the limit after transliteration, not before', function () {
-        // "ß" is one character and two bytes of slug, so a name that fits could
-        // still overflow. Sixty is a byte count because the alphabet it applies
-        // to is ASCII by then.
         $slug = Slug::fromName(str_repeat('ß', 31));
 
         expect(strlen($slug->value))->toBe(60)
@@ -176,8 +153,6 @@ describe('numbering a taken address', function () {
         expect($base->withSuffix(2)->value)->toBe('barberia-la-esquina-de-don-jose-luis-martinez-en-el-centro-2')
             ->and(strlen($base->withSuffix(2)->value))->toBe(60);
 
-        // A longer number eats further into the base: the limit is on the whole
-        // address, not on the part before the hyphen.
         expect($base->withSuffix(10)->value)->toBe('barberia-la-esquina-de-don-jose-luis-martinez-en-el-centr-10')
             ->and(strlen($base->withSuffix(10)->value))->toBe(60);
     });
@@ -228,10 +203,6 @@ describe('a slug arriving as a string', function () {
 
 describe('rehydrating from storage', function () {
     it('accepts a stored value that fromString would refuse', function (string $stored) {
-        // Deliberate, and the reason restore() exists: a row the database
-        // already holds has to stay readable. Enforcing a creation-time rule
-        // here would turn one lax old write into a business nobody can open,
-        // which is a worse failure than the one the invariant prevents.
         expect(Slug::restore($stored)->value)->toBe($stored);
     })->with([
         'written before the rule' => 'Barberia_Nandu',

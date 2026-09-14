@@ -13,10 +13,8 @@ return new class extends Migration
 
     private const NAME_UNIQUE_INDEX = 'businesses_name_lower_unique';
 
-    /** The catalog row every business predating the industry column is filed under. */
     private const FALLBACK_INDUSTRY_KEY = 'other';
 
-    /** Where the product launched. Every pre-existing row was created there. */
     private const FALLBACK_TIMEZONE = 'America/Mexico_City';
 
     public function up(): void
@@ -25,16 +23,10 @@ return new class extends Migration
             $table->foreignId('industry_id')->nullable()->after('slug')
                 ->index()
                 ->constrained('industries')
-                // restrictOnDelete is load-bearing. A cascade on a catalog
-                // foreign key means deleting one catalog row deletes every
-                // business filed under it - a whole industry of tenants gone
-                // because somebody tidied up a lookup table.
                 ->restrictOnDelete();
 
-            // 64 characters covers every IANA identifier PHP ships.
             $table->string('timezone', 64)->nullable()->after('industry_id');
 
-            // Replaced below by a partial, case insensitive index.
             $table->dropUnique(['slug']);
         });
 
@@ -45,11 +37,6 @@ return new class extends Migration
             $table->unsignedBigInteger('industry_id')->nullable(false)->change();
         });
 
-        // Partial and case insensitive, fixing two things the plain unique on
-        // slug got wrong: it matched byte for byte, so "Barberia" and "barberia"
-        // were two businesses to the database and one address to a customer; and
-        // it covered soft deleted rows, so a deleted business reserved its slug
-        // forever and the auto suffix handed the next signup "-2" for nothing.
         DB::statement(
             'create unique index '.self::SLUG_UNIQUE_INDEX.
             ' on businesses (lower(slug)) where deleted_at is null'
@@ -73,13 +60,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Soft deleted rows are included: NOT NULL does not care that a row is
-     * hidden from the application.
-     *
-     * The industry lookup is guarded rather than unconditional because it would
-     * fail on a fresh database, where the catalog has not been seeded yet.
-     */
     private function backfill(): void
     {
         $businesses = DB::table('businesses')->whereNull('industry_id');

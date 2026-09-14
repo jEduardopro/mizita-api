@@ -14,20 +14,6 @@ import {
 } from '@/components/shared/hero/AgendaColumn';
 import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/shared/hero/PhoneFrame';
 
-/**
- * Decorative throughout: it repeats nothing the headline says and holds nothing
- * focusable, so it is hidden from assistive technology once, at the root.
- *
- * Two audiences render it — the landing hero and the signup screen — so the
- * scale steps below are load-bearing in two layouts at once. Change a step and
- * check both.
- */
-
-/**
- * The stage the pieces are laid out on, in px. The stage as a whole is scaled to
- * the column's width — one scale for the composition, never one per piece, which
- * is what keeps the agenda's single-pixel hour rules crisp.
- */
 const STAGE_WIDTH = 440;
 const STAGE_HEIGHT = 520;
 
@@ -49,11 +35,6 @@ export function HeroCollage() {
     const { t, i18n } = useTranslation('public');
 
     return (
-        /*
-         * The wrapper reserves real layout height at the scaled size, and the
-         * clipping is structural: the stage is the only thing on the page that
-         * could push it sideways, and it cannot leave this box.
-         */
         <div
             aria-hidden="true"
             className="relative mx-auto h-[calc(520px*var(--s))] w-[calc(440px*var(--s))] overflow-hidden [--s:0.63] min-[375px]:[--s:0.74] sm:[--s:0.9] lg:[--s:0.94]"
@@ -62,9 +43,6 @@ export function HeroCollage() {
                 className="absolute top-0 left-0 origin-top-left scale-[var(--s)]"
                 style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT }}
             >
-                {/* `rotate` is its own CSS property and the keyframes animate
-                    `translate`, so the tilt and the drift never overwrite one
-                    another. */}
                 <div
                     className="absolute -rotate-3 motion-safe:animate-float-slow"
                     style={{
@@ -97,8 +75,6 @@ export function HeroCollage() {
                     </PhoneFrame>
                 </div>
 
-                {/* The chips are the first thing to go when there is no room:
-                    below `lg` the hero stacks into one column. */}
                 <div
                     className="absolute hidden -rotate-2 lg:block motion-safe:animate-float-fast"
                     style={{

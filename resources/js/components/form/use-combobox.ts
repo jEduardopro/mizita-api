@@ -14,23 +14,18 @@ export type ComboboxOption = {
 };
 
 type Params = {
-    /** The input's id. Every other id in the widget is derived from it. */
     id: string;
-    /** Already sorted by the caller — this hook decides what matches, not what order. */
     options: readonly ComboboxOption[];
     value: string | null;
     onChange: (value: string | null) => void;
 };
 
 type Combobox = {
-    /** Wraps the input and the list, so a blur can tell inside from outside. */
     rootRef: RefObject<HTMLDivElement | null>;
     listId: string;
-    /** The text in the box: what was typed, or the selected option's label. */
     query: string;
     open: boolean;
     filteredOptions: readonly ComboboxOption[];
-    /** The virtually focused row, or -1 when there is nothing to move to. */
     activeIndex: number;
     activeOptionId: string | undefined;
     optionId: (index: number) => string;
@@ -41,10 +36,6 @@ type Combobox = {
     onBlur: (event: FocusEvent<HTMLElement>) => void;
 };
 
-/**
- * Strips accents and case so a Spanish list can be searched from a plain
- * keyboard: `barberia` has to find `Barbería`.
- */
 function fold(text: string): string {
     return text
         .normalize('NFD')
@@ -56,11 +47,6 @@ function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
 }
 
-/**
- * DOM focus never moves off the input: the active row is carried by
- * `aria-activedescendant`, so the caret stays where the person is writing while
- * the arrow keys walk a list they are not standing in.
- */
 export function useCombobox({ id, options, value, onChange }: Params): Combobox {
     const rootRef = useRef<HTMLDivElement>(null);
 
@@ -72,16 +58,11 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
     const [requestedIndex, setRequestedIndex] = useState(0);
     const [shownLabel, setShownLabel] = useState(selectedLabel);
 
-    // Options can arrive after the selection, so a value chosen before the list
-    // loaded has no label until it does. Re-read only while closed, so this never
-    // fights what is being typed.
     if (selectedLabel !== shownLabel && ! open) {
         setShownLabel(selectedLabel);
         setQuery(selectedLabel);
     }
 
-    // Typed text filters, except while it is exactly the selection's own label:
-    // reopening the list after choosing offers every option again.
     const search = query.trim();
     const filteredOptions =
         search !== '' && query !== selectedLabel
@@ -95,8 +76,6 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
     const optionId = (index: number) => `${id}-option-${index}`;
     const activeOptionId = open && activeIndex >= 0 ? optionId(activeIndex) : undefined;
 
-    // Walking the list with the keyboard has to move the list, not just the
-    // highlight.
     useEffect(() => {
         if (activeOptionId === undefined) {
             return;
@@ -134,8 +113,6 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
                 return;
             }
 
-            // Clamped rather than wrapping: holding an arrow key walks in one
-            // direction.
             setRequestedIndex(clamp(activeIndex + (event.key === 'ArrowDown' ? 1 : -1), 0, lastIndex));
 
             return;
@@ -153,8 +130,6 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
         }
 
         if (event.key === 'Enter') {
-            // While the list is showing, Enter belongs to the list. Without this
-            // it would submit the form underneath.
             event.preventDefault();
 
             if (activeOption) {
@@ -171,13 +146,10 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
     }
 
     function onBlur(event: FocusEvent<HTMLElement>) {
-        // Focus moving to the retry button inside the panel is not a blur.
         if (rootRef.current?.contains(event.relatedTarget)) {
             return;
         }
 
-        // Free text is not a value: the box goes back to naming the selection,
-        // or to empty when there is none.
         setOpen(false);
         setQuery(selectedLabel);
         setShownLabel(selectedLabel);

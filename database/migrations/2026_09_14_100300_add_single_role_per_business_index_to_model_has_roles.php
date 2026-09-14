@@ -6,16 +6,6 @@ use App\Domains\Staff\Infrastructure\Permissions\StaffRoleAssignments;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-/**
- * An account holds exactly one role at a business, or none. Two things already
- * lean on that: StaffRoleAssignments::roleFor() takes the first row it finds,
- * and EloquentBusinessMembership::businessIdsFor() would return a business twice
- * for an account holding two roles there.
- *
- * It forecloses multi-role memberships on purpose, and does not constrain how
- * many businesses an account may hold a role at - the owner index added earlier
- * is the one limiting ownership, and it is a different shape.
- */
 return new class extends Migration
 {
     private const SINGLE_ROLE_INDEX = 'model_has_roles_single_role_per_business';

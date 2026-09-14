@@ -18,7 +18,6 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 final class EloquentBusinessRepository implements BusinessRepository
 {
-    /** The partial unique indexes from the businesses migration; if either name changes there, it changes here. */
     private const NAME_UNIQUE_INDEX = 'businesses_name_lower_unique';
 
     private const SLUG_UNIQUE_INDEX = 'businesses_slug_lower_unique';
@@ -40,11 +39,6 @@ final class EloquentBusinessRepository implements BusinessRepository
     }
 
     /**
-     * The LIKE pattern is not escaped, and that is a decision: a base only ever
-     * arrives here from Slug, whose alphabet is [a-z0-9-], so there is no
-     * wildcard to neutralise. A caller that builds a base some other way breaks
-     * that invariant and this query with it.
-     *
      * @return list<string>
      */
     public function slugsMatching(string $base): array
@@ -66,9 +60,6 @@ final class EloquentBusinessRepository implements BusinessRepository
                 $this->mapper->toAttributes($business, $this->industryKeyFor($business)),
             );
         } catch (UniqueConstraintViolationException $violation) {
-            // Knowing what a unique index is stops here. Letting an Illuminate
-            // exception past this boundary would break the layer rule and make
-            // every caller untestable without the framework.
             $this->failFrom($business, $violation);
         }
     }
@@ -81,8 +72,6 @@ final class EloquentBusinessRepository implements BusinessRepository
     private function modelOrFail(string $id): BusinessModel
     {
         $model = BusinessModel::query()
-            // Eager loaded because the mapper reads the industry's uuid from
-            // it. A use case never knows this happened.
             ->with('industry')
             ->where('uuid', $id)
             ->first();
@@ -94,11 +83,6 @@ final class EloquentBusinessRepository implements BusinessRepository
         return $model;
     }
 
-    /**
-     * Reaching for the neighbour's model is allowed here and nowhere else:
-     * translating a public identity into a private one is exactly the work an
-     * adapter exists to do.
-     */
     private function industryKeyFor(Business $business): int
     {
         $key = IndustryModel::query()
@@ -112,11 +96,6 @@ final class EloquentBusinessRepository implements BusinessRepository
         return (int) $key;
     }
 
-    /**
-     * An unrecognised index is not translated: it means a constraint nobody
-     * modelled fired, and dressing that up as a name conflict would tell the
-     * caller something untrue while hiding the real defect.
-     */
     private function failFrom(Business $business, UniqueConstraintViolationException $violation): never
     {
         $message = $violation->getMessage();
