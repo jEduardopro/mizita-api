@@ -52,21 +52,20 @@ it('creates a phone for any kind of owner', function (PhoneOwnerType $ownerType)
 })->with([
     'business' => PhoneOwnerType::Business,
     'staff member' => PhoneOwnerType::StaffMember,
-    'customer' => PhoneOwnerType::Customer,
 ]);
 
 it('rehydrates a phone exactly as it was stored', function () {
     $phone = Phone::restore(
         id: 'phone-1',
-        ownerType: PhoneOwnerType::Customer,
-        ownerId: 'customer-1',
+        ownerType: PhoneOwnerType::StaffMember,
+        ownerId: 'staff-member-1',
         number: aPhoneNumber('7654321'),
         createdAt: phoneCreatedAt(),
     );
 
     expect($phone->id)->toBe('phone-1')
-        ->and($phone->ownerType)->toBe(PhoneOwnerType::Customer)
-        ->and($phone->ownerId)->toBe('customer-1')
+        ->and($phone->ownerType)->toBe(PhoneOwnerType::StaffMember)
+        ->and($phone->ownerId)->toBe('staff-member-1')
         ->and($phone->number()->nationalNumber())->toBe('7654321')
         ->and($phone->createdAt)->toEqual(phoneCreatedAt());
 });

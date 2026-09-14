@@ -27,7 +27,7 @@ final class StaffOwnerRegistrar implements OwnerRegistrar
             return $this->registerBusinessOwner->handle(new RegisterBusinessOwnerInput(
                 businessId: $businessId,
                 accountId: $accountId,
-            ))->events;
+            ))->value()->events;
         } catch (AccountAlreadyOwnsBusiness $conflict) {
             throw OwnerAlreadyHasBusiness::forAccount($accountId, $conflict);
         }

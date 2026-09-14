@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { TileBackdrop } from '@/components/auth/TileBackdrop';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 type Props = {
     title: string;
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export function AuthTileLayout({ title, children }: Props) {
+    useFlashToast();
+
     return (
         <div className="relative min-h-svh text-foreground">
             <Head title={title} />

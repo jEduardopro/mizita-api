@@ -12,7 +12,6 @@ return new class extends Migration
     private const OWNER_TABLES = [
         'business' => 'businesses',
         'staff_member' => 'staff_members',
-        'customer' => 'customers',
     ];
 
     private const OWNER_UNIQUE_INDEX = 'phones_owner_unique';

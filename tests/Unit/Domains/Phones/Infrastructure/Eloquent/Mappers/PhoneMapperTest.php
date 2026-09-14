@@ -93,7 +93,6 @@ describe('entity to row', function () {
     })->with([
         'business' => [PhoneOwnerType::Business, 'business'],
         'staff member' => [PhoneOwnerType::StaffMember, 'staff_member'],
-        'customer' => [PhoneOwnerType::Customer, 'customer'],
     ]);
 
     it('never writes the internal primary key', function () {
@@ -158,7 +157,6 @@ describe('row to entity', function () {
     })->with([
         'business' => ['business', PhoneOwnerType::Business],
         'staff member' => ['staff_member', PhoneOwnerType::StaffMember],
-        'customer' => ['customer', PhoneOwnerType::Customer],
     ]);
 
     it('keeps the instant the row was created', function () {

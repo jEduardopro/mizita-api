@@ -8,6 +8,7 @@ use App\Domains\Phones\Application\Dtos\AttachPhoneInput;
 use App\Domains\Phones\Application\Dtos\PhoneData;
 use App\Domains\Phones\Contracts\PhoneRepository;
 use App\Domains\Phones\Entities\Phone;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
 
@@ -19,13 +20,16 @@ final class AttachPhone
         private readonly Clock $clock,
     ) {}
 
-    public function handle(AttachPhoneInput $input): PhoneData
+    /**
+     * @return UseCaseResponse<PhoneData>
+     */
+    public function handle(AttachPhoneInput $input): UseCaseResponse
     {
         $phone = $this->phoneFor($input);
 
         $this->phones->save($phone);
 
-        return PhoneData::fromEntity($phone);
+        return UseCaseResponse::success(PhoneData::fromEntity($phone));
     }
 
     private function phoneFor(AttachPhoneInput $input): Phone

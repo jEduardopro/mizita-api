@@ -11,9 +11,11 @@ use App\Domains\Accounts\Contracts\GoogleIdentityVerifier;
 use App\Domains\Accounts\Contracts\SocialIdentityRepository;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Entities\SocialIdentity;
-use App\Domains\Accounts\Exceptions\GoogleEmailNotVerified;
+use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Domains\Accounts\Exceptions\InvalidGoogleIdToken;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Shared\Application\UseCaseResponse;
+use App\Shared\ValueObjects\DomainFailureKind;
 use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Accounts\GoogleFixtures;
 use Tests\Support\FakeClock;
@@ -49,7 +51,7 @@ it('signs in the account behind a verified token', function () {
         ->with(GoogleFixtures::EXISTING_ACCOUNT_ID)
         ->andReturn(GoogleFixtures::storedAccount(emailVerifiedAt: GoogleFixtures::now()));
 
-    $data = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'));
+    $data = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'))->value();
 
     expect($data)->toBeInstanceOf(AuthenticatedAccountData::class)
         ->and($data->id)->toBe(GoogleFixtures::EXISTING_ACCOUNT_ID)
@@ -77,7 +79,7 @@ it('registers a first-time visitor from the identity the token asserts', functio
     $this->socialIdentities->shouldReceive('save')->once()->with(Mockery::capture($savedIdentity));
     $this->events->shouldReceive('dispatch')->twice();
 
-    $data = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'));
+    $data = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'))->value();
 
     expect($data->id)->toBe(GoogleFixtures::GENERATED_ACCOUNT_ID)
         ->and($data->name)->toBe('Grace Hopper')
@@ -102,11 +104,16 @@ it('carries the unverified flag through to the takeover guard', function () {
     $this->socialIdentities->shouldNotReceive('save');
     $this->events->shouldNotReceive('dispatch');
 
-    expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token')))
-        ->toThrow(GoogleEmailNotVerified::class, 'Google has not verified the email address [ada@example.com].');
+    $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'));
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('google_email_not_verified')
+        ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+        ->and($response->error()->cause()->getMessage())
+        ->toBe('Google has not verified the email address [ada@example.com].');
 });
 
-it('propagates an unverifiable token and never authenticates on it', function () {
+it('refuses an unverifiable token and never authenticates on it', function () {
     $this->verifier->shouldReceive('verify')->once()->with('forged.or.expired')
         ->andThrow(InvalidGoogleIdToken::unverifiable(new RuntimeException('bad signature')));
 
@@ -117,18 +124,24 @@ it('propagates an unverifiable token and never authenticates on it', function ()
     $this->socialIdentities->shouldNotReceive('save');
     $this->events->shouldNotReceive('dispatch');
 
-    expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput('forged.or.expired')))
-        ->toThrow(InvalidGoogleIdToken::class, 'The Google ID token could not be verified.');
+    $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput('forged.or.expired'));
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('google_invalid_id_token')
+        ->and($response->error()->kind)->toBe(DomainFailureKind::Unauthenticated)
+        ->and($response->error()->cause()->getMessage())->toBe('The Google ID token could not be verified.');
 });
 
-it('propagates every way a credential can fail verification', function (InvalidGoogleIdToken $failure) {
+it('refuses every way a credential can fail verification', function (InvalidGoogleIdToken $failure) {
     $this->verifier->shouldReceive('verify')->once()->andThrow($failure);
 
     $this->socialIdentities->shouldNotReceive('findByProviderUserId');
     $this->events->shouldNotReceive('dispatch');
 
-    expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput('not-a-jwt')))
-        ->toThrow(InvalidGoogleIdToken::class, $failure->getMessage());
+    $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput('not-a-jwt'));
+
+    expect($response->error()->code)->toBe('google_invalid_id_token')
+        ->and($response->error()->cause())->toBe($failure);
 })->with([
     'not a jwt' => InvalidGoogleIdToken::notAJsonWebToken(),
     'no subject claim' => InvalidGoogleIdToken::missingSubject(),
@@ -138,8 +151,8 @@ it('hands the verifier exactly the token it was given, unaltered', function (str
     $this->verifier->shouldReceive('verify')->once()->with($idToken)
         ->andThrow(InvalidGoogleIdToken::notAJsonWebToken());
 
-    expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput($idToken)))
-        ->toThrow(InvalidGoogleIdToken::class);
+    expect($this->useCase->handle(new SignInWithGoogleIdTokenInput($idToken))->error()->code)
+        ->toBe('google_invalid_id_token');
 })->with([
     'padded' => '  a.valid.token  ',
     'mixed case' => 'A.Valid.Token',
@@ -153,10 +166,70 @@ it('refuses a blank credential before the verifier is ever consulted', function 
     $this->accounts->shouldNotReceive('save');
     $this->events->shouldNotReceive('dispatch');
 
-    expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput($idToken)))
-        ->toThrow(InvalidGoogleIdToken::class, 'The supplied credential is not a Google ID token.');
+    $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput($idToken));
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('google_invalid_id_token')
+        ->and($response->error()->cause()->getMessage())
+        ->toBe('The supplied credential is not a Google ID token.');
 })->with([
     'empty' => '',
     'spaces' => '   ',
     'tab' => "\t",
 ]);
+
+describe('the response it hands back', function () {
+    it('reports success with no warning once the token has been honoured', function () {
+        $this->verifier->shouldReceive('verify')->once()->andReturn(GoogleFixtures::identity());
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()
+            ->andReturn(GoogleFixtures::storedIdentity());
+        $this->accounts->shouldReceive('findById')->once()->andReturn(GoogleFixtures::storedAccount());
+
+        $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'));
+
+        expect($response)->toBeInstanceOf(UseCaseResponse::class)
+            ->and($response->succeeded())->toBeTrue()
+            ->and($response->warnings())->toBe([]);
+    });
+
+    it('returns the refusal the authentication produced, rather than wrapping it in one of its own', function () {
+        $missing = AccountNotFound::withId('vanished-account-uuid');
+
+        $this->verifier->shouldReceive('verify')->once()->andReturn(GoogleFixtures::identity());
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()
+            ->andReturn(GoogleFixtures::storedIdentity('vanished-account-uuid'));
+        $this->accounts->shouldReceive('findById')->once()->andThrow($missing);
+
+        $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'));
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('account_not_found')
+            ->and($response->error()->code)->not->toBe('google_invalid_id_token')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($response->error()->cause())->toBe($missing);
+    });
+
+    it('passes a successful authentication straight back, value and all', function () {
+        $account = GoogleFixtures::storedAccount(emailVerifiedAt: GoogleFixtures::now());
+
+        $this->verifier->shouldReceive('verify')->once()->andReturn(GoogleFixtures::identity());
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()
+            ->andReturn(GoogleFixtures::storedIdentity());
+        $this->accounts->shouldReceive('findById')->once()->andReturn($account);
+
+        $response = $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token'));
+
+        expect($response->value())->toEqual(AuthenticatedAccountData::forExistingAccount($account));
+    });
+
+    it('lets a verifier failure that is not a domain failure escape', function () {
+        $this->verifier->shouldReceive('verify')->once()
+            ->andThrow(new RuntimeException('the Google certificate endpoint is unreachable'));
+
+        $this->socialIdentities->shouldNotReceive('findByProviderUserId');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(fn () => $this->useCase->handle(new SignInWithGoogleIdTokenInput('a.valid.token')))
+            ->toThrow(RuntimeException::class, 'the Google certificate endpoint is unreachable');
+    });
+});

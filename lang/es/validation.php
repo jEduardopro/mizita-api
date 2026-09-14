@@ -226,9 +226,6 @@ return [
         'timezone' => 'zona horaria',
         'phone.country_code' => 'país del teléfono',
         'phone.national_number' => 'número de teléfono',
-
-        // Customers.
-        'phone' => 'teléfono',
     ],
 
 ];

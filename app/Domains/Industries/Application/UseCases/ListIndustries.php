@@ -7,6 +7,7 @@ namespace App\Domains\Industries\Application\UseCases;
 use App\Domains\Industries\Application\Dtos\IndustryData;
 use App\Domains\Industries\Contracts\IndustryRepository;
 use App\Domains\Industries\Entities\Industry;
+use App\Shared\Application\UseCaseResponse;
 
 final class ListIndustries
 {
@@ -15,13 +16,13 @@ final class ListIndustries
     ) {}
 
     /**
-     * @return list<IndustryData>
+     * @return UseCaseResponse<list<IndustryData>>
      */
-    public function handle(): array
+    public function handle(): UseCaseResponse
     {
-        return array_map(
+        return UseCaseResponse::success(array_map(
             static fn (Industry $industry): IndustryData => IndustryData::fromEntity($industry),
             $this->industries->allActive(),
-        );
+        ));
     }
 }

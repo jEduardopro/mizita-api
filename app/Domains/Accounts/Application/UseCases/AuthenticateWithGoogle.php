@@ -17,7 +17,9 @@ use App\Domains\Accounts\Exceptions\AccountAlreadyRegistered;
 use App\Domains\Accounts\Exceptions\GoogleEmailNotVerified;
 use App\Domains\Accounts\Exceptions\SocialIdentityAlreadyLinked;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
+use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\IdGenerator;
 use App\Shared\Contracts\TransactionManager;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -33,7 +35,28 @@ final class AuthenticateWithGoogle
         private readonly Dispatcher $events,
     ) {}
 
-    public function handle(AuthenticateWithGoogleInput $input): AuthenticatedAccountData
+    /**
+     * @return UseCaseResponse<AuthenticatedAccountData>
+     */
+    public function handle(AuthenticateWithGoogleInput $input): UseCaseResponse
+    {
+        try {
+            $outcome = $this->authenticate($input);
+        } catch (DomainFailure $failure) {
+            return UseCaseResponse::failure($failure);
+        }
+
+        foreach ($outcome->events as $event) {
+            $this->events->dispatch($event);
+        }
+
+        return UseCaseResponse::success($outcome->account);
+    }
+
+    /**
+     * @throws DomainFailure
+     */
+    private function authenticate(AuthenticateWithGoogleInput $input): AuthenticationOutcome
     {
         $identity = $this->socialIdentities->findByProviderUserId(
             SocialProvider::Google,
@@ -41,9 +64,7 @@ final class AuthenticateWithGoogle
         );
 
         if ($identity !== null) {
-            return AuthenticatedAccountData::forExistingAccount(
-                $this->accounts->findById($identity->accountId),
-            );
+            return $this->alreadyAuthenticated($this->accounts->findById($identity->accountId));
         }
 
         if (! $input->emailVerified) {
@@ -51,15 +72,9 @@ final class AuthenticateWithGoogle
         }
 
         try {
-            $outcome = $this->transactions->run(
+            return $this->transactions->run(
                 fn (): AuthenticationOutcome => $this->linkOrRegister($input),
             );
-
-            foreach ($outcome->events as $event) {
-                $this->events->dispatch($event);
-            }
-
-            return $outcome->account;
         } catch (AccountAlreadyRegistered|SocialIdentityAlreadyLinked $conflict) {
             return $this->adoptConcurrentRegistration($input, $conflict);
         }
@@ -80,25 +95,31 @@ final class AuthenticateWithGoogle
     private function adoptConcurrentRegistration(
         AuthenticateWithGoogleInput $input,
         AccountAlreadyRegistered|SocialIdentityAlreadyLinked $conflict,
-    ): AuthenticatedAccountData {
+    ): AuthenticationOutcome {
         $identity = $this->socialIdentities->findByProviderUserId(
             SocialProvider::Google,
             $input->googleUserId,
         );
 
         if ($identity !== null) {
-            return AuthenticatedAccountData::forExistingAccount(
-                $this->accounts->findById($identity->accountId),
-            );
+            return $this->alreadyAuthenticated($this->accounts->findById($identity->accountId));
         }
 
         $account = $this->accounts->findByEmail($this->normalizedEmail($input->email));
 
         if ($account !== null) {
-            return AuthenticatedAccountData::forExistingAccount($account);
+            return $this->alreadyAuthenticated($account);
         }
 
         throw $conflict;
+    }
+
+    private function alreadyAuthenticated(Account $account): AuthenticationOutcome
+    {
+        return new AuthenticationOutcome(
+            AuthenticatedAccountData::forExistingAccount($account),
+            [],
+        );
     }
 
     private function claim(Account $account, string $googleUserId): AuthenticationOutcome

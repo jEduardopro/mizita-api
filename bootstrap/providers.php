@@ -2,7 +2,6 @@
 
 use App\Domains\Accounts\AccountsServiceProvider;
 use App\Domains\Businesses\BusinessesServiceProvider;
-use App\Domains\Customers\CustomersServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
 use App\Domains\Staff\StaffServiceProvider;
@@ -16,7 +15,6 @@ return [
     FortifyServiceProvider::class,
     AccountsServiceProvider::class,
     BusinessesServiceProvider::class,
-    CustomersServiceProvider::class,
     IndustriesServiceProvider::class,
     PhonesServiceProvider::class,
     StaffServiceProvider::class,

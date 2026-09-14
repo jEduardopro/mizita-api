@@ -9,23 +9,38 @@ use App\Domains\Businesses\Application\UseCases\OnboardBusiness;
 use App\Domains\Businesses\Infrastructure\Http\Requests\CreateBusinessRequest;
 use App\Domains\Businesses\Infrastructure\Http\Resources\BusinessResource;
 use App\Http\Controllers\Controller;
+use App\Http\Responses\ApiResponder;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 final class BusinessController extends Controller
 {
-    public function store(CreateBusinessRequest $request, OnboardBusiness $onboardBusiness): JsonResponse
-    {
+    public function store(
+        CreateBusinessRequest $request,
+        OnboardBusiness $onboardBusiness,
+        ApiResponder $responder,
+    ): JsonResponse {
         /** @var User $owner */
         $owner = $request->user();
 
-        $business = $onboardBusiness->handle(
-            OnboardBusinessInput::fromRequest($request->validated(), $owner->uuid),
-        );
+        try {
+            $response = $onboardBusiness->handle(
+                OnboardBusinessInput::fromRequest($request->validated(), $owner->uuid),
+            );
 
-        return BusinessResource::make($business)
-            ->response()
-            ->setStatusCode(Response::HTTP_CREATED);
+            if ($response->failed()) {
+                return $responder->failure($response->error(), $response->warnings());
+            }
+
+            return $responder->success(
+                $response,
+                BusinessResource::make($response->value()),
+                Response::HTTP_CREATED,
+            );
+        } catch (Throwable $unexpected) {
+            return $responder->unexpected($request, $unexpected);
+        }
     }
 }

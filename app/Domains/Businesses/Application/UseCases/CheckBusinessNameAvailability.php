@@ -7,9 +7,10 @@ namespace App\Domains\Businesses\Application\UseCases;
 use App\Domains\Businesses\Application\Dtos\CheckBusinessNameAvailabilityInput;
 use App\Domains\Businesses\Application\Dtos\NameAvailability;
 use App\Domains\Businesses\Contracts\BusinessRepository;
-use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\Services\SlugAllocator;
 use App\Domains\Businesses\ValueObjects\Slug;
+use App\Shared\Application\UseCaseResponse;
+use App\Shared\Contracts\DomainFailure;
 
 final class CheckBusinessNameAvailability
 {
@@ -19,12 +20,22 @@ final class CheckBusinessNameAvailability
     ) {}
 
     /**
-     * @throws InvalidBusinessName
+     * @return UseCaseResponse<NameAvailability>
      */
-    public function handle(CheckBusinessNameAvailabilityInput $input): NameAvailability
+    public function handle(CheckBusinessNameAvailabilityInput $input): UseCaseResponse
     {
-        $input->validate();
+        try {
+            $input->validate();
+            $availability = $this->check($input);
+        } catch (DomainFailure $failure) {
+            return UseCaseResponse::failure($failure);
+        }
 
+        return UseCaseResponse::success($availability);
+    }
+
+    private function check(CheckBusinessNameAvailabilityInput $input): NameAvailability
+    {
         $name = trim($input->name);
         $base = Slug::tryFromName($name);
 

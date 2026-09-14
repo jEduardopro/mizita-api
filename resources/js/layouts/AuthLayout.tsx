@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { Wordmark } from '@/components/shared/Wordmark';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 type Props = {
     title: string;
@@ -12,6 +13,8 @@ type Props = {
 
 export function AuthLayout({ title, heading, description, children, footer }: Props) {
     const { name } = usePage().props;
+
+    useFlashToast();
 
     return (
         <div className="flex min-h-svh flex-col items-center bg-background px-5 py-12 text-foreground sm:py-20">

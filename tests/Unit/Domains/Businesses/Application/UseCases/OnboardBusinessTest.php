@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Businesses\Application\Dtos\BusinessData;
+use App\Domains\Businesses\Application\Dtos\OnboardBusinessInput;
 use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Application\UseCases\OnboardBusiness;
 use App\Domains\Businesses\Contracts\BusinessRepository;
@@ -13,19 +14,20 @@ use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Events\BusinessCreated;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
-use App\Domains\Businesses\Exceptions\BusinessNameNotSluggable;
+use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
-use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Domains\Businesses\Exceptions\OwnerAlreadyHasBusiness;
 use App\Domains\Businesses\Exceptions\UnknownIndustry;
-use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\Services\SlugAllocator;
+use App\Shared\Application\UseCaseError;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
 use App\Shared\Contracts\PhoneNumberParser;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\ValueObjects\CountryCode;
+use App\Shared\ValueObjects\DomainFailureKind;
 use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Businesses\OnboardingFixtures;
 use Tests\Support\FakeClock;
@@ -66,6 +68,22 @@ beforeEach(function () {
 
     $this->useCase = ($this->build)();
 
+    $this->answer = fn (OnboardBusinessInput $input, ?OnboardBusiness $useCase = null): UseCaseResponse => (
+        $useCase ?? $this->useCase
+    )->handle($input);
+
+    $this->onboard = fn (OnboardBusinessInput $input, ?OnboardBusiness $useCase = null): BusinessData => (
+        ($this->answer)($input, $useCase)
+    )->value();
+
+    $this->refuse = function (OnboardBusinessInput $input, ?OnboardBusiness $useCase = null): UseCaseError {
+        $response = ($this->answer)($input, $useCase);
+
+        expect($response->failed())->toBeTrue();
+
+        return $response->error();
+    };
+
     $this->roles->shouldReceive('provisionFor')->byDefault();
 
     $this->ownerEvents = [new stdClass, new stdClass];
@@ -99,7 +117,7 @@ describe('onboarding a business', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldReceive('dispatch')->times(3);
 
-        $data = $this->useCase->handle(OnboardingFixtures::input());
+        $data = ($this->onboard)(OnboardingFixtures::input());
 
         expect($data)->toBeInstanceOf(BusinessData::class)
             ->and($data->id)->toBe(OnboardingFixtures::GENERATED_BUSINESS_ID)
@@ -126,7 +144,7 @@ describe('onboarding a business', function () {
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $data = $this->useCase->handle(OnboardingFixtures::input());
+        $data = ($this->onboard)(OnboardingFixtures::input());
 
         expect($saved->slug())->toBe('barberia-nandu-3')
             ->and($data->slug)->toBe('barberia-nandu-3');
@@ -144,7 +162,7 @@ describe('onboarding a business', function () {
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $data = $this->useCase->handle(OnboardingFixtures::input(name: '   Barbería Ñandú   '));
+        $data = ($this->onboard)(OnboardingFixtures::input(name: '   Barbería Ñandú   '));
 
         expect($saved->name())->toBe('Barbería Ñandú')
             ->and($data->name)->toBe('Barbería Ñandú');
@@ -159,7 +177,7 @@ describe('onboarding a business', function () {
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        expect($useCase->handle(OnboardingFixtures::input())->createdAt)
+        expect(($this->onboard)(OnboardingFixtures::input(), $useCase)->createdAt)
             ->toEqual(new DateTimeImmutable('2026-03-29T01:30:00+00:00'));
     });
 
@@ -172,7 +190,7 @@ describe('onboarding a business', function () {
             ->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input(ownerAccountId: 'another-account-uuid'));
+        ($this->onboard)(OnboardingFixtures::input(ownerAccountId: 'another-account-uuid'));
     });
 });
 
@@ -186,7 +204,7 @@ describe('the roles the business starts life with', function () {
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
     });
 
     it('provisions them before the owner is registered', function () {
@@ -208,7 +226,7 @@ describe('the roles the business starts life with', function () {
             ->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
 
         expect($order)->toBe(['save', 'provision', 'owner']);
     });
@@ -222,7 +240,7 @@ describe('the roles the business starts life with', function () {
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
 
         expect($this->insideTransaction)->toBe([true]);
     });
@@ -234,8 +252,7 @@ describe('the roles the business starts life with', function () {
         $this->owners->shouldNotReceive('registerOwner');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input()))
-            ->toThrow(UnknownIndustry::class);
+        expect(($this->refuse)(OnboardingFixtures::input())->code)->toBe('unknown_industry');
     });
 
     it('provisions nothing when the time zone guard refuses the signup', function () {
@@ -246,8 +263,8 @@ describe('the roles the business starts life with', function () {
         $this->owners->shouldNotReceive('registerOwner');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(timezone: 'europe/madrid')))
-            ->toThrow(InvalidBusinessTimezone::class);
+        expect(($this->refuse)(OnboardingFixtures::input(timezone: 'europe/madrid'))->code)
+            ->toBe('invalid_timezone');
     });
 });
 
@@ -263,7 +280,7 @@ describe('the unit of work', function () {
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
 
         expect($this->insideTransaction)->toBe([false, false, false])
             ->and($this->transactions->runs())->toBe(1);
@@ -281,7 +298,7 @@ describe('the unit of work', function () {
             ->with(Mockery::on($this->recordTransactionState), Mockery::any());
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
+        ($this->onboard)(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
 
         expect($this->insideTransaction)->toBe([true, true, true, true])
             ->and($this->transactions->runs())->toBe(1);
@@ -301,7 +318,7 @@ describe('the contact number', function () {
         $this->phones->shouldReceive('attachToBusiness')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, Mockery::capture($filed));
 
-        $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
+        ($this->onboard)(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
 
         expect($filed->equals(OnboardingFixtures::phone()))->toBeTrue()
             ->and($filed->e164())->toBe(PhoneNumbers::MX_E164);
@@ -310,7 +327,7 @@ describe('the contact number', function () {
     it('asks the parser once, with the country declared and the string as typed', function () {
         $this->phones->shouldReceive('attachToBusiness')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input(
+        ($this->onboard)(OnboardingFixtures::input(
             phone: new PhoneNumberInput('MX', ' (55) 1234-5678 '),
         ));
 
@@ -324,7 +341,7 @@ describe('the contact number', function () {
         $this->phones->shouldReceive('attachToBusiness')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, Mockery::capture($filed));
 
-        $this->useCase->handle(OnboardingFixtures::input(
+        ($this->onboard)(OnboardingFixtures::input(
             phone: OnboardingFixtures::submittedPhone($country, $national),
         ));
 
@@ -337,7 +354,7 @@ describe('the contact number', function () {
     it('never touches the phone book or the parser when no number was given', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
 
         expect($this->parser->wasConsulted())->toBeFalse();
     });
@@ -356,9 +373,13 @@ describe('a number the platform cannot accept', function () {
     });
 
     it('refuses a country the platform does not operate in, without asking the parser', function (string $countryCode) {
-        expect(fn () => $this->useCase->handle(
+        $error = ($this->refuse)(
             OnboardingFixtures::input(phone: new PhoneNumberInput($countryCode, '5512345678')),
-        ))->toThrow(UnsupportedPhoneNumber::class, "[{$countryCode}] is not a country this platform operates in.");
+        );
+
+        expect($error->code)->toBe('unsupported_phone_number')
+            ->and($error->cause()->getMessage())
+            ->toBe("[{$countryCode}] is not a country this platform operates in.");
 
         expect($this->parser->wasConsulted())->toBeFalse()
             ->and($this->transactions->runs())->toBe(0);
@@ -372,9 +393,14 @@ describe('a number the platform cannot accept', function () {
     it('refuses digits that are not a number in a country it does serve', function () {
         $useCase = ($this->build)(parser: FakePhoneNumberParser::acceptingNothing());
 
-        expect(fn () => $useCase->handle(
+        $error = ($this->refuse)(
             OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone(CountryCode::Us, '8421133471')),
-        ))->toThrow(UnsupportedPhoneNumber::class, 'The number offered is not a valid phone number in [US].');
+            $useCase,
+        );
+
+        expect($error->code)->toBe('unsupported_phone_number')
+            ->and($error->cause()->getMessage())
+            ->toBe('The number offered is not a valid phone number in [US].');
 
         expect($this->transactions->runs())->toBe(0);
     });
@@ -389,7 +415,7 @@ describe('announcing what happened', function () {
         $this->events->shouldReceive('dispatch')->times(3)
             ->with(Mockery::on($this->recordTransactionState));
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
 
         expect($this->insideTransaction)->toBe([false, false, false])
             ->and($this->transactions->runs())->toBe(1);
@@ -408,7 +434,7 @@ describe('announcing what happened', function () {
                 return true;
             }));
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
 
         expect($announced[0])->toBeInstanceOf(BusinessCreated::class)
             ->and($announced[0]->id)->toBe(OnboardingFixtures::GENERATED_BUSINESS_ID)
@@ -423,7 +449,7 @@ describe('announcing what happened', function () {
 
         $this->events->shouldReceive('dispatch')->once()->with(Mockery::type(BusinessCreated::class));
 
-        $this->useCase->handle(OnboardingFixtures::input());
+        ($this->onboard)(OnboardingFixtures::input());
     });
 
     it('announces nothing when the commit itself fails', function () {
@@ -446,6 +472,49 @@ describe('announcing what happened', function () {
 
         expect($thrown)->toBe($commitFailure);
     });
+
+    it('lets a domain failure a listener raises after the commit escape, never answering with one', function () {
+        ($this->arrangeReads)();
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+
+        $listenerFailure = BusinessNotFound::withId(OnboardingFixtures::GENERATED_BUSINESS_ID);
+        $this->events->shouldReceive('dispatch')->once()->andThrow($listenerFailure);
+
+        try {
+            $this->useCase->handle(OnboardingFixtures::input());
+            $thrown = null;
+        } catch (Throwable $failure) {
+            $thrown = $failure;
+        }
+
+        expect($thrown)->toBe($listenerFailure)
+            ->and($this->transactions->runs())->toBe(1);
+    });
+
+    it('stops announcing at the listener that failed, and still never answers with a failure', function () {
+        ($this->arrangeReads)();
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn($this->ownerEvents);
+
+        $announced = [];
+        $this->events->shouldReceive('dispatch')->twice()
+            ->with(Mockery::on(function (object $event) use (&$announced): bool {
+                $announced[] = $event;
+
+                return true;
+            }))
+            ->andReturnUsing(function () use (&$announced): void {
+                if (count($announced) === 2) {
+                    throw BusinessNotFound::withId(OnboardingFixtures::GENERATED_BUSINESS_ID);
+                }
+            });
+
+        expect(fn () => $this->useCase->handle(OnboardingFixtures::input()))
+            ->toThrow(BusinessNotFound::class);
+
+        expect($announced)->toHaveCount(2);
+    });
 });
 
 describe('refusing to onboard', function () {
@@ -462,8 +531,10 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(industryId: $retiredIndustryId)))
-            ->toThrow(UnknownIndustry::class, "Industry [{$retiredIndustryId}] is not in the catalog.");
+        $error = ($this->refuse)(OnboardingFixtures::input(industryId: $retiredIndustryId));
+
+        expect($error->code)->toBe('unknown_industry')
+            ->and($error->cause()->getMessage())->toBe("Industry [{$retiredIndustryId}] is not in the catalog.");
 
         expect($this->transactions->runs())->toBe(0);
     });
@@ -477,8 +548,10 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(industryId: $industryId)))
-            ->toThrow(UnknownIndustry::class, "Industry [{$industryId}] is not in the catalog.");
+        $error = ($this->refuse)(OnboardingFixtures::input(industryId: $industryId));
+
+        expect($error->code)->toBe('unknown_industry')
+            ->and($error->cause()->getMessage())->toBe("Industry [{$industryId}] is not in the catalog.");
 
         expect($this->transactions->runs())->toBe(0);
     })->with([
@@ -499,8 +572,10 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input()))
-            ->toThrow(BusinessNameAlreadyTaken::class, 'A business named [Barbería Ñandú] already exists.');
+        $error = ($this->refuse)(OnboardingFixtures::input());
+
+        expect($error->code)->toBe('business_name_taken')
+            ->and($error->cause()->getMessage())->toBe('A business named [Barbería Ñandú] already exists.');
 
         expect($this->transactions->runs())->toBe(0);
     });
@@ -515,8 +590,8 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(name: $name)))
-            ->toThrow(BusinessNameNotSluggable::class);
+        expect(($this->refuse)(OnboardingFixtures::input(name: $name))->code)
+            ->toBe('business_name_not_sluggable');
 
         expect($this->transactions->runs())->toBe(0);
     })->with([
@@ -533,8 +608,11 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(timezone: 'europe/madrid')))
-            ->toThrow(InvalidBusinessTimezone::class, '[europe/madrid] is not a valid IANA time zone identifier.');
+        $error = ($this->refuse)(OnboardingFixtures::input(timezone: 'europe/madrid'));
+
+        expect($error->code)->toBe('invalid_timezone')
+            ->and($error->cause()->getMessage())
+            ->toBe('[europe/madrid] is not a valid IANA time zone identifier.');
 
         expect($this->transactions->runs())->toBe(0);
     });
@@ -550,14 +628,10 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        try {
-            $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
-            $thrown = null;
-        } catch (Throwable $failure) {
-            $thrown = $failure;
-        }
+        $error = ($this->refuse)(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
 
-        expect($thrown)->toBe($conflict)
+        expect($error->code)->toBe('business_name_taken')
+            ->and($error->cause())->toBe($conflict)
             ->and($this->transactions->runs())->toBe(1);
     });
 
@@ -572,14 +646,10 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        try {
-            $this->useCase->handle(OnboardingFixtures::input());
-            $thrown = null;
-        } catch (Throwable $failure) {
-            $thrown = $failure;
-        }
+        $error = ($this->refuse)(OnboardingFixtures::input());
 
-        expect($thrown)->toBe($conflict);
+        expect($error->code)->toBe('business_slug_taken')
+            ->and($error->cause())->toBe($conflict);
     });
 
     it('announces nothing when the caller already owns a business', function () {
@@ -592,8 +662,8 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone())))
-            ->toThrow(OwnerAlreadyHasBusiness::class);
+        expect(($this->refuse)(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()))->code)
+            ->toBe('owner_already_has_business');
     });
 
     it('announces nothing when filing the phone number fails', function () {
@@ -608,6 +678,83 @@ describe('refusing to onboard', function () {
 
         expect(fn () => $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone())))
             ->toThrow(RuntimeException::class, 'the phone book rejected the row');
+    });
+});
+
+describe('the shape of the answer', function () {
+    it('succeeds with the business data and no warnings when everything holds', function () {
+        ($this->arrangeReads)();
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        $response = ($this->answer)(OnboardingFixtures::input());
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->failed())->toBeFalse()
+            ->and($response->warnings())->toBe([])
+            ->and($response->value())->toBeInstanceOf(BusinessData::class);
+    });
+
+    it('answers with a failure instead of throwing when a domain rule refuses', function () {
+        $this->industries->shouldReceive('exists')->andReturn(false);
+        $this->businesses->shouldNotReceive('save');
+        $this->events->shouldNotReceive('dispatch');
+
+        $response = ($this->answer)(OnboardingFixtures::input());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('unknown_industry')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+            ->and($response->error()->cause())->toBeInstanceOf(UnknownIndustry::class);
+    });
+
+    it('classifies a losing race as a conflict, which is the 409 the client sees', function () {
+        ($this->arrangeReads)();
+        $this->businesses->shouldReceive('save')->once()
+            ->andThrow(BusinessSlugAlreadyTaken::for(OnboardingFixtures::SLUG));
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(($this->refuse)(OnboardingFixtures::input())->kind)->toBe(DomainFailureKind::Conflict);
+    });
+
+    it('keeps the original exception reachable, so the unwrapping caller gets the same instance', function () {
+        ($this->arrangeReads)();
+
+        $conflict = BusinessSlugAlreadyTaken::for(OnboardingFixtures::SLUG);
+        $this->businesses->shouldReceive('save')->once()->andThrow($conflict);
+        $this->events->shouldNotReceive('dispatch');
+
+        $response = ($this->answer)(OnboardingFixtures::input());
+
+        expect(fn () => $response->value())->toThrow($conflict);
+    });
+
+    it('lets a programmer error escape rather than dressing it as a domain failure', function () {
+        $bug = new RuntimeException('the industry catalog connection went away');
+        $this->industries->shouldReceive('exists')->once()->andThrow($bug);
+        $this->businesses->shouldNotReceive('save');
+        $this->events->shouldNotReceive('dispatch');
+
+        try {
+            $this->useCase->handle(OnboardingFixtures::input());
+            $thrown = null;
+        } catch (Throwable $failure) {
+            $thrown = $failure;
+        }
+
+        expect($thrown)->toBe($bug)
+            ->and($this->transactions->runs())->toBe(0);
+    });
+
+    it('refuses an input the form request never saw, because handle validates before it reads anything', function () {
+        $this->industries->shouldNotReceive('exists');
+        $this->businesses->shouldNotReceive('existsByName');
+        $this->businesses->shouldNotReceive('save');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(($this->refuse)(OnboardingFixtures::input(ownerAccountId: '   '))->code)
+            ->toBe('invalid_business_owner');
     });
 });
 
@@ -632,4 +779,19 @@ describe('what it deliberately does not depend on', function () {
             Dispatcher::class,
         ])->and($ports)->not->toContain(BusinessContext::class);
     });
+
+    it('takes no port that answers with a use case response, because one inside the transaction would commit', function (string $port) {
+        $returnTypes = array_map(
+            static fn (ReflectionMethod $method): string => (string) $method->getReturnType(),
+            (new ReflectionClass($port))->getMethods(),
+        );
+
+        expect($returnTypes)->not->toContain(UseCaseResponse::class);
+    })->with([
+        'the business repository' => BusinessRepository::class,
+        'the industry catalog' => IndustryCatalog::class,
+        'the role provisioner' => RoleProvisioner::class,
+        'the owner registrar' => OwnerRegistrar::class,
+        'the phone book' => PhoneBook::class,
+    ]);
 });

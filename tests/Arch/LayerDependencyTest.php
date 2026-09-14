@@ -73,6 +73,27 @@ arch('the shared value objects drag no framework into the domain layer')
     ->expect('App\Shared\ValueObjects')
     ->not->toUse(['Illuminate', 'Laravel', 'Carbon']);
 
+arch('the shared application layer drags no framework into the use cases')
+    ->expect('App\Shared\Application')
+    ->not->toUse(['Illuminate', 'Laravel', 'Symfony', 'Inertia', 'Carbon']);
+
+arch('keeps the response every use case returns ignorant of every domain')
+    ->expect('App\Shared\Application')
+    ->not->toUse('App\Domains');
+
+arch('the shared application layer is final')
+    ->expect('App\Shared\Application')
+    ->classes()
+    ->toBeFinal();
+
+arch('the shared exceptions drag no framework into the use cases')
+    ->expect('App\Shared\Exceptions')
+    ->not->toUse(['Illuminate', 'Laravel', 'Symfony', 'Inertia', 'Carbon']);
+
+arch('keeps the shared exceptions ignorant of every domain')
+    ->expect('App\Shared\Exceptions')
+    ->not->toUse('App\Domains');
+
 it('keeps the phone-parsing library inside the one adapter that may see it', function () {
     $app = dirname(__DIR__, 2).'/app/';
 

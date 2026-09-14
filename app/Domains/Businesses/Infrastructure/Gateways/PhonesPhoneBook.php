@@ -22,6 +22,6 @@ final class PhonesPhoneBook implements PhoneBook
             ownerType: PhoneOwnerType::Business,
             ownerId: $businessId,
             number: $phone,
-        ));
+        ))->value();
     }
 }

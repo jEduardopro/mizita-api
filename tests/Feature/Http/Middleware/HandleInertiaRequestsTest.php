@@ -40,6 +40,27 @@ it('shares the supported list straight from config, so the frontend mirrors one 
         ->assertInertia(fn (AssertableInertia $page) => $page->where('supportedLocales', ['es', 'en', 'ca']));
 });
 
+it('shares the application name and an empty status when the session carries none', function () {
+    $this->get('/')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('name', config('app.name'))
+            ->where('status', null)
+        );
+});
+
+it('shares a flash bag whose error is null when the session carries none', function () {
+    $this->get('/')
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('flash', ['error' => null]));
+});
+
+it('shares the flash error the session was left with', function () {
+    $this->withSession(['error' => 'Algo ha ido mal por nuestra parte. Inténtalo de nuevo.'])
+        ->get('/')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('flash.error', 'Algo ha ido mal por nuestra parte. Inténtalo de nuevo.')
+        );
+});
+
 it('renders the root document in the resolved language', function () {
     $this->get('/?lang=en')->assertSee('<html lang="en"', escape: false);
     $this->get('/')->assertSee('<html lang="es"', escape: false);

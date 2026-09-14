@@ -82,14 +82,19 @@ return [
         'industry_not_found' => 'No hemos encontrado ese rubro.',
         'staff_member_not_found' => 'No hemos encontrado a esa persona del equipo.',
 
-        // Customers.
-        'customer_not_found' => 'No hemos encontrado a ese cliente.',
-        'customer_name_taken' => 'Ya existe un cliente con ese nombre.',
-        'customer_already_inactive' => 'Ese cliente ya está inactivo.',
-        'invalid_customer_name' => 'Ese nombre de cliente no es válido.',
-        'invalid_customer_email' => 'Ese correo electrónico de cliente no es válido.',
-        'invalid_customer_phone' => 'Ese número de teléfono de cliente no es válido.',
-
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Warnings
+    |--------------------------------------------------------------------------
+    |
+    | A warning rides alongside a successful response: the work was done, but
+    | something secondary did not go to plan. Keyed exactly like errors, so a
+    | Warning code is looked up here and nowhere else.
+    |
+    */
+
+    'warnings' => [],
 
 ];

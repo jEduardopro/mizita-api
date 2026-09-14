@@ -8,6 +8,8 @@ use App\Domains\Accounts\Application\Dtos\AuthenticatedAccountData;
 use App\Domains\Accounts\Application\Dtos\AuthenticateWithGoogleInput;
 use App\Domains\Accounts\Application\Dtos\SignInWithGoogleIdTokenInput;
 use App\Domains\Accounts\Contracts\GoogleIdentityVerifier;
+use App\Shared\Application\UseCaseResponse;
+use App\Shared\Contracts\DomainFailure;
 
 final class SignInWithGoogleIdToken
 {
@@ -16,11 +18,17 @@ final class SignInWithGoogleIdToken
         private readonly AuthenticateWithGoogle $authenticate,
     ) {}
 
-    public function handle(SignInWithGoogleIdTokenInput $input): AuthenticatedAccountData
+    /**
+     * @return UseCaseResponse<AuthenticatedAccountData>
+     */
+    public function handle(SignInWithGoogleIdTokenInput $input): UseCaseResponse
     {
-        $input->validate();
-
-        $identity = $this->verifier->verify($input->idToken);
+        try {
+            $input->validate();
+            $identity = $this->verifier->verify($input->idToken);
+        } catch (DomainFailure $failure) {
+            return UseCaseResponse::failure($failure);
+        }
 
         return $this->authenticate->handle(
             AuthenticateWithGoogleInput::fromGoogleIdentity($identity),

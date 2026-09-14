@@ -11,7 +11,9 @@ use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Events\StaffMemberRegistered;
 use App\Domains\Staff\Exceptions\AccountAlreadyOwnsBusiness;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
+use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\IdGenerator;
 
 final class RegisterBusinessOwner
@@ -22,7 +24,24 @@ final class RegisterBusinessOwner
         private readonly Clock $clock,
     ) {}
 
-    public function handle(RegisterBusinessOwnerInput $input): StaffMemberRegistration
+    /**
+     * @return UseCaseResponse<StaffMemberRegistration>
+     */
+    public function handle(RegisterBusinessOwnerInput $input): UseCaseResponse
+    {
+        try {
+            $registration = $this->register($input);
+        } catch (DomainFailure $failure) {
+            return UseCaseResponse::failure($failure);
+        }
+
+        return UseCaseResponse::success($registration);
+    }
+
+    /**
+     * @throws AccountAlreadyOwnsBusiness
+     */
+    private function register(RegisterBusinessOwnerInput $input): StaffMemberRegistration
     {
         if ($this->staffMembers->ownsAnyBusiness($input->accountId)) {
             throw AccountAlreadyOwnsBusiness::forAccount($input->accountId);

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 import { useLogOut } from '@/hooks/use-log-out';
 
 type Props = {
@@ -16,6 +17,8 @@ export function AdminLayout({ title, description, actions, children }: Props) {
     const { name } = usePage().props;
     const { t } = useTranslation('common');
     const logOut = useLogOut();
+
+    useFlashToast();
 
     return (
         <div className="flex min-h-svh flex-col bg-background text-foreground">

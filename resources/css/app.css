@@ -232,6 +232,15 @@
     color: var(--destructive);
 }
 
+[data-sonner-toast][data-type='warning'] {
+    --normal-bg: color-mix(in oklab, var(--warning-surface) 55%, var(--popover));
+    --normal-border: color-mix(in oklab, var(--warning) 32%, var(--popover));
+}
+
+[data-sonner-toast][data-type='warning'] [data-icon] {
+    color: var(--warning);
+}
+
 [data-sonner-toast] [data-close-button]::after {
     content: '';
     position: absolute;

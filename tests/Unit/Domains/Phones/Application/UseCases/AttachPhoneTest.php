@@ -8,6 +8,7 @@ use App\Domains\Phones\Application\UseCases\AttachPhone;
 use App\Domains\Phones\Contracts\PhoneRepository;
 use App\Domains\Phones\Entities\Phone;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\PhoneNumberParser;
 use Tests\Support\FakeClock;
 use Tests\Support\FixedIdGenerator;
@@ -55,7 +56,7 @@ describe('when the owner has no phone yet', function () {
                 && $phone->ownerId === 'business-1'
                 && $phone->number()->e164() === '+525512345678'));
 
-        $data = $this->useCase->handle(attachPhoneInput());
+        $data = $this->useCase->handle(attachPhoneInput())->value();
 
         expect($data)->toBeInstanceOf(PhoneData::class)
             ->and($data->id)->toBe(ATTACH_PHONE_GENERATED_ID)
@@ -89,19 +90,18 @@ describe('when the owner has no phone yet', function () {
             ->with($ownerType, 'owner-1')->andReturnNull();
         $this->phones->shouldReceive('save')->once();
 
-        expect($this->useCase->handle(attachPhoneInput($ownerType, 'owner-1'))->ownerType)
+        expect($this->useCase->handle(attachPhoneInput($ownerType, 'owner-1'))->value()->ownerType)
             ->toBe($ownerType);
     })->with([
         'business' => PhoneOwnerType::Business,
         'staff member' => PhoneOwnerType::StaffMember,
-        'customer' => PhoneOwnerType::Customer,
     ]);
 
     it('stamps the phone with the injected clock, never with real time', function () {
         $this->phones->shouldReceive('findForOwner')->once()->andReturnNull();
         $this->phones->shouldReceive('save')->once();
 
-        expect($this->useCase->handle(attachPhoneInput())->createdAt)
+        expect($this->useCase->handle(attachPhoneInput())->value()->createdAt)
             ->toEqual(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
     });
 });
@@ -125,7 +125,7 @@ describe('when the owner already has a phone', function () {
             ->with(Mockery::on(fn (Phone $phone): bool => $phone === $this->existing
                 && $phone->number()->e164() === '+525512345678'));
 
-        $data = $this->useCase->handle(attachPhoneInput());
+        $data = $this->useCase->handle(attachPhoneInput())->value();
 
         expect($data->number->e164())->toBe('+525512345678');
     });
@@ -134,7 +134,7 @@ describe('when the owner already has a phone', function () {
         $this->phones->shouldReceive('findForOwner')->once()->andReturn($this->existing);
         $this->phones->shouldReceive('save')->once();
 
-        $data = $this->useCase->handle(attachPhoneInput());
+        $data = $this->useCase->handle(attachPhoneInput())->value();
 
         expect($data->id)->toBe(ATTACH_PHONE_EXISTING_ID)
             ->and($data->id)->not->toBe(ATTACH_PHONE_GENERATED_ID)
@@ -148,7 +148,7 @@ describe('when the owner already has a phone', function () {
         $this->phones->shouldReceive('save')->twice();
 
         $this->useCase->handle(attachPhoneInput(nationalNumber: '5512345678'));
-        $final = $this->useCase->handle(attachPhoneInput(nationalNumber: '5587654321'));
+        $final = $this->useCase->handle(attachPhoneInput(nationalNumber: '5587654321'))->value();
 
         expect($final->id)->toBe(ATTACH_PHONE_EXISTING_ID)
             ->and($final->number->e164())->toBe('+525587654321');
@@ -158,8 +158,41 @@ describe('when the owner already has a phone', function () {
         $this->phones->shouldReceive('findForOwner')->once()->andReturn($this->existing);
         $this->phones->shouldReceive('save')->once();
 
-        expect($this->useCase->handle(attachPhoneInput(nationalNumber: '5500000000'))->number->e164())
+        expect($this->useCase->handle(attachPhoneInput(nationalNumber: '5500000000'))->value()->number->e164())
             ->toBe('+525500000000');
+    });
+});
+
+describe('the response it hands back', function () {
+    it('reports success and carries no warning', function () {
+        $this->phones->shouldReceive('findForOwner')->once()->andReturnNull();
+        $this->phones->shouldReceive('save')->once();
+
+        $response = $this->useCase->handle(attachPhoneInput());
+
+        expect($response)->toBeInstanceOf(UseCaseResponse::class)
+            ->and($response->succeeded())->toBeTrue()
+            ->and($response->failed())->toBeFalse()
+            ->and($response->warnings())->toBe([])
+            ->and($response->value())->toBeInstanceOf(PhoneData::class);
+    });
+
+    it('lets a lookup failure escape rather than dressing it as a refusal', function () {
+        $this->phones->shouldReceive('findForOwner')->once()
+            ->andThrow(new RuntimeException('SQLSTATE[08006] connection failure'));
+        $this->phones->shouldNotReceive('save');
+
+        expect(fn () => $this->useCase->handle(attachPhoneInput()))
+            ->toThrow(RuntimeException::class, 'SQLSTATE[08006] connection failure');
+    });
+
+    it('lets a write failure escape rather than dressing it as a refusal', function () {
+        $this->phones->shouldReceive('findForOwner')->once()->andReturnNull();
+        $this->phones->shouldReceive('save')->once()
+            ->andThrow(new RuntimeException('SQLSTATE[23505] duplicate key'));
+
+        expect(fn () => $this->useCase->handle(attachPhoneInput()))
+            ->toThrow(RuntimeException::class, 'SQLSTATE[23505] duplicate key');
     });
 });
 

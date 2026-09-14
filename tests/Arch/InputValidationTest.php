@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Shared\Application\UseCaseResponse;
 use PHPUnit\Framework\Assert;
+use Tests\Support\Architecture\BareValueUseCase;
 use Tests\Support\Architecture\CommentedConformingUseCase;
 use Tests\Support\Architecture\ConformingUseCase;
 use Tests\Support\Architecture\DomainLayers;
 use Tests\Support\Architecture\LateValidatingUseCase;
 use Tests\Support\Architecture\UnvalidatedInput;
+use Tests\Support\Architecture\UnvalidatedUseCase;
 use Tests\Support\Architecture\ValidatableInput;
 
 /**
@@ -42,7 +45,10 @@ function mizitaDeclares(string $class, string $method): bool
         && $reflection->getMethod($method)->getDeclaringClass()->getName() === $class;
 }
 
-function mizitaFirstStatementOf(ReflectionMethod $method): string
+/**
+ * @return list<string>
+ */
+function mizitaLeadingStatementsOf(ReflectionMethod $method, int $limit): array
 {
     $file = (string) $method->getFileName();
     $lines = array_slice(
@@ -52,6 +58,7 @@ function mizitaFirstStatementOf(ReflectionMethod $method): string
     );
 
     $body = substr((string) strstr(implode("\n", $lines), '{'), 1);
+    $statements = [];
     $inBlockComment = false;
 
     foreach (explode("\n", $body) as $line) {
@@ -73,10 +80,21 @@ function mizitaFirstStatementOf(ReflectionMethod $method): string
             continue;
         }
 
-        return $line;
+        $statements[] = $line;
+
+        if (count($statements) === $limit) {
+            return $statements;
+        }
     }
 
-    return '';
+    return $statements;
+}
+
+function mizitaReturnTypeOf(ReflectionMethod $method): string
+{
+    $type = $method->getReturnType();
+
+    return $type === null ? 'no return type at all' : (string) $type;
 }
 
 it('gives every input DTO built from an untrusted array a validate method', function () {
@@ -116,7 +134,7 @@ it('leaves a DTO that is built from value objects alone', function () {
     expect($offenders)->toBe([]);
 });
 
-it('opens every use case handling a validatable DTO with a call to validate', function () {
+it('opens every use case handling a validatable DTO with a guarded call to validate', function () {
     $covered = [];
     $offenders = [];
 
@@ -134,10 +152,10 @@ it('opens every use case handling a validatable DTO with a call to validate', fu
         }
 
         $covered[] = $useCase;
-        $expected = '$'.$parameter->getName().'->validate();';
+        $expected = ['try {', '$'.$parameter->getName().'->validate();'];
 
-        if (mizitaFirstStatementOf($handle) !== $expected) {
-            $offenders[] = $useCase.'::handle() should open with '.$expected;
+        if (mizitaLeadingStatementsOf($handle, count($expected)) !== $expected) {
+            $offenders[] = $useCase.'::handle() should open with '.implode(' ', $expected);
         }
     }
 
@@ -149,25 +167,75 @@ it('opens every use case handling a validatable DTO with a call to validate', fu
     Assert::assertSame(
         [],
         $offenders,
-        "A use case taking a self-validating DTO must call validate() as the very first statement of handle(), so the console, the queue and the next transport get the same verdict as HTTP:\n  - "
+        "A use case taking a self-validating DTO must call validate() as the very first statement inside the try that turns a DomainFailure into a failed UseCaseResponse, so the console, the queue and the next transport get the same verdict as HTTP:\n  - "
         .implode("\n  - ", $offenders),
     );
 });
 
-describe('the detectors behind the two rules above, shown failing on code that breaks them', function () {
-    it('reads the opening statement of a conforming handle', function () {
-        expect(mizitaFirstStatementOf(new ReflectionMethod(ConformingUseCase::class, 'handle')))
-            ->toBe('$input->validate();');
+it('returns the one response every use case returns', function () {
+    $useCases = mizitaUseCases();
+    $offenders = [];
+
+    foreach ($useCases as $useCase) {
+        $handle = (new ReflectionClass($useCase))->getMethod('handle');
+        $returnType = mizitaReturnTypeOf($handle);
+
+        if ($returnType === UseCaseResponse::class) {
+            continue;
+        }
+
+        $offenders[] = $useCase.'::handle() declares '.$returnType;
+    }
+
+    Assert::assertNotEmpty(
+        $useCases,
+        'No use case was found, so this rule is not checking anything. Confirm DomainLayers still finds Application/UseCases.',
+    );
+
+    Assert::assertSame(
+        [],
+        $offenders,
+        "Every use case answers with a UseCaseResponse, so a caller decides between value() and error() instead of guessing which exceptions might escape:\n  - "
+        .implode("\n  - ", $offenders),
+    );
+});
+
+describe('the detectors behind the rules above, shown failing on code that breaks them', function () {
+    it('reads the opening statements of a conforming handle', function () {
+        expect(mizitaLeadingStatementsOf(new ReflectionMethod(ConformingUseCase::class, 'handle'), 2))
+            ->toBe(['try {', '$input->validate();']);
     });
 
     it('sees past a comment the backend has not stripped yet', function () {
-        expect(mizitaFirstStatementOf(new ReflectionMethod(CommentedConformingUseCase::class, 'handle')))
-            ->toBe('$input->validate();');
+        expect(mizitaLeadingStatementsOf(new ReflectionMethod(CommentedConformingUseCase::class, 'handle'), 2))
+            ->toBe(['try {', '$input->validate();']);
     });
 
     it('refuses a handle that validates after it has already done work', function () {
-        expect(mizitaFirstStatementOf(new ReflectionMethod(LateValidatingUseCase::class, 'handle')))
-            ->not->toBe('$input->validate();');
+        expect(mizitaLeadingStatementsOf(new ReflectionMethod(LateValidatingUseCase::class, 'handle'), 2))
+            ->not->toBe(['try {', '$input->validate();']);
+    });
+
+    it('refuses a handle that answers with a response but never validates', function () {
+        expect(mizitaLeadingStatementsOf(new ReflectionMethod(UnvalidatedUseCase::class, 'handle'), 2))
+            ->not->toBe(['try {', '$input->validate();']);
+    });
+
+    it('stops at the number of statements it was asked for', function () {
+        expect(mizitaLeadingStatementsOf(new ReflectionMethod(ConformingUseCase::class, 'handle'), 1))
+            ->toBe(['try {']);
+    });
+
+    it('reads the response type a conforming handle declares', function () {
+        expect(mizitaReturnTypeOf(new ReflectionMethod(ConformingUseCase::class, 'handle')))
+            ->toBe(UseCaseResponse::class);
+    });
+
+    it('spots a handle that validates first and still hands back a bare value', function () {
+        expect(mizitaLeadingStatementsOf(new ReflectionMethod(BareValueUseCase::class, 'handle'), 2))
+            ->toBe(['try {', '$input->validate();'])
+            ->and(mizitaReturnTypeOf(new ReflectionMethod(BareValueUseCase::class, 'handle')))
+            ->not->toBe(UseCaseResponse::class);
     });
 
     it('spots a DTO that builds itself from an array and rules on nothing', function () {

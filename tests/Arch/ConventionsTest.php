@@ -63,6 +63,15 @@ it('lets every domain exception a request can reach classify itself', function (
         ]);
 });
 
+arch('lets every shared exception classify itself the way a domain exception does')
+    ->expect('App\Shared\Exceptions')
+    ->toImplement(DomainFailure::class);
+
+arch('every shared exception is final')
+    ->expect('App\Shared\Exceptions')
+    ->classes()
+    ->toBeFinal();
+
 it('keeps every Eloquent model inside its domain Eloquent Models namespace', function () {
     $strayModels = array_values(array_filter(
         DomainLayers::applicationClasses(),

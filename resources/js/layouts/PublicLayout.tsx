@@ -16,6 +16,7 @@ import {
 import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 import { legalDocuments } from '@/content/legal/entity';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 const socialProfiles: { network: string; href: string; Icon: (props: SocialIconProps) => ReactNode }[] = [
     { network: 'Facebook', href: '#', Icon: FacebookIcon },
@@ -64,6 +65,8 @@ type Props = {
 export function PublicLayout({ title, sections, children }: Props) {
     const { name } = usePage().props;
     const { t } = useTranslation('common');
+
+    useFlashToast();
 
     const year = new Date().getFullYear();
 

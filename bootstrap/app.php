@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Exceptions\RenderDomainFailure;
+use App\Http\Logging\LogUnexpectedFailure;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RedirectIfOnboarded;
 use App\Http\Middleware\RequireBusinessMembership;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetLocale;
+use App\Http\Responses\JsonFailureRendering;
 use App\Shared\Contracts\DomainFailure;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -48,12 +50,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontReport(DomainFailure::class);
+
+        $exceptions->report(function (Throwable $error): bool {
+            app(LogUnexpectedFailure::class)($error);
+
+            return false;
+        });
+
         $exceptions->render(function (DomainFailure $failure, Request $request) {
             return app(RenderDomainFailure::class)($failure, $request);
         });
 
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => ! $request->hasHeader('X-Inertia')
-                && ($request->is('api/*') || $request->expectsJson()),
+            fn (Request $request) => JsonFailureRendering::appliesTo($request),
         );
     })->create();

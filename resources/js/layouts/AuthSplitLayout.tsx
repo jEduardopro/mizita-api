@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { HeroCollage } from '@/components/shared/hero/HeroCollage';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 type Props = {
     title: string;
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function AuthSplitLayout({ title, heading, description, action, children }: Props) {
+    useFlashToast();
+
     return (
         <div className="flex min-h-svh flex-col bg-surface-muted text-foreground">
             <Head title={title} />

@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios';
+import type { ApiWarning } from '@/types/api';
 
 const VALIDATION_STATUS = 422;
 
@@ -12,14 +13,6 @@ function propertyOf(source: unknown, key: string): unknown {
     return Reflect.get(source, key);
 }
 
-function validationBody(error: unknown): unknown {
-    if (! isAxiosError<unknown>(error) || error.response?.status !== VALIDATION_STATUS) {
-        return undefined;
-    }
-
-    return error.response.data;
-}
-
 function firstMessage(value: unknown): string | undefined {
     if (Array.isArray(value)) {
         const first: unknown = value[0];
@@ -30,14 +23,45 @@ function firstMessage(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined;
 }
 
+function isWarning(value: unknown): value is ApiWarning {
+    return (
+        typeof propertyOf(value, 'code') === 'string' &&
+        typeof propertyOf(value, 'message') === 'string'
+    );
+}
+
+function codeOf(body: unknown): string | undefined {
+    const code = propertyOf(body, 'code');
+
+    return typeof code === 'string' && code !== '' ? code : undefined;
+}
+
+function validationErrorsOf(body: unknown): object | undefined {
+    const errors = propertyOf(body, 'errors');
+
+    return typeof errors === 'object' && errors !== null ? errors : undefined;
+}
+
+function carriesTranslatedMessage(body: unknown): boolean {
+    return codeOf(body) !== undefined || validationErrorsOf(body) !== undefined;
+}
+
+export function responseBodyFrom(error: unknown): unknown {
+    if (! isAxiosError<unknown>(error) || error.response === undefined) {
+        return undefined;
+    }
+
+    return error.response.data;
+}
+
 export function isValidationError(error: unknown): boolean {
     return isAxiosError<unknown>(error) && error.response?.status === VALIDATION_STATUS;
 }
 
 export function fieldErrorsFrom(error: unknown): FieldErrors {
-    const errors = propertyOf(validationBody(error), 'errors');
+    const errors = validationErrorsOf(responseBodyFrom(error));
 
-    if (typeof errors !== 'object' || errors === null) {
+    if (errors === undefined) {
         return {};
     }
 
@@ -55,7 +79,29 @@ export function fieldErrorsFrom(error: unknown): FieldErrors {
 }
 
 export function formMessageFrom(error: unknown, fallback: string): string {
-    const message = propertyOf(validationBody(error), 'message');
+    const body = responseBodyFrom(error);
+
+    if (! carriesTranslatedMessage(body)) {
+        return fallback;
+    }
+
+    const message = propertyOf(body, 'message');
 
     return typeof message === 'string' && message !== '' ? message : fallback;
+}
+
+export function errorCodeFrom(error: unknown): string | undefined {
+    return codeOf(responseBodyFrom(error));
+}
+
+export function warningsFrom(payload: unknown): ApiWarning[] {
+    const warnings = propertyOf(payload, 'warnings');
+
+    if (! Array.isArray(warnings)) {
+        return [];
+    }
+
+    const entries: unknown[] = warnings;
+
+    return entries.filter(isWarning);
 }

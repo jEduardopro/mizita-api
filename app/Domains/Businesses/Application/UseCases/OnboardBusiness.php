@@ -18,8 +18,6 @@ use App\Domains\Businesses\Events\BusinessCreated;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
 use App\Domains\Businesses\Exceptions\BusinessNameNotSluggable;
 use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
-use App\Domains\Businesses\Exceptions\InvalidBusinessName;
-use App\Domains\Businesses\Exceptions\InvalidBusinessOwner;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Domains\Businesses\Exceptions\OwnerAlreadyHasBusiness;
 use App\Domains\Businesses\Exceptions\UnknownIndustry;
@@ -27,7 +25,9 @@ use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\Services\SlugAllocator;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
+use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\IdGenerator;
 use App\Shared\Contracts\PhoneNumberParser;
 use App\Shared\Contracts\TransactionManager;
@@ -52,8 +52,25 @@ final class OnboardBusiness
     ) {}
 
     /**
-     * @throws InvalidBusinessOwner
-     * @throws InvalidBusinessName
+     * @return UseCaseResponse<BusinessData>
+     */
+    public function handle(OnboardBusinessInput $input): UseCaseResponse
+    {
+        try {
+            $input->validate();
+            $outcome = $this->onboard($input);
+        } catch (DomainFailure $failure) {
+            return UseCaseResponse::failure($failure);
+        }
+
+        foreach ($outcome->events as $event) {
+            $this->events->dispatch($event);
+        }
+
+        return UseCaseResponse::success($outcome->business);
+    }
+
+    /**
      * @throws UnsupportedPhoneNumber
      * @throws UnknownIndustry
      * @throws BusinessNameNotSluggable
@@ -62,10 +79,8 @@ final class OnboardBusiness
      * @throws BusinessSlugAlreadyTaken
      * @throws OwnerAlreadyHasBusiness
      */
-    public function handle(OnboardBusinessInput $input): BusinessData
+    private function onboard(OnboardBusinessInput $input): OnboardingOutcome
     {
-        $input->validate();
-
         $phone = $this->parsedPhoneNumber($input->phone);
 
         if (! $this->industries->exists($input->industryId)) {
@@ -82,15 +97,9 @@ final class OnboardBusiness
         $slug = $this->slugs->allocate($base, $this->businesses->slugsMatching($base->value));
         $timezone = Timezone::fromString($input->timezone);
 
-        $outcome = $this->transactions->run(
+        return $this->transactions->run(
             fn (): OnboardingOutcome => $this->register($input, $name, $slug, $timezone, $phone),
         );
-
-        foreach ($outcome->events as $event) {
-            $this->events->dispatch($event);
-        }
-
-        return $outcome->business;
     }
 
     private function register(

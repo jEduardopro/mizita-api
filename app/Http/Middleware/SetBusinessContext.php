@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Exceptions\BusinessAccessDenied;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\BusinessMembership;
 use App\Shared\Contracts\BusinessTeamKey;
@@ -39,11 +40,15 @@ final class SetBusinessContext
     {
         $accountId = $request->user()?->uuid;
 
-        abort_if($accountId === null, Response::HTTP_FORBIDDEN, __('messages.errors.no_business'));
+        if ($accountId === null) {
+            throw BusinessAccessDenied::accountHasNoBusiness();
+        }
 
         $available = $this->memberships->businessIdsFor((string) $accountId);
 
-        abort_if($available === [], Response::HTTP_FORBIDDEN, __('messages.errors.no_business'));
+        if ($available === []) {
+            throw BusinessAccessDenied::accountHasNoBusiness();
+        }
 
         $requested = $request->header(self::BUSINESS_HEADER);
 
@@ -51,11 +56,9 @@ final class SetBusinessContext
             return $available[0];
         }
 
-        abort_if(
-            ! in_array($requested, $available, strict: true),
-            Response::HTTP_FORBIDDEN,
-            __('messages.errors.business_not_accessible'),
-        );
+        if (! in_array($requested, $available, strict: true)) {
+            throw BusinessAccessDenied::businessNotAccessible($requested);
+        }
 
         return $requested;
     }

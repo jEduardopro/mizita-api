@@ -1,5 +1,7 @@
 import axios from 'axios';
+import { responseBodyFrom, warningsFrom } from '@/lib/http';
 import { currentLocale } from '@/lib/i18n';
+import { raiseWarningToasts } from '@/lib/toast';
 
 export const api = axios.create({
     baseURL: '/api',
@@ -18,3 +20,15 @@ api.interceptors.request.use((config) => {
 
     return config;
 });
+
+function rejectWithWarnings(error: unknown): Promise<never> {
+    raiseWarningToasts(warningsFrom(responseBodyFrom(error)));
+
+    return Promise.reject(error);
+}
+
+api.interceptors.response.use((response) => {
+    raiseWarningToasts(warningsFrom(response.data));
+
+    return response;
+}, rejectWithWarnings);
