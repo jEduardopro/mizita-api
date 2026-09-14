@@ -4,11 +4,8 @@ import { useLegalDocument } from "@/components/public/legal/use-legal-document";
 import { legalUpdatedOn, type LegalDocumentName } from "@/content/legal/entity";
 
 /**
- * A revision date, in the reader's language.
- *
- * The parts are built into a local date on purpose. `new Date('2026-09-12')` is
- * parsed as UTC midnight, which in Mexico City is the evening of the 11th, and
- * the page would print a day earlier than the one the document was revised on.
+ * The parts are built into a local date on purpose: `new Date('2026-09-12')` is
+ * parsed as UTC midnight, which in Mexico City is the evening of the 11th.
  */
 function formatRevisionDate(isoDate: string, language: string): string {
     const [year, month, day] = isoDate.split("-").map(Number);
@@ -24,19 +21,6 @@ type Props = {
     document: LegalDocumentName;
 };
 
-/**
- * One legal document, from its masthead to its last clause.
- *
- * The document owns its own title and its own clause list — both are read out
- * of the markdown, so renaming a clause renames it in the index and adding one
- * puts it there. What surrounds the text is chrome and comes from i18n: the
- * label on the revision date, the name of the index, and the word an undecided
- * fact is marked with.
- *
- * The revision date is the one thing on the page that is known before the text
- * arrives, so it is printed immediately. It is not decoration: the cookie policy
- * and the privacy notice both promise a reader that a change will show up here.
- */
 export function LegalDocument({ document }: Props) {
     const { t, i18n } = useTranslation("common");
 
@@ -57,11 +41,6 @@ export function LegalDocument({ document }: Props) {
                     )}
                 </h1>
 
-                {/*
-                 * The same small brand square the landing page's eyebrow carries,
-                 * so the one accent on this page is the one the rest of the site
-                 * spends: everything else here is type and hairlines.
-                 */}
                 <p className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                     <span
                         aria-hidden="true"

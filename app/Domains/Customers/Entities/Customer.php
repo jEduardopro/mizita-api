@@ -7,11 +7,6 @@ namespace App\Domains\Customers\Entities;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use DateTimeImmutable;
 
-/**
- * Domain entity: plain PHP, no framework. It owns the business rules and
- * protects its own invariants. Persistence is handled by the repository
- * adapter through CustomerMapper.
- */
 final class Customer
 {
     private function __construct(
@@ -23,9 +18,6 @@ final class Customer
         public readonly DateTimeImmutable $createdAt,
     ) {}
 
-    /**
-     * Creates a brand new customer. Enforces creation-time rules.
-     */
     public static function create(
         string $id,
         string $businessId,
@@ -50,10 +42,7 @@ final class Customer
         );
     }
 
-    /**
-     * Rehydrates a customer from storage. Skips creation-time rules by
-     * design: the data was already valid when it was written.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $businessId,

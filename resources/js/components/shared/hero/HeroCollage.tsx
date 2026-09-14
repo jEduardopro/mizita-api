@@ -15,34 +15,18 @@ import {
 import { PHONE_STATUS_BAR, PhoneFrame } from '@/components/shared/hero/PhoneFrame';
 
 /**
- * The hero's visual: two overlapping devices showing real product screens, with
- * two chips floating off them.
+ * Decorative throughout: it repeats nothing the headline says and holds nothing
+ * focusable, so it is hidden from assistive technology once, at the root.
  *
- * Everything here is drawn — no photograph, no video, no binary asset. What the
- * page is selling is an agenda that already knows what is taken, so the hero
- * shows exactly that instead of a stock desk.
- *
- * The whole thing is decorative. It repeats nothing the headline beside it does
- * not already say, and it holds nothing focusable, so it is hidden from
- * assistive technology in one place at the root rather than piece by piece.
- *
- * Two audiences render it now — the public landing hero and the `auth` signup
- * screen — which is what moved it into `shared/`. That makes the scale steps
- * below load-bearing in two places at once: the landing page gives it a column
- * of its own on a page with nothing else in that row, while the signup screen
- * puts it under a headline in the narrower half of a split. Change a step and
- * check both, not just the one you are working on.
- *
- * It keeps reading the `public` namespace. The chips are marketing copy, not
- * chrome, and i18next bundles every namespace statically, so borrowing it from
- * another audience costs nothing at runtime.
+ * Two audiences render it — the landing hero and the signup screen — so the
+ * scale steps below are load-bearing in two layouts at once. Change a step and
+ * check both.
  */
 
 /**
- * The stage the pieces are laid out on, in px. Every position below is measured
- * against it, and the stage as a whole is scaled to whatever width the column
- * has — one scale for the composition, never one per piece, which is what keeps
- * the agenda's single-pixel hour rules crisp.
+ * The stage the pieces are laid out on, in px. The stage as a whole is scaled to
+ * the column's width — one scale for the composition, never one per piece, which
+ * is what keeps the agenda's single-pixel hour rules crisp.
  */
 const STAGE_WIDTH = 440;
 const STAGE_HEIGHT = 520;
@@ -66,11 +50,9 @@ export function HeroCollage() {
 
     return (
         /*
-         * The wrapper reserves real layout height at the scaled size, so the
-         * hero's grid row is the height the collage actually occupies. Clipping
-         * is structural rather than cosmetic: at any viewport the stage is the
-         * only thing that could push the page sideways, and it cannot leave this
-         * box.
+         * The wrapper reserves real layout height at the scaled size, and the
+         * clipping is structural: the stage is the only thing on the page that
+         * could push it sideways, and it cannot leave this box.
          */
         <div
             aria-hidden="true"
@@ -80,14 +62,9 @@ export function HeroCollage() {
                 className="absolute top-0 left-0 origin-top-left scale-[var(--s)]"
                 style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT }}
             >
-                {/*
-                 * Each piece drifts on its own clock: two directions, four
-                 * durations and a negative delay apiece, so nothing ever peaks
-                 * in unison and the group never looks like one moving object.
-                 * `rotate` is its own CSS property and the keyframes animate
-                 * `translate`, so the tilt and the drift never overwrite one
-                 * another.
-                 */}
+                {/* `rotate` is its own CSS property and the keyframes animate
+                    `translate`, so the tilt and the drift never overwrite one
+                    another. */}
                 <div
                     className="absolute -rotate-3 motion-safe:animate-float-slow"
                     style={{
@@ -120,11 +97,8 @@ export function HeroCollage() {
                     </PhoneFrame>
                 </div>
 
-                {/*
-                 * The chips are the density the composition needs and the first
-                 * thing to go when there is no room: below `lg` the hero stacks
-                 * into one column and two phones are already enough.
-                 */}
+                {/* The chips are the first thing to go when there is no room:
+                    below `lg` the hero stacks into one column. */}
                 <div
                     className="absolute hidden -rotate-2 lg:block motion-safe:animate-float-fast"
                     style={{

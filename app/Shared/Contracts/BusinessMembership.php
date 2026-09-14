@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace App\Shared\Contracts;
 
 /**
- * Answers which businesses an account is allowed to operate.
- *
- * A staff row is the membership: this is the port that turns that fact into
- * something the rest of the platform can ask about without importing Staff.
- * It reports membership only - who may operate what - and never which business
- * is current, which stays BusinessContext's single responsibility.
+ * Turns "a staff row is the membership" into something the rest of the platform
+ * can ask about without importing Staff. It reports membership only, never which
+ * business is current - that stays BusinessContext's responsibility.
  */
 interface BusinessMembership
 {
     /**
-     * The businesses this account may operate, owner membership first, then by
-     * membership age. An empty list means the account is not a business user.
+     * Owner membership first, then by membership age. An empty list means the
+     * account is not a business user.
      *
      * @return list<string> business uuids
      */

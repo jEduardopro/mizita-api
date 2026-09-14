@@ -9,7 +9,6 @@ import {
     type ComboboxOptionsStatus,
 } from '@/components/form/ComboboxField';
 import type { HintTone } from '@/components/form/FieldMessage';
-import { FormAlert } from '@/components/form/FormAlert';
 import { FormField } from '@/components/form/FormField';
 import { PhoneField } from '@/components/form/PhoneField';
 import { Button } from '@/components/ui/button';
@@ -24,45 +23,36 @@ import type { FieldErrors } from '@/lib/http';
 import { SUPPORTED_PHONE_COUNTRIES, type PhoneCountryCode } from '@/lib/phone';
 import { resolvedTimezone } from '@/lib/timezone';
 
-/** Where the person lands once a business exists and the 403s stop. */
 const DASHBOARD_URL = '/dashboard';
 
 /** The product sells in Mexico first, so the prefix starts there. */
 const DEFAULT_PHONE_COUNTRY: PhoneCountryCode = 'MX';
 
-/**
- * A country's name is copy and its dial code is a fact, so they come from
- * different places and are joined here. The map is exhaustive by type: adding a
- * country to `SUPPORTED_PHONE_COUNTRIES` fails this file until it has a name.
- */
 const COUNTRY_NAME_KEYS = {
     MX: 'onboarding.phone.countries.MX',
     US: 'onboarding.phone.countries.US',
 } as const satisfies Record<PhoneCountryCode, string>;
 
 /**
- * Laravel keys a nested rejection by its path, so one bad phone can arrive under
- * any of these. The field shows whichever came back, because it draws the pair
- * as a single thing with a single message.
+ * A malformed phone is rejected field by field, and Laravel keys a nested
+ * rejection by its path, so it can arrive under any of these. The field shows
+ * whichever came back, because it draws the pair as one thing with one message.
+ * Whether the number is real and reachable is judged by the use case instead,
+ * and arrives as a form-level message with no `errors` key at all.
  */
 const PHONE_ERROR_FIELDS = ['phone', 'phone.country_code', 'phone.national_number'] as const;
 
 type AdminTranslate = TFunction<'admin'>;
 
-/** What the name field says under the box, and how it reads. */
 type NameVerdict = {
     hint?: string;
     hintTone?: HintTone;
 };
 
 /**
- * How much of the address the preview may show.
- *
- * A URL has almost no break opportunities — a dot and a slash give none, only
- * the hyphens between slug words do — so a business named as one long word would
- * be a single token wider than a 320px screen and would push the page sideways.
- * A real address is far shorter than this, so the cap only ever engages on the
- * input that would otherwise break the layout.
+ * A URL has almost no break opportunities, so a business named as one long word
+ * would be a single token wider than a 320px screen and would push the page
+ * sideways. A real address is far shorter than this cap.
  */
 const MAX_PREVIEW_CHARACTERS = 34;
 
@@ -76,13 +66,9 @@ function bookingUrl(slug: string): string {
 }
 
 /**
- * The server's answer about the name, as a line under the field.
- *
- * Three of the five states say nothing at all. `checking` is silent because a
- * "Checking…" that appears and disappears within half a second is the flicker
- * this whole feature exists to avoid, and `unknown` is silent because a question
- * that never reached the server is not a fault of the name someone just typed —
- * submitting asks again, and that answer is the authoritative one.
+ * `checking` stays silent because a "Checking…" that comes and goes in half a
+ * second is the flicker this feature exists to avoid, and `unknown` stays silent
+ * because a question that never reached the server says nothing about the name.
  */
 function nameVerdict(status: NameStatus, slug: string | null, t: AdminTranslate): NameVerdict {
     if (status === 'taken') {
@@ -93,8 +79,6 @@ function nameVerdict(status: NameStatus, slug: string | null, t: AdminTranslate)
         return {};
     }
 
-    // A free name normally comes back with the slug it would take. When it does
-    // not, the verdict still stands — it is the preview that has nothing to show.
     return slug === null
         ? { hint: t('onboarding.name.available'), hintTone: 'positive' }
         : { hint: t('onboarding.name.link', { url: bookingUrl(slug) }), hintTone: 'positive' };
@@ -118,11 +102,6 @@ function phoneErrorFrom(fieldErrors: FieldErrors): string | undefined {
     );
 }
 
-/**
- * The field hands back whatever its `select` holds, which is a string. Narrowing
- * it here rather than asserting keeps the payload's country honest: a value the
- * catalogue does not offer never becomes one this form claims to have.
- */
 function isSupportedCountry(code: string): code is PhoneCountryCode {
     return SUPPORTED_PHONE_COUNTRIES.some((country) => country.code === code);
 }
@@ -135,14 +114,9 @@ type FormValues = {
 };
 
 /**
- * The request body, built from what is in the boxes.
- *
- * Nothing is validated on the way out. An industry nobody picked is sent as an
- * empty string rather than withheld, because `CreateBusinessRequest` is the only
- * authority on what is required and a 422 naming the field is a better answer
- * than a button that silently refuses. The phone is the opposite case: it is
- * optional, so a blank number omits the key entirely instead of sending an empty
- * pair for the server to interpret.
+ * Nothing is validated on the way out: an industry nobody picked is sent as an
+ * empty string, because `CreateBusinessRequest` is the only authority on what is
+ * required. A blank phone omits the key entirely, since it is optional.
  *
  * No slug is ever sent. Deriving one is the server's rule, and the availability
  * check only previews its answer.
@@ -172,13 +146,7 @@ function payloadFrom({
 }
 
 type Props = {
-    /**
-     * The industry catalogue, already translated and ordered.
-     *
-     * It arrives as a prop rather than from a hook called here: industries are
-     * their own domain, and a domain never reaches sideways into another. The
-     * page is where the two meet, which is what a page is for.
-     */
+    /** A prop rather than a hook: a domain never reaches sideways into another. */
     industries: {
         options: readonly ComboboxOption[];
         isPending: boolean;
@@ -187,18 +155,10 @@ type Props = {
     };
 };
 
-/**
- * The form that turns an account into a business.
- *
- * It owns the values and the request; the page owns the layout around it. There
- * is no client-side schema: the fields carry native affordances, and every
- * verdict on what is acceptable comes from the server — the name check while
- * typing, the 422 on submit.
- */
 export function BusinessOnboardingForm({ industries }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
-    const { fieldErrors, formMessage, capture, clearField, reset } = useServerErrors();
+    const { fieldErrors, capture, clearField, reset } = useServerErrors();
 
     const [name, setName] = useState('');
     const [industryId, setIndustryId] = useState<string | null>(null);
@@ -208,8 +168,6 @@ export function BusinessOnboardingForm({ industries }: Props) {
     const availability = useBusinessNameAvailability(name);
     const createBusiness = useCreateBusiness();
 
-    // A rejected name needs no branch here: `FormField` shows an error instead of
-    // a hint, so the server's message replaces the verdict on its own.
     const verdict = nameVerdict(availability.status, availability.slug, t);
 
     function clearPhoneErrors() {
@@ -227,7 +185,6 @@ export function BusinessOnboardingForm({ industries }: Props) {
                 payloadFrom({ name, industryId, phoneCountry, phoneNumber }),
             );
 
-            // Navigation is the component's call; the cache is the hook's.
             router.visit(DASHBOARD_URL);
         } catch (error) {
             capture(error, t('onboarding.errors.unexpected'));
@@ -239,19 +196,14 @@ export function BusinessOnboardingForm({ industries }: Props) {
             onSubmit={(event) => void submit(event)}
             className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 sm:p-8 dark:shadow-black/30"
         >
-            {formMessage ? (
-                <div className="mb-5">
-                    <FormAlert message={formMessage} />
-                </div>
-            ) : null}
-
+            {/* No alert above the fields: the submission message is announced as
+                a toast instead, the same way on every screen. */}
             <div className="grid gap-5">
                 <FormField
                     id="name"
                     label={t('onboarding.name.label')}
-                    // The neutral note is written inside the box rather than under
-                    // it: the line underneath belongs to the verdict, and two
-                    // things cannot share one line.
+                    // Written inside the box, because the line underneath belongs
+                    // to the verdict and two things cannot share it.
                     placeholder={t('onboarding.name.hint')}
                     autoComplete="organization"
                     autoFocus
@@ -320,13 +272,8 @@ export function BusinessOnboardingForm({ industries }: Props) {
                     error={phoneErrorFrom(fieldErrors)}
                 />
 
-                {/*
-                 * A name the check called taken does not disable this button. The
-                 * check is an affordance and the server is the authority: a
-                 * momentary network failure must not leave someone with a form
-                 * they cannot send, and a name the preview doubted may well be
-                 * accepted.
-                 */}
+                {/* A name the check called taken does not disable this button:
+                    the check is an affordance and the server is the authority. */}
                 <Button
                     type="submit"
                     variant="brand"

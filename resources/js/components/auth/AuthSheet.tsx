@@ -4,32 +4,14 @@ import { SupportPhoneLink } from '@/components/auth/SupportPhoneLink';
 import { Wordmark } from '@/components/shared/Wordmark';
 
 type Props = {
-    /** What the sheet is for, in the words the visitor came here with. */
     heading: string;
-    /** One line on what happens next. Optional: not every screen owes an answer. */
     description?: string;
-    /** The panel currently being asked for. */
     children: ReactNode;
-    /** The way to the other auth screen, set off by a rule. */
     footer: ReactNode;
-    /** The terms, the privacy notice and the copyright, anchored to the floor. */
     legal: ReactNode;
 };
 
-/**
- * The full-height white sheet the login screen is drawn on: the brand row at the
- * top, the panel centred in what is left, and the legal line at the foot.
- *
- * It is a sibling of `AuthCard`, not a variant of it. The card is a box that
- * hugs its contents and lives inside a page that has a header; the sheet *is*
- * the page's chrome — it carries the wordmark and the phone number that the
- * header used to, and it runs from the top of the window to the bottom. Giving
- * `AuthCard` a flag to switch between the two would put both silhouettes behind
- * one entry point that registration would then have to keep passing `false` to.
- *
- * Like the card, it is the chrome only. What it asks — a choice of method, a
- * form, a status message — belongs to whoever renders it.
- */
+/** A sibling of `AuthCard`, not a variant: the sheet is the page's own chrome. */
 export function AuthSheet({ heading, description, children, footer, legal }: Props) {
     const { name } = usePage().props;
 
@@ -40,13 +22,8 @@ export function AuthSheet({ heading, description, children, footer, legal }: Pro
                 <SupportPhoneLink />
             </div>
 
-            {/*
-             * `justify-center` is what absorbs the height change when the panel
-             * swaps: the block grows from its middle, so the brand row above it
-             * and the legal line below it stay exactly where they were. The
-             * sheet's own height is what pays for it, so no panel ever has to be
-             * measured into a magic minimum.
-             */}
+            {/* `justify-center` absorbs the height change when the panel swaps,
+                so the brand row and the legal line stay put. */}
             <div className="flex flex-1 flex-col justify-center py-10">
                 <h2 className="font-heading text-2xl font-medium tracking-[-0.02em]">{heading}</h2>
 

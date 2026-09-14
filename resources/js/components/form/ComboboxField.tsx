@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 
 export type { ComboboxOption };
 
-/** Where the list of choices is up to. The panel draws a state for each. */
 export type ComboboxOptionsStatus = 'pending' | 'error' | 'ready';
 
 type Messages = {
@@ -17,7 +16,6 @@ type Messages = {
     empty: string;
     /** The list itself could not be loaded. */
     optionsError: string;
-    /** The action that tries loading the list again. */
     retry: string;
     /** How many rows are showing, announced to a screen reader. */
     results: string;
@@ -31,7 +29,6 @@ type PanelProps = {
     /** Names the listbox, which is a different element from the input. */
     label: string;
     options: readonly ComboboxOption[];
-    /** The chosen value, so the row that holds it can be ticked. */
     selectedValue: string | null;
     /** The virtually focused row, or -1. */
     activeIndex: number;
@@ -41,10 +38,6 @@ type PanelProps = {
     emptyMessage: string;
 };
 
-/**
- * The open list: the rows themselves, or what is standing in for them while they
- * load. Failure is not drawn here — see the field below.
- */
 function ComboboxPanel({
     listId,
     label,
@@ -83,9 +76,8 @@ function ComboboxPanel({
                 id={listId}
                 role="listbox"
                 aria-label={label}
-                // Choosing a row must not move focus out of the box: the caret
-                // stays where the person is typing, and the blur that would close
-                // the list before the click landed never happens.
+                // Keeps focus in the box, so the blur that would close the list
+                // before the click landed never happens.
                 onMouseDown={(event) => event.preventDefault()}
                 className="max-h-[min(18rem,45svh)] overflow-y-auto overscroll-contain"
             >
@@ -115,11 +107,9 @@ function ComboboxPanel({
 
 type Props = Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'role' | 'list'> & {
     id: string;
-    /** The field's name, pre-translated. */
     label: string;
     /** The choices, already in the order they should be offered. */
     options: readonly ComboboxOption[];
-    /** The selected option's `value`, or null. */
     value: string | null;
     onChange: (value: string | null) => void;
     optionsStatus: ComboboxOptionsStatus;
@@ -131,19 +121,9 @@ type Props = Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'role
 };
 
 /**
- * A text field that filters a list of choices, where only a listed choice counts
- * as a value.
- *
- * The list is **in flow**, drawn directly under the input, rather than floated in
- * a layer anchored to it. On a phone with the keyboard up there is no room for an
- * anchored popover to be honest: it either covers the field being typed into or
- * flips above it and covers the label. Pushing the rest of the form down costs a
- * scroll and hides nothing.
- *
- * Typing matches without accents, which is the whole point in Spanish —
- * `barberia` finds `Barbería` — and every string it can say arrives already
- * translated, because this folder is audience-agnostic and must not reach into a
- * locale namespace of its own.
+ * The list is in flow, drawn under the input, rather than floated in a layer
+ * anchored to it. On a phone with the keyboard up an anchored popover either
+ * covers the field being typed into or flips above it and covers the label.
  */
 export function ComboboxField({
     id,
@@ -178,8 +158,7 @@ export function ComboboxField({
                         aria-activedescendant={combobox.activeOptionId}
                         aria-invalid={!! error}
                         aria-describedby={message?.id}
-                        // The browser has nothing useful to suggest for a list the
-                        // server owns, and its own panel would cover this one.
+                        // The browser's own suggestion panel would cover this one.
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck={false}
@@ -214,13 +193,8 @@ export function ComboboxField({
                     />
                 ) : null}
 
-                {/*
-                 * A list that failed to load is said outside the panel, and stays
-                 * said whether or not the panel is open. Inside it, the retry
-                 * button would exist only while the list was showing — which is
-                 * exactly when a keyboard cannot reach it, since tabbing to it
-                 * would close the thing it sits in.
-                 */}
+                {/* Outside the panel, because a retry button inside it could not
+                    be reached by keyboard: tabbing would close what it sits in. */}
                 {optionsStatus === 'error' ? (
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="text-xs text-muted-foreground">{messages.optionsError}</p>

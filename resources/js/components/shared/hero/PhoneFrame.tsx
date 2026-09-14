@@ -18,18 +18,8 @@ type Props = {
 };
 
 /**
- * A device shell for the product screens the landing page shows: a bezel, a
- * speaker pill, a status strip and the screen itself.
- *
  * The bezel changes direction between themes, because a single hard-coded grey
- * only ever reads on one of them. In light it is the deepest step of the brand
- * ramp, darker than the screen it holds; in dark it is the muted surface, one
- * step lighter than the screen and two above the page. Either way the device
- * reads as a device, and the brand blue stays spent on actions rather than on
- * a piece of furniture.
- *
- * It is chrome, not content: nothing inside is focusable and the collage that
- * composes these is hidden from assistive technology as a whole.
+ * only reads on one of them: darker than the screen in light, lighter in dark.
  */
 export function PhoneFrame({ screenWidth, screenHeight, className, children }: Props) {
     return (
@@ -46,11 +36,8 @@ export function PhoneFrame({ screenWidth, screenHeight, className, children }: P
             <span className="absolute top-[5px] left-1/2 h-1 w-9 -translate-x-1/2 rounded-full bg-white/25" />
 
             <div className="flex h-full w-full flex-col overflow-hidden rounded-3xl bg-card">
-                {/*
-                 * The status strip carries no copy on purpose — a fake clock in
-                 * the wrong language is the kind of detail that gives a mockup
-                 * away. Shapes say "this is a phone" without saying anything.
-                 */}
+                {/* No copy on purpose: a fake clock in the wrong language is what
+                    gives a mockup away. */}
                 <div
                     className="flex shrink-0 items-center justify-between px-3.5"
                     style={{ height: PHONE_STATUS_BAR }}

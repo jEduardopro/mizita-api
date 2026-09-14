@@ -9,16 +9,12 @@ use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Shared\Contracts\BusinessTeamKey;
 
 /**
- * Reads the internal key of a business straight from its table.
+ * A gateway rather than a repository method because it answers in a persistence
+ * key: the int primary key is exactly what BusinessRepository exists to keep out
+ * of the domain, so it cannot travel on the port that speaks entities.
  *
- * It lives in Businesses because Businesses owns that table, and it is a
- * gateway rather than a repository method because it answers in a persistence
- * key: the int primary key is exactly what BusinessRepository exists to keep
- * out of the domain, so it cannot travel on the port that speaks entities.
- *
- * Soft deleted businesses are excluded by the model's scope. A membership at a
- * deleted business is not operable, so scoping permissions to its team would
- * grant something the tenant resolver has already refused.
+ * Soft deleted businesses are excluded by the model's scope, because scoping
+ * permissions to one would grant what the tenant resolver already refused.
  */
 final class EloquentBusinessTeamKey implements BusinessTeamKey
 {

@@ -16,7 +16,6 @@ export type LoginForm = {
     remember: boolean;
 };
 
-/** Which panel the card is showing. It is card state, not a destination. */
 type Mode = 'choice' | 'email';
 
 type Props = {
@@ -26,33 +25,17 @@ type Props = {
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-/**
- * The login card, in two panels that swap in place.
- *
- * It asks one question at a time, the same way the signup card does: first how
- * you want to get in, then the two details. The address bar stays on `/login`
- * throughout — there is no page to link to and no state anyone would bookmark,
- * so the panel is a `useState` rather than a route.
- *
- * The form itself belongs to the page. This is the markup and the mode, not the
- * request: Fortify decides what a valid attempt is, and its message arrives
- * through `form.errors`.
- */
 export function LoginCard({ form, status, onSubmit }: Props) {
     const { t } = useTranslation('auth');
 
-    // A failed Google callback redirects back here with `errors.google`, which is
-    // a shared page prop rather than part of this form: `form.errors` is empty on
-    // a fresh visit, so the card still opens on the choice panel — where the
-    // Google button, and therefore the message, belong. The server's own string
-    // is the signal, not the copy: the card says it in its own voice, in the
-    // language i18next is rendering the rest of the panel in.
+    // A failed Google callback redirects back with `errors.google`, a shared page
+    // prop rather than one of this form's fields. The server's string is the
+    // signal, not the copy: the card says it in its own voice and language.
     const googleFailed = Boolean(usePage().props.errors.google);
 
     // Errors mean someone has already tried, so the card opens on the panel they
-    // tried from. Inertia keeps component state when validation fails on the same
-    // page, so this is the guard for any path that does remount — without it a
-    // "wrong credentials" message would sit behind the choice panel, unread.
+    // tried from — otherwise a "wrong credentials" message would sit behind the
+    // choice panel, unread, on any path that remounts.
     const [mode, setMode] = useState<Mode>(() =>
         Object.keys(form.errors).length > 0 ? 'email' : 'choice',
     );
@@ -74,12 +57,9 @@ export function LoginCard({ form, status, onSubmit }: Props) {
             }
             legal={
                 <>
-                    {/*
-                     * `Trans` keeps the sentence whole. Splitting it into a
-                     * prefix, two link labels and a joiner would hard-code
-                     * Spanish word order into the markup, and the first language
-                     * that puts the verb elsewhere would have nowhere to put it.
-                     */}
+                    {/* `Trans` keeps the sentence whole: splitting it into a
+                        prefix, link labels and a joiner would hard-code Spanish
+                        word order into the markup. */}
                     <p className="text-balance">
                         <Trans
                             i18nKey="login.legal"
@@ -97,12 +77,8 @@ export function LoginCard({ form, status, onSubmit }: Props) {
             }
         >
             <div className="grid gap-5">
-                {/*
-                 * Above both panels, not inside the form. The flash that
-                 * matters most here arrives after a password reset, which is a
-                 * fresh visit: the card mounts on the choice panel, and a
-                 * message parked inside the email panel would never be seen.
-                 */}
+                {/* Above both panels: the flash after a password reset arrives on
+                    a fresh visit, which mounts on the choice panel. */}
                 <FormStatus message={status} />
 
                 <div
@@ -152,15 +128,9 @@ export function LoginCard({ form, status, onSubmit }: Props) {
                                 }}
                             />
 
-                            {/*
-                             * One line in a 28rem card, even in Spanish,
-                             * which is the longer of the two labels. The
-                             * wrap is the net for the phone, where the card
-                             * is as wide as the screen allows and the pair
-                             * no longer fits: wrapping rather than shrinking
-                             * is what sends the whole link down to its own
-                             * line instead of breaking either phrase in two.
-                             */}
+                            {/* Wrapping rather than shrinking, so on a phone the
+                                whole link drops to its own line instead of
+                                breaking either phrase in two. */}
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                                 <label
                                     htmlFor="remember"

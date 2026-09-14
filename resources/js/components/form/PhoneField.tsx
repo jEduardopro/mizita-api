@@ -3,7 +3,6 @@ import { ChevronDown } from 'lucide-react';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { Input } from '@/components/ui/input';
 
-/** A country as this field needs it: a code to store, and a name to show. */
 type PhoneCountry = {
     code: string;
     /** Pre-translated, and already carrying the dial code, e.g. `Mexico (+52)`. */
@@ -12,9 +11,7 @@ type PhoneCountry = {
 
 type Props = {
     id: string;
-    /** The name of the pair, pre-translated. */
     label: string;
-    /** Pre-translated "Optional", shown beside the name. */
     optionalLabel: string;
     /** The accessible name of the country control. */
     countryLabel: string;
@@ -30,17 +27,8 @@ type Props = {
 };
 
 /**
- * The prefix and the number, written as one field.
- *
- * They are a group with one visible name and two controls, which is one job — so
- * this is its own component rather than a select with its label switched off next
- * to an input with its label switched off. A boolean that hides a label is how
- * two controls end up sharing one name by accident.
- *
- * The countries arrive as a prop: which markets the product sells in is a
- * decision for the screen and the catalogue, never something a form control gets
- * to know. There is no mask and no `maxLength` either — how a phone number may be
- * written is a validation rule, and the FormRequest owns those.
+ * No mask and no `maxLength`: how a phone number may be written is a validation
+ * rule, and the FormRequest owns those.
  */
 export function PhoneField({
     id,
@@ -66,12 +54,8 @@ export function PhoneField({
                 <span className="text-xs font-normal text-muted-foreground">{optionalLabel}</span>
             </span>
 
-            {/*
-             * One row, always. Stacked, the prefix reads as a question of its own;
-             * side by side it reads as the first part of the number — which is
-             * what it is. `min-w-0` on the number is what keeps the pair inside a
-             * 320px screen instead of pushing the page sideways.
-             */}
+            {/* One row, always: `min-w-0` on the number is what keeps the pair
+                inside a 320px screen instead of pushing the page sideways. */}
             <div className="flex items-end gap-2">
                 <div className="relative shrink-0">
                     <select

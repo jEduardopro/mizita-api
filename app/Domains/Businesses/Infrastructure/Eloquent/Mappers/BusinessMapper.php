@@ -10,26 +10,19 @@ use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use DateTimeImmutable;
 
-/**
- * Translates between the persistence model and the domain entity. Only the
- * repository adapter uses it.
- */
 final class BusinessMapper
 {
     /**
      * Expects the industry relation to be loaded: the entity carries the
-     * industry's uuid, the row carries its int foreign key, and this is where
-     * the two meet.
+     * industry's uuid and the row carries its int foreign key.
      *
-     * Slug and Timezone are restored, not validated. This is the one class
-     * their trusting constructors are for: a read of a row the database already
-     * accepted must not fail, so creation-time rules are skipped here exactly
-     * as Business::restore skips its own.
+     * Slug and Timezone are restored, not validated - this is the one class
+     * their trusting constructors are for, because a read of a row the database
+     * already accepted must not fail.
      */
     public function toEntity(BusinessModel $model): Business
     {
         return Business::restore(
-            // The uuid is the domain identity; the int primary key stays here.
             id: $model->uuid,
             name: $model->name,
             slug: Slug::restore($model->slug),
@@ -40,9 +33,8 @@ final class BusinessMapper
     }
 
     /**
-     * The industry key is passed in rather than looked up here: resolving a
-     * uuid to a foreign key is a query, and a mapper that queries is a
-     * repository with a different name.
+     * The industry key is passed in rather than looked up: a mapper that queries
+     * is a repository with a different name.
      *
      * @return array<string, mixed>
      */

@@ -9,11 +9,9 @@ use App\Shared\Contracts\IdGenerator;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeds the industry catalog.
- *
- * Idempotent: rows are matched on their key, so re-running updates the order
- * and never duplicates. It deliberately does not touch "active" either - a row
- * someone retired on purpose must stay retired across the next deployment.
+ * Idempotent: rows are matched on their key, so re-running updates the order and
+ * never duplicates. It deliberately does not touch "active" - a row someone
+ * retired on purpose must stay retired across the next deployment.
  */
 final class IndustrySeeder extends Seeder
 {
@@ -21,8 +19,7 @@ final class IndustrySeeder extends Seeder
     private const POSITION_STEP = 10;
 
     /**
-     * The catalog, in the order it is offered: the source catalogue's English
-     * alphabetical order, which is what the position column encodes.
+     * English alphabetical order, which is what the position column encodes.
      *
      * Two pairs read alike and are not: "beauty" is the broad beauty business
      * while "hair_salon" is the salon itself, and "restoration" is damage

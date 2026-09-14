@@ -1,11 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { cn } from 'cn';
 
-/**
- * The steps the wordmark is set at. It is a prop rather than a height class
- * passed in by each caller, so the six places that render the mark all pick from
- * the same ramp instead of inventing sizes.
- */
 export type WordmarkSize = 'sm' | 'default' | 'lg' | 'xl';
 
 const sizes: Record<WordmarkSize, string> = {
@@ -15,22 +10,12 @@ const sizes: Record<WordmarkSize, string> = {
     xl: 'h-8',
 };
 
-/**
- * The artwork is served straight out of `public/`, so it is referenced by URL
- * rather than imported: it is chrome on every page and does not need to be part
- * of the bundle graph to be cached.
- *
- * The files are named for the ink, not for the theme — dark ink is what a light
- * surface needs.
- */
+// Named for the ink, not the theme: dark ink is what a light surface needs.
 const darkInkSource = '/images/brand/mizita-logo-dark.png';
 const lightInkSource = '/images/brand/mizita-logo-light.png';
 
-/**
- * The artwork's own pixel size. Declaring it on every `<img>` is what lets the
- * browser reserve the box from the aspect ratio, so a sticky header never
- * reflows once the file arrives.
- */
+// Declared on every `<img>` so the browser reserves the box from the aspect
+// ratio and a sticky header never reflows once the file arrives.
 const intrinsicWidth = 584;
 const intrinsicHeight = 130;
 
@@ -59,22 +44,15 @@ function WordmarkImage({ source, alt, className }: ImageProps) {
 }
 
 type MarkProps = {
-    /**
-     * The accessible name of the mark. The artwork carries no text layer, so the
-     * app name still comes from the server rather than being written in here.
-     */
+    /** The artwork carries no text layer, so the name comes from the server. */
     name: string;
     size?: WordmarkSize;
     className?: string;
 };
 
 /**
- * The artwork on its own, leading nowhere.
- *
- * It exists for the screens a person is not allowed to leave yet — onboarding,
- * where the header mark would otherwise be a link to a dashboard the server
- * bounces straight back here. A mark that goes nowhere is honest; a link that
- * returns you to where you started is not.
+ * The artwork on its own, for the screens a person is not allowed to leave yet —
+ * onboarding, where a link would only bounce off the server and come back here.
  */
 export function WordmarkMark({ name, size = 'default', className }: MarkProps) {
     return (
@@ -94,28 +72,17 @@ export function WordmarkMark({ name, size = 'default', className }: MarkProps) {
 }
 
 type Props = {
-    /**
-     * The accessible name of the mark. The artwork carries no text layer, so the
-     * app name still comes from the server rather than being written in here.
-     */
+    /** The artwork carries no text layer, so the name comes from the server. */
     name: string;
-    /** Where the wordmark leads. Defaults to the public landing page. */
     href?: string;
     size?: WordmarkSize;
     className?: string;
 };
 
 /**
- * The product signature: the brand artwork, sized by the ramp above.
- *
- * Both inks are rendered and the `dark` variant picks one, so the right mark is
- * shown without a script deciding — the swap survives server-rendered HTML and a
- * theme that is set before paint. The trade is one extra request the browser
- * makes once and caches; the alternative is a flash of the wrong ink.
- *
- * The square that closes the mark stands for a booked block on an agenda column.
- * It used to be drawn in CSS next to live text; the artwork keeps it, which is
- * why it is no longer a separate element here.
+ * Both inks are rendered and the `dark` variant picks one, so the swap survives
+ * server-rendered HTML and a theme set before paint, with no flash of the wrong
+ * ink.
  */
 export function Wordmark({ name, href = '/', size = 'default', className }: Props) {
     return (

@@ -12,11 +12,9 @@ use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
 
 /**
- * Gives an owner the phone number they just provided.
- *
- * An upsert, not an insert: an owner has at most one phone, enforced by a
- * partial unique index, so a second call for the same owner has to move the
- * existing record rather than race the constraint with a new row.
+ * An upsert, not an insert: an owner has at most one phone, enforced by a partial
+ * unique index, so a second call has to move the existing record rather than
+ * race the constraint with a new row.
  */
 final class AttachPhone
 {
@@ -35,7 +33,6 @@ final class AttachPhone
         return PhoneData::fromEntity($phone);
     }
 
-    /** The owner's phone carrying the new number, created if they had none. */
     private function phoneFor(AttachPhoneInput $input): Phone
     {
         $phone = $this->phones->findForOwner($input->ownerType, $input->ownerId);

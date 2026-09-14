@@ -2,17 +2,11 @@ import type { Element, Root, RootContent, Text } from 'hast';
 import { legalFacts } from '@/content/legal/entity';
 
 /**
- * Resolves the `{{TOKEN}}` placeholders the documents are written with.
- *
- * It runs over the parsed tree rather than over the markdown string, for two
- * reasons. A value can then never introduce markup — a value with a `*` in it
- * stays text instead of becoming emphasis — and a token nobody declared can be
- * replaced by an *element*, which a string substitution could never produce.
- *
- * That element is the point. A document referring to a fact that does not exist
- * renders a marker naming the token, so the gap is visible to anyone who opens
- * the page. The alternative, an empty string, would quietly publish a contract
- * with a blank in it.
+ * Resolves the `{{TOKEN}}` placeholders the documents are written with, over the
+ * parsed tree rather than the markdown string: a value can then never introduce
+ * markup, and an undeclared token can be replaced by an *element* — a marker
+ * naming the gap — which a string substitution could never produce. An empty
+ * string would quietly publish a contract with a blank in it.
  */
 
 type Options = {
@@ -24,8 +18,7 @@ const TOKEN = /\{\{([A-Za-z0-9_]+)\}\}/g;
 
 /**
  * `mark` is the one element this pipeline emits itself: GFM has no highlight
- * syntax, so nothing in the documents can produce one by accident, and the
- * renderer is free to read every `mark` it receives as a marker.
+ * syntax, so the renderer can read every `mark` it receives as a marker.
  */
 function marker(label: string, markerPrefix: string): Element {
     return {
@@ -45,9 +38,6 @@ function findFact(token: string): string | undefined {
 function resolve(token: string, { markerPrefix }: Options): Element | Text {
     const value = findFact(token);
 
-    // An unknown token is a document referring to a fact nobody declared, so it
-    // names itself instead of vanishing, and is impossible to mistake for
-    // finished prose.
     if (value === undefined) {
         return marker(token, markerPrefix);
     }
@@ -97,7 +87,6 @@ function expandTree(node: Root | Element, options: Options): void {
     node.children = expanded;
 }
 
-/** Builds the plugin for one document, in one language. */
 export function rehypeLegalFacts(options: Options) {
     return () => (tree: Root) => {
         expandTree(tree, options);

@@ -24,9 +24,6 @@ final class SocialIdentity
         public readonly DateTimeImmutable $linkedAt,
     ) {}
 
-    /**
-     * Links an account to a provider user. Enforces creation-time rules.
-     */
     public static function link(
         string $id,
         string $accountId,
@@ -52,9 +49,7 @@ final class SocialIdentity
         );
     }
 
-    /**
-     * Rehydrates a link from storage. Skips creation-time rules by design.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $accountId,

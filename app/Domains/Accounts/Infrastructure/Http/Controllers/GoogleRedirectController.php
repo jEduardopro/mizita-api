@@ -9,8 +9,8 @@ use Illuminate\Http\RedirectResponse;
 use Laravel\Socialite\Facades\Socialite;
 
 /**
- * Sends the browser to Google's consent screen. Socialite puts the "state"
- * value in the session here, which is why this route is on the web stack.
+ * Socialite puts the "state" value in the session here, which is why this route
+ * is on the web stack.
  */
 final class GoogleRedirectController extends Controller
 {

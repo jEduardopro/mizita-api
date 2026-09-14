@@ -13,11 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Persistence model. Not a domain entity: it carries no business rules and
- * never leaves the infrastructure layer.
- *
- * Soft deletes track the record lifecycle - unlinking a provider keeps the
- * history - which is why the provider uniqueness index is partial.
+ * Unlinking a provider keeps the history, which is why the provider uniqueness
+ * index is partial on deleted_at.
  *
  * Not tenant scoped: Accounts is a root domain.
  */
@@ -30,8 +27,6 @@ class SocialIdentityModel extends Model
     protected $table = 'social_identities';
 
     /**
-     * The account this identity signs in, joined on the int primary key.
-     *
      * @return BelongsTo<User, $this>
      */
     public function account(): BelongsTo
@@ -40,8 +35,8 @@ class SocialIdentityModel extends Model
     }
 
     /**
-     * The uuid column carries the public identity, so the primary key stays an
-     * auto-incrementing int used only for internal joins and indexes.
+     * Overridden so the primary key stays an auto-incrementing int; uuid carries
+     * the public identity.
      *
      * @return array<int, string>
      */

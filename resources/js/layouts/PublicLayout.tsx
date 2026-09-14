@@ -17,13 +17,7 @@ import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 import { legalDocuments } from '@/content/legal/entity';
 
-/**
- * The social profiles the footer links to.
- *
- * PLACEHOLDER: every `href` is `#` until the accounts exist. Point each one at
- * the real profile and nothing else in this file has to change. The network names
- * are proper nouns, so they are not translated — only the sentence around them is.
- */
+/** PLACEHOLDER: every `href` is `#` until the accounts exist. */
 const socialProfiles: { network: string; href: string; Icon: (props: SocialIconProps) => ReactNode }[] = [
     { network: 'Facebook', href: '#', Icon: FacebookIcon },
     { network: 'Instagram', href: '#', Icon: InstagramIcon },
@@ -33,18 +27,11 @@ const socialProfiles: { network: string; href: string; Icon: (props: SocialIconP
 ];
 
 /**
- * The footer menu.
+ * The product anchors are absolute paths so the footer works from every public
+ * page: on the landing page the browser treats `/#pricing` as a fragment jump,
+ * and from anywhere else it goes home and lands on the section.
  *
- * Product points at the landing page's own anchors, written as absolute paths so
- * the footer works from every public page: on the landing page itself the browser
- * treats `/#pricing` as a fragment jump rather than a navigation, and from
- * anywhere else it goes home and lands on the section.
- *
- * The legal destinations come from `legalDocuments`, the same record the auth
- * screens link through, so the three paths are declared once.
- *
- * PLACEHOLDER: the company destinations are `#` until those pages exist. Each
- * one is a route `mizita-backend` has yet to add.
+ * PLACEHOLDER: the company destinations are `#` until those routes exist.
  */
 const footerMenu = [
     {
@@ -79,24 +66,11 @@ const footerMenu = [
 type Props = {
     /** The tab title. The app name is appended by the title callback in app.tsx. */
     title?: string;
-    /**
-     * An in-page menu for the header, for a page long enough to need one. Pages
-     * that pass nothing get the header exactly as it is without it — the shell
-     * stays audience-generic and never assumes a page has sections at all.
-     */
+    /** An in-page menu, for a page long enough to need one. */
     sections?: Section[];
     children: ReactNode;
 };
 
-/**
- * The shell for everything an anonymous visitor can reach: the landing page and,
- * later, the public catalog and the booking funnel.
- *
- * The header is sticky, so the account buttons and the section menu stay
- * reachable however far down the page the visitor has read. It is translucent
- * and blurred rather than solid because the content scrolling under it is worth
- * seeing; a section that has to clear it carries its own `scroll-mt`.
- */
 export function PublicLayout({ title, sections, children }: Props) {
     const { name } = usePage().props;
     const { t } = useTranslation('common');
@@ -113,15 +87,8 @@ export function PublicLayout({ title, sections, children }: Props) {
 
                     {sections === undefined ? null : <SectionNav sections={sections} />}
 
-                    {/*
-                     * The primary action is the brand fill from the very first
-                     * scroll position, so the button a visitor is looking for
-                     * looks the same in the header as it does in the hero.
-                     *
-                     * The pair is unconditional: the public surface is marketing
-                     * copy, and it reads the same offer to everyone whether or
-                     * not the visitor happens to have a session open.
-                     */}
+                    {/* Unconditional: the public surface makes the same offer to
+                        everyone, session or not. */}
                     <nav aria-label={t('nav.account')} className="flex items-center gap-1.5">
                         <Button asChild variant="ghost" size="sm">
                             <Link href="/login">{t('nav.logIn')}</Link>
@@ -172,11 +139,8 @@ export function PublicLayout({ title, sections, children }: Props) {
                     </div>
 
                     <div className="mt-12 flex flex-col gap-5 border-t border-border pt-6 sm:flex-row-reverse sm:items-center sm:justify-between">
-                        {/*
-                         * Icon links carry no text, so each one is named by its
-                         * `aria-label` and reads as a whole sentence rather than
-                         * as a bare network name.
-                         */}
+                        {/* Icon links carry no text, so each is named by its
+                            `aria-label` and reads as a whole sentence. */}
                         <ul aria-label={t('footer.social.title')} className="flex items-center gap-1">
                             {socialProfiles.map(({ network, href, Icon }) => (
                                 <li key={network}>

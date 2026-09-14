@@ -14,10 +14,6 @@ use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Depends only on interfaces, so it can be built with mocks and exercised
- * without a database.
- */
 final class CreateCustomer
 {
     public function __construct(

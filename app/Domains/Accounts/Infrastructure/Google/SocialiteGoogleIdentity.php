@@ -8,9 +8,6 @@ use App\Domains\Accounts\ValueObjects\GoogleIdentity;
 use Laravel\Socialite\AbstractUser as SocialiteUser;
 
 /**
- * Translates Socialite's provider user into this domain's value object, so
- * nothing above the infrastructure layer imports a vendor class.
- *
  * One translator serves both entry points: GoogleProvider::mapUserToObject()
  * calls setRaw(), so the raw claims are present whether they came from a
  * verified ID token or from the userinfo endpoint.
@@ -22,7 +19,6 @@ final class SocialiteGoogleIdentity
     public function toGoogleIdentity(SocialiteUser $user): GoogleIdentity
     {
         return new GoogleIdentity(
-            // The subject claim, which Socialite exposes as the user id.
             sub: (string) $user->getId(),
             email: (string) $user->getEmail(),
             emailVerified: $this->hasVerifiedEmail($user),

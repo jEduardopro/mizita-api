@@ -7,10 +7,8 @@ import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
 
 /**
- * Rendered by `Inertia::render('auth/forgot-password')`.
- *
- * Fortify answers a successful request with a flash `status`, which is the only
- * confirmation the screen gets: whether the address exists is never revealed.
+ * Fortify's flash `status` is the only confirmation the screen gets: whether the
+ * address exists is never revealed.
  */
 export default function ForgotPassword() {
     const { status } = usePage().props;

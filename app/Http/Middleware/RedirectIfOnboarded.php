@@ -10,15 +10,11 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The mirror of RequireBusinessMembership: it keeps onboarding out of reach of
- * an account that already has a business, sending it to the dashboard.
+ * The mirror of RequireBusinessMembership. Two guards rather than one taking a
+ * flag, so each route declares what it requires and neither grows a branch.
  *
- * Two guards rather than one taking a flag, so each route declares what it
- * requires and neither entry point grows a branch. It runs after `auth`, and
- * returns a 302 that an Inertia GET visit follows on its own.
- *
- * Like SetBusinessContext, this class reaches memberships only through the
- * shared port and must never import App\Domains\Staff\*.
+ * Like SetBusinessContext, it reaches memberships only through the shared port
+ * and must never import App\Domains\Staff\*.
  */
 final class RedirectIfOnboarded
 {

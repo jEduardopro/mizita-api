@@ -8,10 +8,10 @@ use App\Domains\Phones\Application\UseCases\AttachPhone;
 use App\Domains\Phones\Contracts\PhoneRepository;
 use App\Domains\Phones\Entities\Phone;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
-use App\Shared\ValueObjects\CountryCode;
-use App\Shared\ValueObjects\PhoneNumber;
+use App\Shared\Contracts\PhoneNumberParser;
 use Tests\Support\FakeClock;
 use Tests\Support\FixedIdGenerator;
+use Tests\Support\PhoneNumbers;
 
 /*
 | Built from a mock and two fakes: no container, no migrations, no database.
@@ -23,7 +23,8 @@ use Tests\Support\FixedIdGenerator;
 |
 | Phones is a root domain - a phone belongs to an owner, and the owner's own
 | domain is what belongs to a tenant - so there is deliberately no
-| BusinessContext here.
+| BusinessContext here. Nor is there a parser: a number arrives already
+| established, because establishing it is the edge's job.
 */
 
 const ATTACH_PHONE_GENERATED_ID = '01930000-0000-7000-8000-0000000000b1';
@@ -38,12 +39,12 @@ function attachPhoneNow(): DateTimeImmutable
 function attachPhoneInput(
     PhoneOwnerType $ownerType = PhoneOwnerType::Business,
     string $ownerId = 'business-1',
-    string $nationalNumber = '5512345678',
+    string $nationalNumber = PhoneNumbers::MX_NATIONAL_NUMBER,
 ): AttachPhoneInput {
     return new AttachPhoneInput(
         ownerType: $ownerType,
         ownerId: $ownerId,
-        number: PhoneNumber::fromParts(CountryCode::Mx, $nationalNumber),
+        number: PhoneNumbers::mexican($nationalNumber),
     );
 }
 
@@ -127,7 +128,7 @@ describe('when the owner already has a phone', function () {
             id: ATTACH_PHONE_EXISTING_ID,
             ownerType: PhoneOwnerType::Business,
             ownerId: 'business-1',
-            number: PhoneNumber::fromParts(CountryCode::Mx, '5500000000'),
+            number: PhoneNumbers::mexican('5500000000'),
             createdAt: new DateTimeImmutable('2025-06-15T09:30:00+00:00'),
         );
     });
@@ -179,6 +180,28 @@ describe('when the owner already has a phone', function () {
         expect($this->useCase->handle(attachPhoneInput(nationalNumber: '5500000000'))->number->e164())
             ->toBe('+525500000000');
     });
+});
+
+it('is still built from mocks alone, and asks for no parser', function () {
+    // The bar the whole port exists to protect. Parsing needs a slab of
+    // numbering-plan metadata and a geocoding locale; a use case that reached
+    // for it would be a use case that needs a container to construct, and this
+    // file would need one to run.
+    //
+    // beforeEach already built it from a mock and two fakes. What is asserted
+    // here is that nothing in its constructor could ever need more than that.
+    $types = array_map(
+        static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
+        (new ReflectionClass(AttachPhone::class))->getConstructor()->getParameters(),
+    );
+
+    expect($this->useCase)->toBeInstanceOf(AttachPhone::class)
+        ->and($types)->not->toContain(PhoneNumberParser::class)
+        ->and($types)->not->toBeEmpty();
+
+    foreach ($types as $type) {
+        expect(interface_exists($type))->toBeTrue("[{$type}] is a concretion, so this use case is no longer doubleable.");
+    }
 });
 
 it('never deletes a phone on the way to attaching one', function () {

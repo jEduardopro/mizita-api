@@ -110,10 +110,7 @@ return [
          * foreign key is other than `team_id`.
          */
 
-        /*
-         * The team is the business, so the column says so. It holds
-         * businesses.id, the int primary key, never the business uuid.
-         */
+        /* The team is the business: this holds businesses.id, never the uuid. */
         'team_foreign_key' => 'business_id',
     ],
 
@@ -151,11 +148,9 @@ return [
      * add 'team_foreign_key' to 'roles', 'model_has_roles', and 'model_has_permissions'
      * (view the latest version of this package's migration file)
      *
-     * On, and it has to be. Roles attach to a User, and a User is not confined
-     * to one business: somebody can own one business and work as staff at
-     * another. Without teams both roles would be global and the system could
-     * not tell which one applies where. The team is the business, and the team
-     * id is businesses.id - the int primary key, as every foreign key here is.
+     * On, and it has to be: a User is not confined to one business, so without
+     * teams both roles would be global and the system could not tell which one
+     * applies where.
      */
 
     'teams' => true,

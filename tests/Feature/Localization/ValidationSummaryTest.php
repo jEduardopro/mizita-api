@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Models\User;
-use Database\Seeders\StaffRoleSeeder;
+use Database\Seeders\AuthorizationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
@@ -73,7 +73,7 @@ describe('the singular key', function () {
 
 describe('the plural key', function () {
     beforeEach(function () {
-        $this->seed(StaffRoleSeeder::class);
+        $this->seed(AuthorizationSeeder::class);
 
         $business = BusinessModel::factory()->create();
         $owner = User::factory()->create();

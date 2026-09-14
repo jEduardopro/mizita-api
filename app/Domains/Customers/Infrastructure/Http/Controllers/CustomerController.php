@@ -16,11 +16,7 @@ final class CustomerController extends Controller
 {
     public function store(CreateCustomerRequest $request, CreateCustomer $createCustomer): JsonResponse
     {
-        $customer = $createCustomer->handle(new CreateCustomerInput(
-            name: $request->string('name')->toString(),
-            email: $request->string('email')->toString() ?: null,
-            phone: $request->string('phone')->toString() ?: null,
-        ));
+        $customer = $createCustomer->handle(CreateCustomerInput::fromRequest($request->validated()));
 
         return CustomerResource::make($customer)
             ->response()

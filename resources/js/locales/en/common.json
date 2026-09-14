@@ -46,5 +46,9 @@
     "actions": {
         "tryAgain": "Try again",
         "retrying": "Retrying…"
+    },
+    "notifications": {
+        "region": "Notifications",
+        "dismiss": "Dismiss notification"
     }
 }

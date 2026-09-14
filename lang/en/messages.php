@@ -72,6 +72,12 @@ return [
         'invalid_timezone' => 'That time zone is not valid.',
         'invalid_business_name' => 'That business name is not valid.',
         'invalid_business_slug' => 'That web address is not valid.',
+
+        // One sentence for every way a phone number is turned down - a country
+        // we do not operate in, or digits that are not a number within one we
+        // do. They mean the same thing to the person filling in the form.
+        'unsupported_phone_number' => 'That is not a valid phone number for the selected country.',
+
         'industry_not_found' => 'We could not find that industry.',
         'staff_member_not_found' => 'We could not find that team member.',
 

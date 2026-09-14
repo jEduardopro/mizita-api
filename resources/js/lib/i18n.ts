@@ -13,41 +13,21 @@ import commonEs from '@/locales/es/common.json';
 import industriesEs from '@/locales/es/industries.json';
 import publicEs from '@/locales/es/public.json';
 
-/**
- * The single i18n setup for the whole front end.
- *
- * Translations are imported statically rather than fetched over HTTP. The whole
- * catalogue is a few kilobytes, and bundling it means the very first paint is
- * already in the visitor's language: no loading flash, no English frame that
- * swaps to Spanish a tick later, and nothing to re-render once a request lands.
- *
- * Spanish is the product's primary language and English is the fallback, which
- * is why `fallbackLng` below is `en`: that option answers "which catalogue do I
- * read when a key is missing here?", not "which language is the product in".
- * Choosing the language is the backend's job, see `initI18n`.
- */
-
 export type Locale = 'es' | 'en';
 
-/** The cookie Laravel reads, so a change made here is a change the server sees. */
+/** The cookie Laravel reads, so it must stay readable and writable from here. */
 export const LOCALE_COOKIE = 'locale';
 
-/** The locale the product falls back to when nothing at all has been decided. */
 const DEFAULT_LOCALE: Locale = 'es';
 
-/** The catalogue consulted for keys a locale does not define. */
+/**
+ * The catalogue consulted for keys a locale does not define — not the language
+ * the product speaks, which is Spanish.
+ */
 const FALLBACK_LOCALE: Locale = 'en';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
-/**
- * Namespaces mirror the app's own structure: one per audience folder under
- * `pages/`, plus the ones that are shared vocabulary rather than an audience.
- * `common` is the chrome every surface draws; `industries` is the catalogue the
- * backend keys by `key` and never labels, so the words for it belong here and
- * are read wherever an industry is shown — today the onboarding form, tomorrow
- * the public directory.
- */
 export const namespaces = ['common', 'auth', 'public', 'admin', 'industries'] as const;
 
 const resources = {
@@ -68,9 +48,8 @@ const resources = {
 };
 
 /**
- * The locales this bundle can actually render. The backend shares its own list,
- * but a locale with no catalogue here would only render as raw keys, so the two
- * lists are intersected rather than trusted blindly.
+ * The backend shares its own list, but a locale with no catalogue here would
+ * only render as raw keys, so the two lists are intersected rather than trusted.
  */
 const bundledLocales = Object.keys(resources) as Locale[];
 
@@ -89,10 +68,9 @@ function resolveSupportedLocales(supportedLocales: string[] | undefined): Locale
 }
 
 /**
- * Keeps `<html lang>` honest. The Blade root view belongs to the backend and is
- * rendered before React boots, so the attribute is corrected from here whenever
- * the language settles or changes — screen readers and `:lang()` rules both
- * depend on it, and so does the browser's own hyphenation.
+ * The Blade root view is rendered before React boots, so `<html lang>` is
+ * corrected from here whenever the language settles or changes — screen readers,
+ * `:lang()` rules and the browser's hyphenation all depend on it.
  */
 function syncDocumentLanguage(language: string): void {
     document.documentElement.lang = language;
@@ -100,11 +78,7 @@ function syncDocumentLanguage(language: string): void {
 
 i18n.on('languageChanged', syncDocumentLanguage);
 
-/**
- * Writes the locale cookie in the shape Laravel expects: same name, root path,
- * one year. Nothing else writes it — the detector's own cache is switched off
- * below precisely so this stays the only writer.
- */
+/** The shape Laravel expects, and the only place the cookie is written. */
 function writeLocaleCookie(locale: Locale): void {
     const secure = window.location.protocol === 'https:' ? '; Secure' : '';
 
@@ -113,8 +87,7 @@ function writeLocaleCookie(locale: Locale): void {
 
 /**
  * The product's last-resort default, expressed as a detector so it sits in the
- * same ordered chain as the cookie instead of being a special case somewhere
- * else.
+ * same ordered chain as the cookie instead of being a special case elsewhere.
  */
 const productDefaultDetector: CustomDetector = {
     name: 'productDefault',
@@ -126,23 +99,10 @@ const languageDetector = new LanguageDetector();
 languageDetector.addDetector(productDefaultDetector);
 
 /**
- * Boots i18next. Called from `app.tsx` with the locale the backend shared, before
- * anything renders.
- *
- * The server's decision wins over any client-side detection, and that ordering is
- * deliberate. Laravel already resolved the locale through `?lang=` → `X-Locale` →
- * the `locale` cookie → `es`, and it used that answer to pick the language of every
- * validation message, mail and redirect it will send. If the client re-detected
- * independently it could reach a different conclusion — a stale cookie read
- * differently, a default weighted differently — and the page would then disagree
- * with the server about the same request. One decision, made once, upstream.
- *
- * Every step of that chain is an explicit choice, because the product is
- * Spanish-first: it answers in Spanish until someone asks for something else, and
- * never guesses from the browser's own language settings.
- *
- * Detection is still configured because it is the honest fallback for the case
- * where the prop is absent or names a locale this bundle cannot render.
+ * Laravel already resolved the locale through `?lang=` → `X-Locale` → the
+ * `locale` cookie → `es`, and answers every validation message in it. Detection
+ * here is only the fallback for a missing or unrenderable prop; re-detecting
+ * independently would let the page disagree with the server about one request.
  */
 export function initI18n(locale?: string, supportedLocales?: string[]): typeof i18n {
     if (i18n.isInitialized) {
@@ -156,8 +116,8 @@ export function initI18n(locale?: string, supportedLocales?: string[]): typeof i
         .use(initReactI18next)
         .init({
             resources,
-            // Setting `lng` skips detection entirely, which is exactly what
-            // makes the server authoritative.
+            // Setting `lng` skips detection entirely, which is what makes the
+            // server authoritative.
             lng: isBundledLocale(locale) ? locale : undefined,
             fallbackLng: FALLBACK_LOCALE,
             supportedLngs: supported,
@@ -169,12 +129,9 @@ export function initI18n(locale?: string, supportedLocales?: string[]): typeof i
                 escapeValue: false,
             },
             detection: {
-                // `navigator` is deliberately absent, mirroring the server: the
-                // product is Spanish-first, so a visitor with an English browser
-                // is still served Spanish until they choose otherwise. Inferring
-                // the language from something nobody consciously set is exactly
-                // the behaviour the backend dropped, and leaving it here would
-                // reintroduce it on the one path that actually runs detection.
+                // `navigator` is deliberately absent, mirroring the server: a
+                // visitor with an English browser is still served Spanish until
+                // they choose otherwise.
                 order: ['cookie', 'productDefault'],
                 lookupCookie: LOCALE_COOKIE,
                 // `changeLocale` owns the cookie. Letting the detector cache as
@@ -184,7 +141,7 @@ export function initI18n(locale?: string, supportedLocales?: string[]): typeof i
             },
             react: {
                 // Every catalogue is already in the bundle, so nothing is ever
-                // pending and Suspense would only add a boundary with no purpose.
+                // pending and Suspense would add a boundary with no purpose.
                 useSuspense: false,
             },
         });
@@ -195,12 +152,8 @@ export function initI18n(locale?: string, supportedLocales?: string[]): typeof i
 }
 
 /**
- * Switches language for the rest of the session.
- *
- * Both halves matter: i18next re-renders the app, and the cookie is what tells
- * Laravel to keep answering in the same language on the next full page load and
- * on every API call made from a fresh tab. No switcher UI ships yet; the plumbing
- * exists so one can be added without touching this file.
+ * The cookie is what tells Laravel to keep answering in the same language on the
+ * next full page load and on every API call made from a fresh tab.
  */
 export async function changeLocale(locale: Locale): Promise<void> {
     writeLocaleCookie(locale);
@@ -208,10 +161,6 @@ export async function changeLocale(locale: Locale): Promise<void> {
     await i18n.changeLanguage(locale);
 }
 
-/**
- * The language currently in effect, for callers outside React — the axios
- * instance sends it as `X-Locale` on every request.
- */
 export function currentLocale(): string {
     return i18n.resolvedLanguage ?? DEFAULT_LOCALE;
 }

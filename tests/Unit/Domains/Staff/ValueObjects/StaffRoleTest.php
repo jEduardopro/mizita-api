@@ -29,6 +29,16 @@ it('has exactly two roles, so a new one cannot be added without a migration', fu
     expect(StaffRole::cases())->toBe([StaffRole::Owner, StaffRole::Member]);
 });
 
+it('names only roles the authorization catalogue defines', function (StaffRole $role) {
+    // The domain's vocabulary and the catalogue are two files that have to agree
+    // on the same words: this enum is what the code says, and the catalogue is
+    // what gets written to the roles table. A role named here and absent there is
+    // an assignment that fails with RoleDoesNotExist at signup.
+    $catalogue = require dirname(__DIR__, 5).'/config/authorization.php';
+
+    expect(array_keys($catalogue['roles']))->toContain($role->value);
+})->with(StaffRole::cases());
+
 it('refuses a role the database would reject', function (string $value) {
     expect(StaffRole::tryFrom($value))->toBeNull();
 })->with([

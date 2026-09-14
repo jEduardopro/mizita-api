@@ -14,28 +14,19 @@ use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Resolves the business the request operates on and binds it for the rest of
- * the lifecycle. It aborts rather than binding nothing, so a tenant-scoped
- * query can never run unscoped behind a route carrying this middleware.
- *
- * The tenant comes from the caller's memberships, never from a column on the
- * user and never from the request body. A client may choose among the
- * businesses it already belongs to with the X-Business header; anything else is
- * refused.
+ * Aborts rather than binding nothing, so a tenant-scoped query can never run
+ * unscoped behind a route carrying this middleware. The tenant comes from the
+ * caller's memberships, never from a column on the user and never from the
+ * request body.
  *
  * This class imports only App\Shared\Contracts\* and must never import
- * App\Domains\Staff\* - or any other domain. It sits outside App\Domains, so
- * the architecture tests do not police its imports and the discipline has to be
- * written down instead: memberships are reached through BusinessMembership and
- * the permissions team key through BusinessTeamKey, both shared ports bound by
- * the domain that owns the data behind them.
+ * App\Domains\Staff\* - or any other domain. It sits outside App\Domains, so the
+ * architecture tests do not police its imports and the discipline has to be
+ * written down instead.
  */
 final class SetBusinessContext
 {
-    /**
-     * The header a client uses to pick which of its businesses to operate.
-     * Absent, the first membership wins.
-     */
+    /** Absent, the first membership wins. */
     private const BUSINESS_HEADER = 'X-Business';
 
     public function __construct(
@@ -61,12 +52,10 @@ final class SetBusinessContext
     }
 
     /**
-     * A business the caller is a member of, or a 403.
-     *
      * 403 rather than 404 for an unknown or foreign business: the route is
      * authenticated, and which businesses exist is not a secret being kept from
-     * a signed-in user. The "404, not 403" rule guards public slugs, where a
-     * 403 would confirm the business is real to anyone who guesses it.
+     * a signed-in user. The "404, not 403" rule guards public slugs, where a 403
+     * would confirm the business is real to anyone who guesses it.
      */
     private function resolveBusinessId(Request $request): string
     {

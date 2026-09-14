@@ -16,10 +16,6 @@ use Laravel\Socialite\AbstractUser;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
 
-/**
- * Completes the browser flow: exchanges Google's authorization code for a
- * profile, signs the account in, and hands the session cookie back.
- */
 final class GoogleCallbackController extends Controller
 {
     private const DRIVER = 'google';
@@ -56,10 +52,7 @@ final class GoogleCallbackController extends Controller
         return redirect()->intended((string) config('fortify.home'));
     }
 
-    /**
-     * The errors bag is already a shared Inertia prop, so the login page
-     * renders this without any further wiring.
-     */
+    /** The errors bag is already a shared Inertia prop, so the login page renders this unwired. */
     private function backToLogin(string $messageKey): RedirectResponse
     {
         return redirect()->route('login')->withErrors(['google' => (string) __($messageKey)]);

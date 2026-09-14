@@ -11,18 +11,14 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Turns any domain failure into its API error body.
- *
  * One renderer for every domain: the exception carries its own code and kind,
- * so this class never grows a branch per exception class and a new domain
- * needs no change here at all.
+ * so this class never grows a branch per exception class.
  */
 final class RenderDomainFailure
 {
     /**
-     * Returns null when this request must not be answered with JSON, which
-     * hands the failure back to the default handler and leaves the web stack's
-     * redirect-with-errors behaviour intact.
+     * Null hands the failure back to the default handler, leaving the web
+     * stack's redirect-with-errors behaviour intact.
      */
     public function __invoke(DomainFailure $failure, Request $request): ?JsonResponse
     {
@@ -31,10 +27,9 @@ final class RenderDomainFailure
         }
 
         return response()->json([
-            // The exception's own getMessage() is never sent. Those are English
-            // developer strings written for a stack trace, and several of them
-            // interpolate the identifier that caused the failure - a slug, an
-            // email - which is exactly what an error body must not confirm.
+            // getMessage() is never sent: those are English developer strings,
+            // and several interpolate the identifier that caused the failure -
+            // a slug, an email - which an error body must not confirm.
             'message' => __('messages.errors.'.$failure->errorCode()),
             'code' => $failure->errorCode(),
         ], $this->statusFor($failure->kind()));

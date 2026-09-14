@@ -1,22 +1,15 @@
 import { useEffect, useState } from 'react';
 
 /**
- * The id of the section the reader is currently looking at, for the in-page menu
- * in the public header.
- *
- * The observing band is a narrow strip near the top of the viewport rather than
- * the whole screen: a section becomes current the moment its heading clears the
- * sticky header, and hands over as soon as the next one arrives. Watching the
- * full viewport instead would keep two long sections current at once and make
- * the highlight lag behind what is actually being read.
+ * A narrow strip below the sticky header rather than the whole viewport: a
+ * section becomes current as its heading clears the header. Observing the full
+ * viewport would keep two long sections current at once.
  */
 const OBSERVED_BAND = '-20% 0px -70% 0px';
 
 export function useActiveSection(ids: string[]): string | undefined {
-    // Callers build their list while rendering, because the labels are
-    // translated, so the array is a new one on every render. Keying the effect
-    // on the joined ids instead keeps a single observer alive for as long as the
-    // sections themselves do not change.
+    // Callers build the list while rendering, so it is a new array every time.
+    // Keying the effect on the joined ids keeps one observer alive instead.
     const key = ids.join(',');
     const [activeId, setActiveId] = useState<string>();
 

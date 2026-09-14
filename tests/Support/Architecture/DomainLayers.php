@@ -143,6 +143,37 @@ final class DomainLayers
         return $classes;
     }
 
+    /**
+     * Every PHP file the project defines under app/, as a path relative to it.
+     *
+     * Paths rather than class names, and every file rather than only those that
+     * declare a class: a rule about what may appear in the source - an import,
+     * a vendor namespace - has to be able to see a file the autoloader never
+     * loads, and a relative path is what makes a failure readable.
+     *
+     * @return list<string>
+     */
+    public static function applicationFiles(): array
+    {
+        $root = dirname(__DIR__, 3).'/app';
+        $paths = [];
+
+        /** @var iterable<SplFileInfo> $files */
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($files as $file) {
+            if ($file->getExtension() === 'php') {
+                $paths[] = substr($file->getPathname(), strlen($root) + 1);
+            }
+        }
+
+        sort($paths);
+
+        return $paths;
+    }
+
     private static function declaresClass(SplFileInfo $file): bool
     {
         $contents = (string) file_get_contents($file->getPathname());

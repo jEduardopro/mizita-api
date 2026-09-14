@@ -14,9 +14,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class AccountResource extends JsonResource
 {
     /**
-     * id is the uuid. The int primary key, the tenant discriminator and the
-     * password never leave the infrastructure layer.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

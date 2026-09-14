@@ -8,29 +8,13 @@ import { Section } from '@/components/public/landing/Section';
 import { HeroCollage } from '@/components/shared/hero/HeroCollage';
 import { PublicLayout } from '@/layouts/PublicLayout';
 
-/**
- * The header menu. The labels are each section's own eyebrow, so the menu and the
- * section it points at can never end up saying different things.
- */
+/** The labels are each section's own eyebrow, so the two cannot drift. */
 const menu = [
     { id: HOW_IT_WORKS_ID, labelKey: 'welcome.steps.eyebrow' },
     { id: BENEFITS_ID, labelKey: 'welcome.benefits.eyebrow' },
     { id: PRICING_ID, labelKey: 'welcome.pricing.eyebrow' },
 ] as const;
 
-/**
- * The public landing page, rendered by `Inertia::render('public/welcome')`.
- *
- * Five sections, in the order a business owner asks the questions: what is this,
- * how do I start, what do I get, what does it cost, where do I sign. The hero
- * offers exactly one action, so the first screen asks a single question; logging
- * in stays in the header, where someone who already has an account looks for it.
- *
- * The surfaces alternate down the page — page, tinted, page, tinted, brand — and
- * the tone is declared here, on the section, rather than inside each component.
- * The band at the bottom is the only brand-tinted surface the page has, which is
- * how the last call to action ends up being the loudest thing on it.
- */
 export default function Welcome() {
     const { name } = usePage().props;
     const { t } = useTranslation('public');
@@ -42,11 +26,6 @@ export default function Welcome() {
             <Section>
                 <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
                     <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500">
-                        {/*
-                         * The eyebrow is a pill rather than a line of small caps:
-                         * it is the first brand-coloured thing on the page, and it
-                         * sets up the blue the buttons below it are about to spend.
-                         */}
                         <p className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-brand-50 px-3 py-1 text-[0.6875rem] font-medium tracking-[0.18em] text-brand-700 uppercase dark:border-primary/25 dark:bg-brand-950/60 dark:text-brand-300">
                             <span aria-hidden="true" className="size-1.5 rounded-[2px] bg-primary" />
                             {t('welcome.eyebrow')}

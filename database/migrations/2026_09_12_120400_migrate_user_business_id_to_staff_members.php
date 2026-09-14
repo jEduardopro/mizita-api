@@ -14,22 +14,13 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 return new class extends Migration
 {
     /**
-     * Retires users.business_id in favour of the membership table.
+     * Retires users.business_id in favour of the membership table. Everyone who
+     * had the column set had created the business themselves - there was no
+     * other way to acquire it - so owner is the faithful reading, not a guess.
      *
-     * The column held a business uuid and was the only user<->business link
-     * there was. A staff row is that link now, and the role the membership
-     * grants is a Spatie assignment scoped to the business, so each surviving
-     * value becomes two rows: the membership, and the owner role at that
-     * business. Everyone who had the column set had created the business
-     * themselves - there was no other way to acquire it - so owner is the
-     * faithful reading, not a guess.
-     *
-     * down() cannot restore this, and does not pretend to. One account can hold
-     * several memberships and a single column cannot express that, so filling
-     * it back in would mean picking one membership and discarding the rest in
-     * silence. It puts the empty column back and leaves the memberships alone -
-     * they are now the truth, and deleting them to reverse a schema change
-     * would destroy data this migration did not create.
+     * down() puts the empty column back and leaves the memberships alone. One
+     * account can hold several memberships and a single column cannot express
+     * that, so refilling it would mean picking one and discarding the rest.
      */
     public function up(): void
     {
@@ -49,11 +40,9 @@ return new class extends Migration
     }
 
     /**
-     * The memberships first, then the role each of them is held under.
-     *
-     * In that order because the membership is the half that grants access: if
-     * the roles cannot be written - the seeder has not run yet - the accounts
-     * still reach their business, and only what they may do there is missing.
+     * Memberships first, because that is the half granting access: if the roles
+     * cannot be written - the seeder has not run yet - the accounts still reach
+     * their business, and only what they may do there is missing.
      */
     private function migrateAccounts(): void
     {
@@ -68,7 +57,7 @@ return new class extends Migration
             // so the memberships stand and the gap is reported.
             $this->warn(
                 'Owner role not found: memberships were migrated without a role assignment. '.
-                'Run StaffRoleSeeder, then give those accounts the owner role at their business.'
+                'Run AuthorizationSeeder, then give those accounts the owner role at their business.'
             );
 
             return;
@@ -78,11 +67,8 @@ return new class extends Migration
     }
 
     /**
-     * Whether any account still carries the column this migration retires.
-     *
-     * Asked before anything is written, so a database with nothing to migrate -
-     * a fresh install above all - neither reports a missing role nor implies
-     * work was done.
+     * Asked before anything is written, so a fresh install neither reports a
+     * missing role nor implies work was done.
      */
     private function hasAccountsToMigrate(): bool
     {
@@ -90,15 +76,10 @@ return new class extends Migration
     }
 
     /**
-     * One membership per user that pointed at a business still alive.
-     *
      * gen_random_uuid() is v4 while IdGenerator emits uuid7. Accepted here and
-     * nowhere else: this is a one-shot backfill of pre-production rows, and the
-     * alternative - pulling every row into PHP to mint an id - buys ordering
-     * nothing reads for rows nobody will page through.
+     * nowhere else: this is a one-shot backfill of pre-production rows, and
+     * minting ids in PHP would buy ordering nothing reads.
      *
-     * users carries no deleted_at, so there is nothing to filter on that side.
-     * Deleted businesses are excluded: a membership at one is not operable.
      * The conflict target is the partial unique index from the staff_members
      * migration, so a membership somebody already created is left as it is.
      */
@@ -116,13 +97,11 @@ return new class extends Migration
     }
 
     /**
-     * Gives each migrated account the owner role at its business.
-     *
      * Written straight onto Spatie's pivot rather than through its API, because
      * every call it offers is scoped to the current team - and the team is per
      * row here. model_type is the morph alias, which is what getMorphClass()
-     * returns now that the map is enforced; writing the class name instead
-     * would produce rows no role check matches.
+     * returns now that the map is enforced; writing the class name instead would
+     * produce rows no role check matches.
      */
     private function assignOwnerRole(int $ownerRoleId): void
     {
@@ -150,10 +129,7 @@ return new class extends Migration
         return $id === null ? null : (int) $id;
     }
 
-    /**
-     * Says it on the console and in the log, because a migration that leaves
-     * work behind must not be possible to miss in either place.
-     */
+    /** Both channels, because a migration that leaves work behind must not be missable. */
     private function warn(string $message): void
     {
         (new ConsoleOutput)->writeln('<comment>'.$message.'</comment>');

@@ -1,13 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
-/**
- * The authenticated user behind the session cookie.
- *
- * `GET /api/user` answers with the account's own fields, unwrapped. This lives
- * in `hooks/` rather than in `domains/` because there is no Accounts front-end
- * domain yet and the endpoint is app-wide rather than tenant-scoped.
- */
+// `GET /api/user` answers unwrapped, and is app-wide rather than tenant-scoped,
+// which is why this lives in `hooks/` and not in a domain.
 export type CurrentUser = {
     name: string;
     email: string;

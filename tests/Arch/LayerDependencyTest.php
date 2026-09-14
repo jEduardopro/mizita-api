@@ -143,6 +143,34 @@ arch('the shared value objects drag no framework into the domain layer')
     ->expect('App\Shared\ValueObjects')
     ->not->toUse(['Illuminate', 'Laravel', 'Carbon']);
 
+it('keeps the phone-parsing library inside the one adapter that may see it', function () {
+    // PhoneNumber and PhoneNumberType are imported by every domain that stores a
+    // number, and the whole argument for translating the library's type enum in
+    // the adapter - rather than on our own enum, where it would read better -
+    // rests on this staying true. A single `use libphonenumber\...` in a value
+    // object would put Google's metadata in the import graph of every entity in
+    // the repository, and nothing else in this file would notice.
+    //
+    // Written by hand rather than as `not->toUse('libphonenumber')` for a
+    // mundane reason: pest-plugin-arch resolves the dependency into a layer by
+    // parsing every file in it, and that namespace is a few thousand generated
+    // metadata files. The expectation exhausts PHP's memory limit before it can
+    // reach a verdict. Matching on the namespace token instead costs a grep,
+    // catches any entry point rather than a list someone has to keep current,
+    // and covers app/Http too, where the validation rule lives.
+    $app = dirname(__DIR__, 2).'/app/';
+
+    $offenders = array_values(array_filter(
+        DomainLayers::applicationFiles(),
+        static fn (string $file): bool => str_contains((string) file_get_contents($app.$file), 'libphonenumber\\'),
+    ));
+
+    expect($offenders)->toBe([
+        // The one adapter, and the only place a vendor's numbering plan belongs.
+        'Shared/Infrastructure/LibPhoneNumberParser.php',
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Tenancy: where the business comes from

@@ -9,28 +9,34 @@ use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Shared\ValueObjects\CountryCode;
 use App\Shared\ValueObjects\PhoneNumber;
+use App\Shared\ValueObjects\PhoneNumberType;
 use DateTimeImmutable;
 
 /**
- * Translates between the persistence model and the domain entity. Only the
- * repository adapter uses it.
+ * A PhoneNumber spreads across seven columns because each is a fact the platform
+ * checked rather than one it can recompute. PhoneNumber::of() re-checks that the
+ * three that must agree still do, so a row assembled by hand cannot come back as
+ * a number that would be dialled differently from the one stored.
  *
- * A PhoneNumber becomes the country_code / national_number column pair. The
- * dial code is never stored: it is a fact about the country, and CountryCode
- * is the one place that knows it.
+ * The owner uuid travels as a parameter rather than a column: the table holds
+ * the owner's int primary key, and resolving the two is the repository's job.
  */
 final class PhoneMapper
 {
-    public function toEntity(PhoneModel $model): Phone
+    public function toEntity(PhoneModel $model, string $ownerId): Phone
     {
         return Phone::restore(
-            // The uuid is the domain identity; the int primary key stays here.
             id: $model->uuid,
             ownerType: PhoneOwnerType::from($model->phoneable_type),
-            ownerId: $model->phoneable_id,
-            number: PhoneNumber::fromParts(
-                CountryCode::from($model->country_code),
-                $model->national_number,
+            ownerId: $ownerId,
+            number: PhoneNumber::of(
+                country: CountryCode::from($model->country_code),
+                callingCode: $model->calling_code,
+                nationalNumber: $model->national_number,
+                e164: $model->e164,
+                type: PhoneNumberType::from($model->number_type),
+                geoDescription: $model->geo_description,
+                timezones: array_values($model->timezones),
             ),
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
         );
@@ -39,14 +45,21 @@ final class PhoneMapper
     /**
      * @return array<string, mixed>
      */
-    public function toAttributes(Phone $phone): array
+    public function toAttributes(Phone $phone, int $ownerKey): array
     {
+        $number = $phone->number();
+
         return [
             'uuid' => $phone->id,
             'phoneable_type' => $phone->ownerType->value,
-            'phoneable_id' => $phone->ownerId,
-            'country_code' => $phone->number()->country()->value,
-            'national_number' => $phone->number()->nationalNumber(),
+            'phoneable_id' => $ownerKey,
+            'country_code' => $number->country()->value,
+            'national_number' => $number->nationalNumber(),
+            'calling_code' => $number->callingCode(),
+            'e164' => $number->e164(),
+            'number_type' => $number->type()->value,
+            'geo_description' => $number->geoDescription(),
+            'timezones' => $number->timezones(),
         ];
     }
 }

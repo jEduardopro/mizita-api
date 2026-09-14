@@ -5,12 +5,7 @@ import { FormField } from '@/components/form/FormField';
 import { Button } from '@/components/ui/button';
 import { AuthLayout } from '@/layouts/AuthLayout';
 
-/**
- * Rendered by `Inertia::render('auth/reset-password', ['token' => …, 'email' => …])`.
- *
- * Both props are identity carried by the reset link, not data: the token is the
- * credential Fortify checks and the email is the account it belongs to.
- */
+/** Identity carried by the reset link, not data: the token is a credential. */
 type Props = {
     token: string;
     email: string;

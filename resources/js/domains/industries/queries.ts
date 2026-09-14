@@ -9,10 +9,8 @@ import { listIndustries } from './api';
 import type { Industry } from './types';
 
 /**
- * Industries are reference data: the list is seeded and changes about once a
- * year, so a remount or a language switch has nothing to re-ask the server for.
- * `gcTime` matches, otherwise the catalogue would be collected the moment the
- * only screen using it unmounts and fetched again on the way back.
+ * Seeded reference data that changes about once a year. `gcTime` matches, or the
+ * catalogue would be collected as soon as the only screen using it unmounts.
  */
 const CATALOG_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
@@ -33,15 +31,12 @@ export function useIndustries() {
     });
 }
 
-/** The keys this bundle can name. English is the reference catalogue. */
 type IndustryKey = keyof typeof industriesEn;
 
 /**
- * Whether the catalogue has words for this key.
- *
  * The server owns the list and the front end owns the words, so the two can
- * drift by one deploy. A key with no translation is rendered as itself — plainly
- * wrong to look at, and still pickable — rather than as a blank row.
+ * drift by one deploy. An untranslated key renders as itself — plainly wrong to
+ * look at, and still pickable — rather than as a blank row.
  */
 function isTranslated(key: string): key is IndustryKey {
     return key in industriesEn;
@@ -55,19 +50,11 @@ function toOption(industry: Industry, t: TFunction<'industries'>): ComboboxOptio
 }
 
 /**
- * The choices in the order they are offered: alphabetical for the language on
- * screen, with `other` held back to the end.
- *
- * The collator is what makes this correct rather than merely sorted. A plain
- * comparison orders by code point, which in Spanish puts `Éxito del cliente`
- * after `Ventas` — every accented entry falls off the end of the list it
- * belongs in.
+ * The collator is what makes this correct rather than merely sorted: a code
+ * point comparison puts `Éxito del cliente` after `Ventas` in Spanish.
  *
  * The pinned row is recognised by its label, because an option carries the
- * server's uuid as its value and a uuid says nothing about which row is the
- * escape hatch. The label for `other` in this language is exactly what the row
- * was built from, so the two are the same string or the catalogue is missing a
- * key — in which case nothing is pinned and the list is merely alphabetical.
+ * server's uuid and a uuid says nothing about which row is the escape hatch.
  */
 export function sortIndustryOptions(options: ComboboxOption[], language: string): ComboboxOption[] {
     const pinnedLabel = i18n.t(PINNED_LAST, { ns: 'industries', lng: language });
@@ -86,21 +73,13 @@ export function sortIndustryOptions(options: ComboboxOption[], language: string)
 }
 
 type IndustryChoices = {
-    /** Translated, sorted, and ready to hand to a combobox. */
     options: ComboboxOption[];
     isPending: boolean;
     isError: boolean;
-    /** Asks for the catalogue again after a failure. */
     refetch: () => void;
 };
 
-/**
- * The catalogue as a field can consume it.
- *
- * Translating and ordering happen here rather than in the component because they
- * are one job — turning rows into choices — and because the order depends on the
- * language, which is not something a form should have to think about.
- */
+/** Ordering depends on the language, which is not a form's concern. */
 export function useIndustryOptions(): IndustryChoices {
     const { data, isPending, isError, refetch } = useIndustries();
     const { t, i18n: instance } = useTranslation('industries');

@@ -14,8 +14,6 @@ class CreateNewUser implements CreatesNewUsers
     use PasswordValidationRules;
 
     /**
-     * Validate and create a newly registered user.
-     *
      * @param  array<string, string>  $input
      *
      * @throws ValidationException
@@ -31,9 +29,9 @@ class CreateNewUser implements CreatesNewUsers
                 'max:255',
                 Rule::unique(User::class),
             ],
-            // Registration is the only flow without a confirmation field: the signup screen
-            // replaces it with a reveal toggle so the user can read what they typed. Reset and
-            // update keep it, where a typo would lock someone out of an account they already own.
+            // The only flow without a confirmation field: the signup screen has a
+            // reveal toggle instead. Reset and update keep it, where a typo would
+            // lock someone out of an account they already own.
             'password' => $this->passwordRules(confirmed: false),
         ])->validate();
 

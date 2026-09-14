@@ -17,17 +17,6 @@ use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Fortify::createUsersUsing(CreateNewUser::class);
@@ -58,8 +47,6 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Point every Fortify view at its Inertia page.
-     *
      * The pages carry identity only: the reset password page needs the token and
      * the email because they are route and query parameters, not records.
      */

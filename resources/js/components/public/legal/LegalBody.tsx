@@ -4,13 +4,7 @@ import { LegalMarkdown } from '@/components/public/legal/LegalMarkdown';
 import { LegalToc } from '@/components/public/legal/LegalToc';
 import type { LegalDocumentState } from '@/components/public/legal/use-legal-document';
 
-/**
- * The bars stand in for the shape that is about to arrive — an index, a clause
- * heading, a few lines of prose — rather than for a spinner, so the page does
- * not change silhouette when the document lands. The widths are irregular on
- * purpose: an even stack of identical bars reads as a loading graphic, and a
- * ragged one reads as text.
- */
+/** Irregular on purpose: an even stack of bars reads as a loading graphic. */
 const PLACEHOLDER_LINES = ['w-full', 'w-[97%]', 'w-[88%]', 'w-[94%]', 'w-[62%]'];
 
 function LegalBodySkeleton() {
@@ -33,14 +27,6 @@ type Props = {
     state: LegalDocumentState;
 };
 
-/**
- * Everything under the document's masthead: the clause index, the prose, and
- * the two states that are neither.
- *
- * The index and the text arrive together rather than in sequence, so nothing a
- * reader is already looking at moves once the document lands — the page only
- * grows downwards, past the fold.
- */
 export function LegalBody({ state }: Props) {
     const { t } = useTranslation('common');
 

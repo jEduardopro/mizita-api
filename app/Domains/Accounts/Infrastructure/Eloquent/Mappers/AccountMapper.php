@@ -9,20 +9,15 @@ use App\Models\User;
 use DateTimeImmutable;
 
 /**
- * Translates between the persistence model and the domain entity. Only the
- * repository adapter uses it.
- *
- * The model is App\Models\User rather than a model this domain owns: users is
+ * The model is App\Models\User rather than one this domain owns: users is
  * Fortify's and Sanctum's authenticatable and has to stay a single Eloquent
- * class. That is a deliberate divergence from one model per domain - the
- * entity is still pure, and the framework class stops here.
+ * class. That deliberate divergence from one model per domain stops here.
  */
 final class AccountMapper
 {
     public function toEntity(User $model): Account
     {
         return Account::restore(
-            // The uuid is the domain identity; the int primary key stays here.
             id: $model->uuid,
             name: $model->name,
             email: $model->email,
@@ -34,9 +29,8 @@ final class AccountMapper
     }
 
     /**
-     * The password is deliberately absent. The entity carries no hash, so
-     * omitting the attribute is what stops linking Google to an existing
-     * password account from wiping that password.
+     * The password is deliberately absent: omitting the attribute is what stops
+     * linking Google to an existing password account from wiping that password.
      *
      * @return array<string, mixed>
      */

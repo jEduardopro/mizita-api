@@ -9,13 +9,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Tenant safety net for Eloquent models whose table has a business_id uuid
- * column referencing businesses.uuid.
+ * Only for tables whose business_id is a uuid referencing businesses.uuid.
  *
- * The repository already writes business_id from the entity, so this trait is
- * defense in depth rather than the primary mechanism. When no context is bound
- * — console commands, migrations, seeders — the scope is skipped, which is why
- * isolation for HTTP traffic is guaranteed by the "business" route middleware.
+ * Defense in depth, not the primary mechanism: the repository already writes
+ * business_id from the entity, and when no context is bound - console commands,
+ * migrations, seeders - the scope is skipped. Isolation for HTTP traffic is
+ * guaranteed by the "business" route middleware.
  */
 trait BelongsToBusiness
 {

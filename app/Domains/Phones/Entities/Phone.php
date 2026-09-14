@@ -9,11 +9,8 @@ use App\Shared\ValueObjects\PhoneNumber;
 use DateTimeImmutable;
 
 /**
- * The single phone number of an owner - a business, a staff member or a
- * customer.
- *
- * Plain PHP, no framework. The number itself is a PhoneNumber, so the rules
- * about what a number may look like live there and are never re-checked here.
+ * The number itself is a PhoneNumber, so the rules about what a number may look
+ * like live there and are never re-checked here.
  */
 final class Phone
 {
@@ -41,10 +38,7 @@ final class Phone
         );
     }
 
-    /**
-     * Rehydrates a phone from storage. Skips creation-time rules by design:
-     * the data was already valid when it was written.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         PhoneOwnerType $ownerType,
@@ -61,10 +55,7 @@ final class Phone
         );
     }
 
-    /**
-     * The owner keeps the same phone record and reaches a new number: there is
-     * one phone per owner, so a change is never a second row.
-     */
+    /** One phone per owner, so a change is never a second row. */
     public function changeNumber(PhoneNumber $number): void
     {
         $this->number = $number;

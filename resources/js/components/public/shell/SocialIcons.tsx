@@ -1,25 +1,15 @@
 import type { ReactNode, SVGProps } from 'react';
 
-/**
- * The five social marks the footer links to.
- *
- * They are drawn here rather than imported because `lucide-react` v1 removed every
- * brand icon from the package — `Facebook`, `Instagram`, `Twitter`, `Linkedin` and
- * `Youtube` no longer exist in the installed version, and nothing else in the
- * dependency list carries them. Rather than add an icon package for five glyphs,
- * they are drawn in lucide's own geometry — a 24×24 box, `currentColor`, rounded
- * caps and joins — so they sit in the same line-drawn family as every other icon
- * the product will use, and so a hover that changes `text-*` recolours them.
- */
+// Drawn by hand because `lucide-react` v1 removed every brand icon, in lucide's
+// own geometry so they sit in the same family and `currentColor` recolours them.
 
 export type SocialIconProps = SVGProps<SVGSVGElement>;
 
 type GlyphProps = SocialIconProps & { children: ReactNode };
 
 /**
- * The shared frame. `aria-hidden` is unconditional: every one of these sits inside
- * a link that already carries the accessible name, so announcing the glyph as well
- * would only say the same thing twice.
+ * `aria-hidden` is unconditional: every one of these sits inside a link that
+ * already carries the accessible name.
  */
 function Glyph({ children, ...props }: GlyphProps) {
     return (

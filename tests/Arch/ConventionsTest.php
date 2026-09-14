@@ -21,6 +21,14 @@ arch('every class a domain defines is final')
     ->toBeFinal()
     ->ignoring(DomainLayers::eloquentModels());
 
+arch('every domain port is an interface')
+    // A port is a seam, and a seam an adapter cannot be written against is not
+    // one. A concrete class or an abstract base landing in Contracts/ compiles,
+    // binds and passes every unit test that happens to use the real thing - and
+    // takes the "constructible with mocks alone" bar down with it.
+    ->expect(DomainLayers::namespacesFor('Contracts'))
+    ->toBeInterfaces();
+
 arch('every domain file declares strict types')
     ->expect('App\Domains')
     ->toUseStrictTypes();

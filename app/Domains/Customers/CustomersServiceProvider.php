@@ -13,9 +13,6 @@ use Illuminate\Support\ServiceProvider;
 
 final class CustomersServiceProvider extends ServiceProvider
 {
-    /**
-     * Wire this domain's ports to their infrastructure adapters.
-     */
     public function register(): void
     {
         $this->app->bind(CustomerRepository::class, EloquentCustomerRepository::class);
@@ -23,11 +20,9 @@ final class CustomersServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // The alias this domain answers to in polymorphic columns, matching
-        // PhoneOwnerType::Customer. enforceMorphMap rather than morphMap, so an
-        // unmapped model raises instead of quietly writing its FQCN into a
-        // varchar(32) that would truncate it; it merges, so each domain keeps
-        // declaring its own alias in its own provider.
+        // Matches PhoneOwnerType::Customer. enforceMorphMap rather than
+        // morphMap, so an unmapped model raises instead of quietly writing its
+        // FQCN into a varchar(32) that would truncate it.
         Relation::enforceMorphMap(['customer' => CustomerModel::class]);
 
         Route::prefix('api')

@@ -11,8 +11,8 @@ use App\Domains\Businesses\Infrastructure\Http\Resources\BusinessNameAvailabilit
 use App\Http\Controllers\Controller;
 
 /**
- * The signup form's live check on a name. Always 200: a name being taken is an
- * answer to the question asked, not a failed request.
+ * Always 200: a name being taken is an answer to the question asked, not a
+ * failed request.
  */
 final class BusinessNameAvailabilityController extends Controller
 {
@@ -21,9 +21,7 @@ final class BusinessNameAvailabilityController extends Controller
         CheckBusinessNameAvailability $checkAvailability,
     ): BusinessNameAvailabilityResource {
         return BusinessNameAvailabilityResource::make($checkAvailability->handle(
-            new CheckBusinessNameAvailabilityInput(
-                name: $request->string('name')->toString(),
-            ),
+            CheckBusinessNameAvailabilityInput::fromRequest($request->validated()),
         ));
     }
 }

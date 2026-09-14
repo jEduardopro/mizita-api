@@ -18,11 +18,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 final class EloquentBusinessRepository implements BusinessRepository
 {
-    /**
-     * The partial unique indexes from the businesses migration. They are named
-     * here so a violation can be reported in domain terms rather than as a
-     * database error; if either name changes there, it changes here.
-     */
+    /** The partial unique indexes from the businesses migration; if either name changes there, it changes here. */
     private const NAME_UNIQUE_INDEX = 'businesses_name_lower_unique';
 
     private const SLUG_UNIQUE_INDEX = 'businesses_slug_lower_unique';
@@ -44,16 +40,10 @@ final class EloquentBusinessRepository implements BusinessRepository
     }
 
     /**
-     * The base and its numbered variants, in one read.
-     *
-     * The LIKE pattern is not escaped, and that is a decision rather than an
-     * oversight: a base only ever arrives here from Slug, whose alphabet is
-     * [a-z0-9-]. Neither % nor _ can appear in it, so there is no wildcard to
-     * neutralise. A caller that builds a base some other way breaks that
-     * invariant and this query with it.
-     *
-     * Soft deleted rows are excluded by SoftDeletes, which is what the partial
-     * unique indexes expect: a deleted business releases its address.
+     * The LIKE pattern is not escaped, and that is a decision: a base only ever
+     * arrives here from Slug, whose alphabet is [a-z0-9-], so there is no
+     * wildcard to neutralise. A caller that builds a base some other way breaks
+     * that invariant and this query with it.
      *
      * @return list<string>
      */
@@ -105,8 +95,6 @@ final class EloquentBusinessRepository implements BusinessRepository
     }
 
     /**
-     * The int foreign key behind the industry uuid the entity carries.
-     *
      * Reaching for the neighbour's model is allowed here and nowhere else:
      * translating a public identity into a private one is exactly the work an
      * adapter exists to do.
@@ -125,8 +113,6 @@ final class EloquentBusinessRepository implements BusinessRepository
     }
 
     /**
-     * Names the rule the database enforced.
-     *
      * An unrecognised index is not translated: it means a constraint nobody
      * modelled fired, and dressing that up as a name conflict would tell the
      * caller something untrue while hiding the real defect.

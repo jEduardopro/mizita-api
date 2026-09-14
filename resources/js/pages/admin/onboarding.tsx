@@ -4,14 +4,8 @@ import { useIndustryOptions } from '@/domains/industries/queries';
 import { OnboardingLayout } from '@/layouts/OnboardingLayout';
 
 /**
- * Rendered by `Inertia::render('admin/onboarding')`.
- *
- * No data arrives as a prop: the page mounts and the hooks fetch from `/api`,
- * the same endpoints a native client will call.
- *
- * The industry catalogue is read here and handed to the form because this is
- * where two domains legitimately meet. Businesses and Industries never import
- * each other; a page composes them.
+ * The industry catalogue is read here and handed to the form: Businesses and
+ * Industries never import each other, and a page is where they meet.
  */
 export default function Onboarding() {
     const { t } = useTranslation('admin');

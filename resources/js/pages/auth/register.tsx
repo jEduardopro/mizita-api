@@ -7,17 +7,9 @@ import { Button } from '@/components/ui/button';
 import { AuthSplitLayout } from '@/layouts/AuthSplitLayout';
 
 /**
- * Rendered by `Inertia::render('auth/register')`. Posts to Fortify's
- * `POST /register`; `CreateNewUser` is the only definition of what is valid, so
- * there is no client-side schema here.
- *
  * Registration is the one flow without a confirmation field — the card offers a
- * reveal toggle instead, so someone can read what they typed rather than type it
- * twice. Reset and update keep the confirmation, where a typo locks a person out
- * of an account they already own.
- *
- * The page is layout and composition. The mode the card is in, and every piece of
- * its markup, belong to `SignupCard`; what stays here is the request.
+ * reveal toggle instead. Reset and update keep the confirmation, where a typo
+ * locks a person out of an account they already own.
  */
 export default function Register() {
     const { t } = useTranslation('auth');
@@ -34,8 +26,7 @@ export default function Register() {
         form.post('/register', {
             // Cleared before the request, not after: `onSuccess` runs once the
             // dashboard has mounted and would drop the query it just started.
-            // Returning `false` from `onBefore` would cancel the visit, hence
-            // the block body.
+            // Block body, because returning a value cancels the visit.
             onBefore: () => {
                 queryClient.clear();
             },

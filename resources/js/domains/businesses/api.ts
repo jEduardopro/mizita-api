@@ -1,9 +1,8 @@
 import { api } from '@/lib/api';
 import type { Business, BusinessNameAvailability, CreateBusinessPayload } from './types';
 
-/**
- * The only place that names a Businesses URL or unwraps the `data` envelope.
- */
+// The only place that names a Businesses URL or unwraps the `data` envelope.
+
 export async function checkBusinessNameAvailability(
     name: string,
     signal?: AbortSignal,
@@ -16,7 +15,6 @@ export async function checkBusinessNameAvailability(
     return data.data;
 }
 
-/** `POST /businesses`, the controller's `store`. Answers 201. */
 export async function createBusiness(payload: CreateBusinessPayload): Promise<Business> {
     const { data } = await api.post<{ data: Business }>('/businesses', payload);
 

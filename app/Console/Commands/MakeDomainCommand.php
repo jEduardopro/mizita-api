@@ -15,11 +15,6 @@ use function Laravel\Prompts\multiselect;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
-/**
- * Scaffolds a new domain module following the project's layered DDD layout:
- * a pure domain layer, an application layer of use cases and DTOs, and an
- * infrastructure layer holding Eloquent and HTTP adapters.
- */
 final class MakeDomainCommand extends Command
 {
     protected $signature = 'make:domain
@@ -31,10 +26,7 @@ final class MakeDomainCommand extends Command
 
     protected $description = 'Generate a new DDD domain module under app/Domains';
 
-    /**
-     * Stub file (relative to stubs/domain) => target path (relative to app/Domains/{domain}).
-     * Conditional stubs are added at runtime by domainFiles().
-     */
+    /** Stub => target path, relative to app/Domains/{domain}. Conditional stubs are added by domainFiles(). */
     private const DOMAIN_FILES = [
         'contract.repository.stub' => 'Contracts/{{ entity }}Repository.php',
         'entity.stub' => 'Entities/{{ entity }}.php',
@@ -54,9 +46,7 @@ final class MakeDomainCommand extends Command
         'provider.stub' => '{{ domain }}ServiceProvider.php',
     ];
 
-    /**
-     * Stub file (relative to stubs/shared) => target path (relative to the app path).
-     */
+    /** Stub => target path, relative to the app path. */
     private const SHARED_FILES = [
         'contract.clock.stub' => 'Shared/Contracts/Clock.php',
         'contract.id-generator.stub' => 'Shared/Contracts/IdGenerator.php',
@@ -69,26 +59,17 @@ final class MakeDomainCommand extends Command
         'concern.belongs-to-business.stub' => 'Shared/Infrastructure/Concerns/BelongsToBusiness.php',
     ];
 
-    /**
-     * Port => adapter, bound in AppServiceProvider. BusinessContext is absent
-     * on purpose: the SetBusinessContext middleware binds it per request.
-     */
+    /** BusinessContext is absent on purpose: SetBusinessContext binds it per request. */
     private const SHARED_BINDINGS = [
         'Clock' => 'SystemClock',
         'IdGenerator' => 'UuidGenerator',
         'TransactionManager' => 'EloquentTransactionManager',
     ];
 
-    /**
-     * Folder names the flat pre-layered layout used at a domain root.
-     */
+    /** Folder names the flat pre-layered layout used at a domain root. */
     private const LEGACY_FOLDERS = ['Dtos', 'UseCases', 'Jobs', 'Commands', 'Listeners'];
 
-    /**
-     * Paths written during this run, formatted with Pint before finishing.
-     *
-     * @var array<int, string>
-     */
+    /** @var array<int, string> paths written during this run, formatted with Pint before finishing */
     private array $touched = [];
 
     /** @var array<int, DomainField> */
@@ -149,8 +130,7 @@ final class MakeDomainCommand extends Command
     }
 
     /**
-     * Fields come from --field, or from prompts when running in a real
-     * terminal. A subagent has no TTY, so it must always pass --field.
+     * A non-TTY caller has no way to answer a prompt, so it must always pass --field.
      *
      * @return array<int, DomainField>
      */
@@ -214,8 +194,6 @@ final class MakeDomainCommand extends Command
     }
 
     /**
-     * Composes every field- and tenancy-derived block the stubs interpolate.
-     *
      * @return array<string, string>
      */
     private function buildReplacements(string $domain, string $entity): array
@@ -238,7 +216,6 @@ final class MakeDomainCommand extends Command
             '{{ uniqueFieldLabel }}' => $unique !== null ? str_replace('_', ' ', $unique->name) : '',
         ];
 
-        // --- schema -------------------------------------------------------
         $replacements['{{ migrationFields }}'] = $this->indentLines(
             array_map(fn (DomainField $f) => $f->migrationLine(), $this->fields),
             12,
@@ -268,7 +245,6 @@ final class MakeDomainCommand extends Command
             ? "use App\\Shared\\Infrastructure\\Concerns\\BelongsToBusiness;\n"
             : '';
 
-        // --- factory ------------------------------------------------------
         $replacements['{{ factoryFields }}'] = $this->indentLines(
             array_map(fn (DomainField $f) => $f->factoryEntry(), $this->fields),
             12,
@@ -280,7 +256,6 @@ final class MakeDomainCommand extends Command
             ? "use App\\Domains\\Businesses\\Infrastructure\\Eloquent\\Models\\BusinessModel;\n"
             : '';
 
-        // --- entity -------------------------------------------------------
         $replacements['{{ entityImports }}'] = $this->importBlock(['DateTimeImmutable', ...$this->exceptionImports($domain, $guard, $activeField)]);
         $replacements['{{ entityConstructorParams }}'] = $this->indentLines(array_merge(
             $this->tenantScoped ? ['public readonly string $businessId,'] : [],
@@ -342,7 +317,6 @@ final class MakeDomainCommand extends Command
             '    }',
         ]);
 
-        // --- DTOs ---------------------------------------------------------
         $replacements['{{ inputDtoImports }}'] = $this->importBlock($this->dateImport());
         $replacements['{{ inputDtoProperties }}'] = $this->indentLines(
             array_map(fn (DomainField $f) => sprintf('public %s $%s,', $f->phpType(), $f->property()), $this->fields),
@@ -357,7 +331,6 @@ final class MakeDomainCommand extends Command
             array_map(fn (DomainField $f) => sprintf('%s: $%s->%s(),', $f->property(), $variable, $f->property()), $this->fields),
         ), 12);
 
-        // --- mapper -------------------------------------------------------
         $replacements['{{ mapperToEntity }}'] = $this->indentLines(array_merge(
             $this->tenantScoped ? ['businessId: $model->business_id,'] : [],
             array_map(fn (DomainField $f) => sprintf('%s: $model->%s,', $f->property(), $f->name), $this->fields),
@@ -367,7 +340,6 @@ final class MakeDomainCommand extends Command
             array_map(fn (DomainField $f) => sprintf("'%s' => $%s->%s(),", $f->name, $variable, $f->property()), $this->fields),
         ), 12);
 
-        // --- HTTP ---------------------------------------------------------
         $replacements['{{ requestRules }}'] = $this->indentLines(
             array_map(fn (DomainField $f) => $f->validationRulesLine(), $this->fields),
             12,
@@ -385,7 +357,6 @@ final class MakeDomainCommand extends Command
             ? "['api', 'auth:sanctum', 'business']"
             : "['api']";
 
-        // --- use case -----------------------------------------------------
         $useCaseImports = [];
         if ($unique !== null) {
             $useCaseImports[] = "App\\Domains\\{$domain}\\Exceptions\\{$entity}{$unique->studly()}AlreadyTaken";
@@ -412,7 +383,6 @@ final class MakeDomainCommand extends Command
             '',
         ]);
 
-        // --- repository ---------------------------------------------------
         $replacements['{{ repositoryUniqueMethod }}'] = $unique === null ? '' : implode("\n", [
             '',
             sprintf('    public function existsBy%s(%s $%s): bool;', $unique->studly(), $unique->phpType(), $unique->property()),
@@ -684,11 +654,7 @@ final class MakeDomainCommand extends Command
         }
     }
 
-    /**
-     * A tenant-scoped table has a foreign key to businesses.uuid, so the
-     * businesses migration must run first. Postgres enforces this even though
-     * sqlite may let it slide.
-     */
+    /** A tenant-scoped table references businesses.uuid, so that migration must run first. */
     private function warnAboutMigrationOrder(Filesystem $files, string $table): void
     {
         if (! $this->tenantScoped) {
@@ -715,10 +681,7 @@ final class MakeDomainCommand extends Command
         }
     }
 
-    /**
-     * Normalise the generated files with Pint. Import order depends on the
-     * entity name, so no fixed stub ordering is correct for every domain.
-     */
+    /** Import order depends on the entity name, so no fixed stub ordering is correct for every domain. */
     private function format(): void
     {
         $pint = base_path('vendor/bin/pint');

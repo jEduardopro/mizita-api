@@ -17,11 +17,9 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
- * Persists memberships. It owns the only place where the uuids the entity
- * carries meet the int primary keys the schema joins on, and the only place
- * where a membership is put back together from its two halves: the row that
- * says the account may operate the business, and the role that says what it
- * may do there.
+ * The only place a membership is put back together from its two halves: the row
+ * saying the account may operate the business, and the role saying what it may
+ * do there.
  */
 final class EloquentStaffMemberRepository implements StaffMemberRepository
 {
@@ -49,8 +47,7 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
             // Either the membership index or the single-owner index on
             // model_has_roles rejected this, and for the writes that reach here
             // both mean the same thing: this account already holds what is
-            // being asked for. Knowing which one fired stops at this line - the
-            // domain hears it in its own terms, not as an Illuminate exception.
+            // being asked for.
             throw AccountAlreadyOwnsBusiness::forAccount($member->accountId, $violation);
         }
     }
@@ -92,10 +89,7 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
         return $this->roles->ownsAnyBusiness($this->accountFor($accountId));
     }
 
-    /**
-     * Translates the business uuid the domain speaks into the int key the
-     * foreign key, and Spatie's team column, both point at.
-     */
+    /** The int key both the foreign key and Spatie's team column point at. */
     private function businessKey(string $businessId): int
     {
         $key = BusinessModel::query()->where('uuid', $businessId)->value('id');
@@ -110,10 +104,7 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
         return (int) $key;
     }
 
-    /**
-     * The account the uuid names. Returned as a model rather than a key because
-     * the role is attached to the account itself.
-     */
+    /** A model rather than a key, because the role is attached to the account itself. */
     private function accountFor(string $accountId): User
     {
         $account = User::query()->where('uuid', $accountId)->first();

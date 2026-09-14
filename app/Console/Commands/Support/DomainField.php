@@ -8,8 +8,6 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
- * One column declared through the make:domain --field option.
- *
  * Syntax: name:type[:modifier]... for example "email:email:unique" or
  * "price:decimal(8,2):nullable". Modifiers are nullable, unique and index.
  */
@@ -17,9 +15,7 @@ final class DomainField
 {
     private const MODIFIERS = ['nullable', 'unique', 'index'];
 
-    /**
-     * DSL type => [blueprint method, php type, cast, faker expression].
-     */
+    /** DSL type => [blueprint method, php type, cast, faker expression]. */
     private const TYPES = [
         'string' => ['string', 'string', null, 'fake()->word()'],
         'text' => ['text', 'string', null, 'fake()->paragraph()'],
@@ -48,7 +44,6 @@ final class DomainField
 
     public static function parse(string $definition): self
     {
-        // Split on ":" but keep "decimal(8,2)" intact.
         $parts = array_values(array_filter(explode(':', $definition), fn (string $p) => $p !== ''));
 
         if (count($parts) < 2) {
@@ -115,7 +110,6 @@ final class DomainField
         return ($this->isNullable() ? '?' : '').self::TYPES[$this->type][1];
     }
 
-    /** True when the PHP type needs a `use` statement in the generated file. */
     public function needsDateImport(): bool
     {
         return self::TYPES[$this->type][1] === 'DateTimeImmutable';
@@ -203,7 +197,6 @@ final class DomainField
         return "'{$this->name}' => [{$rules}],";
     }
 
-    /** How the controller pulls this field off the validated request. */
     public function requestAccessor(): string
     {
         return match (true) {
@@ -218,7 +211,6 @@ final class DomainField
         };
     }
 
-    /** How the Resource serialises this field. */
     public function resourceValue(): string
     {
         if ($this->needsDateImport()) {

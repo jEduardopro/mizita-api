@@ -12,13 +12,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-/**
- * Persistence model. Not a domain entity: it carries no business rules and
- * never leaves the infrastructure layer.
- *
- * Soft deletes track the record lifecycle. Any "active" style flag is a
- * separate business state and lives on the entity.
- */
 #[Fillable(['uuid', 'business_id', 'name', 'email', 'phone'])]
 class CustomerModel extends Model
 {
@@ -30,8 +23,8 @@ class CustomerModel extends Model
     protected $table = 'customers';
 
     /**
-     * The uuid column carries the public identity, so the primary key stays
-     * an auto-incrementing int used only for internal joins and indexes.
+     * Overridden so the primary key stays an auto-incrementing int; uuid carries
+     * the public identity.
      *
      * @return array<int, string>
      */

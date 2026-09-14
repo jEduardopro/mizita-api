@@ -12,37 +12,16 @@ use Illuminate\Support\Facades\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Resolves the locale the request is answered in, for every caller the platform
- * has: the Inertia web pages, the browser calling /api, and the future native
- * client. The first source that yields a supported locale wins:
- *
- *  1. ?lang= - an explicit choice, so it is also remembered in a cookie.
- *  2. X-Locale - what a native client sends; deliberately not persisted, the
- *     client owns its own preference and repeats the header on every call.
- *  3. The locale cookie - the remembered explicit choice.
- *  4. config('localization.default'), which is Spanish.
- *
- * Accept-Language is deliberately absent from that chain, and must stay absent.
- * The product is Spanish-first: an English browser landing on a Spanish
- * business's booking page should still be served Spanish, because the page
+ * Accept-Language is deliberately absent from the resolution chain, and must
+ * stay absent. The product is Spanish-first: an English browser landing on a
+ * Spanish business's booking page is still served Spanish, because the page
  * belongs to that business and not to the visitor's browser settings. Language
- * is therefore an explicit choice a person makes - today the ?lang= parameter,
- * shortly a language switcher in the interface - never an inference drawn from
- * headers they never consciously set. Negotiating Accept-Language would silently
- * override that decision, so this is a product decision rather than a gap to
- * fill in.
+ * is an explicit choice a person makes, never an inference from headers they
+ * never consciously set.
  *
- * A candidate that is not in config('localization.supported') is ignored and
- * resolution falls through to the next source: the locale ends up in file paths
- * under lang/, so it is never taken from the request without being checked.
- *
- * Note that ?lang= only persists the cookie on the web stack. On api the queued
- * cookie is dropped, because AddQueuedCookiesToResponse is in the web group
- * only - so a stateless caller states its preference with X-Locale on every
- * call rather than expecting ?lang= to stick. That is intended, not a bug.
- *
- * This middleware knows nothing about businesses, users or any domain - it only
- * reads the request and sets the process locale.
+ * ?lang= only persists the cookie on the web stack: AddQueuedCookiesToResponse
+ * is in the web group only, so a stateless caller states its preference with
+ * X-Locale on every call. That is intended, not a bug.
  */
 final class SetLocale
 {
@@ -65,22 +44,18 @@ final class SetLocale
         Carbon::setLocale($locale);
 
         if ($explicit !== null) {
-            // Deliberately not HttpOnly, and it must stay that way. This cookie is
-            // a display preference, not a credential - the same reasoning that
-            // already excludes it from encryptCookies() in bootstrap/app.php - and
-            // it has two writers by design: Laravel here on ?lang=, and
-            // changeLocale() in resources/js/lib/i18n.ts. A browser silently
-            // ignores a document.cookie write onto an existing HttpOnly cookie, so
-            // "hardening" this would let only one of those writers ever win: the
-            // language switcher would appear to work, then revert on the next page
-            // load, with no error anywhere. It would also leave i18next's own
-            // cookie detector blind to a cookie Laravel had set.
+            // Deliberately not HttpOnly, and it must stay that way. This cookie
+            // is a display preference, not a credential, and it has two writers
+            // by design: Laravel here, and changeLocale() in lib/i18n.ts. A
+            // browser silently ignores a document.cookie write onto an existing
+            // HttpOnly cookie, so "hardening" this would let only one writer
+            // ever win - the switcher would appear to work, then revert on the
+            // next page load, with no error anywhere.
             //
             // Queued as a Cookie instance on purpose: CookieJar::queue() is
             // variadic and forwards array_values($parameters) to make(), which
-            // drops the keys - so passing httpOnly: false to queue() directly is
-            // silently a no-op. Naming it on make() keeps $path, $domain and
-            // $secure at their framework defaults.
+            // drops the keys - so passing httpOnly: false to queue() directly
+            // is silently a no-op.
             Cookie::queue(Cookie::make(
                 config('localization.cookie'),
                 $explicit,
@@ -93,7 +68,8 @@ final class SetLocale
     }
 
     /**
-     * Returns the candidate reduced to a supported base tag, or null.
+     * The locale ends up in file paths under lang/, so a candidate outside the
+     * supported list is ignored rather than trusted.
      *
      * @param  list<string>  $supported
      */
@@ -108,10 +84,7 @@ final class SetLocale
         return in_array($locale, $supported, strict: true) ? $locale : null;
     }
 
-    /**
-     * Reduces a regional tag to the language it belongs to: es-ES and es_ES
-     * both become es, en-GB becomes en.
-     */
+    /** es-ES and es_ES both become es, en-GB becomes en. */
     private function baseTag(string $tag): string
     {
         return strtolower(preg_split('/[-_]/', $tag, 2)[0]);

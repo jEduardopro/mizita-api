@@ -1,18 +1,9 @@
 import type { SVGProps } from 'react';
 
 /**
- * Google's four-colour G.
- *
- * Drawn here for the same reason `components/public/shell/SocialIcons.tsx` draws
- * its five: `lucide-react` v1 removed every brand glyph, and nothing else in the
- * dependency list carries one.
- *
- * Unlike those, this mark does not use `currentColor`. Google's brand guidelines
- * fix the four segments, so it is not the product's to recolour — which is also
- * what makes it correct in both themes without a single dark-mode rule. The
- * consequence is that it goes flat when its button is disabled, since the opacity
- * comes from the parent; that is the honest reading of a method that is not
- * available yet.
+ * Drawn by hand because `lucide-react` v1 removed every brand glyph. The four
+ * segments are fixed by Google's brand guidelines, so this mark deliberately does
+ * not use `currentColor` — which also makes it correct in both themes.
  *
  * `aria-hidden` is unconditional: it only ever sits inside a control that already
  * says "Google" in its own label.

@@ -8,9 +8,7 @@ use Illuminate\Validation\Rules\Password;
 trait PasswordValidationRules
 {
     /**
-     * Get the validation rules used to validate passwords.
-     *
-     * @param  bool  $confirmed  Whether the screen asks the user to type the password twice.
+     * @param  bool  $confirmed  whether the screen asks the user to type the password twice
      * @return array<int, Rule|array<mixed>|string>
      */
     protected function passwordRules(bool $confirmed = true): array

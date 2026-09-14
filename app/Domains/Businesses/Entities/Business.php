@@ -10,10 +10,6 @@ use App\Domains\Businesses\ValueObjects\Timezone;
 use DateTimeImmutable;
 
 /**
- * Domain entity: plain PHP, no framework. It owns the business rules and
- * protects its own invariants. Persistence is handled by the repository
- * adapter through BusinessMapper.
- *
  * The tenant root. Every other record on the platform belongs to exactly one of
  * these, which is why this entity carries no businessId of its own.
  *
@@ -34,8 +30,6 @@ final class Business
     ) {}
 
     /**
-     * Creates a brand new business. Enforces creation-time rules.
-     *
      * @throws InvalidBusinessName
      */
     public static function create(
@@ -62,10 +56,7 @@ final class Business
         );
     }
 
-    /**
-     * Rehydrates a business from storage. Skips creation-time rules by
-     * design: the data was already valid when it was written.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $name,

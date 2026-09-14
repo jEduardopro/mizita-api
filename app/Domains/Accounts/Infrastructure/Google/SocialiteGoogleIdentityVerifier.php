@@ -12,19 +12,14 @@ use Laravel\Socialite\Two\GoogleProvider;
 use Throwable;
 
 /**
- * Verifies Google ID tokens through Socialite.
- *
- * Socialite's GoogleProvider is the verifier: userFromToken() detects a JWT and
- * checks its signature against Google's JWKS, its issuer, its audience against
- * our client id, and its expiry. None of that is reimplemented here.
+ * Socialite's GoogleProvider is the verifier: userFromToken() checks the
+ * signature against Google's JWKS, the issuer, the audience against our client
+ * id, and the expiry. None of that is reimplemented here.
  */
 final class SocialiteGoogleIdentityVerifier implements GoogleIdentityVerifier
 {
     private const DRIVER = 'google';
 
-    /**
-     * header.payload.signature, base64url encoded.
-     */
     private const JSON_WEB_TOKEN_PATTERN = '/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/';
 
     /**
@@ -54,15 +49,12 @@ final class SocialiteGoogleIdentityVerifier implements GoogleIdentityVerifier
     }
 
     /**
-     * Rejects anything that is not shaped like an ID token before Socialite
-     * sees it.
-     *
-     * This is a security rule, not input validation, which is why it lives
-     * behind the port rather than in a FormRequest: it has to hold for every
-     * caller. Socialite falls back to Google's userinfo endpoint for a token it
-     * does not recognise as a JWT, and that endpoint performs no audience
-     * check - so an opaque access token minted for a different Google client
-     * would otherwise sign that person in here.
+     * A security rule, not input validation, which is why it lives behind the
+     * port rather than in a FormRequest: it has to hold for every caller.
+     * Socialite falls back to Google's userinfo endpoint for a token it does not
+     * recognise as a JWT, and that endpoint performs no audience check - so an
+     * opaque access token minted for a different Google client would otherwise
+     * sign that person in here.
      */
     private function guardAgainstOpaqueToken(string $idToken): void
     {

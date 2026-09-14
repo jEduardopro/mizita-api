@@ -10,11 +10,8 @@ use App\Domains\Industries\Exceptions\InvalidIndustryKey;
 use DateTimeImmutable;
 
 /**
- * A row of the industry catalog: the kind of work a business does.
- *
- * Plain PHP, no framework. The catalog is seeded rather than created over
- * HTTP, so restore() carries most of the traffic; create() exists for the
- * seeder and enforces the one creation-time rule the key has.
+ * The catalog is seeded rather than created over HTTP, so restore() carries most
+ * of the traffic; create() exists for the seeder.
  */
 final class Industry
 {
@@ -50,10 +47,7 @@ final class Industry
         );
     }
 
-    /**
-     * Rehydrates an industry from storage. Skips creation-time rules by
-     * design: the data was already valid when it was written.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $key,
@@ -86,8 +80,6 @@ final class Industry
     }
 
     /**
-     * Puts the industry back in the catalog.
-     *
      * @throws IndustryAlreadyActive
      */
     public function activate(): void
@@ -100,9 +92,8 @@ final class Industry
     }
 
     /**
-     * Retires the industry from the catalog while keeping it resolvable for
-     * the businesses already pointing at it. That is business state, which is
-     * why it is not a soft delete on the record.
+     * Keeps the row resolvable for the businesses already pointing at it, which
+     * is why this is business state and not a soft delete on the record.
      *
      * @throws IndustryAlreadyInactive
      */

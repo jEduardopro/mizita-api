@@ -1,12 +1,7 @@
 type Props = {
-    /** The flash message shared by the backend, or null when there is none. */
     message: string | null;
 };
 
-/**
- * A flash message from the session, shown above a form. Renders nothing when
- * there is nothing to say.
- */
 export function FormStatus({ message }: Props) {
     if (! message) {
         return null;

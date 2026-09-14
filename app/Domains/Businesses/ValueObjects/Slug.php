@@ -9,45 +9,29 @@ use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use InvalidArgumentException;
 
 /**
- * The public web address of a business, derived from its name.
+ * The public web address of a business, derived from its name. Everything that
+ * emits one goes through here, which is what lets the repository state as an
+ * invariant that a slug never contains a LIKE wildcard.
  *
- * A slug is a rule attached to a string - an alphabet, a length, a list of
- * words it may not be - so it is a value object rather than validation repeated
- * wherever a slug is written. Everything that emits one goes through here,
- * which is what lets the repository state as an invariant that a slug never
- * contains a LIKE wildcard.
- *
- * Two deliberate omissions in the normaliser:
- *
- * - Str::slug is not used. Illuminate is banned in the domain layer, and this
- *   rule is too load-bearing to reach for the framework anyway.
- * - iconv transliteration is not used. Its output depends on the process
- *   locale, and under several common ones "á" comes back as the two characters
- *   `"a` - a public address that changes with a server setting is not a thing
- *   a business can print.
- *
- * What replaces both is an explicit table: what it does not cover is dropped,
- * visibly, instead of being mangled differently on someone else's machine.
+ * The normaliser uses an explicit table rather than Str::slug, which Illuminate
+ * bans from the domain layer, or iconv, whose output depends on the process
+ * locale - under several common ones "á" comes back as `"a`, and a public
+ * address that changes with a server setting is not one a business can print.
  */
 final readonly class Slug
 {
-    /**
-     * The first suffix an allocator may append. A second business with the same
-     * name is "-2" because the first one, unsuffixed, is conceptually "-1".
-     */
+    /** A second business with the same name is "-2" because the first, unsuffixed, is conceptually "-1". */
     public const FIRST_SUFFIX = 2;
 
     private const MAXIMUM_LENGTH = 60;
 
     private const SEPARATOR = '-';
 
-    /** Lowercase alphanumeric groups joined by single hyphens, no leading or trailing hyphen. */
     private const SHAPE = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
     /**
-     * Words a business may not take, because the platform already answers on
-     * them or intends to. A slug is a first path segment in the making, and one
-     * that shadows /admin or /terms is a routing bug waiting for a deploy.
+     * A slug is a first path segment in the making, and one that shadows /admin
+     * or /terms is a routing bug waiting for a deploy.
      *
      * @var list<string>
      */
@@ -68,9 +52,7 @@ final readonly class Slug
     ];
 
     /**
-     * Spanish first, then the accents the rest of western Europe writes, since
-     * those are the alphabets the product sells into. Keys are lowercase only:
-     * the name is folded before the table is applied.
+     * Keys are lowercase only: the name is folded before the table is applied.
      *
      * @var array<string, string>
      */
@@ -93,11 +75,9 @@ final readonly class Slug
     ) {}
 
     /**
-     * The slug a name would produce, or null when nothing usable survives.
-     *
      * The nullable twin exists so the availability endpoint can answer "that
-     * name will not work" without an exception being thrown for a question a
-     * caller is expected to ask.
+     * name will not work" without throwing for a question callers are expected
+     * to ask.
      */
     public static function tryFromName(string $name): ?self
     {
@@ -119,14 +99,10 @@ final readonly class Slug
     }
 
     /**
-     * Rebuilds a stored slug without checking it, for the rehydration path.
-     *
-     * Callable by a mapper and by nothing else. Reading a row is not the moment
-     * to enforce a rule the row predates: a slug written before this class
+     * Callable by a mapper and by nothing else. A slug written before this class
      * existed is still that business's address, and refusing to load it would
-     * turn a lax old write into a record nobody can open - a worse failure than
-     * the one the invariant prevents. The rule is enforced on the way in, which
-     * is where it belongs: see fromName and fromString.
+     * turn a lax old write into a record nobody can open. The rule is enforced
+     * on the way in, by fromName and fromString.
      */
     public static function restore(string $value): self
     {
@@ -134,8 +110,8 @@ final readonly class Slug
     }
 
     /**
-     * Checks a slug that arrived as a string, for anything that is not a
-     * rehydration - an import, a console command, a future edit endpoint.
+     * For anything that is not a rehydration - an import, a console command, a
+     * future edit endpoint.
      *
      * @throws InvalidBusinessSlug when the value is not one this class could have produced
      */
@@ -153,14 +129,11 @@ final readonly class Slug
     }
 
     /**
-     * The same slug disambiguated by a number.
-     *
-     * The base is truncated first so the result still fits, which means a slug
-     * at the length limit does not produce "base-2" but a shortened variant of
-     * it. That variant no longer matches the base the allocator searched for,
-     * so two businesses with near-identical 60 character names can both be
-     * offered it; the partial unique index is what settles that, and the loser
-     * is told the address is taken.
+     * Truncating the base first means a slug at the length limit yields a
+     * shortened variant rather than "base-2", which no longer matches the base
+     * the allocator searched for. Two businesses with near-identical 60
+     * character names can therefore both be offered it; the partial unique
+     * index settles that, and the loser is told the address is taken.
      *
      * @throws InvalidArgumentException when asked for a suffix below the first one
      */
@@ -186,13 +159,6 @@ final readonly class Slug
         return $this->value === $other->value;
     }
 
-    /**
-     * Folds case, transliterates, then keeps only the slug alphabet.
-     *
-     * The + quantifier is what collapses runs: any stretch of characters that
-     * are not alphanumeric becomes exactly one hyphen, so punctuation, spaces
-     * and hyphens the owner typed all reduce to the same separator.
-     */
     private static function normalize(string $name): string
     {
         $folded = strtr(mb_strtolower(trim($name), 'UTF-8'), self::TRANSLITERATIONS);
@@ -203,11 +169,7 @@ final readonly class Slug
         return self::truncate(trim($hyphenated, self::SEPARATOR));
     }
 
-    /**
-     * Cuts at the last word boundary that fits, so a shortened address still
-     * reads as words rather than ending mid-syllable. A single word longer than
-     * the limit has no boundary to cut at and is simply clipped.
-     */
+    /** Cuts at the last word boundary that fits; a single word longer than the limit is clipped. */
     private static function truncate(string $value): string
     {
         if (strlen($value) <= self::MAXIMUM_LENGTH) {

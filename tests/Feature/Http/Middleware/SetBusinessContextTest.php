@@ -6,7 +6,7 @@ use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Models\User;
 use App\Shared\Contracts\BusinessMembership;
-use Database\Seeders\StaffRoleSeeder;
+use Database\Seeders\AuthorizationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
@@ -41,7 +41,7 @@ it('lets a caller who belongs to a business through', function () {
     // The whole chain, unfaked: a membership row is what makes this account a
     // business user, and the role assignment it carries is what the tenant
     // resolver orders by - so the roles have to be seeded first.
-    $this->seed(StaffRoleSeeder::class);
+    $this->seed(AuthorizationSeeder::class);
 
     $business = BusinessModel::factory()->create();
     $owner = User::factory()->create();

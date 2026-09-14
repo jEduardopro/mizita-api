@@ -15,7 +15,6 @@ export type SignupForm = {
     password: string;
 };
 
-/** Which panel the card is showing. It is card state, not a destination. */
 type Mode = 'choice' | 'email';
 
 type Props = {
@@ -23,37 +22,13 @@ type Props = {
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-/**
- * The signup card, in two panels that swap in place.
- *
- * The card asks one question at a time. The first panel asks how you want to
- * sign up; the second takes the three details. It is a `useState`, not a route
- * and not an Inertia prop, because nothing about it is worth a URL: there is no
- * page to link to, no state anyone would bookmark, and no server round trip
- * between the two. The address bar stays on `/register` throughout.
- *
- * A visitor can go back. `Usar otro método` returns to the choice, which is what
- * the reference's row of small social buttons does in its second state — with a
- * single alternative, a row holding one icon reads as a stray control, so the way
- * back is a link instead.
- *
- * The panels are keyed on the mode so each one re-enters, and the name field is
- * `autoFocus`: it mounts only when someone has just asked for the form, so the
- * cursor lands where they were about to type. On first paint the panel is never
- * mounted, so nothing is stolen from the page.
- *
- * The form itself belongs to the page — this is the markup and the mode, not the
- * request. Validation is the server's: `CreateNewUser` is the only definition of
- * what is valid, and its messages arrive through `form.errors`.
- */
 export function SignupCard({ form, onSubmit }: Props) {
     const { t } = useTranslation('auth');
     const [mode, setMode] = useState<Mode>('choice');
 
     // A failed Google callback comes back as `errors.google`, a shared page prop
     // rather than one of this form's fields. The server's string is the signal,
-    // not the copy: the card says it in its own voice, in the language i18next is
-    // rendering the rest of the panel in.
+    // not the copy: the card says it in its own voice and language.
     const googleFailed = Boolean(usePage().props.errors.google);
 
     return (
@@ -111,19 +86,10 @@ export function SignupCard({ form, onSubmit }: Props) {
                                 error={form.errors.email}
                             />
 
-                            {/*
-                             * The minimum is stated up front because it is the
-                             * only rule `Password::default()` enforces, and a
-                             * round trip to learn a number we already know is a
-                             * round trip we can spend on nothing.
-                             *
-                             * It is a hint, not a `minLength`. A native constraint
-                             * would block the submit with a bubble written in the
-                             * browser's language, next to a form that is answering
-                             * in the locale Laravel resolved — two languages
-                             * disagreeing about the same field. The server stays
-                             * the authority, and it replies in Spanish.
-                             */}
+                            {/* A hint, not a `minLength`: a native constraint
+                                blocks the submit with a bubble written in the
+                                browser's language, next to a form answering in
+                                the locale Laravel resolved. */}
                             <UnderlineField
                                 id="password"
                                 label={t('fields.password')}
@@ -163,16 +129,9 @@ export function SignupCard({ form, onSubmit }: Props) {
                 </div>
             </AuthCard>
 
-            {/*
-             * Outside the card, the way the reference has it: it is the condition
-             * attached to the action, not part of the form.
-             *
-             * `Trans` keeps the sentence whole. Splitting it into a prefix, two
-             * link labels and a joiner would hard-code Spanish word order into
-             * the markup, and the first language that puts the verb elsewhere
-             * would have nowhere to put it.
-             *
-             */}
+            {/* `Trans` keeps the sentence whole: splitting it into a prefix, link
+                labels and a joiner would hard-code Spanish word order into the
+                markup. */}
             <p className="mt-5 text-center text-xs leading-relaxed text-balance text-muted-foreground">
                 <Trans
                     i18nKey="register.legal"

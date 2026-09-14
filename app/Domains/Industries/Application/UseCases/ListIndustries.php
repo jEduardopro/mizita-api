@@ -9,10 +9,8 @@ use App\Domains\Industries\Contracts\IndustryRepository;
 use App\Domains\Industries\Entities\Industry;
 
 /**
- * Lists the industries a business may choose from.
- *
- * No input DTO: the query takes no arguments, and the catalog is the same for
- * every caller because it belongs to the platform, not to a tenant.
+ * No input DTO: the catalog is the same for every caller, because it belongs to
+ * the platform and not to a tenant.
  */
 final class ListIndustries
 {

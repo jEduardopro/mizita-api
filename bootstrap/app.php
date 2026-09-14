@@ -21,12 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Lets same-origin requests from the Blade views authenticate against the
-        // API using the session cookie, while native clients keep using bearer tokens.
         $middleware->statefulApi();
 
-        // Inertia renders every web page, and preloaded assets get their Link headers.
-        // SetLocale is prepended so the locale is already resolved before anything
+        // SetLocale is prepended so the locale is resolved before anything
         // downstream can produce a translated string - a validation error above all.
         $middleware->web(
             append: [
@@ -38,25 +35,19 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
         );
 
-        // The API answers in the caller's language too. A client states it with
-        // X-Locale on every call; nothing is inferred from Accept-Language, here
-        // or on the web stack, so the default stays Spanish until someone chooses.
         $middleware->api(prepend: [
             SetLocale::class,
         ]);
 
-        // The locale cookie is a plain preference, not a credential, and the
-        // frontend reads it from JavaScript to boot i18next. It also has to stay
-        // readable by SetLocale, which runs before cookies are decrypted. The name
-        // is config('localization.cookie'), inlined because config is not loaded yet.
+        // A display preference, not a credential: the frontend reads it from
+        // JavaScript, and SetLocale runs before cookies are decrypted. The name is
+        // config('localization.cookie'), inlined because config is not loaded yet.
         $middleware->encryptCookies(except: [
             'locale',
         ]);
 
-        // "business" is applied by each tenant-scoped domain's route group and
-        // resolves the tenant. The other two guard the onboarding step and run
-        // on web routes after "auth": they only decide whether the caller is on
-        // the right page yet, and bind nothing.
+        // "business" resolves the tenant. The other two only decide whether the
+        // caller is on the right page yet, and bind nothing.
         $middleware->alias([
             'business' => SetBusinessContext::class,
             'onboarded' => RequireBusinessMembership::class,
@@ -64,21 +55,18 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Every domain exception implements DomainFailure and carries its own
-        // error code and kind, and Laravel matches a renderer by the first
-        // parameter's type. Typing against the interface therefore covers every
-        // domain that exists and every one still to come: this is the only line
-        // needed, and a new failure never comes back here.
+        // Laravel matches a renderer by the first parameter's type, so typing
+        // against the interface covers every domain failure there will ever be.
+        // A new exception never comes back here.
         $exceptions->render(function (DomainFailure $failure, Request $request) {
             return app(RenderDomainFailure::class)($failure, $request);
         });
 
         $exceptions->shouldRenderJsonWhen(
-            // An Inertia visit must never get a JSON error body: a ValidationException
-            // has to stay a redirect back with errors, or every auth form fails silently.
-            // The Inertia client sends "Accept: text/html, application/xhtml+xml", so
-            // expectsJson() is already false for it; the header check keeps that true
-            // even if a client (or a test helper) negotiates JSON while sending X-Inertia.
+            // An Inertia visit must never get a JSON error body: a
+            // ValidationException has to stay a redirect back with errors, or every
+            // auth form fails silently. The header check holds even if a client or
+            // a test helper negotiates JSON while sending X-Inertia.
             fn (Request $request) => ! $request->hasHeader('X-Inertia')
                 && ($request->is('api/*') || $request->expectsJson()),
         );

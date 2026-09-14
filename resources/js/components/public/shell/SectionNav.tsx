@@ -15,14 +15,9 @@ type Props = {
 };
 
 /**
- * The in-page menu in the public header: one link per long section of the page
- * the visitor is already on.
- *
- * Each link is the full height of the header so the current marker can sit on
- * the header's own bottom rule, which reads as a tab strip rather than as an
- * underline floating in the middle of the bar. Below `md` the links are hidden
- * altogether: the account buttons are the only thing a narrow header has room
- * for, and every section is a short scroll away anyway.
+ * Hidden below `md`: these are in-page anchors duplicating content the visitor
+ * reaches by scrolling, and a narrow header only has room for the account
+ * buttons.
  */
 export function SectionNav({ sections, className }: Props) {
     const { t } = useTranslation('common');
@@ -37,9 +32,8 @@ export function SectionNav({ sections, className }: Props) {
 
         event.preventDefault();
 
-        // Smooth by default, instant for anyone who has asked the system for
-        // less motion. Read per click rather than once, so a preference changed
-        // mid-session is honoured without a reload.
+        // Read per click, so a preference changed mid-session is honoured
+        // without a reload.
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         section.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
@@ -71,13 +65,6 @@ export function SectionNav({ sections, className }: Props) {
                     >
                         {section.label}
 
-                        {/*
-                         * Sits on top of the header's bottom border, so the
-                         * current section is marked by the same hairline the
-                         * rest of the page is built from — in brand colour, so
-                         * the marker reads as a position rather than as a rule
-                         * that happens to be darker.
-                         */}
                         <span
                             aria-hidden="true"
                             className={cn(

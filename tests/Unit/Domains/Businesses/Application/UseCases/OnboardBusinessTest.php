@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Domains\Businesses\Application\Dtos\BusinessData;
+use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Application\UseCases\OnboardBusiness;
 use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Contracts\PhoneBook;
+use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Events\BusinessCreated;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
@@ -16,46 +18,72 @@ use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Domains\Businesses\Exceptions\OwnerAlreadyHasBusiness;
 use App\Domains\Businesses\Exceptions\UnknownIndustry;
+use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\Services\SlugAllocator;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
+use App\Shared\Contracts\PhoneNumberParser;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\ValueObjects\CountryCode;
 use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Businesses\OnboardingFixtures;
 use Tests\Support\FakeClock;
+use Tests\Support\FakePhoneNumberParser;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
+use Tests\Support\PhoneNumbers;
 
 /*
 | Built from mocks alone: no container, no migrations, no database. That is the
 | bar this architecture exists to protect, and this is the use case that proves
-| it - it writes three tables through three ports and still never touches one.
+| it - it writes four tables through four ports and still never touches one.
 |
 | SlugAllocator is instantiated for real rather than doubled: it is a pure
 | domain service, so a double would assert only that the test can return a slug.
+| The phone number parser is the hand-rolled fake for the same reason - what a
+| caller has to get right is which country and which digits it was handed, not
+| that an expectation matched.
 */
 
 beforeEach(function () {
     $this->businesses = Mockery::mock(BusinessRepository::class);
     $this->industries = Mockery::mock(IndustryCatalog::class);
+    $this->roles = Mockery::mock(RoleProvisioner::class);
     $this->owners = Mockery::mock(OwnerRegistrar::class);
     $this->phones = Mockery::mock(PhoneBook::class);
     $this->events = Mockery::mock(Dispatcher::class);
     $this->transactions = new FakeTransactionManager;
 
-    $this->useCase = new OnboardBusiness(
-        $this->businesses,
-        $this->industries,
-        $this->owners,
-        $this->phones,
-        new SlugAllocator,
-        new FixedIdGenerator(OnboardingFixtures::GENERATED_BUSINESS_ID),
-        new FakeClock(OnboardingFixtures::now()),
-        $this->transactions,
-        $this->events,
+    // Every number this file offers is one the parser recognises, so a test
+    // about something else never has to arrange the phone. The two tests about
+    // a refused number build their own parser.
+    $this->parser = FakePhoneNumberParser::accepting(
+        OnboardingFixtures::phone(),
+        OnboardingFixtures::phone(CountryCode::Us, '2125550147'),
     );
+
+    $this->build = function (?PhoneNumberParser $parser = null, ?Clock $clock = null): OnboardBusiness {
+        return new OnboardBusiness(
+            $this->businesses,
+            $this->industries,
+            $this->roles,
+            $this->owners,
+            $this->phones,
+            new SlugAllocator,
+            $parser ?? $this->parser,
+            new FixedIdGenerator(OnboardingFixtures::GENERATED_BUSINESS_ID),
+            $clock ?? new FakeClock(OnboardingFixtures::now()),
+            $this->transactions,
+            $this->events,
+        );
+    };
+
+    $this->useCase = ($this->build)();
+
+    // Provisioning happens on every successful signup, so the tests that are not
+    // about it say nothing; the ones that are override this.
+    $this->roles->shouldReceive('provisionFor')->byDefault();
 
     // The neighbour's events reach this domain as opaque payloads on their way
     // to the dispatcher. Anonymous objects, deliberately: a test that named
@@ -155,18 +183,7 @@ describe('onboarding a business', function () {
     it('stamps the business with the injected clock, never with real time', function () {
         ($this->arrangeReads)();
 
-        $clock = new FakeClock(new DateTimeImmutable('2026-03-29T01:30:00+00:00'));
-        $useCase = new OnboardBusiness(
-            $this->businesses,
-            $this->industries,
-            $this->owners,
-            $this->phones,
-            new SlugAllocator,
-            new FixedIdGenerator(OnboardingFixtures::GENERATED_BUSINESS_ID),
-            $clock,
-            $this->transactions,
-            $this->events,
-        );
+        $useCase = ($this->build)(clock: new FakeClock(new DateTimeImmutable('2026-03-29T01:30:00+00:00')));
 
         $this->businesses->shouldReceive('save')->once();
         $this->owners->shouldReceive('registerOwner')->andReturn([]);
@@ -186,6 +203,87 @@ describe('onboarding a business', function () {
         $this->events->shouldReceive('dispatch')->once();
 
         $this->useCase->handle(OnboardingFixtures::input(ownerAccountId: 'another-account-uuid'));
+    });
+});
+
+describe('the roles the business starts life with', function () {
+    it('provisions them for the business it has just created, exactly once', function () {
+        ($this->arrangeReads)();
+
+        $this->roles->shouldReceive('provisionFor')->once()
+            ->with(OnboardingFixtures::GENERATED_BUSINESS_ID);
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        $this->useCase->handle(OnboardingFixtures::input());
+    });
+
+    it('provisions them before the owner is registered', function () {
+        // Registering the owner assigns a role at this business, and a role row
+        // that does not exist yet cannot be assigned. The order is the contract.
+        ($this->arrangeReads)();
+
+        $order = [];
+        $record = function (string $step) use (&$order): bool {
+            $order[] = $step;
+
+            return true;
+        };
+
+        $this->businesses->shouldReceive('save')->once()
+            ->with(Mockery::on(fn (): bool => $record('save')));
+        $this->roles->shouldReceive('provisionFor')->once()
+            ->with(Mockery::on(fn (): bool => $record('provision')));
+        $this->owners->shouldReceive('registerOwner')->once()
+            ->with(Mockery::on(fn (): bool => $record('owner')), Mockery::any())
+            ->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        $this->useCase->handle(OnboardingFixtures::input());
+
+        expect($order)->toBe(['save', 'provision', 'owner']);
+    });
+
+    it('provisions them inside the transaction that writes the business', function () {
+        // Roles created for a business a rollback took away would be orphans no
+        // signup could ever reach.
+        ($this->arrangeReads)();
+
+        $this->roles->shouldReceive('provisionFor')->once()
+            ->with(Mockery::on($this->recordTransactionState));
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        $this->useCase->handle(OnboardingFixtures::input());
+
+        expect($this->insideTransaction)->toBe([true]);
+    });
+
+    it('provisions nothing when the industry guard refuses the signup', function () {
+        $this->roles->shouldNotReceive('provisionFor');
+        $this->industries->shouldReceive('exists')->andReturn(false);
+        $this->businesses->shouldNotReceive('save');
+        $this->owners->shouldNotReceive('registerOwner');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(fn () => $this->useCase->handle(OnboardingFixtures::input()))
+            ->toThrow(UnknownIndustry::class);
+    });
+
+    it('provisions nothing when the time zone guard refuses the signup', function () {
+        // The last guard before the transaction opens, so it is the one that
+        // proves provisioning sits inside it rather than beside the reads.
+        ($this->arrangeReads)();
+
+        $this->roles->shouldNotReceive('provisionFor');
+        $this->businesses->shouldNotReceive('save');
+        $this->owners->shouldNotReceive('registerOwner');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(timezone: 'europe/madrid')))
+            ->toThrow(InvalidBusinessTimezone::class);
     });
 });
 
@@ -209,12 +307,13 @@ describe('the unit of work', function () {
             ->and($this->transactions->runs())->toBe(1);
     });
 
-    it('writes the business, the membership and the phone inside one transaction', function () {
+    it('writes the business, its roles, the membership and the phone inside one transaction', function () {
         // A business nobody can operate is an orphan, not a half-finished
-        // signup, so the three writes commit together or not at all.
+        // signup, so the four writes commit together or not at all.
         ($this->arrangeReads)();
 
         $this->businesses->shouldReceive('save')->once()->with(Mockery::on($this->recordTransactionState));
+        $this->roles->shouldReceive('provisionFor')->once()->with(Mockery::on($this->recordTransactionState));
         $this->owners->shouldReceive('registerOwner')->once()
             ->with(Mockery::on($this->recordTransactionState), Mockery::any())
             ->andReturn([]);
@@ -222,9 +321,9 @@ describe('the unit of work', function () {
             ->with(Mockery::on($this->recordTransactionState), Mockery::any());
         $this->events->shouldReceive('dispatch')->once();
 
-        $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::phone()));
+        $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
 
-        expect($this->insideTransaction)->toBe([true, true, true])
+        expect($this->insideTransaction)->toBe([true, true, true, true])
             ->and($this->transactions->runs())->toBe(1);
     });
 });
@@ -237,36 +336,99 @@ describe('the contact number', function () {
         $this->events->shouldReceive('dispatch')->once();
     });
 
-    it('files the number against the business it has just created, exactly once', function () {
-        $phone = OnboardingFixtures::phone();
-
-        $this->phones->shouldReceive('attachToBusiness')->once()
-            ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, $phone);
-
-        $this->useCase->handle(OnboardingFixtures::input(phone: $phone));
-    });
-
-    it('files the number it was handed, whatever country it belongs to', function (CountryCode $country, string $national) {
-        $phone = OnboardingFixtures::phone($country, $national);
-
+    it('files the number the parser established, not the digits the caller typed', function () {
         $filed = null;
         $this->phones->shouldReceive('attachToBusiness')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, Mockery::capture($filed));
 
-        $this->useCase->handle(OnboardingFixtures::input(phone: $phone));
+        $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
 
-        expect($filed->equals($phone))->toBeTrue();
+        // Every fact beyond the digits - the E.164 form, the type, the place, the
+        // zones - exists only because the parser established it, so filing the
+        // submitted input instead would store a number with none of them.
+        expect($filed->equals(OnboardingFixtures::phone()))->toBeTrue()
+            ->and($filed->e164())->toBe(PhoneNumbers::MX_E164);
+    });
+
+    it('asks the parser once, with the country declared and the string as typed', function () {
+        // Parsing twice would let the two answers disagree, and the separators
+        // are the parser's business - a use case that stripped them here would
+        // be filing a different number from the one it validated.
+        $this->phones->shouldReceive('attachToBusiness')->once();
+
+        $this->useCase->handle(OnboardingFixtures::input(
+            phone: new PhoneNumberInput('MX', ' (55) 1234-5678 '),
+        ));
+
+        expect($this->parser->calls())->toBe([
+            ['country' => CountryCode::Mx, 'nationalNumber' => ' (55) 1234-5678 '],
+        ]);
+    });
+
+    it('files the number it was handed, whatever country it belongs to', function (CountryCode $country, string $national) {
+        $filed = null;
+        $this->phones->shouldReceive('attachToBusiness')->once()
+            ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, Mockery::capture($filed));
+
+        $this->useCase->handle(OnboardingFixtures::input(
+            phone: OnboardingFixtures::submittedPhone($country, $national),
+        ));
+
+        expect($filed->equals(OnboardingFixtures::phone($country, $national)))->toBeTrue();
     })->with([
         'mexico' => [CountryCode::Mx, '5512345678'],
         'the united states' => [CountryCode::Us, '2125550147'],
     ]);
 
-    it('never touches the phone book when no number was given', function () {
+    it('never touches the phone book or the parser when no number was given', function () {
         // Optional at signup: an owner can add one later, and an absent number
         // must not become a blank row.
         $this->phones->shouldNotReceive('attachToBusiness');
 
         $this->useCase->handle(OnboardingFixtures::input());
+
+        expect($this->parser->wasConsulted())->toBeFalse();
+    });
+});
+
+describe('a number the platform cannot accept', function () {
+    beforeEach(function () {
+        // Rejecting the number is the first thing the use case does, so on these
+        // paths nothing else is even consulted.
+        $this->industries->shouldNotReceive('exists');
+        $this->businesses->shouldNotReceive('existsByName');
+        $this->businesses->shouldNotReceive('slugsMatching');
+        $this->businesses->shouldNotReceive('save');
+        $this->roles->shouldNotReceive('provisionFor');
+        $this->owners->shouldNotReceive('registerOwner');
+        $this->phones->shouldNotReceive('attachToBusiness');
+        $this->events->shouldNotReceive('dispatch');
+    });
+
+    it('refuses a country the platform does not operate in, without asking the parser', function (string $countryCode) {
+        // The country string is ruled on here rather than at the edge, so a
+        // console command or a queued job gets the same verdict.
+        expect(fn () => $this->useCase->handle(
+            OnboardingFixtures::input(phone: new PhoneNumberInput($countryCode, '5512345678')),
+        ))->toThrow(UnsupportedPhoneNumber::class, "[{$countryCode}] is not a country this platform operates in.");
+
+        expect($this->parser->wasConsulted())->toBeFalse()
+            ->and($this->transactions->runs())->toBe(0);
+    })->with([
+        'a country we do not serve' => 'ES',
+        'the lowercase form of one we do' => 'mx',
+        'not a country at all' => 'XX',
+        'blank' => '',
+    ]);
+
+    it('refuses digits that are not a number in a country it does serve', function () {
+        $useCase = ($this->build)(parser: FakePhoneNumberParser::acceptingNothing());
+
+        expect(fn () => $useCase->handle(
+            OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone(CountryCode::Us, '8421133471')),
+        ))->toThrow(UnsupportedPhoneNumber::class, 'The number offered is not a valid phone number in [US].');
+
+        expect($this->transactions->runs())->toBe(0);
     });
 });
 
@@ -338,7 +500,7 @@ describe('announcing what happened', function () {
         $this->transactions->failAtCommit($commitFailure);
 
         try {
-            $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::phone()));
+            $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
             $thrown = null;
         } catch (Throwable $failure) {
             $thrown = $failure;
@@ -428,12 +590,13 @@ describe('refusing to onboard', function () {
         $conflict = BusinessNameAlreadyTaken::for(OnboardingFixtures::NAME);
         $this->businesses->shouldReceive('save')->once()->andThrow($conflict);
 
+        $this->roles->shouldNotReceive('provisionFor');
         $this->owners->shouldNotReceive('registerOwner');
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
         try {
-            $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::phone()));
+            $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
             $thrown = null;
         } catch (Throwable $failure) {
             $thrown = $failure;
@@ -449,6 +612,7 @@ describe('refusing to onboard', function () {
         $conflict = BusinessSlugAlreadyTaken::for(OnboardingFixtures::SLUG);
         $this->businesses->shouldReceive('save')->once()->andThrow($conflict);
 
+        $this->roles->shouldNotReceive('provisionFor');
         $this->owners->shouldNotReceive('registerOwner');
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
@@ -475,7 +639,7 @@ describe('refusing to onboard', function () {
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::phone())))
+        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone())))
             ->toThrow(OwnerAlreadyHasBusiness::class);
     });
 
@@ -489,7 +653,7 @@ describe('refusing to onboard', function () {
 
         $this->events->shouldNotReceive('dispatch');
 
-        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::phone())))
+        expect(fn () => $this->useCase->handle(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone())))
             ->toThrow(RuntimeException::class, 'the phone book rejected the row');
     });
 });
@@ -507,9 +671,11 @@ describe('what it deliberately does not depend on', function () {
         expect($ports)->toBe([
             BusinessRepository::class,
             IndustryCatalog::class,
+            RoleProvisioner::class,
             OwnerRegistrar::class,
             PhoneBook::class,
             SlugAllocator::class,
+            PhoneNumberParser::class,
             IdGenerator::class,
             Clock::class,
             TransactionManager::class,

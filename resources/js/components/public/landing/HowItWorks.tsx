@@ -1,21 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { Section } from '@/components/public/landing/Section';
 
-/**
- * The three steps between signing up and running a full day.
- *
- * They are numbered because they are genuinely ordered — nothing can be shared
- * before it exists, and nothing lands on the agenda before it is shared. The
- * number sits on a hairline rule, the same construction the agenda column uses
- * for an hour label, so the sequence reads as a timeline rather than as a badge.
- */
+/** Numbered because they are genuinely ordered, not for decoration. */
 const steps = ['setUp', 'share', 'run'] as const;
 
-/**
- * Exported so the header menu and this section can never point at two different
- * strings. It is also what `Section` builds the heading id from, so the section
- * takes its accessible name from the heading a visitor can actually read.
- */
+/** Exported for the header menu, so the anchor is written down once. */
 export const HOW_IT_WORKS_ID = 'how-it-works';
 
 export function HowItWorks() {
@@ -37,12 +26,6 @@ export function HowItWorks() {
             <ol className="mt-10 grid gap-9 sm:mt-12 md:grid-cols-3 md:gap-8">
                 {steps.map((step, index) => (
                     <li key={step}>
-                        {/*
-                         * The number takes the brand colour and the rule fades out
-                         * of it, so the ordinal is what the eye finds first and the
-                         * timeline still ends in the same hairline as the rest of
-                         * the page.
-                         */}
                         <div className="flex items-center gap-3">
                             <span className="text-sm leading-none font-medium tracking-[0.08em] tabular-nums text-primary">
                                 {String(index + 1).padStart(2, '0')}

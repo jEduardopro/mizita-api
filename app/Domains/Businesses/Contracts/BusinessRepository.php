@@ -9,10 +9,6 @@ use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
 use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
 
-/**
- * Port for Business persistence. It speaks entities, never Eloquent models
- * or query builders, so use cases stay independent of the database.
- */
 interface BusinessRepository
 {
     /**
@@ -28,9 +24,8 @@ interface BusinessRepository
     public function existsByName(string $name): bool;
 
     /**
-     * The live slugs that could collide with a base: the base itself, and the
-     * numbered variants of it. One read, so the allocator can pick a free
-     * suffix without a query per attempt.
+     * The base itself and its numbered variants, in one read, so the allocator
+     * can pick a free suffix without a query per attempt.
      *
      * @return list<string>
      */
@@ -43,8 +38,6 @@ interface BusinessRepository
     public function save(Business $business): void;
 
     /**
-     * Soft deletes the record. Reads stop returning it; the row is kept.
-     *
      * @throws BusinessNotFound
      */
     public function delete(string $id): void;

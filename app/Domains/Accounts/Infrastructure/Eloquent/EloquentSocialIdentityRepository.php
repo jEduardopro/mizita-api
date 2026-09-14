@@ -14,10 +14,6 @@ use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 
-/**
- * Persists provider links, and owns the only place where the account uuid the
- * entity carries meets the int primary key the schema joins on.
- */
 final class EloquentSocialIdentityRepository implements SocialIdentityRepository
 {
     public function __construct(
@@ -57,9 +53,7 @@ final class EloquentSocialIdentityRepository implements SocialIdentityRepository
                 $this->mapper->toAttributes($identity, $this->accountKey($identity->accountId)),
             );
         } catch (UniqueConstraintViolationException $violation) {
-            // The partial index on (provider, provider_user_id) is what rejected
-            // this. Knowing that stops here: the domain hears it in its own
-            // terms, not as an Illuminate exception.
+            // The partial index on (provider, provider_user_id) rejected this.
             throw SocialIdentityAlreadyLinked::forProviderUser(
                 $identity->provider,
                 $identity->providerUserId,
@@ -68,10 +62,6 @@ final class EloquentSocialIdentityRepository implements SocialIdentityRepository
         }
     }
 
-    /**
-     * Translates the account uuid the domain speaks into the int key the
-     * foreign key points at.
-     */
     private function accountKey(string $accountId): int
     {
         $key = User::query()->where('uuid', $accountId)->value('id');

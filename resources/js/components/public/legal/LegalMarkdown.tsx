@@ -12,12 +12,8 @@ const LINK_CLASS = 'rounded-sm outline-none focus-visible:ring-3 focus-visible:r
 const ABSOLUTE_URL = /^https?:\/\//;
 
 /**
- * The text of a heading, whatever it is made of.
- *
- * Read from the parsed tree rather than from the markdown line, so a heading
- * that ever gains emphasis or a link still produces the anchor its own words
- * spell — and the same one the index computed from the raw line, since slugging
- * drops the markup characters either way.
+ * Read from the parsed tree rather than the markdown line, so a heading that
+ * gains emphasis or a link still produces the anchor the index computed.
  */
 function headingText(node: Element | undefined): string {
     if (node === undefined) {
@@ -45,12 +41,9 @@ type AnchorProps = {
 };
 
 /**
- * A link inside a document.
- *
- * The documents cross-reference each other by path — the privacy notice sends a
- * reader to `/terms` — and those are pages of this app, so they travel through
- * Inertia and keep the visit client-side. Anything absolute leaves the site and
- * says so by opening in its own tab, without handing the destination a referrer.
+ * The documents cross-reference each other by path, and those are pages of this
+ * app, so they travel through Inertia. Anything absolute leaves the site and
+ * opens in its own tab, without handing the destination a referrer.
  */
 function LegalAnchor({ href, children }: AnchorProps) {
     if (href === undefined) {
@@ -84,18 +77,15 @@ const components: Components = {
     a: LegalAnchor,
 
     h2: ({ children, node }) => (
-        // `tabIndex` follows the house pattern for an anchor target: a jump from
-        // the index moves reading position as well as scroll position, so the
-        // next Tab continues inside the clause rather than back at the header.
+        // `tabIndex` moves reading position with scroll position, so the next Tab
+        // continues inside the clause rather than back at the header.
         <h2 id={slugify(headingText(node))} tabIndex={-1} className="scroll-mt-20 outline-none">
             {children}
         </h2>
     ),
 
-    // A fact the paperwork has not produced yet, and deliberately the loudest
-    // thing on the page: amber, bracketed, naming what is missing. It is not an
-    // error state — nothing failed — it is an unfinished sentence, and it stays
-    // conspicuous until `entity.ts` carries the value.
+    // A fact the paperwork has not produced yet, deliberately the loudest thing
+    // on the page until `entity.ts` carries the value.
     mark: ({ children }) => (
         // `box-decoration-clone` so a marker long enough to wrap keeps its
         // padding and its corners on every line instead of on the first only.
@@ -104,9 +94,8 @@ const components: Components = {
         </mark>
     ),
 
-    // A four column table cannot fit a phone, and a page that scrolls sideways
-    // to show it is worse than one that does not. The scroll belongs to the
-    // table: the container takes focus so it is reachable without a pointer.
+    // The scroll belongs to the table, not the page: the container takes focus so
+    // it is reachable without a pointer.
     table: ({ children }) => (
         <div
             tabIndex={0}
@@ -124,17 +113,12 @@ type Props = {
     markerPrefix: string;
 };
 
-/**
- * Turns one legal document into typography. It renders; it does not decide what
- * to render, and it fetches nothing.
- */
 export function LegalMarkdown({ body, markerPrefix }: Props) {
     const rehypePlugins = useMemo(() => [rehypeLegalFacts({ markerPrefix })], [markerPrefix]);
 
     return (
-        // `min-w-0` is what keeps the tables inside their own scroll container:
-        // without it a grid item is free to grow to its widest child, and the
-        // page itself would scroll sideways to show a table on a phone.
+        // `min-w-0` keeps the tables inside their own scroll container: without
+        // it a grid item grows to its widest child and the page scrolls sideways.
         <div className="prose prose-legal min-w-0 max-w-none">
             <Markdown
                 remarkPlugins={[remarkGfm]}

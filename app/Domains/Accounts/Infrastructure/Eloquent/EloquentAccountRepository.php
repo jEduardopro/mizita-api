@@ -13,9 +13,7 @@ use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
- * Persists accounts against the users table.
- *
- * It adapts App\Models\User rather than a model this domain owns: users is
+ * Adapts App\Models\User rather than a model this domain owns: users is
  * Fortify's and Sanctum's authenticatable and has to stay a single Eloquent
  * class. The divergence from one model per domain stops at this boundary.
  */
@@ -47,10 +45,7 @@ final class EloquentAccountRepository implements AccountRepository
         return $model === null ? null : $this->mapper->toEntity($model);
     }
 
-    /**
-     * The attribute list never includes the password, so writing an account
-     * that signed in with Google leaves an existing hash untouched.
-     */
+    /** The attribute list never includes the password, so an existing hash survives. */
     public function save(Account $account): void
     {
         try {
@@ -59,9 +54,6 @@ final class EloquentAccountRepository implements AccountRepository
                 $this->mapper->toAttributes($account),
             );
         } catch (UniqueConstraintViolationException $violation) {
-            // Knowing what a unique index is stops here. Letting an Illuminate
-            // exception past this boundary would break the layer rule and make
-            // every caller untestable without the framework.
             throw AccountAlreadyRegistered::withEmail($account->email(), $violation);
         }
     }

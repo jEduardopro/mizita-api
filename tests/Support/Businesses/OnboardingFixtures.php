@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Tests\Support\Businesses;
 
 use App\Domains\Businesses\Application\Dtos\OnboardBusinessInput;
+use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use App\Shared\ValueObjects\CountryCode;
 use App\Shared\ValueObjects\PhoneNumber;
 use DateTimeImmutable;
+use Tests\Support\PhoneNumbers;
 
 /**
  * The fixed cast of a business signup, shared by the entity and use case tests.
@@ -46,7 +48,7 @@ final class OnboardingFixtures
         string $name = self::NAME,
         string $timezone = self::TIMEZONE,
         string $industryId = self::INDUSTRY_ID,
-        ?PhoneNumber $phone = null,
+        ?PhoneNumberInput $phone = null,
         string $ownerAccountId = self::OWNER_ACCOUNT_ID,
     ): OnboardBusinessInput {
         return new OnboardBusinessInput(
@@ -78,10 +80,37 @@ final class OnboardingFixtures
         );
     }
 
+    /**
+     * What the owner typed into the form: a country string and some digits,
+     * neither of them judged yet.
+     *
+     * Its defaults are the same pair phone() below is built from, so a test that
+     * passes this to the use case and that to FakePhoneNumberParser::accepting()
+     * gets a number the parser recognises, with no literal repeated between them.
+     */
+    public static function submittedPhone(
+        CountryCode $country = CountryCode::Mx,
+        string $nationalNumber = PhoneNumbers::MX_NATIONAL_NUMBER,
+    ): PhoneNumberInput {
+        return new PhoneNumberInput($country->value, $nationalNumber);
+    }
+
+    /**
+     * The same number once a parser has established it is real, which is what the
+     * phone book is handed.
+     *
+     * A number carries six facts a parser established, none of which this domain
+     * reads, so the fixture defers to the shared builder rather than restating
+     * them. Pass a country or some digits only when the test is about the number
+     * itself.
+     */
     public static function phone(
         CountryCode $country = CountryCode::Mx,
-        string $nationalNumber = '5512345678',
+        string $nationalNumber = PhoneNumbers::MX_NATIONAL_NUMBER,
     ): PhoneNumber {
-        return PhoneNumber::fromParts($country, $nationalNumber);
+        return match ($country) {
+            CountryCode::Mx => PhoneNumbers::mexican($nationalNumber),
+            CountryCode::Us => PhoneNumbers::american($nationalNumber),
+        };
     }
 }

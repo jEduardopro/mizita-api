@@ -6,16 +6,7 @@ type ListProps = {
     sections: LegalSection[];
 };
 
-/**
- * The clause list itself.
- *
- * Numbered because the documents number themselves: a clause is cited by its
- * number, so the number is content and it is set in its own column, aligned on
- * tabular figures, rather than folded into the label.
- *
- * The rows are thumb-sized below `lg` and compact above it. One set of classes
- * covers both, because each shape is only ever visible at one width.
- */
+/** Numbered because the documents number themselves: a clause is cited by number. */
 function ClauseList({ sections }: ListProps) {
     return (
         <ol className="border-l border-border">
@@ -46,15 +37,9 @@ type Props = {
 };
 
 /**
- * The index of a legal document, in the two shapes it needs.
- *
- * On a laptop it is a rail beside the text, sticky so the clause you are looking
- * for stays one click away however far down the document you have read. On a
- * phone there is no room beside anything, so it collapses above the text into a
- * native `details` — no state, no JavaScript, keyboard operable by construction,
- * and nothing that can hold focus once it is closed.
- *
- * Both shapes render the same list, and only one of them is ever displayed.
+ * A sticky rail beside the text on a laptop; on a phone a native `details` above
+ * it — no state, keyboard operable by construction, and nothing that can hold
+ * focus once it is closed.
  */
 export function LegalToc({ sections }: Props) {
     const { t } = useTranslation("common");
@@ -84,11 +69,9 @@ export function LegalToc({ sections }: Props) {
             </nav>
 
             <nav aria-label={label} className="hidden lg:block">
-                {/*
-                 * An eyebrow rather than a heading: the nav is already named by
-                 * its label, and a heading here would sit in the document
-                 * outline between the title and the first clause.
-                 */}
+                {/* An eyebrow rather than a heading: the nav is already named by
+                    its label, and a heading here would sit in the document
+                    outline between the title and the first clause. */}
                 <p className="mb-3 pl-3.5 text-[0.6875rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                     {label}
                 </p>

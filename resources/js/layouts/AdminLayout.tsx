@@ -8,16 +8,12 @@ import { useLogOut } from '@/hooks/use-log-out';
 type Props = {
     /** The tab title and the heading of the screen. */
     title: string;
-    /** One line of context under the heading. */
     description?: string;
     /** Screen-level actions, rendered next to the heading. */
     actions?: ReactNode;
     children: ReactNode;
 };
 
-/**
- * The shell for the authenticated business dashboard.
- */
 export function AdminLayout({ title, description, actions, children }: Props) {
     const { name } = usePage().props;
     const { t } = useTranslation('common');
@@ -31,13 +27,8 @@ export function AdminLayout({ title, description, actions, children }: Props) {
                 <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-5 sm:px-8">
                     <Wordmark name={name} href="/dashboard" />
 
-                    {/*
-                     * `sm` sets the type, not the box: the button is the only
-                     * control in this header and it is pressed from a phone, so
-                     * it is grown to the 44px tap-target floor. A ghost button
-                     * draws nothing at rest, so the extra height costs no visual
-                     * weight — it only widens where a thumb may land.
-                     */}
+                    {/* `sm` sets the type, not the box: the height is grown to the
+                        44px tap-target floor. */}
                     <Button variant="ghost" size="sm" onClick={logOut} className="h-11 px-3">
                         {t('nav.logOut')}
                     </Button>

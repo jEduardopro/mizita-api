@@ -6,48 +6,29 @@ import { Label } from '@/components/ui/label';
 
 type Props = Omit<ComponentProps<'input'>, 'placeholder'> & {
     id: string;
-    /** The field's name, pre-translated. It is a real `<label>`, not a placeholder. */
     label: string;
-    /** A rule worth knowing before submitting, e.g. the password minimum. */
     hint?: string;
     /** The message Laravel sent back for this field, if any. */
     error?: string;
-    /**
-     * Turns on the reveal toggle and carries its two accessible names.
-     *
-     * The labels arrive pre-translated, like `label` does, because this folder is
-     * audience-agnostic: a component here must not reach into the `auth`
-     * namespace to name a button. Passing the pair rather than a boolean keeps
-     * the toggle from ever shipping without an accessible name.
-     */
+    /** Passing the pair rather than a boolean keeps the toggle from ever
+     * shipping without an accessible name. */
     reveal?: { show: string; hide: string };
 };
 
 /**
- * A text field drawn as a single rule with its name sitting on it: no box, no
- * fill, just the line the value is written on.
+ * The floating label rests on the line while the field is empty and rises once
+ * it has a value or focus, decided by `:placeholder-shown` through Tailwind's
+ * `peer`. That costs no state and gets browser autofill right for free: the
+ * label lifts because the field genuinely has a value, not because React was
+ * told about it.
  *
- * The name is a floating `<label>`, never a placeholder. A placeholder is not an
- * accessible name and it disappears the moment someone starts typing, which is
- * precisely when they most need to know which field they are in. So the label
- * rests on the line while the field is empty and rises above it once there is a
- * value or the field has focus.
+ * The two states are one arbitrary variant rather than a
+ * `peer-placeholder-shown` / `peer-focus` pair, which would set the same
+ * properties from two variants and leave the winner to Tailwind's ordering.
  *
- * That resting-or-risen decision is pure CSS — `:placeholder-shown` on the input,
- * read through Tailwind's `peer`. It costs no state, and it gets browser autofill
- * right for free: the label lifts because the field genuinely has a value, not
- * because React was told about it. The input therefore carries a single-space
- * placeholder as the mechanism, made transparent so it never renders.
- *
- * The two states are written as one arbitrary variant, `peer-[:placeholder-shown:not(:focus)]`,
- * rather than as a `peer-placeholder-shown` / `peer-focus` pair. The pair would
- * set the same properties from two variants and leave the winner to Tailwind's
- * own ordering; one selector cannot contradict itself.
- *
- * Focus is a brand-coloured 2px bar that wipes in from the left, drawn over the
- * resting hairline. A 1px colour change is too quiet to be a keyboard focus
- * indicator on a borderless field, and `components/ui/input.tsx` is generated, so
- * the ring it ships with is switched off here rather than edited there.
+ * Focus is a 2px bar rather than a ring: a 1px colour change is too quiet to be
+ * a keyboard focus indicator on a borderless field, and `components/ui/input.tsx`
+ * is generated, so its ring is switched off here rather than edited there.
  */
 export function UnderlineField({ id, label, hint, error, reveal, className, ...props }: Props) {
     const [revealed, setRevealed] = useState(false);
@@ -55,10 +36,7 @@ export function UnderlineField({ id, label, hint, error, reveal, className, ...p
     const hintId = `${id}-hint`;
     const errorId = `${id}-error`;
 
-    // One message per field. An error supersedes the hint rather than stacking
-    // under it: the hint says what would be acceptable, and once the server has
-    // said what was wrong, repeating the rule underneath is noise at the exact
-    // moment the field is asking to be read.
+    // One message per field, the same rule `FieldMessage` states for its siblings.
     const showHint = hint !== undefined && ! error;
 
     const describedBy = showHint ? hintId : error ? errorId : undefined;
@@ -96,12 +74,8 @@ export function UnderlineField({ id, label, hint, error, reveal, className, ...p
                     {label}
                 </Label>
 
-                {/*
-                 * The focus bar. It sits over the input's own bottom border and
-                 * inherits the error colour from the field, so an invalid field
-                 * that is being corrected stays red while it is focused instead
-                 * of flipping to brand blue mid-fix.
-                 */}
+                {/* Inherits the error colour, so a field being corrected stays
+                    red while focused instead of flipping to brand mid-fix. */}
                 <span
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-primary transition-transform duration-200 peer-focus-visible:scale-x-100 peer-aria-invalid:bg-destructive motion-reduce:transition-none"

@@ -5,19 +5,12 @@ import { Wordmark } from '@/components/shared/Wordmark';
 type Props = {
     /** The tab title. The app name is appended by the title callback in app.tsx. */
     title: string;
-    /** The heading shown above the form. */
     heading: string;
-    /** One line telling the visitor what this screen will do for them. */
     description: string;
     children: ReactNode;
-    /** The link out of this screen — usually to the opposite auth action. */
     footer?: ReactNode;
 };
 
-/**
- * The shell for login, registration and password recovery: one column, one task,
- * nothing else competing for attention.
- */
 export function AuthLayout({ title, heading, description, children, footer }: Props) {
     const { name } = usePage().props;
 

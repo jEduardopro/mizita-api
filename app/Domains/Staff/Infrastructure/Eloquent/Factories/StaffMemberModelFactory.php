@@ -6,19 +6,16 @@ namespace App\Domains\Staff\Infrastructure\Eloquent\Factories;
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
+use App\Domains\Staff\Infrastructure\Permissions\BusinessRoleTemplates;
 use App\Domains\Staff\Infrastructure\Permissions\StaffRoleAssignments;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Seeds the row that makes an account a business user, which is how a test
- * gives a caller a tenant to operate.
- *
  * A membership is two halves - the row, and the role the account holds at that
- * business - so the factory writes both. The role assignment needs the two
- * roles to exist, which means a test using this factory has to have run
- * StaffRoleSeeder first.
+ * business - so the factory writes both. The owner role is global and seeded,
+ * so a test using this factory has to have run AuthorizationSeeder first.
  *
  * @extends Factory<StaffMemberModel>
  */
@@ -27,9 +24,6 @@ final class StaffMemberModelFactory extends Factory
     protected $model = StaffMemberModel::class;
 
     /**
-     * Both foreign keys resolve to the neighbour's int primary key, which is
-     * what this table references - not the uuid the entities carry.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -40,10 +34,6 @@ final class StaffMemberModelFactory extends Factory
         ];
     }
 
-    /**
-     * Ordinary membership, which is what a fixture wants unless it says
-     * otherwise.
-     */
     public function configure(): self
     {
         return $this->afterCreating(
@@ -52,8 +42,6 @@ final class StaffMemberModelFactory extends Factory
     }
 
     /**
-     * The membership signup writes: it owns the business.
-     *
      * Runs after the default assignment above and replaces it, because the role
      * is synced rather than added. At most one owner assignment per account
      * survives the partial unique index, so a fixture that needs two owners
@@ -66,10 +54,19 @@ final class StaffMemberModelFactory extends Factory
         );
     }
 
+    /**
+     * A fixture builds its business straight from BusinessModelFactory rather
+     * than through onboarding, so the per-business role rows are not there.
+     * Cloning the templates first is what makes the assignment find the same row
+     * it finds in production; it is idempotent.
+     */
     private function assign(StaffMemberModel $member, StaffRole $role): void
     {
         $account = $member->account()->sole();
+        $businessKey = (int) $member->business_id;
 
-        app(StaffRoleAssignments::class)->assign($account, (int) $member->business_id, $role);
+        app(BusinessRoleTemplates::class)->cloneFor($businessKey);
+
+        app(StaffRoleAssignments::class)->assign($account, $businessKey, $role);
     }
 }

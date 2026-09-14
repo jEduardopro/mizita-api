@@ -39,7 +39,7 @@ Three route stacks follow, and the stack — not the controller — is what guar
 
 Three structural decisions worth knowing before you touch any of them:
 
-- **A staff row *is* the business membership.** `users` is pure authentication; which business a person may operate is a `staff_members` row. No staff rows means the person is an end customer. This replaced `users.business_id`, which no longer exists. The **role** is not on that row: roles and permissions are `spatie/laravel-permission`, with its teams feature on and the team being the business, so the same account can be an owner in one business and staff in another. `Staff\ValueObjects\StaffRole` stays the domain's vocabulary and names the seeded Spatie roles; nothing above `Infrastructure/` knows the package exists.
+- **A staff row *is* the business membership.** `users` is pure authentication; which business a person may operate is a `staff_members` row. No staff rows means the person is an end customer. This replaced `users.business_id`, which no longer exists. The **role** is not on that row: roles and permissions are `spatie/laravel-permission`, with its teams feature on and the team being the business, so the same account can be an owner in one business and staff in another. `Staff\ValueObjects\StaffRole` stays the domain's vocabulary and names the seeded Spatie roles; nothing above `Infrastructure/` knows the package exists. How the rows are shaped is the *Access model* below, and it is not the obvious shape.
 - **Availability is one domain, not hours inside Businesses plus hours inside Staff.** `schedule_rules` carries `owner_type` + `owner_id`, so both share one entity, one calculator and one test suite. Availability = business hours ∩ staff hours − time off − booked appointments.
 - **Every unauthenticated endpoint lives in `PublicCatalog`**, so "what can an anonymous person reach?" has one answer. (`Public` alone cannot be a namespace segment — it is a PHP reserved word.)
 
@@ -69,7 +69,7 @@ English, everywhere — class names, columns, routes, comments. The non-obvious 
 - Laravel 13.31, PHP 8.4+
 - PostgreSQL (`mizita_api` locally)
 - Sanctum, already wired for both session and token auth: `bootstrap/app.php` calls `statefulApi()`, and `withExceptions` forces JSON rendering for `api/*`. Do not re-add either.
-- `spatie/laravel-permission` for roles and permissions, teams on, the team being the business. Confined to `Infrastructure/` and seeded by `StaffRoleSeeder` — see *Domains*
+- `spatie/laravel-permission` for roles and permissions, teams on, the team being the business. Confined to `Infrastructure/` and seeded by `AuthorizationSeeder` from `config/authorization.php` — see *Domains* and *Access model*
 - Pest for tests, Pint for formatting
 - React 19 + Vite 8 + TypeScript in `resources/js` — see [Frontend](#frontend)
 
@@ -182,6 +182,33 @@ Generate a root domain with `--root`:
 ```sh
 artisan make:domain Businesses --root --field="name:string" --field="slug:string:unique"
 ```
+
+## Access model
+
+`config/authorization.php` is the whole access model in one file: every permission with its `scope` and `module`, and every role with the permissions it holds. `AuthorizationSeeder` reads it and syncs. Human labels never touch the database — `permissions.description` and `roles.description` store a **translation key**, resolved from `lang/{en,es}/{permissions,roles}.php`, and `slug` is the kebab of the name.
+
+Two shapes of role, and the difference is the thing to understand before touching any of it:
+
+| | `owner` | `staff`, and every editable role after it |
+| --- | --- | --- |
+| Rows | **one**, global, `business_id` NULL, `id` pinned to `SeededStaffRole::OWNER_ID` | **one per business**, `business_id` set |
+| Created by | the seeder | `BusinessRoleTemplates::cloneFor()`, inside `OnboardBusiness`'s transaction |
+| Editable by the owner | never | yes — that is the entire point |
+
+**The template is the config file, not a row.** There must never be a role row with `business_id IS NULL` named `staff`. `Role::findByParam()` matches `business_id IS NULL OR business_id = <team>` and returns `first()` with **no `ORDER BY`**, so a global template and a per-business clone sharing a name are ambiguous: `syncRoles('staff')` would attach an undefined one of the two, and if it picked the template every permission the owner edited would be silently inert. Keeping the template out of the table is what makes exactly one row match under a team — and why `StaffRoleAssignments` needs no special resolution logic. For the same reason `Role::create()` is banned on the clone path (it runs `findByParam` and can throw `RoleAlreadyExists` against the wrong row); use `Role::query()->firstOrCreate()`.
+
+`owner` is global **and must stay that way**. `ownsAnyBusiness()` matches `roles.name = 'owner'` across every team, and `model_has_roles_single_owner_unique` names `role_id = 1` literally in its index predicate. Clone `owner` and an account can quietly come to own two businesses.
+
+Consequences worth knowing before they bite:
+
+- **The seeder syncs templates only and never a clone.** Re-seeding must not restore a permission an owner deliberately removed — that is a security change disguised as a deploy step.
+- **A business created before a new permission is added does not receive it from the seeder.** Reaching existing businesses is an explicit backfill, not reference data.
+- **`syncRoleIdSequence()` is runtime-critical, not tidiness.** Clones take sequence ids inside the onboarding transaction; a lagging sequence makes the first clone collide with `roles.id = 1` and breaks signup.
+- **Spatie's permission cache is one blob holding every role row and every permission→role edge**, loaded on the first permission check of each request, so it grows linearly with the number of businesses. Revisit past a few thousand roles — and never shrink it by stripping `scope` from the cached columns, since a `Permission` read back with `scope === null` defeats the invariant that a business owner can never hold a platform permission.
+
+The rules an account is held to: **owner of at most one business, staff at as many as it likes, exactly one role per business** — the last enforced by `model_has_roles_single_role_per_business`.
+
+Planned and deliberately absent: the **platform plane** (roles assigned with a NULL team, for operating the system itself). The schema is ready for it — `scope` already distinguishes `platform` from `business` — but nothing is seeded, no middleware exists and no endpoint uses it. Landing it needs one migration: `model_has_roles.business_id` is `NOT NULL` and part of the composite primary key, and Postgres here is 14, so `UNIQUE NULLS NOT DISTINCT` is unavailable and the replacement is an expression index over `coalesce(business_id, 0)`. A `RequirePermission` middleware aliased `permission`, denying with `abort_if(..., 403, ...)` to match `SetBusinessContext` and never naming the permission in the message, is the intended shape when a route first needs one.
 
 ## Soft deletes
 
@@ -353,7 +380,9 @@ Other conventions:
 
 **`domains/` now exists**, created by the onboarding screen: `domains/industries/` (the catalog the combobox reads) and `domains/businesses/` (the live name check and the create mutation). They are the worked example of the rules above — audience-agnostic, no barrel files, contract transcribed from the Resources. Note the one composition rule they demonstrate: the onboarding form needs both domains, and it gets them because the **page** calls each domain's hook and passes the result down. A domain never imports another domain.
 
-`components/form/` holds the audience-agnostic wrappers that screen uses — `ComboboxField` (an in-flow listbox, deliberately not a popover, because at phone width an anchored layer collides with the keyboard), `PhoneField`, `FormAlert` and `FieldMessage`, which owns the one rule every field shares: a server `error` supersedes a `hint`. `lib/http.ts` is the only module that knows Laravel's `{ message, errors }` envelope, so a 422 through axios renders exactly like a 422 through a Fortify post.
+`components/form/` holds the audience-agnostic wrappers that screen uses — `ComboboxField` (an in-flow listbox, deliberately not a popover, because at phone width an anchored layer collides with the keyboard), `PhoneField` and `FieldMessage`, which owns the one rule every field shares: a server `error` supersedes a `hint`. `lib/http.ts` is the only module that knows Laravel's `{ message, errors }` envelope, so a 422 through axios renders exactly like a 422 through a Fortify post.
+
+**A form-level server message is a toast, not an inline alert.** `useServerErrors` splits what the server said in two: field messages go to the fields through `FieldMessage`, and the one sentence that is about the submission as a whole goes to `sonner`, mounted once as `components/shared/AppToaster` in `app.tsx` so a toast survives the navigation that follows a successful submit. `hooks/use-error-toast.ts` owns the lifetime, and the rule it enforces is that **a server error toast never auto-closes** — a flat 422 carries no `errors` key, so no field turns red and that sentence is the only explanation there is. The earlier `FormAlert` is gone: one message belongs in one place, and an alert re-rendered with an identical message announced nothing on a second identical refusal, while an imperative toast does.
 
 ```sh
 npx tsc --noEmit     # typecheck
@@ -437,7 +466,7 @@ Clean code practices, the checkable floor:
 - A rule attached to a primitive — email, slug, money, timezone, duration — is a value object, not validation scattered across use cases.
 - **Tell, don't ask**: `$appointment->cancel($now)`, never read an entity's state at the call site and decide on its behalf.
 - DRY with judgment — duplicate twice before abstracting, and **never DRY across domains**: shared code there is coupling, and the answer is a port.
-- Comments explain *why*, never *what*. Delete dead code instead of commenting it out.
+- **Comments are the exception, not the habit.** Write one only where a reader who understands the code would still ask *why* — a non-obvious decision, a constraint imposed from outside, a landmine that looks safe to change and is not. Everything else goes: no comment that restates the line under it, no docblock that repeats the signature, no section banner, no narration of an obvious guard clause. If a comment is needed to explain *what* a method does, rename the method. A file where most lines carry a comment is a file nobody reads the comments in. Delete dead code instead of commenting it out.
 
 The full per-stack checklists and the self-check questions live in `.claude/agents/mizita-backend.md` and `.claude/agents/mizita-frontend.md`.
 
@@ -445,7 +474,11 @@ The full per-stack checklists and the self-check questions live in `.claude/agen
 
 - PHP 8.3+: type everything, `final` by default, promoted readonly constructor properties, enums over string constants — **the generator cannot emit an enum, so write it by hand**.
 - Clean code practices and SOLID principles are requirements, not preferences — see the section above.
-- Validation in FormRequests, authorization in policies/gates at the HTTP edge, responses through Resources.
+- **Shape validation in FormRequests, business rules in the use case or deeper.** A FormRequest rules on presence, type, array structure and length bounds — `required`, `nullable`, `array`, `required_with`, `string`, `uuid`, `min`/`max`. Every judgement about whether a value is *acceptable to the business* — a country we operate in, a number that can be dialled, a name still free, an industry in the catalogue — moves inward, throws a `DomainFailure` from `Exceptions/`, and reaches the caller as a translated 422. No business rule may run in the presentation layer, in a FormRequest, a custom `ValidationRule`, a controller or any other entry point. The reason is not purity: a rule at the edge is a rule the console, the queue and the next transport do not get, and the use case has to make the same call anyway, so the judgement ends up made twice and eventually disagrees with itself.
+- **Consequence for the client:** a shape failure is Laravel's `{message, errors}` 422, keyed by field; a business failure is a flat `{message, code}` 422. `resources/js/lib/http.ts` already renders both — `fieldErrorsFrom()` returns `{}` when there is no `errors` key, so the translated sentence surfaces as a form-level message.
+- **A DTO builds itself, and builds its children.** Every input DTO carries a named constructor that takes the validated payload and returns a fully assembled object, nested DTOs included — `OnboardBusinessInput::fromRequest($request->validated(), $owner->uuid)`. A controller never reads a key out of the body, never casts, never composes a child DTO and never carries a private helper to do it: it takes the request, hands the payload over, and returns the response. Nothing else.
+  The payload arrives as the validated **array**, not as the `Request` — `Application/` may not import `Illuminate\Http`, and `tests/Arch/LayerDependencyTest.php` fails the moment it does. The name stays `fromRequest` because that is what it means to a reader; the argument is what keeps the layer clean. A value the body cannot be trusted to carry — the authenticated caller's id above all — is a separate parameter, never a key the client could set.
+- Authorization in policies/gates at the HTTP edge, unless the rule is genuine domain logic; responses through Resources.
 - Eager-load in the repository adapter; use cases must not know about eager loading.
 - Run `pint --dirty` after edits.
 - All code, comments and documentation in English.

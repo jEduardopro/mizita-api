@@ -11,23 +11,11 @@ type Props = ComponentProps<'input'> & {
     error?: string;
     /** A note under the field, pre-translated. An error supersedes it. */
     hint?: string;
-    /** How the hint reads: neutral by default, or a verdict the server gave. */
     hintTone?: HintTone;
     /** Holds the message row's height, so a verdict never shifts the layout. */
     reserveMessageSpace?: boolean;
 };
 
-/**
- * A labelled input that renders the server's validation message underneath.
- *
- * The backend's FormRequest is the only authority on what is valid, so there is
- * no client-side schema here: native attributes are affordances, and the real
- * answer always arrives from the server.
- *
- * Which of the hint and the error is shown, and which id `aria-describedby`
- * points at, is decided by `fieldMessage` — the same rule `UnderlineField`
- * follows, kept in one place so the siblings cannot drift.
- */
 export function FormField({
     id,
     label,

@@ -14,9 +14,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class BusinessNameAvailabilityResource extends JsonResource
 {
     /**
-     * Both keys are nullable and mutually exclusive: a free name carries the
-     * address it would get, a rejected one carries why. The reason is a machine
-     * code the client turns into its own wording, not a sentence.
+     * slug and reason are mutually exclusive, and reason is a machine code the
+     * client turns into its own wording, not a sentence.
      *
      * @return array<string, mixed>
      */

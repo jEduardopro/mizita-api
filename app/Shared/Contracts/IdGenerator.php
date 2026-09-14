@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Contracts;
 
-/**
- * Produces identifiers for new entities.
- *
- * Generating ids in memory lets an entity be complete before it is persisted,
- * so a use case can reference its id without touching the database.
- */
+/** Generated in memory, so an entity is complete - and referenceable - before it is persisted. */
 interface IdGenerator
 {
     public function next(): string;

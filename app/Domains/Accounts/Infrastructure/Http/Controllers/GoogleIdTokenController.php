@@ -16,8 +16,6 @@ use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The native entry point: a Google ID token in, a Sanctum bearer token out.
- *
  * Unauthenticated by design - it is the sign in - so the rate limiter on its
  * route group is the only thing standing between it and the internet.
  */
@@ -29,9 +27,7 @@ final class GoogleIdTokenController extends Controller
         AccountAuthenticator $authenticator,
     ): JsonResponse {
         try {
-            $account = $signIn->handle(new SignInWithGoogleIdTokenInput(
-                idToken: $request->string('id_token')->toString(),
-            ));
+            $account = $signIn->handle(SignInWithGoogleIdTokenInput::fromRequest($request->validated()));
         } catch (InvalidGoogleIdToken) {
             return $this->failure('messages.errors.google_invalid_id_token', Response::HTTP_UNAUTHORIZED);
         } catch (GoogleEmailNotVerified) {

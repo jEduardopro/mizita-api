@@ -7,6 +7,7 @@ namespace App\Domains\Phones\Infrastructure\Eloquent\Factories;
 use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Shared\ValueObjects\CountryCode;
+use App\Shared\ValueObjects\PhoneNumberType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,23 +18,32 @@ final class PhoneModelFactory extends Factory
     protected $model = PhoneModel::class;
 
     /**
+     * One fixed, real number rather than random digits: the seven columns are
+     * checked against each other on rehydration, so generated digits would give
+     * a fixture the application itself refuses to read back.
+     *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
             'phoneable_type' => PhoneOwnerType::Business->value,
-            'phoneable_id' => fake()->uuid(),
-            'country_code' => fake()->randomElement(CountryCode::cases())->value,
-            'national_number' => (string) fake()->numerify('##########'),
+            'phoneable_id' => 1,
+            'country_code' => CountryCode::Mx->value,
+            'national_number' => '8121001069',
+            'calling_code' => 52,
+            'e164' => '+528121001069',
+            'number_type' => PhoneNumberType::FixedLineOrMobile->value,
+            'geo_description' => 'Monterrey, NL',
+            'timezones' => ['America/Mexico_City'],
         ];
     }
 
-    public function ownedBy(PhoneOwnerType $ownerType, string $ownerId): self
+    public function ownedBy(PhoneOwnerType $ownerType, int $ownerKey): self
     {
         return $this->state(fn (): array => [
             'phoneable_type' => $ownerType->value,
-            'phoneable_id' => $ownerId,
+            'phoneable_id' => $ownerKey,
         ]);
     }
 }

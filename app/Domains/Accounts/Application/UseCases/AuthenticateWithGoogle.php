@@ -23,14 +23,8 @@ use App\Shared\Contracts\TransactionManager;
 use Illuminate\Contracts\Events\Dispatcher;
 
 /**
- * Signs a person in from an already verified Google identity, registering or
- * linking an account the first time they arrive.
- *
  * No BusinessContext: Accounts is a root domain. An account exists before, and
  * independently of, any business, so binding a tenant here would be wrong.
- *
- * Depends only on interfaces, so it can be built with mocks and exercised
- * without a database.
  */
 final class AuthenticateWithGoogle
 {
@@ -85,8 +79,7 @@ final class AuthenticateWithGoogle
             //
             // Both callers wanted the same outcome - this person is signed in -
             // so the loser adopts the winner's rows instead of being told about
-            // a conflict it has no way to act on. A 409 on your own second tab
-            // would be a bug, not information.
+            // a conflict it has no way to act on.
             return $this->adoptConcurrentRegistration($input, $conflict);
         }
     }
@@ -104,15 +97,13 @@ final class AuthenticateWithGoogle
     }
 
     /**
-     * Reads back what the request that beat us to the write committed.
-     *
      * Exactly one attempt. If the rows still are not there, the unique index
-     * fired for some reason other than a race, and a retry loop would hide
-     * that - so the original failure is rethrown untouched.
+     * fired for some reason other than a race and a retry loop would hide that,
+     * so the original failure is rethrown untouched.
      *
-     * The verified-email guard is deliberately not repeated here: this path is
-     * only reachable once that guard has already passed, and re-checking would
-     * make it look like a second way in.
+     * The verified-email guard is deliberately not repeated: this path is only
+     * reachable once that guard has passed, and re-checking would make it look
+     * like a second way in.
      */
     private function adoptConcurrentRegistration(
         AuthenticateWithGoogleInput $input,
@@ -139,9 +130,6 @@ final class AuthenticateWithGoogle
         throw $conflict;
     }
 
-    /**
-     * Attaches Google to an account that already existed under this address.
-     */
     private function claim(Account $account, string $googleUserId): AuthenticationOutcome
     {
         // Getting this far means the guard above proved Google verified the
@@ -177,10 +165,7 @@ final class AuthenticateWithGoogle
         );
     }
 
-    /**
-     * Writes the link and hands back the event announcing it, for the caller
-     * to dispatch once the surrounding work has committed.
-     */
+    /** Hands the event back rather than dispatching it, for the caller to fire once the work has committed. */
     private function link(Account $account, string $googleUserId): SocialIdentityLinked
     {
         $identity = SocialIdentity::link(

@@ -13,13 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-/**
- * Persistence model. Not a domain entity: it carries no business rules and
- * never leaves the infrastructure layer.
- *
- * Soft deletes track the record lifecycle. Any "active" style flag is a
- * separate business state and lives on the entity.
- */
 #[Fillable(['uuid', 'name', 'slug', 'industry_id', 'timezone'])]
 class BusinessModel extends Model
 {
@@ -30,8 +23,8 @@ class BusinessModel extends Model
     protected $table = 'businesses';
 
     /**
-     * The uuid column carries the public identity, so the primary key stays
-     * an auto-incrementing int used only for internal joins and indexes.
+     * Overridden so the primary key stays an auto-incrementing int; uuid carries
+     * the public identity.
      *
      * @return array<int, string>
      */
@@ -46,11 +39,8 @@ class BusinessModel extends Model
     }
 
     /**
-     * The catalog row this business belongs to.
-     *
-     * It exists so the repository can read the industry's uuid back without a
-     * query per row: the foreign key holds the int, the entity carries the
-     * uuid, and eager loading this relation is what joins the two halves.
+     * Eager loaded so the repository can read the industry's uuid back without a
+     * query per row: the foreign key holds the int, the entity carries the uuid.
      *
      * @return BelongsTo<IndustryModel, $this>
      */

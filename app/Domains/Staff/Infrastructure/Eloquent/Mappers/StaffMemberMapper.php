@@ -10,13 +10,9 @@ use App\Domains\Staff\ValueObjects\StaffRole;
 use DateTimeImmutable;
 
 /**
- * Translates between the persistence model and the domain entity. Only the
- * repository adapter uses it.
- *
  * Three of the entity's values are not on the model's row: business_id and
  * account_id are int primary keys in the database and uuids on the entity, and
- * the role lives in Spatie's tables. All three are passed in resolved, so no
- * identifier and no role is invented here.
+ * the role lives in Spatie's tables. All three are passed in resolved.
  */
 final class StaffMemberMapper
 {
@@ -27,7 +23,6 @@ final class StaffMemberMapper
         StaffRole $role,
     ): StaffMember {
         return StaffMember::restore(
-            // The uuid is the domain identity; the int primary key stays here.
             id: $model->uuid,
             businessId: $businessId,
             accountId: $accountId,
@@ -37,8 +32,8 @@ final class StaffMemberMapper
     }
 
     /**
-     * The membership fact alone. The role that goes with it is written
-     * separately, by StaffRoleAssignments.
+     * The membership fact alone: the role is written separately, by
+     * StaffRoleAssignments.
      *
      * @return array<string, mixed>
      */

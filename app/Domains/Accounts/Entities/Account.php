@@ -9,8 +9,7 @@ use App\Domains\Accounts\Exceptions\InvalidAccountName;
 use DateTimeImmutable;
 
 /**
- * Domain entity: plain PHP, no framework. An Account is who a person is on the
- * platform, independent of any business - it is a root domain concept.
+ * An Account is who a person is on the platform, independent of any business.
  *
  * It deliberately does not carry the password hash. Credentials are an
  * authentication concern handled at the infrastructure edge, and keeping the
@@ -27,10 +26,6 @@ final class Account
         public readonly DateTimeImmutable $createdAt,
     ) {}
 
-    /**
-     * Registers a person whose email an identity provider has already proven
-     * they control, so the account starts verified.
-     */
     public static function registerWithVerifiedEmail(
         string $id,
         string $name,
@@ -46,10 +41,7 @@ final class Account
         );
     }
 
-    /**
-     * Rehydrates an account from storage. Skips creation-time rules by design:
-     * the data was already valid when it was written.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $name,
@@ -66,10 +58,7 @@ final class Account
         );
     }
 
-    /**
-     * Records that someone has proven control of this address. Verifying twice
-     * keeps the first timestamp: when it happened is a fact, not a flag.
-     */
+    /** Verifying twice keeps the first timestamp: when it happened is a fact, not a flag. */
     public function verifyEmail(DateTimeImmutable $now): void
     {
         if ($this->emailVerifiedAt !== null) {

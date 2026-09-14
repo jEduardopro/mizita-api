@@ -11,20 +11,12 @@ use Illuminate\Support\ServiceProvider;
 
 final class IndustriesServiceProvider extends ServiceProvider
 {
-    /**
-     * Wire this domain's ports to their infrastructure adapters.
-     */
     public function register(): void
     {
         $this->app->bind(IndustryRepository::class, EloquentIndustryRepository::class);
     }
 
-    /**
-     * The catalog is a root domain, so no business context is bound: it is the
-     * same list for every caller. Authentication still applies - only someone
-     * setting up a business needs it - and the throttle keeps a public-shaped
-     * read from being hammered.
-     */
+    /** A root domain, so no business context is bound: it is the same list for every caller. */
     public function boot(): void
     {
         Route::prefix('api')

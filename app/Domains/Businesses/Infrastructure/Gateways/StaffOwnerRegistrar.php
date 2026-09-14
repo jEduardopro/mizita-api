@@ -11,14 +11,10 @@ use App\Domains\Staff\Application\UseCases\RegisterBusinessOwner;
 use App\Domains\Staff\Exceptions\AccountAlreadyOwnsBusiness;
 
 /**
- * Registers the owner by calling Staff's use case, inside the caller's
- * transaction.
- *
- * The translation of AccountAlreadyOwnsBusiness into this domain's
- * OwnerAlreadyHasBusiness is the point of the class. A boundary that lets the
- * neighbour's exception through is decorative: the use case above would have to
- * catch a Staff class, the HTTP edge would render a Staff error code, and the
- * port would be a formality wrapped around a direct dependency.
+ * Translating AccountAlreadyOwnsBusiness into this domain's
+ * OwnerAlreadyHasBusiness is the point of the class: a boundary that lets the
+ * neighbour's exception through is decorative, because the use case above would
+ * catch a Staff class and the HTTP edge would render a Staff error code.
  *
  * The registration DTO is dropped on purpose - Businesses has no use for a
  * staff member - and only the events travel on, as opaque objects.

@@ -3,11 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-/*
- * The legal documents are markdown, so their type is set by element rather than
- * by a utility on every tag. The plugin supplies the rhythm; `.prose-legal`
- * below points its variables at this project's own tokens.
- */
+/* The legal documents are markdown, so their type is set by element. */
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -20,10 +16,8 @@
     --font-sans: 'Geist Variable', sans-serif;
 
     /*
-     * The brand ramp, exposed so `bg-brand-600`, `text-brand-300` and friends are
-     * available wherever a semantic token would be too blunt. The ramp itself never
-     * changes between themes — only the semantic tokens below point at different
-     * steps of it, which is what keeps a single blue recognisable in light and dark.
+     * The ramp itself never changes between themes — only the semantic tokens
+     * below point at different steps of it.
      */
     --color-brand-50: var(--brand-50);
     --color-brand-100: var(--brand-100);
@@ -38,26 +32,20 @@
     --color-brand-950: var(--brand-950);
 
     /*
-     * The two alternating page surfaces. They are their own tokens rather than an
-     * opacity on `--muted` because they have to move in opposite directions per
-     * theme: darker than the page in light mode, lighter than it in dark mode.
+     * Their own tokens rather than an opacity on `--muted`, because they move in
+     * opposite directions per theme: darker than the page in light, lighter in
+     * dark.
      */
     --color-surface-muted: var(--surface-muted);
     --color-surface-brand: var(--surface-brand);
 
     /*
-     * The unfinished marker, and the only amber in the product. It is not a
-     * destructive state — nothing failed — so it cannot borrow `--destructive`:
-     * a fact that has not been decided yet needs to look pending, not wrong.
+     * The unfinished marker. It cannot borrow `--destructive`: a fact nobody has
+     * decided yet needs to look pending, not wrong.
      */
     --color-warning: var(--warning);
     --color-warning-surface: var(--warning-surface);
 
-    /*
-     * The one green in the product, and the counterpart of `--destructive`: it
-     * marks a check that came back clean — a business name that is still free —
-     * rather than an action, which is what the brand accent is for.
-     */
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
 
@@ -102,22 +90,13 @@
 }
 
 /*
- * Ambient motion. `tw-animate-css` only ships one-shot enter and exit
- * animations, so the hero collage's continuous drift is defined here — the one
- * place in the project that owns custom keyframes.
+ * `tw-animate-css` only ships one-shot enter and exit animations, so the hero
+ * collage's continuous drift is defined here. The keyframes are namespaced so
+ * they cannot collide with a library's own `float`, and they animate
+ * `translate`, which is independent of `rotate`.
  *
- * The keyframes are namespaced so they can never collide with a library's own
- * `float`, and they animate the `translate` property, which is independent of
- * `rotate`: a piece can be tilted and drifting at once without the two fighting
- * over one declaration.
- *
- * There are two directions on purpose. Pieces sharing a screen should not peak
- * in unison, so neighbours take opposite phases and different durations, and a
- * caller offsets them further with a negative `animation-delay`.
- *
- * Every caller applies these through `motion-safe:`, the house convention: a
- * looping animation has to stop completely for a reader who asked for less
- * motion, not merely slow down.
+ * Callers apply these through `motion-safe:`: a looping animation has to stop
+ * completely for a reader who asked for less motion, not merely slow down.
  */
 @theme {
     --animate-float-slow: mizita-float 7s ease-in-out infinite;
@@ -149,15 +128,10 @@
 
 :root {
     /*
-     * Brand: hue 258, an ultramarine that sits between blue and indigo. It is
-     * deliberately deeper and more saturated than a stock blue — a booking product
-     * is asking a stranger to hand over their working day, so the accent has to
-     * read as trust and security rather than as a default framework colour.
-     *
-     * The ramp is set in oklch and every step is inside the sRGB gamut, so nothing
-     * is silently clipped. `brand-600` on white measures 5.17:1 and `brand-400`
-     * against the dark surface measures 7.90:1, which is what makes both themes
-     * usable for white-on-brand and brand-on-dark button text.
+     * Brand: hue 258, an ultramarine between blue and indigo. Every step is
+     * inside the sRGB gamut, so nothing is silently clipped. `brand-600` on
+     * white measures 5.17:1 and `brand-400` on the dark surface 7.90:1, which is
+     * what makes white-on-brand and brand-on-dark button text usable.
      */
     --brand-50: oklch(0.974 0.012 258);
     --brand-100: oklch(0.945 0.026 258);
@@ -172,9 +146,8 @@
     --brand-950: oklch(0.245 0.091 258);
 
     /*
-     * Surfaces stay essentially neutral and carry only a few thousandths of chroma
-     * at the brand hue — enough that white next to blue does not look cold, not
-     * enough to spend the accent anywhere except an action.
+     * Surfaces carry only a few thousandths of chroma at the brand hue — enough
+     * that white next to blue does not look cold.
      */
     --background: oklch(0.995 0.002 258);
     --foreground: oklch(0.16 0.012 258);
@@ -200,10 +173,8 @@
     --warning: oklch(0.52 0.125 70);
     --warning-surface: oklch(0.958 0.05 85);
     /*
-     * Hue 152, a cool green that sits beside the ultramarine instead of fighting
-     * it. Held down to L 0.48 because the verdict it colours is 12px text on the
-     * white card: that measures about 4.8:1, past AA for body copy, where a
-     * brighter "success" green would land near 3:1 and be decorative only.
+     * Held down to L 0.48 because the verdict it colours is 12px text on the
+     * white card: about 4.8:1, where a brighter green would land near 3:1.
      */
     --success: oklch(0.48 0.12 152);
     --success-foreground: oklch(0.995 0.002 258);
@@ -225,9 +196,8 @@
 
 .dark {
     /*
-     * `brand-600` is far too dark to sit on a dark surface, so the accent steps up
-     * the ramp to `brand-400` and the text on it flips from near-white to the
-     * darkest brand step — 6.66:1, still comfortably past AA.
+     * `brand-600` is too dark for a dark surface, so the accent steps up to
+     * `brand-400` and the text on it flips to the darkest brand step — 6.66:1.
      */
     --background: oklch(0.16 0.008 258);
     --foreground: oklch(0.975 0.004 258);
@@ -295,18 +265,49 @@
 }
 
 /*
- * The house voice, applied to prose.
- *
- * A legal page is the one screen written as a document rather than composed out
- * of components, so everything it needs has to come from the element itself.
- * The plugin's variables are pointed at the same semantic tokens every other
- * surface uses, which is what keeps these pages reading as part of the site: one
- * blue for links, one border hairline, both themes for free.
- *
- * The class is written twice on purpose. `.prose` and `.prose-legal` have equal
+ * Sonner injects its own stylesheet at runtime, unlayered and after this file,
+ * so these rules stay outside `@layer` on purpose: anything in a layer loses to
+ * an unlayered declaration however specific it is. The repeated selector is how
+ * a rule outranks the library's own. They live here rather than in
+ * `components/ui/sonner.tsx`, which is generated and stays regenerable.
+ */
+[data-sonner-toaster][data-sonner-toaster] {
+    font-family: var(--font-sans);
+}
+
+/* The surface stays the popover token so the sentence keeps its contrast; the
+ * accent is spent on the edge and the icon. */
+[data-sonner-toast][data-type='error'] {
+    --normal-border: color-mix(in oklab, var(--destructive) 30%, var(--popover));
+}
+
+[data-sonner-toast][data-type='error'] [data-icon] {
+    color: var(--destructive);
+}
+
+/*
+ * The close button draws at 20px. The pseudo-element takes the tap target to
+ * 44px without changing anything that is drawn.
+ */
+[data-sonner-toast] [data-close-button]::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+}
+
+/*
+ * The library's own focus ring is a translucent black shadow, which all but
+ * disappears on a dark surface.
+ */
+[data-sonner-toast] [data-close-button]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/*
+ * The class is written twice on purpose: `.prose` and `.prose-legal` have equal
  * specificity, so a single class would leave the winner up to whichever rule the
- * build emits last; doubling it settles the question at 0,2,0 and the layer
- * places it above the plugin's own `@layer components` regardless.
+ * build emits last.
  */
 @layer utilities {
     .prose-legal.prose-legal {
@@ -325,11 +326,6 @@
         --tw-prose-th-borders: var(--border);
         --tw-prose-td-borders: var(--border);
 
-        /*
-         * Fluid rather than a breakpoint ladder, the same way the landing page
-         * sets its headings: the measure changes continuously between a phone
-         * and a laptop, so the type that fills it should too.
-         */
         font-size: clamp(0.9375rem, 0.88rem + 0.25vw, 1.0625rem);
 
         :is(h1, h2, h3) {
@@ -357,11 +353,7 @@
             text-underline-offset: 3px;
         }
 
-        /*
-         * Cookie and cookie-header names, set as a chip. The plugin's backtick
-         * pseudo-elements go: a name on a tinted surface already reads as a
-         * literal, and the quotes only add noise inside a table cell.
-         */
+        /* Set as a chip, so the plugin's backtick pseudo-elements go. */
         code {
             background-color: var(--muted);
             border-radius: calc(var(--radius) * 0.5);
@@ -377,8 +369,7 @@
 
         /*
          * The minimum is what makes the wrapper's `overflow-x-auto` mean
-         * something on a phone: below it the cells would compress to two words
-         * per line and the table would stop being readable as a table.
+         * something on a phone: below it the cells compress to two words a line.
          */
         table {
             font-size: 0.9em;
@@ -392,9 +383,8 @@
         }
 
         /*
-         * The plugin flushes the outer cells against the text column, which is
-         * right for a bare table and wrong for one inside a bordered scroller:
-         * there the first word would touch the frame.
+         * The plugin flushes the outer cells against the text column, so inside
+         * a bordered scroller the first word would touch the frame.
          */
         :is(th, td):first-child {
             padding-inline-start: 1rem;

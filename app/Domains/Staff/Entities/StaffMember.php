@@ -8,15 +8,9 @@ use App\Domains\Staff\ValueObjects\StaffRole;
 use DateTimeImmutable;
 
 /**
- * A person's membership of one business, and the role it grants them.
- *
  * This row is what makes an account a business user: no membership means the
- * holder is an end customer. That is why it carries the public uuids of both
- * neighbours - the int keys the schema joins on stay in the repository adapter.
- *
- * Domain entity: plain PHP, no framework. It owns the business rules and
- * protects its own invariants. Persistence is handled by the repository
- * adapter through StaffMemberMapper.
+ * holder is an end customer. It carries the public uuids of both neighbours -
+ * the int keys the schema joins on stay in the repository adapter.
  */
 final class StaffMember
 {
@@ -29,12 +23,9 @@ final class StaffMember
     ) {}
 
     /**
-     * Makes the account that registered a business its owner.
-     *
      * A named constructor per role rather than one create() taking a StaffRole:
-     * the owner membership is a distinct moment in a business's life - written
-     * once by signup, and capped platform-wide by a partial unique index - and
-     * the call site should read as what it is.
+     * the owner membership is a distinct moment in a business's life, written
+     * once by signup and capped platform-wide by a partial unique index.
      */
     public static function registerOwner(
         string $id,
@@ -51,9 +42,6 @@ final class StaffMember
         );
     }
 
-    /**
-     * Adds somebody to a business's team, with no ownership.
-     */
     public static function register(
         string $id,
         string $businessId,
@@ -69,10 +57,7 @@ final class StaffMember
         );
     }
 
-    /**
-     * Rehydrates a membership from storage. Skips creation-time rules by
-     * design: the data was already valid when it was written.
-     */
+    /** Skips creation-time rules by design: the data was already valid when written. */
     public static function restore(
         string $id,
         string $businessId,

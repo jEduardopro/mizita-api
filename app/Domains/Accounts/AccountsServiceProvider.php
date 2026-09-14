@@ -15,9 +15,6 @@ use Illuminate\Support\ServiceProvider;
 
 final class AccountsServiceProvider extends ServiceProvider
 {
-    /**
-     * Wire this domain's ports to their infrastructure adapters.
-     */
     public function register(): void
     {
         $this->app->bind(AccountRepository::class, EloquentAccountRepository::class);
@@ -26,18 +23,13 @@ final class AccountsServiceProvider extends ServiceProvider
     }
 
     /**
-     * Two route groups, deliberately, where every other domain has one.
+     * Two route groups, deliberately. The OAuth redirect and callback are browser
+     * navigations: Socialite stores a "state" value in the session on the way out
+     * and compares it on the way back, which only works on the "web" stack.
      *
-     * The OAuth redirect and callback are browser navigations: Socialite stores
-     * a "state" value in the session on the way out and compares it on the way
-     * back, which only works on the "web" stack. Putting them under "api" would
-     * mean no session, so no CSRF protection for the round trip.
-     *
-     * The ID token endpoint is a real API call and stays where the native
-     * client expects it. It is unauthenticated by design, so it carries its own
-     * rate limit.
-     *
-     * Accounts is a root domain: neither group binds a business context.
+     * The ID token endpoint is a real API call, unauthenticated by design, so it
+     * carries its own rate limit. Accounts is a root domain, so neither group
+     * binds a business context.
      */
     public function boot(): void
     {

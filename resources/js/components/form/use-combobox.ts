@@ -8,7 +8,6 @@ import {
     type RefObject,
 } from 'react';
 
-/** One choice in the list: the value the form stores, and the words it is picked by. */
 export type ComboboxOption = {
     value: string;
     label: string;
@@ -19,7 +18,6 @@ type Params = {
     id: string;
     /** Already sorted by the caller — this hook decides what matches, not what order. */
     options: readonly ComboboxOption[];
-    /** The selected option's `value`, or null when nothing is chosen. */
     value: string | null;
     onChange: (value: string | null) => void;
 };
@@ -31,11 +29,9 @@ type Combobox = {
     /** The text in the box: what was typed, or the selected option's label. */
     query: string;
     open: boolean;
-    /** What the typed text narrows the list to, in the caller's order. */
     filteredOptions: readonly ComboboxOption[];
     /** The virtually focused row, or -1 when there is nothing to move to. */
     activeIndex: number;
-    /** What `aria-activedescendant` points at while the list is open. */
     activeOptionId: string | undefined;
     optionId: (index: number) => string;
     openList: () => void;
@@ -47,8 +43,7 @@ type Combobox = {
 
 /**
  * Strips accents and case so a Spanish list can be searched from a plain
- * keyboard: `barberia` has to find `Barbería`, and `exito` has to find `Éxito`.
- * Decomposing first is what separates the mark from the letter it sits on.
+ * keyboard: `barberia` has to find `Barbería`.
  */
 function fold(text: string): string {
     return text
@@ -62,17 +57,9 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * The state and the keyboard of an editable combobox: which rows the typed text
- * leaves, which one is virtually focused, and what each key does to both.
- *
- * It is a hook rather than part of the component because those are two different
- * jobs — this one decides, `ComboboxField` draws — and because the decisions are
- * the part worth reading on their own.
- *
- * DOM focus never moves off the input. The active row is carried by
- * `aria-activedescendant`, which is what lets typing and choosing be the same
- * gesture: the caret stays where the person is writing while the arrow keys walk
- * a list they are not standing in.
+ * DOM focus never moves off the input: the active row is carried by
+ * `aria-activedescendant`, so the caret stays where the person is writing while
+ * the arrow keys walk a list they are not standing in.
  */
 export function useCombobox({ id, options, value, onChange }: Params): Combobox {
     const rootRef = useRef<HTMLDivElement>(null);
@@ -85,18 +72,16 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
     const [requestedIndex, setRequestedIndex] = useState(0);
     const [shownLabel, setShownLabel] = useState(selectedLabel);
 
-    // The selection belongs to the caller and the options can arrive after it: a
-    // value chosen before the list loaded has no label to show until it does.
-    // Re-reading the label while the list is closed keeps the box showing the
-    // selection instead of a stale word, and never fights what is being typed.
+    // Options can arrive after the selection, so a value chosen before the list
+    // loaded has no label until it does. Re-read only while closed, so this never
+    // fights what is being typed.
     if (selectedLabel !== shownLabel && ! open) {
         setShownLabel(selectedLabel);
         setQuery(selectedLabel);
     }
 
-    // Typed text filters, except while it is exactly the selection's own label —
-    // reopening the list after choosing should offer every option again, not the
-    // single row that matches what is already in the box.
+    // Typed text filters, except while it is exactly the selection's own label:
+    // reopening the list after choosing offers every option again.
     const search = query.trim();
     const filteredOptions =
         search !== '' && query !== selectedLabel
@@ -111,8 +96,7 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
     const activeOptionId = open && activeIndex >= 0 ? optionId(activeIndex) : undefined;
 
     // Walking the list with the keyboard has to move the list, not just the
-    // highlight. `nearest` scrolls the least that keeps the row visible, and it
-    // is deliberately instant: this is a cursor, and a cursor does not glide.
+    // highlight.
     useEffect(() => {
         if (activeOptionId === undefined) {
             return;
@@ -150,9 +134,8 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
                 return;
             }
 
-            // Clamped rather than wrapping: a list that jumps from the last row
-            // back to the first loses the one thing an arrow key promises, which
-            // is that holding it walks in a single direction.
+            // Clamped rather than wrapping: holding an arrow key walks in one
+            // direction.
             setRequestedIndex(clamp(activeIndex + (event.key === 'ArrowDown' ? 1 : -1), 0, lastIndex));
 
             return;
@@ -171,8 +154,7 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
 
         if (event.key === 'Enter') {
             // While the list is showing, Enter belongs to the list. Without this
-            // it would submit the card underneath and take the half-made choice
-            // with it.
+            // it would submit the form underneath.
             event.preventDefault();
 
             if (activeOption) {
@@ -194,9 +176,8 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
             return;
         }
 
-        // Free text is not a value. Leaving half a typed word in the box would
-        // say the form holds something it does not, so the box goes back to
-        // naming the selection — or to empty, when there is none.
+        // Free text is not a value: the box goes back to naming the selection,
+        // or to empty when there is none.
         setOpen(false);
         setQuery(selectedLabel);
         setShownLabel(selectedLabel);

@@ -1,15 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-/**
- * A still of a working day: hour lines, two booked blocks and the buffers that
- * follow them. It is illustrative, not live data — the shapes are the product's
- * own vocabulary rather than a decorative graphic.
- *
- * It is drawn at the size of a phone screen, so the whole column is one set of
- * constants: the vertical geometry below is the only definition of how tall an
- * hour is, and nothing scales it afterwards. A transform would have softened the
- * hour rules, which are a single pixel each.
- */
+// A still, not live data. Drawn at the size of a phone screen and never scaled
+// afterwards: a transform would soften the hour rules, which are a single pixel.
 
 /** Minutes from midnight. The column runs 09:00 to 13:00. */
 const DAY_STARTS_AT = 9 * 60;
@@ -24,33 +16,20 @@ const OPEN_GAP_MINUTES = 30;
 const OPEN_GAP_STARTS_AT = 10 * 60 + 30;
 
 /**
- * The first minute nothing is booked any more: the colour block ends at 12:30
- * and its buffer runs to 12:45. The collage's slot chip reads this, so the chip
- * and the column can never claim different things about the same day.
+ * The first minute nothing is booked any more. The collage's slot chip reads
+ * this, so the two can never claim different things about the same day.
  */
 export const FIRST_FREE_MINUTE = 12 * 60 + 45;
 
-/**
- * The example is set in one business's zone, which is also what the header
- * shows. A timezone identifier is data, not copy, so it is not translated.
- */
+/** A timezone identifier is data, not copy, so it is not translated. */
 const EXAMPLE_TIMEZONE = 'Europe/Madrid';
 
-/**
- * A real Tuesday, so the weekday name comes from `Intl` in whatever language is
- * active instead of being a copy key that could drift from the times beside it.
- * Pinned to a fixed date so the illustration never changes under the reader.
- */
+/** A real Tuesday, pinned so the illustration never changes under the reader. */
 const EXAMPLE_DAY = Date.UTC(2026, 0, 6);
 
-/** The width of the screen this column is drawn for. */
 export const AGENDA_SCREEN_WIDTH = 194;
 
-/**
- * Its height: the padding, the day header, the gap under it and the column
- * itself. Written down because the phone around it is sized from the content,
- * not the other way round.
- */
+/** The phone around this column is sized from the content, not the other way. */
 export const AGENDA_SCREEN_HEIGHT =
     12 + 14 + 10 + (DAY_ENDS_AT - DAY_STARTS_AT) * PIXELS_PER_MINUTE + 12;
 
@@ -61,7 +40,6 @@ type Block = {
     startsAt: number;
     durationMinutes: number;
     bufferMinutes: number;
-    /** The one filled block, so the column has a single focal point. */
     filled?: boolean;
 };
 
@@ -88,11 +66,7 @@ const ticks = Array.from(
     (_, index) => DAY_STARTS_AT + index * MINUTES_PER_TICK,
 );
 
-/**
- * Weekday names are lower case in Spanish and capitalised in English. This one
- * heads a column, so it is title-cased either way, using the locale's own
- * casing rules rather than ASCII ones.
- */
+/** Title-cased with the locale's own rules: Spanish weekdays are lower case. */
 function formatWeekday(locale: string): string {
     const weekday = new Intl.DateTimeFormat(locale, {
         weekday: 'long',
@@ -103,13 +77,8 @@ function formatWeekday(locale: string): string {
 }
 
 /**
- * An agenda column is a 24-hour grid by product decision, not by locale: the
- * hour labels have to stay narrow and line up with the rules behind them, and
- * "9:00 AM" would not. `Intl` still does the formatting so digits and separators
- * follow the language.
- *
- * Exported so anything pointing at a time in this day — the collage's slot chip —
- * formats it exactly as the column does.
+ * A 24-hour grid by product decision, not by locale: the hour labels have to
+ * stay narrow and line up with the rules behind them, and "9:00 AM" would not.
  */
 export function formatAgendaTime(locale: string, minutes: number): string {
     return new Intl.DateTimeFormat(locale, {

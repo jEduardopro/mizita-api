@@ -14,12 +14,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class BusinessResource extends JsonResource
 {
     /**
-     * The business a caller owns, as the dashboard needs it.
-     *
-     * id is the uuid, never the internal key, and industry_id is the
-     * industry's uuid for the same reason. Timestamps go out as DATE_ATOM in
-     * UTC, so the client converts once, from an instant, into whatever local
-     * time it is showing.
+     * Every id is a uuid, never an internal key, and timestamps go out as
+     * DATE_ATOM in UTC so the client converts once, from an instant.
      *
      * @return array<string, mixed>
      */
