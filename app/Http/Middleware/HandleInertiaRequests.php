@@ -30,6 +30,7 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'supportedLocales' => config('localization.supported'),
             'appearance' => $this->preferences->appearance($request)->value,
+            'sidebarOpen' => $this->preferences->sidebarOpen($request),
             'flash' => fn () => ['error' => $request->session()->get('error')],
         ];
     }

@@ -13,6 +13,11 @@ Route::get('/onboarding', fn () => Inertia::render('admin/onboarding'))
     ->middleware(['auth', 'onboarding'])
     ->name('onboarding');
 
-Route::get('/dashboard', fn () => Inertia::render('admin/dashboard'))
-    ->middleware(['auth', 'onboarded'])
-    ->name('dashboard');
+Route::permanentRedirect('/dashboard', '/calendar')->name('dashboard');
+
+Route::middleware(['auth', 'onboarded'])->group(function (): void {
+    Route::get('/calendar', fn () => Inertia::render('admin/calendar'))->name('calendar');
+    Route::get('/services', fn () => Inertia::render('admin/services'))->name('services');
+    Route::get('/customers', fn () => Inertia::render('admin/customers'))->name('customers');
+    Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
+});

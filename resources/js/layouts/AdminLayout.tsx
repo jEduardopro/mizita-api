@@ -1,10 +1,10 @@
 import { Head, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Wordmark } from '@/components/shared/Wordmark';
-import { Button } from '@/components/ui/button';
+import { AdminHeader } from '@/components/admin/shell/AdminHeader';
+import { AppSidebar } from '@/components/admin/shell/AppSidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useFlashToast } from '@/hooks/use-flash-toast';
-import { useLogOut } from '@/hooks/use-log-out';
 
 type Props = {
     title: string;
@@ -14,42 +14,31 @@ type Props = {
 };
 
 export function AdminLayout({ title, description, actions, children }: Props) {
-    const { name } = usePage().props;
-    const { t } = useTranslation('common');
-    const logOut = useLogOut();
+    const { sidebarOpen } = usePage().props;
 
     useFlashToast();
 
     return (
-        <div className="flex min-h-svh flex-col bg-background text-foreground">
+        <TooltipProvider>
             <Head title={title} />
 
-            <header className="border-b border-border">
-                <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-5 sm:px-8">
-                    <Wordmark name={name} href="/dashboard" />
+            <SidebarProvider defaultOpen={sidebarOpen}>
+                <AppSidebar />
 
-                    <Button variant="ghost" size="sm" onClick={logOut} className="h-11 px-3">
-                        {t('nav.logOut')}
-                    </Button>
-                </div>
-            </header>
+                <SidebarInset className="min-w-0">
+                    <AdminHeader title={title} actions={actions} />
 
-            <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:px-8">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h1 className="font-heading text-2xl font-medium tracking-[-0.03em]">
-                            {title}
-                        </h1>
+                    <div className="flex-1 px-5 py-8 sm:px-8">
                         {description ? (
-                            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                            <p className="mb-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                                {description}
+                            </p>
                         ) : null}
+
+                        {children}
                     </div>
-
-                    {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-                </div>
-
-                <div className="mt-8">{children}</div>
-            </main>
-        </div>
+                </SidebarInset>
+            </SidebarProvider>
+        </TooltipProvider>
     );
 }

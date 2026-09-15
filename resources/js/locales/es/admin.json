@@ -1,18 +1,39 @@
 {
-    "dashboard": {
-        "title": "Panel",
-        "description": "Tu cuenta y lo que llegará aquí.",
-        "account": {
-            "title": "Sesión iniciada como",
-            "loading": "Cargando tu cuenta",
-            "error": "No hemos podido cargar tu cuenta ahora mismo.",
-            "name": "Nombre",
-            "email": "Correo"
-        },
-        "upNext": {
-            "title": "Aún no hay nada en la agenda",
-            "body": "Tu agenda aparecerá aquí en cuanto exista un negocio, con su equipo, sus servicios y sus horarios. Esas pantallas todavía se están construyendo."
-        }
+    "nav": {
+        "calendar": "Calendario",
+        "services": "Servicios",
+        "customers": "Clientes"
+    },
+    "shell": {
+        "toggleSidebar": "Mostrar u ocultar el menú",
+        "businessSwitcher": "Tu negocio",
+        "createBusiness": "Crear negocio",
+        "currentBusiness": "Negocio actual"
+    },
+    "account": {
+        "menu": "Tu cuenta",
+        "myAccount": "Mi cuenta",
+        "appearance": "Apariencia",
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema"
+    },
+    "comingSoon": {
+        "title": "Muy pronto",
+        "body": "Todavía estamos construyendo esta pantalla. Aparecerá aquí en cuanto esté lista."
+    },
+    "calendar": {
+        "title": "Calendario"
+    },
+    "services": {
+        "title": "Servicios"
+    },
+    "customers": {
+        "title": "Clientes"
+    },
+    "profile": {
+        "title": "Mi cuenta",
+        "description": "Tus datos personales y cómo inicias sesión."
     },
     "onboarding": {
         "title": "Crea tu negocio",

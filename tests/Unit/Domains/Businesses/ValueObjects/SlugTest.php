@@ -61,12 +61,26 @@ describe('names that produce no address', function () {
             ->and(Slug::tryFromName(strtoupper($reserved)))->toBeNull()
             ->and(Slug::tryFromName("  {$reserved}  "))->toBeNull();
     })->with([
-        'api', 'admin', 'dashboard', 'onboarding', 'auth', 'login',
-        'register', 'logout', 'sanctum', 'up', 'terms', 'privacy', 'cookies',
+        'api', 'admin', 'dashboard', 'onboarding', 'calendar', 'services',
+        'customers', 'settings', 'me', 'auth', 'login', 'register', 'logout',
+        'sanctum', 'up', 'terms', 'privacy', 'cookies',
+    ]);
+
+    it('refuses a name that would collide with an admin url', function (string $name, string $collision) {
+        expect(fn () => Slug::fromName($name))
+            ->toThrow(BusinessNameNotSluggable::class, "The name [{$name}] does not produce a usable slug.")
+            ->and(Slug::tryFromName($name))->toBeNull()
+            ->and(fn () => Slug::fromString($collision))
+            ->toThrow(InvalidBusinessSlug::class, "[{$collision}] is a reserved slug.");
+    })->with([
+        'calendar' => ['Calendar', 'calendar'],
+        'customers' => ['Customers', 'customers'],
     ]);
 
     it('allows a name that merely contains a reserved word', function () {
-        expect(Slug::fromName('Admin Barbers')->value)->toBe('admin-barbers');
+        expect(Slug::fromName('Admin Barbers')->value)->toBe('admin-barbers')
+            ->and(Slug::fromName('Calendar Barbers')->value)->toBe('calendar-barbers')
+            ->and(Slug::fromName('My Customers Salon')->value)->toBe('my-customers-salon');
     });
 
     it('returns null from tryFromName in exactly the cases fromName throws', function (string $name) {

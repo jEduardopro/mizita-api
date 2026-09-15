@@ -31,6 +31,35 @@ final class EloquentBusinessRepository implements BusinessRepository
         return $this->mapper->toEntity($this->modelOrFail($id));
     }
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<Business>
+     */
+    public function findManyByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $modelsById = BusinessModel::query()
+            ->with('industry')
+            ->whereIn('uuid', $ids)
+            ->get()
+            ->keyBy('uuid');
+
+        $businesses = [];
+
+        foreach ($ids as $id) {
+            $model = $modelsById->get($id);
+
+            if ($model instanceof BusinessModel) {
+                $businesses[] = $this->mapper->toEntity($model);
+            }
+        }
+
+        return $businesses;
+    }
+
     public function existsByName(string $name): bool
     {
         return BusinessModel::query()

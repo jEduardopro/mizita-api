@@ -42,6 +42,10 @@ final class BusinessesServiceProvider extends ServiceProvider
             ->group(__DIR__.'/Infrastructure/Http/onboarding.php');
 
         Route::prefix('api')
+            ->middleware(['api', 'auth:sanctum'])
+            ->group(__DIR__.'/Infrastructure/Http/account.php');
+
+        Route::prefix('api')
             ->middleware(['api', 'auth:sanctum', 'business'])
             ->group(__DIR__.'/Infrastructure/Http/routes.php');
     }

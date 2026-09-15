@@ -16,6 +16,12 @@ interface BusinessRepository
      */
     public function findById(string $id): Business;
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<Business>
+     */
+    public function findManyByIds(array $ids): array;
+
     public function existsByName(string $name): bool;
 
     /**

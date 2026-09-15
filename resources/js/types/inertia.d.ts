@@ -8,6 +8,7 @@ declare module '@inertiajs/core' {
             status: string | null;
             locale: string;
             appearance: Appearance;
+            sidebarOpen: boolean;
             supportedLocales: string[];
             flash: { error: string | null };
         };

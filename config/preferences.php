@@ -9,4 +9,9 @@ return [
         'default' => 'light',
     ],
 
+    'sidebar' => [
+        'cookie' => 'sidebar_state',
+        'default' => true,
+    ],
+
 ];

@@ -13,6 +13,12 @@ export async function checkBusinessNameAvailability(
     return data.data;
 }
 
+export async function fetchMyBusinesses(signal?: AbortSignal): Promise<Business[]> {
+    const { data } = await api.get<{ data: Business[] }>('/me/businesses', { signal });
+
+    return data.data;
+}
+
 export async function createBusiness(payload: CreateBusinessPayload): Promise<Business> {
     const { data } = await api.post<{ data: Business }>('/businesses', payload);
 

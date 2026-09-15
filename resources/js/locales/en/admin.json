@@ -1,18 +1,39 @@
 {
-    "dashboard": {
-        "title": "Dashboard",
-        "description": "Your account, and what lands here next.",
-        "account": {
-            "title": "Signed in as",
-            "loading": "Loading your account",
-            "error": "We could not load your account just now.",
-            "name": "Name",
-            "email": "Email"
-        },
-        "upNext": {
-            "title": "Nothing scheduled yet",
-            "body": "Your agenda shows up here once a business exists, with its staff, services and opening hours. Those screens are still being built."
-        }
+    "nav": {
+        "calendar": "Calendar",
+        "services": "Services",
+        "customers": "Customers"
+    },
+    "shell": {
+        "toggleSidebar": "Show or hide the menu",
+        "businessSwitcher": "Your business",
+        "createBusiness": "Create business",
+        "currentBusiness": "Current business"
+    },
+    "account": {
+        "menu": "Your account",
+        "myAccount": "My account",
+        "appearance": "Appearance",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+    },
+    "comingSoon": {
+        "title": "Coming soon",
+        "body": "We are still building this screen. It shows up right here as soon as it is ready."
+    },
+    "calendar": {
+        "title": "Calendar"
+    },
+    "services": {
+        "title": "Services"
+    },
+    "customers": {
+        "title": "Customers"
+    },
+    "profile": {
+        "title": "My account",
+        "description": "Your personal details and how you sign in."
     },
     "onboarding": {
         "title": "Create your business",

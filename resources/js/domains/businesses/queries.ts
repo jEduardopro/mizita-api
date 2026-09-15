@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { checkBusinessNameAvailability, createBusiness } from './api';
+import { checkBusinessNameAvailability, createBusiness, fetchMyBusinesses } from './api';
 
 const MIN_NAME_LENGTH_FOR_CHECK = 2;
 
@@ -10,7 +10,16 @@ export const businessKeys = {
     all: ['businesses'] as const,
     nameAvailability: () => [...businessKeys.all, 'name-availability'] as const,
     nameAvailabilityFor: (name: string) => [...businessKeys.nameAvailability(), name] as const,
+    mine: () => [...businessKeys.all, 'mine'] as const,
 };
+
+export function useMyBusinesses() {
+    return useQuery({
+        queryKey: businessKeys.mine(),
+        queryFn: ({ signal }) => fetchMyBusinesses(signal),
+    });
+}
+
 
 export type NameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'unknown';
 
