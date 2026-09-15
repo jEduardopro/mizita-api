@@ -26,7 +26,154 @@
         "title": "Calendario"
     },
     "services": {
-        "title": "Servicios"
+        "title": "Servicios",
+        "duration_one": "{{count}} min",
+        "duration_other": "{{count}} min",
+        "free": "Gratis",
+        "price": "${{amount}}",
+        "currencySymbol": "$",
+        "hidden": "Oculta",
+        "summary": "{{duration}} · {{price}}",
+        "staffCount_one": "{{count}} en el equipo",
+        "staffCount_other": "{{count}} en el equipo",
+        "copyName": "{{name}} (Copia)",
+        "columns": {
+            "name": "Servicio",
+            "duration": "Duración",
+            "price": "Coste",
+            "staff": "Equipo",
+            "actions": "Acciones"
+        },
+        "table": {
+            "caption": "Lista de servicios"
+        },
+        "search": {
+            "label": "Buscar servicios",
+            "placeholder": "Busca un servicio"
+        },
+        "view": {
+            "label": "Vista",
+            "table": "Ver como tabla",
+            "list": "Ver como lista"
+        },
+        "actions": {
+            "create": "Nuevo servicio",
+            "copyLink": "Copiar enlace",
+            "more": "Más acciones para {{name}}"
+        },
+        "empty": {
+            "search": {
+                "title": "Ningún servicio coincide",
+                "body": "Nada coincide con «{{search}}». Prueba con otra palabra."
+            },
+            "first": {
+                "title": "Todavía no tienes servicios",
+                "body": "Crea tu primer servicio para que tus clientes puedan reservarlo."
+            }
+        },
+        "delete": {
+            "title": "¿Eliminar este servicio?",
+            "body": "«{{name}}» dejará de aparecer en tu página de reservas. Las citas ya agendadas no cambian."
+        },
+        "toasts": {
+            "created": "Servicio creado",
+            "saved": "Cambios guardados",
+            "deleted": "Servicio eliminado",
+            "duplicated": "Servicio duplicado",
+            "linkCopied": "Enlace copiado"
+        },
+        "errors": {
+            "deleteFailed": "No hemos podido eliminar el servicio. Inténtalo otra vez.",
+            "duplicateFailed": "No hemos podido duplicar el servicio. Inténtalo otra vez.",
+            "copyFailed": "No hemos podido copiar el enlace. Cópialo a mano desde la página del servicio."
+        },
+        "create": {
+            "title": "Nuevo servicio",
+            "description": "Define cuánto dura, cuánto cuesta y quién lo atiende."
+        },
+        "edit": {
+            "title": "Editar servicio",
+            "description": "Ajusta cuánto dura, cuánto cuesta y quién lo atiende.",
+            "notFound": {
+                "title": "Este servicio ya no existe",
+                "body": "Puede que alguien lo haya eliminado. Vuelve a la lista de servicios."
+            },
+            "failed": {
+                "title": "No hemos podido abrir el servicio",
+                "body": "Revisa tu conexión e inténtalo otra vez."
+            }
+        },
+        "colors": {
+            "red": "Rojo",
+            "orange": "Naranja",
+            "amber": "Ámbar",
+            "purple": "Morado",
+            "blue": "Azul",
+            "sand": "Arena",
+            "slate": "Pizarra",
+            "teal": "Turquesa",
+            "green": "Verde"
+        },
+        "form": {
+            "image": {
+                "label": "Imagen",
+                "hint": "JPG, PNG o WebP, hasta 2 MB.",
+                "choose": "Arrastra una imagen o toca para elegirla",
+                "upload": "Subir",
+                "replace": "Cambiar la imagen",
+                "remove": "Quitar",
+                "tooLarge": "La imagen pesa más de 2 MB. Elige una más ligera.",
+                "unsupported": "Solo aceptamos JPG, PNG y WebP.",
+                "failed": "Guardamos el servicio, pero no la imagen. Vuelve a subirla."
+            },
+            "name": {
+                "label": "Título",
+                "placeholder": "Ej. Corte de cabello"
+            },
+            "color": {
+                "label": "Color"
+            },
+            "description": {
+                "label": "Descripción",
+                "placeholder": "Cuenta qué incluye el servicio."
+            },
+            "duration": {
+                "label": "Duración",
+                "suffix": "min"
+            },
+            "buffer": {
+                "label": "Tiempo de margen",
+                "hint": "Minutos de margen después de la cita, para limpiar o prepararte.",
+                "help": "Qué es el tiempo de margen"
+            },
+            "price": {
+                "label": "Coste",
+                "hint": "Escribe 0 si es gratis."
+            },
+            "staff": {
+                "label": "Equipo",
+                "searchLabel": "Buscar en el equipo",
+                "searchPlaceholder": "Busca por nombre",
+                "selectAll": "Seleccionar todo",
+                "selected_one": "{{count}} seleccionado",
+                "selected_other": "{{count}} seleccionados",
+                "empty": "Nadie del equipo coincide con tu búsqueda.",
+                "error": "No hemos podido cargar el equipo."
+            },
+            "visibility": {
+                "label": "Visible en tu página de reservas",
+                "hint": "Desactívalo para ocultar el servicio sin eliminarlo."
+            },
+            "submit": {
+                "create": "Crear",
+                "creating": "Creando…",
+                "edit": "Guardar",
+                "saving": "Guardando…"
+            },
+            "errors": {
+                "unexpected": "No hemos podido guardar el servicio. Inténtalo otra vez."
+            }
+        }
     },
     "customers": {
         "title": "Clientes"

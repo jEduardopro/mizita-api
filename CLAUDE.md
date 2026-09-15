@@ -173,7 +173,9 @@ Tenancy is explicit in the domain, not magic:
 - `App\Http\Middleware\SetBusinessContext` (alias `business`, registered in `bootstrap/app.php`) resolves the business from the caller's **staff membership** through `App\Shared\Contracts\BusinessMembership`, and **aborts 403** when the caller has none. It never binds a null context. A caller with more than one membership picks with an `X-Business` header carrying the business uuid, validated against their memberships; with no header it gets the owner membership, else the oldest. The middleware also calls `setPermissionsTeamId()` with the business's int key — without it every `can()` and `hasRole()` check silently matches nothing.
 - `App\Shared\Infrastructure\Concerns\BelongsToBusiness` adds a global scope and a `creating` hook to the model. It is a safety net — the repository already writes `business_id` from the entity. When no context is bound (console, migrations, seeders) the scope is skipped, which is why HTTP isolation is guaranteed by the route middleware, not by the trait.
 
-**The trait is incompatible with an int `business_id`**: it writes and filters the column with the context *uuid*, so on a new tenant table it would compare a bigint to a uuid and Postgres would raise `22P02`. Do not add it to a table following the int-FK rule until a sibling trait exists that memoises uuid→int per request. `staff_members` also omits it for a second reason: it is the table that *resolves* the tenant, so it must be queryable before any context is bound.
+**The trait is incompatible with an int `business_id`**, so nothing uses it and `make:domain` no longer emits it: it writes and filters the column with the context *uuid*, so on a tenant table it would compare a bigint to a uuid and Postgres would raise `22P02`. Do not add it to any table until a sibling trait exists that memoises uuid→int per request. `staff_members` also omits it for a second reason: it is the table that *resolves* the tenant, so it must be queryable before any context is bound.
+
+What replaces it is explicit and lives in the adapter: **`App\Shared\Contracts\BusinessTeamKey::teamKeyFor(uuid): int`** is the one translation from the business uuid an entity carries to the int the column stores. `make:domain` injects it into the generated repository, whose `save()` passes the resolved key into `toAttributes(Entity, int $businessKey)` and whose reads eager-load `business` so the mapper can take the uuid back off the relation. Isolation is still guaranteed by the route middleware and by business-scoped repository methods — there is no global scope, so a port must never expose a bare `findById($id)` on a tenant table.
 
 Write new code against `BusinessContext`. `User::business()` is gone.
 
@@ -195,7 +197,9 @@ Two shapes of role, and the difference is the thing to understand before touchin
 | --- | --- | --- |
 | Rows | **one**, global, `business_id` NULL, `id` pinned to `SeededStaffRole::OWNER_ID` | **one per business**, `business_id` set |
 | Created by | the seeder | `BusinessRoleTemplates::cloneFor()`, inside `OnboardBusiness`'s transaction |
-| Editable by the owner | never | yes — that is the entire point |
+| Editable by the owner | never | its **permissions**, yes — that is the entire point |
+
+**What an owner edits is a role's permissions, never its name, and they cannot add or delete roles.** The set of role names is closed: it is whatever `config/authorization.php` declares, today `owner` and `staff`. That is what makes `StaffRole::from()` safe in `StaffRoleAssignments` — a name read back from `roles` is always an enum case, so the `ValueError` is unreachable by design rather than by luck. Do not "harden" it into `tryFrom` with a fallback; that would hide a genuinely broken row instead of failing on it. If role management ever ships, this is the call site to revisit first.
 
 **The template is the config file, not a row.** There must never be a role row with `business_id IS NULL` named `staff`. `Role::findByParam()` matches `business_id IS NULL OR business_id = <team>` and returns `first()` with **no `ORDER BY`**, so a global template and a per-business clone sharing a name are ambiguous: `syncRoles('staff')` would attach an undefined one of the two, and if it picked the template every permission the owner edited would be silently inert. Keeping the template out of the table is what makes exactly one row match under a team — and why `StaffRoleAssignments` needs no special resolution logic. For the same reason `Role::create()` is banned on the clone path (it runs `findByParam` and can throw `RoleAlreadyExists` against the wrong row); use `Role::query()->firstOrCreate()`.
 
@@ -322,7 +326,7 @@ A generated slice **looks** finished and is not. Work through this list before c
 
 | Gap | What you must write by hand |
 | --- | --- |
-| **No foreign keys between domains** | The only FK it emits is the hardcoded `business_id` → `businesses.uuid`, which **contradicts the int-FK rule above** — rewrite it to `businesses.id` by hand. For any other relation, declare nothing and hand-write `foreignId('customer_id')->constrained()`, the relation, and any eager loading |
+| **No foreign keys between domains** | The only FK it emits is `business_id` → `businesses.id`, correct per the int-FK rule, together with the model's `business()` relation and the adapter's `BusinessTeamKey` translation. For any *other* relation, declare nothing and hand-write `foreignId('customer_id')->constrained()`, the relation, and any eager loading |
 | **No enums**, despite the convention below | The backed enum class, the cast, and `Rule::enum()` in the FormRequest |
 | **No pivot tables** | The whole slice — migration, model, repository methods |
 | **Single-column indexes only** | Every composite, partial or expression index |

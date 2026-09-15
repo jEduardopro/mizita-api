@@ -14,6 +14,17 @@ export function raiseWarningToasts(warnings: ApiWarning[]): ToastId[] {
     );
 }
 
+export function raiseErrorToast(message: string): ToastId {
+    return toast.error(message, {
+        duration: Infinity,
+        closeButton: true,
+    });
+}
+
+export function raiseSuccessToast(message: string): ToastId {
+    return toast.success(message);
+}
+
 export function dismissToasts(ids: ToastId[]): void {
     for (const id of ids) {
         toast.dismiss(id);

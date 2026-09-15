@@ -9,11 +9,11 @@ use App\Domains\{{ domain }}\Entities\{{ entity }};
 use App\Domains\{{ domain }}\Exceptions\{{ entity }}NotFound;
 use App\Domains\{{ domain }}\Infrastructure\Eloquent\Mappers\{{ entity }}Mapper;
 use App\Domains\{{ domain }}\Infrastructure\Eloquent\Models\{{ entity }}Model;
-
+{{ repositoryImports }}
 final class Eloquent{{ entity }}Repository implements {{ entity }}Repository
 {
     public function __construct(
-        private readonly {{ entity }}Mapper $mapper,
+        private readonly {{ entity }}Mapper $mapper,{{ repositoryConstructorParams }}
     ) {}
 
     public function findById(string $id): {{ entity }}
@@ -25,7 +25,7 @@ final class Eloquent{{ entity }}Repository implements {{ entity }}Repository
     {
         {{ entity }}Model::query()->updateOrCreate(
             ['uuid' => ${{ variable }}->id],
-            $this->mapper->toAttributes(${{ variable }}),
+            $this->mapper->toAttributes(${{ variable }}{{ repositoryBusinessKeyArg }}),
         );
     }
 
@@ -36,7 +36,7 @@ final class Eloquent{{ entity }}Repository implements {{ entity }}Repository
 
     private function modelOrFail(string $id): {{ entity }}Model
     {
-        $model = {{ entity }}Model::query()->where('uuid', $id)->first();
+        $model = {{ entity }}Model::query(){{ repositoryEagerLoad }}->where('uuid', $id)->first();
 
         if ($model === null) {
             throw {{ entity }}NotFound::withId($id);

@@ -55,7 +55,11 @@ export function responseBodyFrom(error: unknown): unknown {
 }
 
 export function isValidationError(error: unknown): boolean {
-    return isAxiosError<unknown>(error) && error.response?.status === VALIDATION_STATUS;
+    return httpStatusFrom(error) === VALIDATION_STATUS;
+}
+
+export function httpStatusFrom(error: unknown): number | undefined {
+    return isAxiosError<unknown>(error) ? error.response?.status : undefined;
 }
 
 export function fieldErrorsFrom(error: unknown): FieldErrors {

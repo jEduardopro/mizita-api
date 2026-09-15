@@ -20,5 +20,10 @@ interface StaffMemberRepository
      */
     public function findById(string $id): StaffMember;
 
+    /**
+     * @return list<StaffMember>
+     */
+    public function allForBusiness(string $businessId): array;
+
     public function ownsAnyBusiness(string $accountId): bool;
 }

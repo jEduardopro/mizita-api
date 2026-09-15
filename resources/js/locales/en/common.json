@@ -45,10 +45,31 @@
     },
     "actions": {
         "tryAgain": "Try again",
-        "retrying": "Retrying…"
+        "retrying": "Retrying…",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "duplicate": "Duplicate",
+        "loadMore": "Load more",
+        "loadingMore": "Loading more…",
+        "clear": "Clear search"
     },
     "notifications": {
         "region": "Notifications",
         "dismiss": "Dismiss notification"
+    },
+    "table": {
+        "pagination": "Pagination",
+        "rowsPerPage": "Rows per page",
+        "summary": "Showing {{from}}–{{to}} of {{total}}",
+        "page": "Page {{page}} of {{pages}}",
+        "goToPage": "Go to page {{page}}",
+        "previous": "Previous page",
+        "next": "Next page",
+        "loading": "Loading rows…",
+        "error": {
+            "title": "We could not load this list.",
+            "body": "Check your connection and try again."
+        }
     }
 }

@@ -219,8 +219,7 @@ final class MakeDomainCommand extends Command
         );
         $replacements['{{ migrationBusinessField }}'] = $this->tenantScoped
             ? $this->indentLines([
-                "\$table->uuid('business_id')->index();",
-                "\$table->foreign('business_id')->references('uuid')->on('businesses')->cascadeOnDelete();",
+                "\$table->foreignId('business_id')->index()->constrained('businesses')->cascadeOnDelete();",
             ], 12)."\n"
             : '';
 
@@ -236,9 +235,15 @@ final class MakeDomainCommand extends Command
         $casts = array_values(array_filter(array_map(fn (DomainField $f) => $f->castEntry(), $this->fields)));
         $replacements['{{ casts }}'] = $this->indentLines($casts, 12);
 
-        $replacements['{{ modelTraits }}'] = $this->tenantScoped ? "    use BelongsToBusiness;\n" : '';
+        $replacements['{{ modelTraits }}'] = '';
         $replacements['{{ modelImports }}'] = $this->tenantScoped
-            ? "use App\\Shared\\Infrastructure\\Concerns\\BelongsToBusiness;\n"
+            ? "use App\\Domains\\Businesses\\Infrastructure\\Eloquent\\Models\\BusinessModel;\n"
+                ."use Illuminate\\Database\\Eloquent\\Relations\\BelongsTo;\n"
+            : '';
+        $replacements['{{ modelRelations }}'] = $this->tenantScoped
+            ? "\n    /**\n     * @return BelongsTo<BusinessModel, \$this>\n     */\n"
+                ."    public function business(): BelongsTo\n    {\n"
+                ."        return \$this->belongsTo(BusinessModel::class, 'business_id');\n    }\n"
             : '';
 
         $replacements['{{ factoryFields }}'] = $this->indentLines(
@@ -246,7 +251,7 @@ final class MakeDomainCommand extends Command
             12,
         );
         $replacements['{{ factoryBusinessField }}'] = $this->tenantScoped
-            ? $this->indentLines(["'business_id' => fn () => BusinessModel::factory()->create()->uuid,"], 12)."\n"
+            ? $this->indentLines(["'business_id' => fn () => BusinessModel::factory()->create()->id,"], 12)."\n"
             : '';
         $replacements['{{ factoryImports }}'] = $this->tenantScoped
             ? "use App\\Domains\\Businesses\\Infrastructure\\Eloquent\\Models\\BusinessModel;\n"
@@ -347,11 +352,23 @@ final class MakeDomainCommand extends Command
         ), 12);
 
         $replacements['{{ mapperToEntity }}'] = $this->indentLines(array_merge(
-            $this->tenantScoped ? ['businessId: $model->business_id,'] : [],
+            $this->tenantScoped ? ['businessId: $model->business->uuid,'] : [],
             array_map(fn (DomainField $f) => sprintf('%s: $model->%s,', $f->property(), $f->name), $this->fields),
         ), 12);
+        $replacements['{{ mapperToAttributesParams }}'] = $this->tenantScoped ? ', int $businessKey' : '';
+        $replacements['{{ repositoryImports }}'] = $this->tenantScoped
+            ? "use App\\Shared\\Contracts\\BusinessTeamKey;\n"
+            : '';
+        $replacements['{{ repositoryConstructorParams }}'] = $this->tenantScoped
+            ? "\n        private readonly BusinessTeamKey \$businessKeys,"
+            : '';
+        $replacements['{{ repositoryBusinessKeyArg }}'] = $this->tenantScoped
+            ? sprintf(', $this->businessKeys->teamKeyFor($%s->businessId)', $variable)
+            : '';
+        $replacements['{{ repositoryEagerLoad }}'] = $this->tenantScoped ? "->with('business')" : '';
+
         $replacements['{{ mapperToAttributes }}'] = $this->indentLines(array_merge(
-            $this->tenantScoped ? [sprintf("'business_id' => $%s->businessId,", $variable)] : [],
+            $this->tenantScoped ? ["'business_id' => \$businessKey,"] : [],
             array_map(fn (DomainField $f) => sprintf("'%s' => $%s->%s(),", $f->name, $variable, $f->property()), $this->fields),
         ), 12);
 

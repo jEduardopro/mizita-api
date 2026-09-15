@@ -7,6 +7,7 @@ import {
     type KeyboardEvent,
     type RefObject,
 } from 'react';
+import { foldForSearch } from '@/lib/text';
 
 export type ComboboxOption = {
     value: string;
@@ -36,13 +37,6 @@ type Combobox = {
     onBlur: (event: FocusEvent<HTMLElement>) => void;
 };
 
-function fold(text: string): string {
-    return text
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .toLowerCase();
-}
-
 function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
 }
@@ -66,7 +60,7 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
     const search = query.trim();
     const filteredOptions =
         search !== '' && query !== selectedLabel
-            ? options.filter((option) => fold(option.label).includes(fold(search)))
+            ? options.filter((option) => foldForSearch(option.label).includes(foldForSearch(search)))
             : options;
 
     const lastIndex = filteredOptions.length - 1;

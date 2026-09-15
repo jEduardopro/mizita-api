@@ -38,6 +38,34 @@ final class EloquentAccountRepository implements AccountRepository
         return $model === null ? null : $this->mapper->toEntity($model);
     }
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<Account>
+     */
+    public function findManyByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $modelsById = User::query()
+            ->whereIn('uuid', $ids)
+            ->get()
+            ->keyBy('uuid');
+
+        $accounts = [];
+
+        foreach ($ids as $id) {
+            $model = $modelsById->get($id);
+
+            if ($model instanceof User) {
+                $accounts[] = $this->mapper->toEntity($model);
+            }
+        }
+
+        return $accounts;
+    }
+
     public function save(Account $account): void
     {
         try {

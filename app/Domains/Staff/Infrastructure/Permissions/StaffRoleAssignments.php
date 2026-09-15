@@ -36,6 +36,30 @@ final class StaffRoleAssignments
         return StaffRole::from((string) $name);
     }
 
+    /**
+     * @param  list<int>  $accountKeys
+     * @return array<int, StaffRole>
+     */
+    public function rolesFor(array $accountKeys, int $businessKey): array
+    {
+        if ($accountKeys === []) {
+            return [];
+        }
+
+        $names = $this->assignments()
+            ->whereIn(self::ASSIGNMENTS_TABLE.'.model_id', $accountKeys)
+            ->where(self::ASSIGNMENTS_TABLE.'.'.self::TEAM_COLUMN, $businessKey)
+            ->pluck(self::ROLES_TABLE.'.name', self::ASSIGNMENTS_TABLE.'.model_id');
+
+        $roles = [];
+
+        foreach ($names as $accountKey => $name) {
+            $roles[(int) $accountKey] = StaffRole::from((string) $name);
+        }
+
+        return $roles;
+    }
+
     public function ownsAnyBusiness(User $account): bool
     {
         return $this->assignmentsOf($account)
@@ -45,6 +69,12 @@ final class StaffRoleAssignments
 
     private function assignmentsOf(User $account): Builder
     {
+        return $this->assignments()
+            ->where(self::ASSIGNMENTS_TABLE.'.model_id', $account->getKey());
+    }
+
+    private function assignments(): Builder
+    {
         return DB::table(self::ASSIGNMENTS_TABLE)
             ->join(
                 self::ROLES_TABLE,
@@ -52,8 +82,7 @@ final class StaffRoleAssignments
                 '=',
                 self::ASSIGNMENTS_TABLE.'.role_id',
             )
-            ->where(self::ASSIGNMENTS_TABLE.'.model_type', $account->getMorphClass())
-            ->where(self::ASSIGNMENTS_TABLE.'.model_id', $account->getKey());
+            ->where(self::ASSIGNMENTS_TABLE.'.model_type', (new User)->getMorphClass());
     }
 
     private function withTeam(int $businessKey, callable $work): void

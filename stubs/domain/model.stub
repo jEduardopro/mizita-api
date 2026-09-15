@@ -32,7 +32,7 @@ class {{ entity }}Model extends Model
     {
         return 'uuid';
     }
-
+{{ modelRelations }}
     /**
      * @return array<string, string>
      */

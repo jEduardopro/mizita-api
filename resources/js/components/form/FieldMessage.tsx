@@ -40,12 +40,12 @@ type Props = {
 
 export function FieldMessage({ message, reserveSpace = false }: Props) {
     if (! message) {
-        return reserveSpace ? <p aria-hidden="true" className="min-h-4" /> : null;
+        return reserveSpace ? <span aria-hidden="true" className="block min-h-4" /> : null;
     }
 
     return (
-        <p id={message.id} className={cn('min-h-4 text-xs', tones[message.tone])}>
+        <span id={message.id} className={cn('block min-h-4 text-xs', tones[message.tone])}>
             {message.text}
-        </p>
+        </span>
     );
 }

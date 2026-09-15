@@ -18,6 +18,12 @@ interface AccountRepository
     public function findByEmail(string $email): ?Account;
 
     /**
+     * @param  list<string>  $ids
+     * @return list<Account>
+     */
+    public function findManyByIds(array $ids): array;
+
+    /**
      * @throws AccountAlreadyRegistered
      */
     public function save(Account $account): void;

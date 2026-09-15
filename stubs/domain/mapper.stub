@@ -22,7 +22,7 @@ final class {{ entity }}Mapper
     /**
      * @return array<string, mixed>
      */
-    public function toAttributes({{ entity }} ${{ variable }}): array
+    public function toAttributes({{ entity }} ${{ variable }}{{ mapperToAttributesParams }}): array
     {
         return [
             'uuid' => ${{ variable }}->id,

@@ -63,6 +63,45 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
         return $this->mapper->toEntity($model, $business->uuid, $account->uuid, $role);
     }
 
+    /**
+     * @return list<StaffMember>
+     */
+    public function allForBusiness(string $businessId): array
+    {
+        $businessKey = $this->businessKey($businessId);
+
+        $models = StaffMemberModel::query()
+            ->with('account')
+            ->where('business_id', $businessKey)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        /** @var list<int> $accountKeys */
+        $accountKeys = $models
+            ->map(static fn (StaffMemberModel $model): int => (int) $model->account_id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $roles = $this->roles->rolesFor($accountKeys, $businessKey);
+
+        $members = [];
+
+        foreach ($models as $model) {
+            $account = $model->account;
+            $role = $roles[(int) $model->account_id] ?? null;
+
+            if ($account === null || $role === null) {
+                continue;
+            }
+
+            $members[] = $this->mapper->toEntity($model, $businessId, $account->uuid, $role);
+        }
+
+        return $members;
+    }
+
     public function ownsAnyBusiness(string $accountId): bool
     {
         return $this->roles->ownsAnyBusiness($this->accountFor($accountId));

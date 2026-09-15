@@ -26,7 +26,154 @@
         "title": "Calendar"
     },
     "services": {
-        "title": "Services"
+        "title": "Services",
+        "duration_one": "{{count}} min",
+        "duration_other": "{{count}} mins",
+        "free": "Free",
+        "price": "${{amount}}",
+        "currencySymbol": "$",
+        "hidden": "Hidden",
+        "summary": "{{duration}} · {{price}}",
+        "staffCount_one": "{{count}} on the team",
+        "staffCount_other": "{{count}} on the team",
+        "copyName": "{{name}} (Copy)",
+        "columns": {
+            "name": "Service",
+            "duration": "Duration",
+            "price": "Price",
+            "staff": "Team",
+            "actions": "Actions"
+        },
+        "table": {
+            "caption": "List of services"
+        },
+        "search": {
+            "label": "Search services",
+            "placeholder": "Search services"
+        },
+        "view": {
+            "label": "View",
+            "table": "Table view",
+            "list": "List view"
+        },
+        "actions": {
+            "create": "New service",
+            "copyLink": "Copy link",
+            "more": "More actions for {{name}}"
+        },
+        "empty": {
+            "search": {
+                "title": "No service matches",
+                "body": "Nothing matches “{{search}}”. Try another word."
+            },
+            "first": {
+                "title": "No services yet",
+                "body": "Create your first service so customers can book it."
+            }
+        },
+        "delete": {
+            "title": "Delete this service?",
+            "body": "“{{name}}” stops appearing on your booking page. Booked appointments do not change."
+        },
+        "toasts": {
+            "created": "Service created",
+            "saved": "Changes saved",
+            "deleted": "Service deleted",
+            "duplicated": "Service duplicated",
+            "linkCopied": "Link copied"
+        },
+        "errors": {
+            "deleteFailed": "We could not delete the service. Try again.",
+            "duplicateFailed": "We could not duplicate the service. Try again.",
+            "copyFailed": "We could not copy the link. Copy it by hand from the service page."
+        },
+        "create": {
+            "title": "New service",
+            "description": "Set how long it takes, what it costs and who performs it."
+        },
+        "edit": {
+            "title": "Edit service",
+            "description": "Adjust how long it takes, what it costs and who performs it.",
+            "notFound": {
+                "title": "This service no longer exists",
+                "body": "Someone may have deleted it. Go back to the service list."
+            },
+            "failed": {
+                "title": "We could not open this service",
+                "body": "Check your connection and try again."
+            }
+        },
+        "colors": {
+            "red": "Red",
+            "orange": "Orange",
+            "amber": "Amber",
+            "purple": "Purple",
+            "blue": "Blue",
+            "sand": "Sand",
+            "slate": "Slate",
+            "teal": "Teal",
+            "green": "Green"
+        },
+        "form": {
+            "image": {
+                "label": "Image",
+                "hint": "JPG, PNG or WebP, up to 2 MB.",
+                "choose": "Drag an image here, or tap to choose one",
+                "upload": "Upload",
+                "replace": "Replace image",
+                "remove": "Remove",
+                "tooLarge": "That image is over 2 MB. Choose a smaller one.",
+                "unsupported": "We accept JPG, PNG and WebP only.",
+                "failed": "We saved the service but not the image. Try uploading it again."
+            },
+            "name": {
+                "label": "Title",
+                "placeholder": "e.g. Haircut"
+            },
+            "color": {
+                "label": "Color"
+            },
+            "description": {
+                "label": "Description",
+                "placeholder": "Say what the service includes."
+            },
+            "duration": {
+                "label": "Duration",
+                "suffix": "mins"
+            },
+            "buffer": {
+                "label": "Buffer time",
+                "hint": "Free minutes after the appointment, to clean up or get ready.",
+                "help": "What buffer time is"
+            },
+            "price": {
+                "label": "Price",
+                "hint": "Enter 0 if it is free."
+            },
+            "staff": {
+                "label": "Team",
+                "searchLabel": "Search the team",
+                "searchPlaceholder": "Search by name",
+                "selectAll": "Select all",
+                "selected_one": "{{count}} selected",
+                "selected_other": "{{count}} selected",
+                "empty": "No one on the team matches your search.",
+                "error": "We could not load the team."
+            },
+            "visibility": {
+                "label": "Visible on your booking page",
+                "hint": "Turn it off to hide the service without deleting it."
+            },
+            "submit": {
+                "create": "Create",
+                "creating": "Creating…",
+                "edit": "Save",
+                "saving": "Saving…"
+            },
+            "errors": {
+                "unexpected": "We could not save the service. Try again."
+            }
+        }
     },
     "customers": {
         "title": "Customers"

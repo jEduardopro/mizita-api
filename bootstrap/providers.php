@@ -4,6 +4,7 @@ use App\Domains\Accounts\AccountsServiceProvider;
 use App\Domains\Businesses\BusinessesServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
+use App\Domains\Services\ServicesServiceProvider;
 use App\Domains\Staff\StaffServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\FortifyServiceProvider;
@@ -18,4 +19,5 @@ return [
     IndustriesServiceProvider::class,
     PhonesServiceProvider::class,
     StaffServiceProvider::class,
+    ServicesServiceProvider::class,
 ];

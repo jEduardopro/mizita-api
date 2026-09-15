@@ -82,6 +82,26 @@ return [
         'industry_not_found' => 'No hemos encontrado ese rubro.',
         'staff_member_not_found' => 'No hemos encontrado a esa persona del equipo.',
 
+        // Services. The wording never repeats the name, slug or amount that was
+        // rejected, and never confirms that a service exists in another business.
+        'service_not_found' => 'No hemos encontrado ese servicio.',
+        'service_name_taken' => 'Ya tienes un servicio con ese nombre.',
+        'service_slug_taken' => 'Esa dirección web ya la usa otro servicio.',
+        'service_name_not_sluggable' => 'Ese nombre no se puede convertir en una dirección web. Usa letras o números.',
+        'invalid_service_name' => 'Ese nombre de servicio no es válido.',
+        'invalid_service_slug' => 'Esa dirección web no es válida.',
+        'invalid_service_description' => 'Esa descripción no es válida.',
+        'invalid_service_duration' => 'Esa duración no es válida.',
+        'invalid_service_buffer' => 'Ese tiempo de buffer no es válido.',
+        'invalid_service_price' => 'Ese precio no es válido.',
+        'invalid_service_color' => 'Ese color no es uno de los que puede tener un servicio.',
+        'invalid_service_search' => 'Esa búsqueda es demasiado larga.',
+        'service_already_active' => 'Ese servicio ya está visible.',
+        'service_already_inactive' => 'Ese servicio ya está oculto.',
+        'unknown_staff_member' => 'Alguna de las personas seleccionadas no está disponible.',
+        'service_image_too_large' => 'Esa imagen es demasiado grande. Usa una de menos de 2 MB.',
+        'unsupported_service_image' => 'Ese archivo no es una imagen compatible. Usa un JPG, PNG o WebP.',
+
     ],
 
     /*

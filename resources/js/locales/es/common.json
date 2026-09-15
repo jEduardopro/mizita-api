@@ -45,10 +45,31 @@
     },
     "actions": {
         "tryAgain": "Reintentar",
-        "retrying": "Reintentando…"
+        "retrying": "Reintentando…",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "edit": "Editar",
+        "duplicate": "Duplicar",
+        "loadMore": "Cargar más",
+        "loadingMore": "Cargando más…",
+        "clear": "Limpiar la búsqueda"
     },
     "notifications": {
         "region": "Notificaciones",
         "dismiss": "Cerrar la notificación"
+    },
+    "table": {
+        "pagination": "Paginación",
+        "rowsPerPage": "Filas por página",
+        "summary": "Mostrando {{from}}–{{to}} de {{total}}",
+        "page": "Página {{page}} de {{pages}}",
+        "goToPage": "Ir a la página {{page}}",
+        "previous": "Página anterior",
+        "next": "Página siguiente",
+        "loading": "Cargando las filas…",
+        "error": {
+            "title": "No hemos podido cargar la lista.",
+            "body": "Revisa tu conexión e inténtalo otra vez."
+        }
     }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
+import { raiseErrorToast } from '@/lib/toast';
 
 type ErrorToast = {
     show(message: string): void;
@@ -22,10 +23,7 @@ export function useErrorToast(): ErrorToast {
         (message: string) => {
             dismiss();
 
-            raised.current = toast.error(message, {
-                duration: Infinity,
-                closeButton: true,
-            });
+            raised.current = raiseErrorToast(message);
         },
         [dismiss],
     );

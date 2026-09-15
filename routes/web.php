@@ -17,7 +17,9 @@ Route::permanentRedirect('/dashboard', '/calendar')->name('dashboard');
 
 Route::middleware(['auth', 'onboarded'])->group(function (): void {
     Route::get('/calendar', fn () => Inertia::render('admin/calendar'))->name('calendar');
-    Route::get('/services', fn () => Inertia::render('admin/services'))->name('services');
+    Route::get('/services', fn () => Inertia::render('admin/services/index'))->name('services');
+    Route::get('/services/new', fn () => Inertia::render('admin/services/create'))->name('services.create');
+    Route::get('/services/{service}/edit', fn (string $service) => Inertia::render('admin/services/edit', ['serviceId' => $service]))->name('services.edit');
     Route::get('/customers', fn () => Inertia::render('admin/customers'))->name('customers');
     Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
 });
