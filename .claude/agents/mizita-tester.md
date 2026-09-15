@@ -178,6 +178,8 @@ Tenant tables carry `business_id` as a uuid foreign key onto `businesses.uuid`, 
 
 Factories live in `app/Domains/<Domain>/Infrastructure/Eloquent/Factories/` and are production territory — you may call them, never edit them. If a state is missing, pass the attributes inline in the test (`CustomerModel::factory()->create(['name' => 'Ada'])`) and ask for the state in your handback list.
 
+A polymorphic `*_type` column holds the alias of the **real model** — the snake_case of the class name with the `Model` suffix dropped, so `user`, `business`, `staff_member`, never a synonym from the ubiquitous language. Assert that alias in fixtures and expectations; a test that hardcodes `account` for `App\Models\User` is asserting a bug.
+
 ## Coverage contract
 
 For every use case you cover, satisfy this list and declare it in your report:

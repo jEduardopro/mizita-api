@@ -272,6 +272,14 @@ Every table carries an auto-incrementing `id` (bigint) **and** a unique `uuid` c
 - The int primary key never appears in an entity, DTO, Resource or event payload. It exists for joins and indexes only.
 - Models use `HasUuids` with `uniqueIds()` overridden to `['uuid']` — that keeps the primary key auto-incrementing — and `getRouteKeyName()` returning `'uuid'`.
 
+### A polymorphic alias is named after the model
+
+Every model used polymorphically registers its alias with `Relation::enforceMorphMap()` in the `boot()` of its own domain's service provider — `AppServiceProvider` for `App\Models\User`, since it belongs to no domain. `enforceMorphMap` flips `requireMorphMap` on globally, so a model used polymorphically without an alias throws at runtime.
+
+**The alias is the snake_case of the model's class name with the `Model` suffix dropped**, never a synonym borrowed from the ubiquitous language: `App\Models\User` is `user`, `BusinessModel` is `business`, `StaffMemberModel` is `staff_member`. A `*_type` column has to name the real model, so a row can be read without opening a provider to decode it. Writing `account` for `User` is the mistake this rule exists to prevent, and `tests/Unit/Conventions/MorphMapAliasTest.php` fails on it.
+
+A domain enum may share those strings — `PhoneOwnerType` backs `business` and `staff_member`, and `EloquentPhoneRepository` resolves the owner model through `Relation::getMorphedModel()` — but the model is what decides them, not the enum. Renaming a model means renaming its alias and migrating every `*_type` column that holds the old one.
+
 ## Use case shape
 
 `final class`, exactly one public entry point:

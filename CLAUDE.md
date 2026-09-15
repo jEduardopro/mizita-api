@@ -154,6 +154,8 @@ uuid   uuid unique                ← the domain identity, exposed by the API
 
 **Foreign keys reference the int primary key**, never the uuid: `foreignId('account_id')->constrained('users')`. Narrower indexes, cheaper joins, and the ordinary relational shape.
 
+**A polymorphic `*_type` column names the real model.** Each model used polymorphically registers its alias with `Relation::enforceMorphMap()` in its own domain's service provider — `AppServiceProvider` for `App\Models\User`, which belongs to no domain — and the alias is the snake_case of the class name with the `Model` suffix dropped: `user`, `business`, `staff_member`. Never a synonym from the ubiquitous language: `account` for `User` is exactly the mistake the rule forbids, because a row then cannot be read without opening a provider to decode it. `PhoneOwnerType` may back the same strings, but the model decides them.
+
 The two rules meet in the repository adapter, which is the only place that may hold both halves of an identity. An entity carries a neighbour's **uuid** (`$identity->accountId`), so the adapter resolves it to the int on the way in and reads the uuid back on the way out — eager-loading the relation rather than issuing a query per row. That translation never leaks above `Infrastructure/`.
 
 ## Multi-tenant: everything belongs to a Business

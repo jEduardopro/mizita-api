@@ -28,6 +28,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Relation::enforceMorphMap(['account' => User::class]);
+        Relation::enforceMorphMap(['user' => User::class]);
     }
 }
