@@ -3,6 +3,7 @@
 use App\Http\Exceptions\RenderDomainFailure;
 use App\Http\Logging\LogUnexpectedFailure;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\HandlePreferences;
 use App\Http\Middleware\RedirectIfOnboarded;
 use App\Http\Middleware\RequireBusinessMembership;
 use App\Http\Middleware\SetBusinessContext;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
             prepend: [
                 SetLocale::class,
+                HandlePreferences::class,
             ],
         );
 
@@ -41,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: [
             'locale',
+            'appearance',
         ]);
 
         $middleware->alias([

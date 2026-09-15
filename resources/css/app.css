@@ -104,6 +104,8 @@
 }
 
 :root {
+    color-scheme: light;
+
     --brand-50: oklch(0.974 0.012 258);
     --brand-100: oklch(0.945 0.026 258);
     --brand-200: oklch(0.898 0.05 258);
@@ -157,6 +159,8 @@
 }
 
 .dark {
+    color-scheme: dark;
+
     --background: oklch(0.16 0.008 258);
     --foreground: oklch(0.975 0.004 258);
     --card: oklch(0.208 0.011 258);

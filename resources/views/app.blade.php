@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => $appearance === 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,6 +37,16 @@
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
         <meta name="twitter:card" content="summary_large_image">
+
+        {{-- Inline and in <head> on purpose: it has to run before the first paint, so it cannot
+             move into app.tsx or any bundled file. Only `system` reaches it — an explicit choice
+             is already on the html tag above. --}}
+        <script>
+            if ('{{ $appearance }}' === 'system'
+                && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx'])
