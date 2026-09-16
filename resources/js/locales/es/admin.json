@@ -40,7 +40,7 @@
         "columns": {
             "name": "Servicio",
             "duration": "Duración",
-            "price": "Coste",
+            "price": "Precio",
             "staff": "Equipo",
             "actions": "Acciones"
         },
@@ -147,7 +147,7 @@
                 "help": "Qué es el tiempo de margen"
             },
             "price": {
-                "label": "Coste",
+                "label": "Precio",
                 "hint": "Escribe 0 si es gratis."
             },
             "staff": {

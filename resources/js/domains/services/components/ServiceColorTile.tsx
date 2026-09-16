@@ -1,5 +1,5 @@
 import { cn } from 'cn';
-import { Tag } from 'lucide-react';
+import { ListChecks } from 'lucide-react';
 import type { ServiceColor } from '../types';
 import { serviceColorClasses } from './service-color';
 
@@ -31,7 +31,7 @@ export function ServiceColorTile({ color, imageUrl, className }: Props) {
                 className,
             )}
         >
-            <Tag className={cn('size-5', classes.icon)} />
+            <ListChecks className={cn('size-5', classes.icon)} />
         </span>
     );
 }
