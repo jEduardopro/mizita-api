@@ -50,6 +50,7 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [savedImageUrl, setSavedImageUrl] = useState(service?.image_url ?? null);
     const [loadedServiceId, setLoadedServiceId] = useState(service?.id ?? null);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     if ((service?.id ?? null) !== loadedServiceId) {
         setLoadedServiceId(service?.id ?? null);
@@ -108,6 +109,11 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
         }
     }
 
+    function navigateTo(url: string) {
+        setIsNavigating(true);
+        router.visit(url);
+    }
+
     async function save() {
         reset();
 
@@ -125,7 +131,7 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
             raiseErrorToast(t('services.form.image.failed'));
 
             if (mode === 'create') {
-                router.visit(serviceEditUrl(saved.id));
+                navigateTo(serviceEditUrl(saved.id));
             }
 
             return;
@@ -135,7 +141,7 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
             mode === 'create' ? t('services.toasts.created') : t('services.toasts.saved'),
         );
 
-        router.visit(SERVICES_URL);
+        navigateTo(SERVICES_URL);
     }
 
     return {
@@ -149,6 +155,7 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
             clear: clearImage,
         },
         isSubmitting:
+            isNavigating ||
             createService.isPending ||
             updateService.isPending ||
             attachImage.isPending ||

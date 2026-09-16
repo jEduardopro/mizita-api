@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SubmitButton } from '@/components/form/SubmitButton';
 import { Button } from '@/components/ui/button';
 import { SERVICE_FORM_ID } from './ServiceForm';
 import { SERVICES_URL } from './service-urls';
@@ -31,22 +31,14 @@ export function ServiceFormActions({ mode, form }: Props) {
                 <Link href={SERVICES_URL}>{tCommon('actions.cancel')}</Link>
             </Button>
 
-            <Button
-                type="submit"
+            <SubmitButton
                 form={SERVICE_FORM_ID}
                 variant="brand"
-                disabled={form.isSubmitting}
                 className="h-11 px-4 md:h-9"
-            >
-                {form.isSubmitting ? (
-                    <>
-                        <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" />
-                        {t(SUBMITTING_KEYS[mode])}
-                    </>
-                ) : (
-                    t(SUBMIT_KEYS[mode])
-                )}
-            </Button>
+                label={t(SUBMIT_KEYS[mode])}
+                submittingLabel={t(SUBMITTING_KEYS[mode])}
+                isSubmitting={form.isSubmitting}
+            />
         </>
     );
 }

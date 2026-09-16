@@ -1,6 +1,5 @@
 import { router } from '@inertiajs/react';
 import type { TFunction } from 'i18next';
-import { LoaderCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,7 +10,7 @@ import {
 import type { HintTone } from '@/components/form/FieldMessage';
 import { FormField } from '@/components/form/FormField';
 import { PhoneField } from '@/components/form/PhoneField';
-import { Button } from '@/components/ui/button';
+import { SubmitButton } from '@/components/form/SubmitButton';
 import {
     useBusinessNameAvailability,
     useCreateBusiness,
@@ -240,22 +239,14 @@ export function BusinessOnboardingForm({ industries }: Props) {
                     error={phoneErrorFrom(fieldErrors)}
                 />
 
-                <Button
-                    type="submit"
+                <SubmitButton
                     variant="brand"
                     size="lg"
-                    disabled={createBusiness.isPending}
                     className="mt-2 h-12 w-full rounded-xl text-sm"
-                >
-                    {createBusiness.isPending ? (
-                        <>
-                            <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" />
-                            {t('onboarding.submitting')}
-                        </>
-                    ) : (
-                        t('onboarding.submit')
-                    )}
-                </Button>
+                    label={t('onboarding.submit')}
+                    submittingLabel={t('onboarding.submitting')}
+                    isSubmitting={createBusiness.isPending}
+                />
             </div>
         </form>
     );
