@@ -12,6 +12,7 @@ use App\Domains\Services\Contracts\StaffDirectory;
 use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Events\ServiceCreated;
 use App\Domains\Services\Exceptions\ServiceNameAlreadyTaken;
+use App\Domains\Services\Exceptions\ServiceRequiresStaff;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
 use App\Domains\Services\Services\SlugAllocator;
 use App\Domains\Services\ValueObjects\Buffer;
@@ -61,6 +62,7 @@ final class CreateService
 
     /**
      * @throws ServiceNameAlreadyTaken
+     * @throws ServiceRequiresStaff
      * @throws UnknownStaffMember
      */
     private function register(CreateServiceInput $input, string $businessId): Service
@@ -102,10 +104,6 @@ final class CreateService
     private function eligibleStaffIds(string $businessId, array $staffIds): array
     {
         $selected = array_values(array_unique($staffIds));
-
-        if ($selected === []) {
-            return [];
-        }
 
         if (count($this->staff->membersOf($businessId, $selected)) !== count($selected)) {
             throw UnknownStaffMember::amongSelected();

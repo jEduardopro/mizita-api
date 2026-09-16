@@ -207,7 +207,7 @@ describe('describing a page of services', function () {
             ->and($page->items)->toHaveCount(3);
     });
 
-    it('asks for no staff at all when no service on the page has any', function () {
+    it('asks for no staff at all when every service on the page was saved before a team was required', function () {
         $services = [ServiceFixtures::service(staffIds: []), ServiceFixtures::service(
             id: ServiceFixtures::SECOND_SERVICE_ID,
             staffIds: [],

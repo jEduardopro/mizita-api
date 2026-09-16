@@ -60,6 +60,20 @@ final class StaffRoleAssignments
         return $roles;
     }
 
+    /**
+     * @return array{roles: list<string>, permissions: list<string>}
+     */
+    public function grantsFor(User $account, int $businessKey): array
+    {
+        /** @var array{roles: list<string>, permissions: list<string>} $grants */
+        $grants = $this->withTeam($businessKey, static fn (): array => [
+            'roles' => array_values($account->getRoleNames()->all()),
+            'permissions' => array_values($account->getAllPermissions()->pluck('name')->all()),
+        ]);
+
+        return $grants;
+    }
+
     public function ownsAnyBusiness(User $account): bool
     {
         return $this->assignmentsOf($account)
@@ -85,7 +99,7 @@ final class StaffRoleAssignments
             ->where(self::ASSIGNMENTS_TABLE.'.model_type', (new User)->getMorphClass());
     }
 
-    private function withTeam(int $businessKey, callable $work): void
+    private function withTeam(int $businessKey, callable $work): mixed
     {
         $registrar = app(PermissionRegistrar::class);
         $previousTeamId = $registrar->getPermissionsTeamId();
@@ -93,7 +107,7 @@ final class StaffRoleAssignments
         $registrar->setPermissionsTeamId($businessKey);
 
         try {
-            $work();
+            return $work();
         } finally {
             $registrar->setPermissionsTeamId($previousTeamId);
         }

@@ -28,7 +28,7 @@ final class CreateServiceRequest extends FormRequest
             'price' => ['required', 'string', self::PRICE_SHAPE],
             'color' => ['required', Rule::enum(ServiceColor::class)],
             'active' => ['required', 'boolean'],
-            'staff_ids' => ['sometimes', 'array', 'max:'.Service::MAXIMUM_STAFF_MEMBERS],
+            'staff_ids' => ['required', 'array', 'min:1', 'max:'.Service::MAXIMUM_STAFF_MEMBERS],
             'staff_ids.*' => ['uuid'],
         ];
     }

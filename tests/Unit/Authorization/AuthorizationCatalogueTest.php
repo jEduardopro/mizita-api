@@ -30,12 +30,16 @@ function mizitaDomainForModule(): array
     return [
         'business' => 'Businesses',
         'staff' => 'Staff',
+        'services' => 'Services',
     ];
 }
 
-function mizitaModuleOf(string $permissionName): string
+/**
+ * @param  array<string, mixed>  $permission
+ */
+function mizitaModuleOf(array $permission): string
 {
-    return explode('.', $permissionName)[0];
+    return (string) $permission['module'];
 }
 
 /**
@@ -113,7 +117,7 @@ describe('the shape of an entry', function () {
 
     it('leaves every derived slug unique, because the database says they are', function (string $section) {
         $slugs = array_map(
-            static fn (string $name): string => str_replace('.', '-', $name),
+            static fn (string $name): string => str_replace(['.', '_'], '-', $name),
             array_keys(mizitaCatalogueSection($section)),
         );
 
@@ -175,21 +179,22 @@ describe('the staff role', function () {
         expect(mizitaCatalogueSection('roles')['staff']['template'])->toBeTrue();
     });
 
-    it('starts with nothing, so re-seeding cannot restore what an owner revoked', function () {
-        expect(mizitaCatalogueSection('roles')['staff']['permissions'])->toBe([]);
+    it('grants exactly what the catalogue declares, which is all a re-seed can ever put on a clone', function () {
+        expect(mizitaCatalogueSection('roles')['staff']['permissions'])->toBe(['view_services']);
     });
 });
 
 describe('the honesty rule', function () {
     it('names a module this repository has a domain for', function () {
-        $modules = array_unique(array_map(
-            mizitaModuleOf(...),
-            array_keys(mizitaCatalogueSection('permissions')),
-        ));
+        $mapped = array_keys(mizitaDomainForModule());
 
-        $unmapped = array_values(array_diff($modules, array_keys(mizitaDomainForModule())));
-
-        Assert::assertSame([], $unmapped, 'no domain is mapped for these permission modules');
+        foreach (mizitaCatalogueSection('permissions') as $name => $permission) {
+            Assert::assertContains(
+                mizitaModuleOf($permission),
+                $mapped,
+                "permission [{$name}] is grouped under a module no domain is mapped for",
+            );
+        }
     });
 
     it('maps every module onto a directory that is really there', function () {

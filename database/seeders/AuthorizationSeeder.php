@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Shared\Infrastructure\Authorization\AuthorizationNaming;
 use App\Shared\ValueObjects\AuthorizationScope;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -53,8 +54,8 @@ final class AuthorizationSeeder extends Seeder
             $rows[] = [
                 'name' => (string) $name,
                 'guard_name' => $guard,
-                'slug' => $this->slugFor((string) $name),
-                'description' => $this->descriptionKeyFor('permissions', (string) $name),
+                'slug' => AuthorizationNaming::slugFor((string) $name),
+                'description' => AuthorizationNaming::descriptionKeyFor('permissions', (string) $name),
                 'scope' => $this->scopeOf($definition)->value,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -80,8 +81,8 @@ final class AuthorizationSeeder extends Seeder
     private function syncGlobalRole(string $name, array $definition, string $guard): int
     {
         $attributes = [
-            'slug' => $this->slugFor($name),
-            'description' => $this->descriptionKeyFor('roles', $name),
+            'slug' => AuthorizationNaming::slugFor($name),
+            'description' => AuthorizationNaming::descriptionKeyFor('roles', $name),
             'scope' => $this->scopeOf($definition)->value,
         ];
 
@@ -175,16 +176,6 @@ final class AuthorizationSeeder extends Seeder
     private function scopeOf(array $definition): AuthorizationScope
     {
         return $definition['scope'];
-    }
-
-    private function slugFor(string $name): string
-    {
-        return str_replace('.', '-', $name);
-    }
-
-    private function descriptionKeyFor(string $namespace, string $name): string
-    {
-        return $namespace.'.'.$name.'.description';
     }
 
     /**

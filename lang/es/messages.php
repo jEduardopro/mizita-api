@@ -35,6 +35,11 @@ return [
         // just not the one requested. The wording names none of them.
         'business_not_accessible' => 'No tienes acceso a ese negocio.',
 
+        // The caller is a member of the business but the role they hold there
+        // does not carry the permission the route needs. The wording names no
+        // permission: what is missing is the owner's to know, not the caller's.
+        'missing_permission' => 'No tienes permiso para hacer esto en este negocio.',
+
         // A public slug that resolves to nothing. The wording says "not found"
         // and nothing more: confirming that a slug exists is an information leak.
         'business_not_found' => 'No hemos encontrado ese negocio.',
@@ -99,6 +104,7 @@ return [
         'service_already_active' => 'Ese servicio ya está visible.',
         'service_already_inactive' => 'Ese servicio ya está oculto.',
         'unknown_staff_member' => 'Alguna de las personas seleccionadas no está disponible.',
+        'service_requires_staff' => 'Necesitas elegir al menos a una persona para dar este servicio.',
         'service_image_too_large' => 'Esa imagen es demasiado grande. Usa una de menos de 2 MB.',
         'unsupported_service_image' => 'Ese archivo no es una imagen compatible. Usa un JPG, PNG o WebP.',
 

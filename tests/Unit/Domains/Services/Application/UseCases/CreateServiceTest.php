@@ -169,14 +169,17 @@ describe('the staff it may assign', function () {
             ->and($this->services->saved)->toBe([]);
     });
 
-    it('asks the directory nothing when no staff was selected', function () {
-        $this->events->shouldReceive('dispatch')->once();
+    it('refuses a service nobody was selected to perform, and asks no collaborator about it', function () {
+        ($this->expectNoAnnouncement)();
 
-        ($this->create)(staffIds: []);
+        $response = ($this->create)(staffIds: []);
 
-        expect($this->staff->calls)->toHaveCount(1)
-            ->and($this->staff->lastCall()['staffIds'])->toBe([])
-            ->and($this->services->saved[0]->staffIds())->toBe([]);
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('service_requires_staff')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+            ->and($this->staff->calls)->toBe([])
+            ->and($this->services->nameChecks)->toBe([])
+            ->and($this->services->saved)->toBe([]);
     });
 
     it('counts a duplicated selection once', function () {

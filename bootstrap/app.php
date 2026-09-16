@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HandlePreferences;
 use App\Http\Middleware\RedirectIfOnboarded;
 use App\Http\Middleware\RequireBusinessMembership;
+use App\Http\Middleware\RequirePermission;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetLocale;
 use App\Http\Responses\JsonFailureRendering;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'business' => SetBusinessContext::class,
             'onboarded' => RequireBusinessMembership::class,
             'onboarding' => RedirectIfOnboarded::class,
+            'permission' => RequirePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

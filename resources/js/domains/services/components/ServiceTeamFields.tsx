@@ -40,6 +40,8 @@ export function ServiceTeamFields({ form, staff }: Props) {
                 onChange={(value) => form.update('staffIds', value)}
                 optionsStatus={optionsStatusFrom(staff.isPending, staff.isError)}
                 onRetryOptions={staff.refetch}
+                required
+                hint={t('services.form.staff.hint')}
                 error={form.errorFor('staffIds')}
                 messages={{
                     searchLabel: t('services.form.staff.searchLabel'),

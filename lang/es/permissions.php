@@ -14,28 +14,40 @@ return [
     | permisos guarda la clave y la clave se resuelve aquí, así que cambiar un
     | texto es editar una traducción, no migrar.
     |
-    | El anidamiento refleja el nombre del permiso, que es lo que hace que el
-    | valor de permissions.description resuelva tal cual: "business.manage" se
-    | guarda con la clave "permissions.business.manage.description".
+    | Una entrada plana por permiso, con la misma clave que el nombre escrito en
+    | el catálogo: "manage_business" se guarda con la clave de descripción
+    | "permissions.manage_business.description".
     |
     */
 
-    'business' => [
-
-        'manage' => [
-            'label' => 'Gestionar el negocio',
-            'description' => 'Editar el perfil del negocio, sus datos de contacto, su zona horaria y su política de reservas.',
-        ],
-
+    'manage_business' => [
+        'label' => 'Gestionar el negocio',
+        'description' => 'Editar el perfil del negocio, sus datos de contacto, su zona horaria y su política de reservas.',
     ],
 
-    'staff' => [
+    'manage_staff' => [
+        'label' => 'Gestionar al personal',
+        'description' => 'Invitar personas al negocio, cambiar lo que pueden hacer y darlas de baja.',
+    ],
 
-        'manage' => [
-            'label' => 'Gestionar al personal',
-            'description' => 'Invitar personas al negocio, cambiar lo que pueden hacer y darlas de baja.',
-        ],
+    'view_services' => [
+        'label' => 'Ver los servicios',
+        'description' => 'Ver los servicios que ofrece el negocio, sus precios y quién puede realizarlos.',
+    ],
 
+    'create_service' => [
+        'label' => 'Crear servicios',
+        'description' => 'Añadir un servicio nuevo al catálogo o duplicar uno existente.',
+    ],
+
+    'edit_service' => [
+        'label' => 'Editar servicios',
+        'description' => 'Cambiar un servicio, su imagen y las personas que pueden realizarlo.',
+    ],
+
+    'delete_service' => [
+        'label' => 'Eliminar servicios',
+        'description' => 'Quitar un servicio del catálogo.',
     ],
 
 ];

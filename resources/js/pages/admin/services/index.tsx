@@ -14,6 +14,7 @@ import {
 } from '@/domains/services/components/ServicesToolbar';
 import { NEW_SERVICE_URL } from '@/domains/services/components/service-urls';
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from '@/domains/services/types';
+import { useAuthorization } from '@/hooks/use-authorization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -27,6 +28,7 @@ const DEFAULT_VIEW: ServicesView = 'table';
 export default function ServicesIndex() {
     const { t } = useTranslation('admin');
     const url = useUrlQueryState();
+    const { can } = useAuthorization();
 
     const query = useDataTableQuery({
         sortableFields: SERVICE_SORT_FIELDS,
@@ -66,12 +68,16 @@ export default function ServicesIndex() {
         <AdminLayout
             title={t('services.title')}
             actions={
-                <Button asChild variant="brand" className="h-11 px-4 md:h-9">
-                    <Link href={NEW_SERVICE_URL}>
-                        <Plus aria-hidden="true" />
-                        <span className="sr-only sm:not-sr-only">{t('services.actions.create')}</span>
-                    </Link>
-                </Button>
+                can('create_service') ? (
+                    <Button asChild variant="brand" className="h-11 px-4 md:h-9">
+                        <Link href={NEW_SERVICE_URL}>
+                            <Plus aria-hidden="true" />
+                            <span className="sr-only sm:not-sr-only">
+                                {t('services.actions.create')}
+                            </span>
+                        </Link>
+                    </Button>
+                ) : undefined
             }
         >
             {view === 'table' ? (

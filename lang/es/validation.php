@@ -191,8 +191,11 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'staff_ids' => [
+            'required' => 'Necesitas elegir al menos a una persona para dar este servicio.',
+            'array' => 'Necesitas elegir al menos a una persona para dar este servicio.',
+            'min' => 'Necesitas elegir al menos a una persona para dar este servicio.',
+            'max' => 'Puedes elegir como máximo :max personas para este servicio.',
         ],
     ],
 
@@ -226,6 +229,22 @@ return [
         'timezone' => 'zona horaria',
         'phone.country_code' => 'país del teléfono',
         'phone.national_number' => 'número de teléfono',
+
+        // Services.
+        'description' => 'descripción',
+        'duration_minutes' => 'duración',
+        'buffer_minutes' => 'tiempo entre citas',
+        'price' => 'precio',
+        'color' => 'color',
+        'active' => 'visibilidad',
+        'staff_ids' => 'equipo',
+        'staff_ids.*' => 'persona del equipo',
+        'image' => 'imagen',
+        'search' => 'búsqueda',
+        'sort' => 'orden',
+        'direction' => 'dirección del orden',
+        'page' => 'página',
+        'per_page' => 'resultados por página',
     ],
 
 ];

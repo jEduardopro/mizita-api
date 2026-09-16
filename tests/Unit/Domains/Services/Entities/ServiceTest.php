@@ -7,6 +7,7 @@ use App\Domains\Services\Exceptions\InvalidServiceDescription;
 use App\Domains\Services\Exceptions\InvalidServiceName;
 use App\Domains\Services\Exceptions\ServiceAlreadyActive;
 use App\Domains\Services\Exceptions\ServiceAlreadyInactive;
+use App\Domains\Services\Exceptions\ServiceRequiresStaff;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
 use App\Domains\Services\ValueObjects\Buffer;
 use App\Domains\Services\ValueObjects\Duration;
@@ -123,8 +124,8 @@ describe('creating a service', function () {
         expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID]);
     });
 
-    it('takes no staff at all', function () {
-        expect(createService(staffIds: [])->staffIds())->toBe([]);
+    it('refuses to exist with nobody able to perform it', function () {
+        expect(fn () => createService(staffIds: []))->toThrow(ServiceRequiresStaff::class);
     });
 
     it('accepts as many staff as it bounds', function () {
@@ -152,6 +153,10 @@ describe('restoring a service', function () {
 
         expect($service->name())->toBe('')
             ->and($service->description())->toHaveLength(5000);
+    });
+
+    it('takes back a row saved before a service was required to have staff', function () {
+        expect(ServiceFixtures::service(staffIds: [])->staffIds())->toBe([]);
     });
 
     it('keeps the staff exactly as persistence handed them over', function () {
@@ -241,12 +246,11 @@ describe('changing a service', function () {
         expect($service->staffIds())->toBe([ServiceFixtures::SECOND_STAFF_ID, ServiceFixtures::STAFF_ID]);
     });
 
-    it('clears its staff when handed none', function () {
+    it('refuses to be left with nobody to perform it, and keeps the staff it had', function () {
         $service = ServiceFixtures::service();
 
-        $service->assignStaff([]);
-
-        expect($service->staffIds())->toBe([]);
+        expect(fn () => $service->assignStaff([]))->toThrow(ServiceRequiresStaff::class)
+            ->and($service->staffIds())->toBe([ServiceFixtures::STAFF_ID]);
     });
 
     it('refuses more staff than it bounds and keeps the ones it had', function () {

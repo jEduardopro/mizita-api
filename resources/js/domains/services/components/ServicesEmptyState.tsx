@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { PackageOpen, SearchX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { useAuthorization } from '@/hooks/use-authorization';
 import { NEW_SERVICE_URL } from './service-urls';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 export function ServicesEmptyState({ search, onClearSearch }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
+    const { can } = useAuthorization();
 
     if (search !== '') {
         return (
@@ -46,9 +48,11 @@ export function ServicesEmptyState({ search, onClearSearch }: Props) {
                 {t('services.empty.first.body')}
             </p>
 
-            <Button asChild variant="brand" className="h-11 px-4 md:h-9">
-                <Link href={NEW_SERVICE_URL}>{t('services.actions.create')}</Link>
-            </Button>
+            {can('create_service') ? (
+                <Button asChild variant="brand" className="h-11 px-4 md:h-9">
+                    <Link href={NEW_SERVICE_URL}>{t('services.actions.create')}</Link>
+                </Button>
+            ) : null}
         </div>
     );
 }

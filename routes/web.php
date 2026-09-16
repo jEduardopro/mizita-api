@@ -15,7 +15,7 @@ Route::get('/onboarding', fn () => Inertia::render('admin/onboarding'))
 
 Route::permanentRedirect('/dashboard', '/calendar')->name('dashboard');
 
-Route::middleware(['auth', 'onboarded'])->group(function (): void {
+Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/calendar', fn () => Inertia::render('admin/calendar'))->name('calendar');
     Route::get('/services', fn () => Inertia::render('admin/services/index'))->name('services');
     Route::get('/services/new', fn () => Inertia::render('admin/services/create'))->name('services.create');

@@ -8,6 +8,7 @@ use App\Domains\Services\Exceptions\InvalidServiceDescription;
 use App\Domains\Services\Exceptions\InvalidServiceName;
 use App\Domains\Services\Exceptions\ServiceAlreadyActive;
 use App\Domains\Services\Exceptions\ServiceAlreadyInactive;
+use App\Domains\Services\Exceptions\ServiceRequiresStaff;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
 use App\Domains\Services\ValueObjects\Buffer;
 use App\Domains\Services\ValueObjects\Duration;
@@ -49,6 +50,7 @@ final class Service
      *
      * @throws InvalidServiceName
      * @throws InvalidServiceDescription
+     * @throws ServiceRequiresStaff
      * @throws UnknownStaffMember
      */
     public static function create(
@@ -154,11 +156,16 @@ final class Service
     /**
      * @param  list<string>  $staffIds
      *
+     * @throws ServiceRequiresStaff
      * @throws UnknownStaffMember
      */
     public function assignStaff(array $staffIds): void
     {
         $assigned = array_values(array_unique($staffIds));
+
+        if ($assigned === []) {
+            throw ServiceRequiresStaff::none();
+        }
 
         if (count($assigned) > self::MAXIMUM_STAFF_MEMBERS) {
             throw UnknownStaffMember::amongSelected();

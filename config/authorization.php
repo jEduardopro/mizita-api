@@ -9,14 +9,34 @@ return [
 
     'permissions' => [
 
-        'business.manage' => [
+        'manage_business' => [
             'scope' => AuthorizationScope::Business,
             'module' => 'business',
         ],
 
-        'staff.manage' => [
+        'manage_staff' => [
             'scope' => AuthorizationScope::Business,
             'module' => 'staff',
+        ],
+
+        'view_services' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'services',
+        ],
+
+        'create_service' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'services',
+        ],
+
+        'edit_service' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'services',
+        ],
+
+        'delete_service' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'services',
         ],
 
     ],
@@ -33,7 +53,7 @@ return [
         'staff' => [
             'scope' => AuthorizationScope::Business,
             'template' => true,
-            'permissions' => [],
+            'permissions' => ['view_services'],
         ],
 
     ],

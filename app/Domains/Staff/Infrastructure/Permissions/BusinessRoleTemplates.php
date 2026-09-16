@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Staff\Infrastructure\Permissions;
 
 use App\Models\User;
+use App\Shared\Infrastructure\Authorization\AuthorizationNaming;
 use App\Shared\ValueObjects\AuthorizationScope;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Guard;
@@ -25,8 +26,8 @@ final class BusinessRoleTemplates
                     'guard_name' => $guard,
                 ],
                 [
-                    'slug' => str_replace('.', '-', $name),
-                    'description' => 'roles.'.$name.'.description',
+                    'slug' => AuthorizationNaming::slugFor((string) $name),
+                    'description' => AuthorizationNaming::descriptionKeyFor('roles', (string) $name),
                     'scope' => $this->scopeOf($definition)->value,
                 ],
             );

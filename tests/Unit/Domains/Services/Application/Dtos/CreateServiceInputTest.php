@@ -10,8 +10,10 @@ use App\Domains\Services\Exceptions\InvalidServiceDuration;
 use App\Domains\Services\Exceptions\InvalidServiceName;
 use App\Domains\Services\Exceptions\InvalidServicePrice;
 use App\Domains\Services\Exceptions\ServiceNameNotSluggable;
+use App\Domains\Services\Exceptions\ServiceRequiresStaff;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
 use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Services\ServiceFixtures;
 
 /**
@@ -121,13 +123,43 @@ describe('validating', function () {
             ->not->toThrow(Throwable::class);
     });
 
-    it('accepts a service with no description, no staff and no price', function () {
+    it('accepts a service with no description, no buffer and no price', function () {
         expect(fn () => CreateServiceInput::fromRequest(createServicePayload([
             'description' => null,
-            'staff_ids' => [],
             'price' => '0',
             'buffer_minutes' => 0,
         ]))->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('refuses a service nobody was selected to perform', function (mixed $selection) {
+        expect(fn () => CreateServiceInput::fromRequest(createServicePayload(['staff_ids' => $selection]))->validate())
+            ->toThrow(ServiceRequiresStaff::class);
+    })->with([
+        'an empty selection' => [[]],
+        'a selection that is not a list' => ['all'],
+        'a selection that is null' => [null],
+    ]);
+
+    it('refuses a payload that never mentions the staff at all', function () {
+        $payload = createServicePayload();
+        unset($payload['staff_ids']);
+
+        expect(fn () => CreateServiceInput::fromRequest($payload)->validate())
+            ->toThrow(ServiceRequiresStaff::class);
+    });
+
+    it('refuses an empty selection with a failure the client can act on', function () {
+        try {
+            CreateServiceInput::fromRequest(createServicePayload(['staff_ids' => []]))->validate();
+        } catch (Throwable $failure) {
+            expect($failure)->toBeInstanceOf(DomainFailure::class)
+                ->and($failure->errorCode())->toBe('service_requires_staff')
+                ->and($failure->kind())->toBe(DomainFailureKind::Invalid);
+
+            return;
+        }
+
+        throw new RuntimeException('The empty selection was accepted.');
     });
 
     it('refuses what a form request would have refused', function (array $overrides, string $exception) {

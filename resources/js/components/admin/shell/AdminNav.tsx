@@ -8,16 +8,19 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useAuthorization } from '@/hooks/use-authorization';
+import type { PermissionName } from '@/lib/authorization';
 
 type NavItem = {
     href: string;
     labelKey: 'nav.calendar' | 'nav.services' | 'nav.customers';
     icon: LucideIcon;
+    permission?: PermissionName;
 };
 
 const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
-    { href: '/services', labelKey: 'nav.services', icon: ListChecks },
+    { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     { href: '/customers', labelKey: 'nav.customers', icon: Users },
 ];
 
@@ -28,12 +31,17 @@ function isActive(url: string, href: string): boolean {
 export function AdminNav() {
     const { t } = useTranslation('admin');
     const { url } = usePage();
+    const { can } = useAuthorization();
+
+    const visibleItems = navItems.filter(
+        (item) => item.permission === undefined || can(item.permission),
+    );
 
     return (
         <SidebarGroup>
             <SidebarGroupContent>
                 <SidebarMenu>
-                    {navItems.map((item) => {
+                    {visibleItems.map((item) => {
                         const label = t(item.labelKey);
                         const Icon = item.icon;
 

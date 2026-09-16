@@ -152,6 +152,7 @@
             },
             "staff": {
                 "label": "Team",
+                "hint": "Pick at least one person who performs this service.",
                 "searchLabel": "Search the team",
                 "searchPlaceholder": "Search by name",
                 "selectAll": "Select all",

@@ -191,8 +191,11 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'staff_ids' => [
+            'required' => 'You need to pick at least one person to perform this service.',
+            'array' => 'You need to pick at least one person to perform this service.',
+            'min' => 'You need to pick at least one person to perform this service.',
+            'max' => 'You can pick at most :max people for this service.',
         ],
     ],
 
@@ -226,6 +229,22 @@ return [
         'timezone' => 'time zone',
         'phone.country_code' => 'phone country',
         'phone.national_number' => 'phone number',
+
+        // Services.
+        'description' => 'description',
+        'duration_minutes' => 'duration',
+        'buffer_minutes' => 'time between appointments',
+        'price' => 'price',
+        'color' => 'color',
+        'active' => 'visibility',
+        'staff_ids' => 'team',
+        'staff_ids.*' => 'team member',
+        'image' => 'image',
+        'search' => 'search',
+        'sort' => 'sort',
+        'direction' => 'sort direction',
+        'page' => 'page',
+        'per_page' => 'results per page',
     ],
 
 ];

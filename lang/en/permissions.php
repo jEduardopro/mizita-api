@@ -14,9 +14,9 @@ return [
     | permissions table stores the key, and the key is resolved here, so a
     | wording change is a translation edit rather than a migration.
     |
-    | The nesting mirrors the permission name, which is what makes the value of
-    | permissions.description resolve as written - "business.manage" is stored
-    | with the key "permissions.business.manage.description".
+    | One flat entry per permission name, keyed exactly as the name is written
+    | in the catalogue - "manage_business" is stored with the description key
+    | "permissions.manage_business.description".
     |
     | Nothing enforces that a key stored in the database exists here. A rename on
     | one side and not the other shows the caller the key itself, so the two move
@@ -24,22 +24,34 @@ return [
     |
     */
 
-    'business' => [
-
-        'manage' => [
-            'label' => 'Manage the business',
-            'description' => 'Edit the business profile, its contact details, its time zone and its booking policy.',
-        ],
-
+    'manage_business' => [
+        'label' => 'Manage the business',
+        'description' => 'Edit the business profile, its contact details, its time zone and its booking policy.',
     ],
 
-    'staff' => [
+    'manage_staff' => [
+        'label' => 'Manage staff',
+        'description' => 'Invite people to the business, change what they are allowed to do, and remove them.',
+    ],
 
-        'manage' => [
-            'label' => 'Manage staff',
-            'description' => 'Invite people to the business, change what they are allowed to do, and remove them.',
-        ],
+    'view_services' => [
+        'label' => 'View services',
+        'description' => 'See the services the business offers, their prices and who can perform them.',
+    ],
 
+    'create_service' => [
+        'label' => 'Create services',
+        'description' => 'Add a new service to the catalogue, or duplicate an existing one.',
+    ],
+
+    'edit_service' => [
+        'label' => 'Edit services',
+        'description' => 'Change a service, its image and the people who can perform it.',
+    ],
+
+    'delete_service' => [
+        'label' => 'Delete services',
+        'description' => 'Remove a service from the catalogue.',
     ],
 
 ];

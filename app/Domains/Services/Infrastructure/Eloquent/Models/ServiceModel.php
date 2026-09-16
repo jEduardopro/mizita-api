@@ -7,6 +7,7 @@ namespace App\Domains\Services\Infrastructure\Eloquent\Models;
 use App\Domains\Services\Infrastructure\Eloquent\Factories\ServiceModelFactory;
 use App\Domains\Services\ValueObjects\ServiceColor;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
+use App\Shared\Infrastructure\Media\BusinessScopedMediaOwner;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +18,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 #[Fillable(['uuid', 'business_id', 'name', 'slug', 'description', 'duration_minutes', 'buffer_minutes', 'price', 'color', 'active'])]
-class ServiceModel extends Model implements HasMedia
+class ServiceModel extends Model implements BusinessScopedMediaOwner, HasMedia
 {
     use HasFactory;
     use HasUuids;
@@ -57,6 +58,11 @@ class ServiceModel extends Model implements HasMedia
     public function getRouteKeyName(): string
     {
         return 'uuid';
+    }
+
+    public function businessKey(): int
+    {
+        return (int) $this->business_id;
     }
 
     /**

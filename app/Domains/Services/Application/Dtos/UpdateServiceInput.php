@@ -9,6 +9,7 @@ use App\Domains\Services\Exceptions\InvalidServiceColor;
 use App\Domains\Services\Exceptions\InvalidServiceDescription;
 use App\Domains\Services\Exceptions\InvalidServiceName;
 use App\Domains\Services\Exceptions\ServiceNotFound;
+use App\Domains\Services\Exceptions\ServiceRequiresStaff;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
 use App\Domains\Services\ValueObjects\Buffer;
 use App\Domains\Services\ValueObjects\Duration;
@@ -58,6 +59,7 @@ final readonly class UpdateServiceInput
      * @throws InvalidServiceName
      * @throws InvalidServiceDescription
      * @throws InvalidServiceColor
+     * @throws ServiceRequiresStaff
      * @throws UnknownStaffMember
      */
     public function validate(): void
@@ -159,6 +161,10 @@ final readonly class UpdateServiceInput
 
     private function validateStaffIds(): void
     {
+        if ($this->staffIds === []) {
+            throw ServiceRequiresStaff::none();
+        }
+
         if (count($this->staffIds) > Service::MAXIMUM_STAFF_MEMBERS) {
             throw UnknownStaffMember::amongSelected();
         }

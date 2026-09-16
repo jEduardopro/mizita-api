@@ -52,6 +52,7 @@ type Props = {
     messages: Messages;
     error?: string;
     hint?: string;
+    required?: boolean;
 };
 
 export function CheckboxListField({
@@ -65,6 +66,7 @@ export function CheckboxListField({
     messages,
     error,
     hint,
+    required,
 }: Props) {
     const [search, setSearch] = useState('');
     const selectAllRef = useRef<HTMLInputElement>(null);
@@ -109,12 +111,19 @@ export function CheckboxListField({
         <div className="grid gap-2">
             <span id={labelId} className="text-sm leading-none font-medium">
                 {label}
+                {required ? (
+                    <span aria-hidden="true" className="ms-0.5 text-destructive">
+                        *
+                    </span>
+                ) : null}
             </span>
 
             <div
                 role="group"
                 aria-labelledby={labelId}
                 aria-describedby={message?.id}
+                aria-required={required}
+                aria-invalid={!! error}
                 className={cn(
                     'overflow-hidden rounded-xl border border-input',
                     error ? 'border-destructive' : undefined,

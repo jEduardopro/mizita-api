@@ -91,11 +91,16 @@ describe('updating a service', function () {
         expect(($this->update)(description: null)->value()->description)->toBeNull();
     });
 
-    it('clears the staff a caller no longer selects', function () {
+    it('refuses to leave a service with nobody to perform it, and saves nothing', function () {
         ($this->onRecord)();
 
-        expect(($this->update)(staffIds: [])->value()->staff)->toBe([])
-            ->and($this->staff->calls[0]['staffIds'])->toBe([]);
+        $response = ($this->update)(staffIds: []);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('service_requires_staff')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+            ->and($this->staff->calls)->toBe([])
+            ->and($this->services->saved)->toBe([]);
     });
 });
 

@@ -10,6 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuthorization } from '@/hooks/use-authorization';
 import { formMessageFrom } from '@/lib/http';
 import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
 import { useDuplicateService } from '../queries';
@@ -26,6 +27,12 @@ export function ServiceRowActions({ service }: Props) {
     const { t: tCommon } = useTranslation('common');
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const duplicateService = useDuplicateService();
+    const { can } = useAuthorization();
+
+    const canEdit = can('edit_service');
+    const canDuplicate = can('create_service');
+    const canDelete = can('delete_service');
+    const hasMenuItems = canEdit || canDuplicate || canDelete;
 
     async function copyLink() {
         try {
@@ -62,54 +69,64 @@ export function ServiceRowActions({ service }: Props) {
                 <span className="sr-only md:not-sr-only">{t('services.actions.copyLink')}</span>
             </Button>
 
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('services.actions.more', { name: service.name })}
-                        className="size-11 md:size-9"
-                    >
-                        <MoreHorizontal aria-hidden="true" />
-                    </Button>
-                </DropdownMenuTrigger>
+            {hasMenuItems ? (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t('services.actions.more', { name: service.name })}
+                            className="size-11 md:size-9"
+                        >
+                            <MoreHorizontal aria-hidden="true" />
+                        </Button>
+                    </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild className="min-h-11 md:min-h-8">
-                        <Link href={serviceEditUrl(service.id)}>
-                            <Pencil aria-hidden="true" />
-                            {tCommon('actions.edit')}
-                        </Link>
-                    </DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-48">
+                        {canEdit ? (
+                            <DropdownMenuItem asChild className="min-h-11 md:min-h-8">
+                                <Link href={serviceEditUrl(service.id)}>
+                                    <Pencil aria-hidden="true" />
+                                    {tCommon('actions.edit')}
+                                </Link>
+                            </DropdownMenuItem>
+                        ) : null}
 
-                    <DropdownMenuItem
-                        disabled={duplicateService.isPending}
-                        onSelect={() => void duplicate()}
-                        className="min-h-11 md:min-h-8"
-                    >
-                        <CopyPlus aria-hidden="true" />
-                        {tCommon('actions.duplicate')}
-                    </DropdownMenuItem>
+                        {canDuplicate ? (
+                            <DropdownMenuItem
+                                disabled={duplicateService.isPending}
+                                onSelect={() => void duplicate()}
+                                className="min-h-11 md:min-h-8"
+                            >
+                                <CopyPlus aria-hidden="true" />
+                                {tCommon('actions.duplicate')}
+                            </DropdownMenuItem>
+                        ) : null}
 
-                    <DropdownMenuSeparator />
+                        {canDelete && (canEdit || canDuplicate) ? <DropdownMenuSeparator /> : null}
 
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={() => setConfirmingDelete(true)}
-                        className="min-h-11 md:min-h-8"
-                    >
-                        <Trash2 aria-hidden="true" />
-                        {tCommon('actions.delete')}
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                        {canDelete ? (
+                            <DropdownMenuItem
+                                variant="destructive"
+                                onSelect={() => setConfirmingDelete(true)}
+                                className="min-h-11 md:min-h-8"
+                            >
+                                <Trash2 aria-hidden="true" />
+                                {tCommon('actions.delete')}
+                            </DropdownMenuItem>
+                        ) : null}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ) : null}
 
-            <DeleteServiceDialog
-                service={service}
-                open={confirmingDelete}
-                onOpenChange={setConfirmingDelete}
-            />
+            {canDelete ? (
+                <DeleteServiceDialog
+                    service={service}
+                    open={confirmingDelete}
+                    onOpenChange={setConfirmingDelete}
+                />
+            ) : null}
         </div>
     );
 }

@@ -35,6 +35,11 @@ return [
         // just not the one requested. The wording names none of them.
         'business_not_accessible' => 'You do not have access to that business.',
 
+        // The caller is a member of the business but the role they hold there
+        // does not carry the permission the route needs. The wording names no
+        // permission: what is missing is the owner's to know, not the caller's.
+        'missing_permission' => 'You are not allowed to perform this action in this business.',
+
         // A public slug that resolves to nothing. The wording says "not found"
         // and nothing more: confirming that a slug exists is an information leak.
         'business_not_found' => 'We could not find that business.',
@@ -99,6 +104,7 @@ return [
         'service_already_active' => 'That service is already visible.',
         'service_already_inactive' => 'That service is already hidden.',
         'unknown_staff_member' => 'One of the selected team members is not available.',
+        'service_requires_staff' => 'You need to pick at least one person to perform this service.',
         'service_image_too_large' => 'That image is too large. Please use one under 2 MB.',
         'unsupported_service_image' => 'That file is not an image we support. Please use a JPG, PNG or WebP.',
 
