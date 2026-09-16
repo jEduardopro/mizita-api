@@ -58,7 +58,7 @@ export function ServicesToolbar({ search, onSearchChange, view, onViewChange }: 
                     }
                 }}
                 aria-label={t('services.view.label')}
-                className="self-end sm:self-auto"
+                className="hidden md:flex"
             >
                 <ToggleGroupItem
                     value="table"

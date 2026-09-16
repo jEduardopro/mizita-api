@@ -16,6 +16,7 @@ import { NEW_SERVICE_URL } from '@/domains/services/components/service-urls';
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from '@/domains/services/types';
 import { useAuthorization } from '@/hooks/use-authorization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { AdminLayout } from '@/layouts/AdminLayout';
 
@@ -25,10 +26,13 @@ const DEFAULT_SORT: DataTableSort<ServiceSortField> = { field: 'name', direction
 
 const DEFAULT_VIEW: ServicesView = 'table';
 
+const MOBILE_VIEW: ServicesView = 'list';
+
 export default function ServicesIndex() {
     const { t } = useTranslation('admin');
     const url = useUrlQueryState();
     const { can } = useAuthorization();
+    const isDesktop = useIsDesktop();
 
     const query = useDataTableQuery({
         sortableFields: SERVICE_SORT_FIELDS,
@@ -53,7 +57,9 @@ export default function ServicesIndex() {
     }, [debouncedSearch, searchInput, search, setSearch]);
 
     const requestedView = url.read('view');
-    const view = SERVICES_VIEWS.find((candidate) => candidate === requestedView) ?? DEFAULT_VIEW;
+    const view = isDesktop
+        ? (SERVICES_VIEWS.find((candidate) => candidate === requestedView) ?? DEFAULT_VIEW)
+        : MOBILE_VIEW;
 
     const toolbar = (
         <ServicesToolbar
@@ -72,9 +78,7 @@ export default function ServicesIndex() {
                     <Button asChild variant="brand" className="h-11 px-4 md:h-9">
                         <Link href={NEW_SERVICE_URL}>
                             <Plus aria-hidden="true" />
-                            <span className="sr-only sm:not-sr-only">
-                                {t('services.actions.create')}
-                            </span>
+                            {t('services.actions.create')}
                         </Link>
                     </Button>
                 ) : undefined
