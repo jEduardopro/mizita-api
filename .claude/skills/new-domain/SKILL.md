@@ -42,11 +42,47 @@ For `Customers` with those fields: the `Customer` entity, `CustomerRepository` p
 
 It also registers the provider in `bootstrap/providers.php`, creates `app/Shared/` on the first run, and runs Pint.
 
-Conventions baked in: an auto-incrementing int `id` for internal joins plus a unique `uuid` carrying the public identity; `SoftDeletes` on every model; and, unless `--root`, a `business_id` uuid column referencing `businesses.uuid` with routes behind `['api', 'auth:sanctum', 'business']`.
+Conventions baked in: an auto-incrementing int `id` for internal joins plus a unique `uuid` carrying the public identity; `SoftDeletes` on every model; and, unless `--root`, a `business_id` int foreign key onto `businesses.id` with routes behind `['api', 'auth:sanctum', 'business']`.
 
 The declared fields also drive behavior — the first required textual field gets the not-empty invariant, the first `unique` field produces `existsBy<Field>()` and the duplicate guard, and an `active:boolean` field produces `deactivate()`. They also drive the input DTO's `fromRequest()` and `validate()`, and the use case opens with `$input->validate();`.
 
 The generated code carries no comments. If you find one in the output, the stub under `stubs/domain/` is the bug.
+
+## Field types
+
+Field syntax is `name:type[:modifier]…`. Modifiers: `nullable`, `unique`, `index`.
+
+| Type | Column | PHP | Cast |
+| --- | --- | --- | --- |
+| `string` `text` `email` `uuid` | same | `string` | — |
+| `integer` `bigInteger` | same | `int` | `integer` |
+| `boolean` | `boolean` | `bool` | `boolean` |
+| `decimal(8,2)` | `decimal` | `string` | `decimal:2` |
+| `float` | `float` | `float` | `float` |
+| `date` `datetime` | same | `DateTimeImmutable` | `immutable_date(time)` |
+| `json` | `json` | `array` | `array` |
+
+## What the generator cannot do
+
+A generated slice **looks** finished and is not. Work through this list before calling a domain done:
+
+| Gap | What you must write by hand |
+| --- | --- |
+| **No foreign keys between domains** | The only FK it emits is `business_id` → `businesses.id`, correct per the int-FK rule, together with the model's `business()` relation and the adapter's `BusinessTeamKey` translation. For any *other* relation, declare nothing and hand-write `foreignId('customer_id')->constrained()`, the relation, and any eager loading |
+| **No enums**, despite the convention in `.claude/rules/backend/conventions.md` | The backed enum class, the cast, and `Rule::enum()` in the FormRequest |
+| **No pivot tables** | The whole slice — migration, model, repository methods |
+| **Single-column indexes only** | Every composite, partial or expression index |
+| **`unique` is global, not per-tenant** | A `unique` modifier makes the column unique across *all* businesses, while the generated `existsBy<Field>()` is tenant-scoped — the constraint and the guard disagree. For per-tenant uniqueness write `unique(business_id, lower(email)) where deleted_at is null` by hand and drop the modifier |
+| **Create-only CRUD** | `index`, `show`, `update`, `destroy`, their use cases, and pagination. Only `store` is generated |
+| **No tests** | All of them |
+| **No `ValueObjects/`, `Services/`, `Jobs/`, `Listeners/`, `Policies/`** | Create the folder when the first file needs it |
+| **Nullable `date`/`datetime` is buggy** | `DomainField::requestAccessor()` checks the date branch before the nullable branch, so an omitted nullable date becomes **now** instead of `null`. Hand-write the accessor, or keep nullable timestamps out of the `--field` list entirely |
+| **`--force` leaves orphans** | Re-running with different fields does not delete files from the previous run. Check `Exceptions/` for classes nothing throws |
+
+Two footguns that are not about missing features:
+
+- **Provider registration is not idempotent.** `registerProvider()` looks for the FQCN, but Pint then rewrites `bootstrap/providers.php` to `use` imports plus short class names, so the next run's check misses and appends a duplicate. Duplicated providers register every domain route group twice. Check that file after every `make:domain`.
+- **`decimal` casts to PHP `string`.** Money belongs in `integer` cents; anything else needs a value object.
 
 ## After running
 
@@ -62,4 +98,4 @@ Verify with `artisan route:list --path=<prefix>`.
 ## Notes
 
 - Templates live in `stubs/domain/` and `stubs/shared/`; the field parser is `app/Console/Commands/Support/DomainField.php`. Edit those to change the generated style.
-- The architecture is documented in `CLAUDE.md`. The `mizita-backend` agent handles the feature work after scaffolding.
+- The architecture is documented in `CLAUDE.md` and `.claude/rules/backend/`. The `mizita-backend` agent handles the feature work after scaffolding.

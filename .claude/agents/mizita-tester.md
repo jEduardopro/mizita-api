@@ -56,10 +56,10 @@ If a task explicitly asks you for production code: write the tests, say plainly 
 - Use case FQCN.
 - Entry-point signature.
 - Each constructor port: parameter name and interface FQCN.
-- Domain exceptions it can throw.
+- The domain failures it can return, with their `errorCode()`s.
 - Delegated side effects: events dispatched, jobs queued.
 
-That list *is* your coverage checklist. Each port becomes a double, each exception becomes a test, each side effect becomes an assertion.
+That list *is* your coverage checklist. Each port becomes a double, each failure becomes a test, each side effect becomes an assertion.
 
 When there is no handoff — you were invoked directly, or the code predates the agent — reconstruct it yourself before writing a line: read the use case, its `Exceptions/` folder, the entity's named constructors and behavior methods, and the DTOs. State the reconstructed list in your report so the user can see what you believed the contract was.
 
@@ -142,17 +142,27 @@ The rest of this section is feature-test territory, so it is gated by the scope 
 For feature tests on a `business`-guarded route, the setup order is fixed:
 
 ```php
+$this->seed(AuthorizationSeeder::class);
+
 $business = BusinessModel::factory()->create();
-$user = User::factory()->create(['business_id' => $business->uuid]);
-Sanctum::actingAs($user);
+$account = User::factory()->create();
+
+StaffMemberModel::factory()->owner()->create([
+    'business_id' => $business->id,
+    'account_id' => $account->id,
+]);
+
+Sanctum::actingAs($account);
 ```
 
-`UserFactory` does **not** set `business_id`, so a plain factory user gets a 403 from the `business` middleware. Every endpoint under `['api', 'auth:sanctum', 'business']` owes two edge tests: **401** unauthenticated, and **403** for an authenticated user with no business.
+The **staff membership is what grants access**, so the row is the setup — there is no column on `users` to set. `StaffMemberModelFactory` clones the business role templates and assigns the role after creating, which is why `AuthorizationSeeder` has to have run first, and why `app(PermissionRegistrar::class)->forgetCachedPermissions()` belongs in `beforeEach`. Use `->owner()` for the owner, the plain factory for a member.
+
+A plain factory user has no `staff_members` row and gets a 403 from the `business` middleware. Every endpoint under `['api', 'auth:sanctum', 'business']` owes two edge tests: **401** unauthenticated, and **403** for an authenticated account with no membership.
 
 Two traps to respect:
 
-- `App\Http\Middleware\SetBusinessContext` calls `app()->instance(BusinessContext::class, ...)` on every request, **overwriting** anything you pre-bound. A container-level fake does not survive an HTTP call — for feature tests the user's `businesses` row is the source of truth.
-- `BelongsToBusiness` adds a global scope that no-ops while no context is bound, and activates the moment one is. Never leave a `BusinessContext` bound in the container when a test ends, or you leak scoping into every test that follows.
+- `App\Http\Middleware\SetBusinessContext` calls `app()->instance(BusinessContext::class, ...)` on every request, **overwriting** anything you pre-bound. A container-level fake does not survive an HTTP call — for feature tests the caller's `staff_members` row is the source of truth. What you *can* replace is the port behind it: `Tests\Support\FakeBusinessMembership` bound as `BusinessMembership` is how `SetBusinessContextTest` drives the no-membership path.
+- **There is no global tenant scope.** `BelongsToBusiness` is unused and incompatible with the int `business_id`, so nothing filters a query for you: isolation lives in the route middleware and in business-scoped repository methods. A tenant-scoped read therefore owes a test that creates a **second** business with rows of its own and asserts none of them come back — a forgotten `where` is invisible to a single-business fixture.
 
 ## Database tests
 
@@ -174,7 +184,7 @@ Postgres is not a preference here, it is a correctness requirement: the app depe
 
 `phpunit.xml` is outside your territory; say so in your handback list if it needs changing.
 
-Tenant tables carry `business_id` as a uuid foreign key onto `businesses.uuid`, so **always create the business row before the tenant row**. `CustomerModelFactory` already resolves its own business; when you build rows by hand, order them yourself.
+Tenant tables carry `business_id` as an **int foreign key onto `businesses.id`**, so **always create the business row before the tenant row**, and assert against `$business->id`, never `$business->uuid` — the uuid is what the entity and the API carry, the int is what the column stores. A domain factory that declares `'business_id' => BusinessModel::factory()` resolves its own business; when you build rows by hand, order them yourself.
 
 Factories live in `app/Domains/<Domain>/Infrastructure/Eloquent/Factories/` and are production territory — you may call them, never edit them. If a state is missing, pass the attributes inline in the test (`CustomerModel::factory()->create(['name' => 'Ada'])`) and ask for the state in your handback list.
 
@@ -184,13 +194,14 @@ A polymorphic `*_type` column holds the alias of the **real model** — the snak
 
 For every use case you cover, satisfy this list and declare it in your report:
 
-- The happy path, asserting the output DTO field by field — not just that it is an instance.
-- One test per domain exception the handoff declares, asserting the exception class and, where the message carries data, the message.
+- The happy path, asserting the output DTO field by field — not just that it is an instance. A use case returns a `UseCaseResponse`, so the DTO comes from `->value()`.
+- One test per domain failure the handoff declares. **A use case returns its failures, it does not throw them**, so assert `$response->failed()`, `$response->error()->code` and `$response->error()->kind` — never `toThrow()` around a `handle()` call. `toThrow()` stays for the layers that really do throw: entity invariants through their named constructor, a DTO's `validate()`, a value object's constructor, and a port whose contract is to throw.
 - Every branch and guard in the use case.
 - Every entity invariant, tested **at the entity level** through its named constructor — not duplicated at the use case level.
 - Every rule in the input DTO's `validate()`, tested **at the DTO level**: build the DTO directly, call `validate()`, assert the exception class and that it implements `DomainFailure`. A `dataset()` of bad payloads is the right shape. Also assert that a valid DTO's `validate()` returns without throwing, and that `fromRequest()` survives a payload with keys missing — that is the case a caller who never saw a FormRequest produces, and it must come back as a domain failure rather than a PHP error.
+- Identity: every id the use case hands back — the entity's own, and every neighbour's — is asserted to be the **uuid**. An int id in an expectation about a DTO, a Resource, a response body or an event payload is a failing rule, not a passing test; the int belongs only in `assertDatabaseHas` and in factory attributes for a foreign key column.
 - Side effects: the event was dispatched, with the right payload, exactly once.
-- Non-effects: nothing persisted, nothing dispatched, when the use case throws.
+- Non-effects: nothing persisted, nothing dispatched, when the use case returns a failure. Events are dispatched outside the `try`, so a failure must leave the dispatcher untouched.
 - Edges: empty string, whitespace-only, `null` for every optional, maximum length, unicode and accents, duplicates, and `restore()` deliberately skipping creation-time invariants.
 - Determinism: fixed clock, fixed ids, no `rand()`, no real dates, no reliance on test execution order.
 
@@ -420,7 +431,7 @@ it('persists the customer and returns its data', function () {
     $this->events->shouldReceive('dispatch')->once()
         ->with(Mockery::on(fn (CustomerCreated $e) => $e->id === 'customer-uuid'));
 
-    $data = $this->useCase->handle(new CreateCustomerInput('Ada', 'ada@example.com', null));
+    $data = $this->useCase->handle(new CreateCustomerInput('Ada', 'ada@example.com', null))->value();
 
     expect($data)->toBeInstanceOf(CustomerData::class)
         ->and($data->id)->toBe('customer-uuid')
@@ -434,16 +445,19 @@ it('scopes the customer to the current business', function () {
     $this->customers->shouldReceive('save')->once();
     $this->events->shouldReceive('dispatch')->once();
 
-    expect($this->useCase->handle(new CreateCustomerInput('Ada', null, null))->businessId)
+    expect($this->useCase->handle(new CreateCustomerInput('Ada', null, null))->value()->businessId)
         ->toBe('business-uuid');
 });
 
-it('saves nothing when the name is invalid', function () {
+it('saves nothing and returns the failure when the name is invalid', function () {
     $this->customers->shouldNotReceive('save');
     $this->events->shouldNotReceive('dispatch');
 
-    expect(fn () => $this->useCase->handle(new CreateCustomerInput('   ', null, null)))
-        ->toThrow(InvalidCustomerName::class);
+    $response = $this->useCase->handle(new CreateCustomerInput('   ', null, null));
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('invalid_customer_name')
+        ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid);
 });
 ```
 
@@ -452,18 +466,27 @@ it('saves nothing when the name is invalid', function () {
 ```php
 uses(RefreshDatabase::class);
 
-it('creates a customer for the authenticated user business', function () {
+it('creates a customer for the authenticated caller business', function () {
+    $this->seed(AuthorizationSeeder::class);
+
     $business = BusinessModel::factory()->create();
-    Sanctum::actingAs(User::factory()->create(['business_id' => $business->uuid]));
+    $owner = User::factory()->create();
+
+    StaffMemberModel::factory()->owner()->create([
+        'business_id' => $business->id,
+        'account_id' => $owner->id,
+    ]);
+
+    Sanctum::actingAs($owner);
 
     $this->postJson('/api/customers', ['name' => 'Ada', 'email' => 'ada@example.com'])
         ->assertCreated()
         ->assertJsonPath('data.name', 'Ada');
 
-    $this->assertDatabaseHas('customers', ['name' => 'Ada', 'business_id' => $business->uuid]);
+    $this->assertDatabaseHas('customers', ['name' => 'Ada', 'business_id' => $business->id]);
 });
 
-it('rejects a user without a business', function () {
+it('rejects an account with no membership', function () {
     Sanctum::actingAs(User::factory()->create());
 
     $this->postJson('/api/customers', ['name' => 'Ada'])->assertForbidden();

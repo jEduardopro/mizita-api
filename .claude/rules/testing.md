@@ -1,0 +1,20 @@
+---
+paths:
+  - "tests/**/*.php"
+---
+
+# Testing
+
+- **Tests run on PostgreSQL, never sqlite.** Exclusion constraints, partial and expression indexes and `timestamptz` are all Postgres-only, and sqlite would report green on a double booking. `phpunit.xml` points at the `pgsql` connection and the `mizita_api_testing` database; create it once per machine with `createdb mizita_api_testing`.
+- **Only unit tests are written right now.** `tests/Feature/` holds what already exists and stays green, but new coverage goes in `tests/Unit/` until the feature-test switch in `.claude/agents/mizita-tester.md` is turned on.
+- Unit tests build a use case **with mocks alone** — no container, no migrations. That is the bar the whole architecture exists to protect.
+- **Identity is an assertion.** Anything that crosses the boundary — an output DTO, a Resource, an event payload, a response body — is asserted to carry the **uuid**, and a test never expects an int id there. Inside the adapter the opposite holds: a row's `business_id` or `account_id` is the int, so `assertDatabaseHas` and factory attributes use `$business->id` while the response assertion uses `$business->uuid`. A test that asserts an int on the wire is encoding the bug it should be catching.
+- Shared fakes belong in `tests/Support/`, and the set now exists: `FakeClock`, `FixedIdGenerator`, `FakeBusinessContext`, `FakeBusinessMembership`, `FakeTransactionManager`, `FakePhoneNumberParser`, plus per-domain fixtures under `tests/Support/{Accounts,Businesses}/`. Injecting a fake context is how tenant isolation gets asserted without a database. Reuse them; do not write a second one.
+- Architecture tests live in `tests/Arch/` and encode the layer table in `.claude/rules/backend/architecture.md` — a domain entity importing `Illuminate\*` is a test failure, not a review comment. `LayerDependencyTest` holds the layer rules, `ConventionsTest` the naming and `final`/interface rules, `InputValidationTest` the DTO-validation and `UseCaseResponse` contract. `phpunit.xml` declares `Arch` as its own suite; without that Pest never scans the directory.
+- A rule that parses source text needs a fixture proving it fails. `tests/Support/Architecture/` holds deliberately non-conforming use cases for exactly that, and `InputValidationTest` ends with a `describe()` block showing each detector firing. Add one whenever you add a rule.
+- **Coverage status:** every domain has unit tests for its entities, value objects, DTOs, mappers and use cases; `tests/Unit/Http/` covers the responders, the payload, the warning envelope and the failure log context; `tests/Feature/` covers localization and the middleware.
+- **Two gaps are known and deliberately open. Do not rediscover them as bugs.**
+  - **No controller has any test.** Not one, and no test reaches a controller body through HTTP either — the two feature tests that post to `/api/businesses` send an empty payload and die in the FormRequest. So the `try`/`catch (Throwable)`, the `failed()` branch, the success status codes and the warning envelope are all unexecuted by the suite. Swapping a 201 for a 200, or deleting the `failed()` branch so a refusal renders as a success with `data: null`, goes undetected. Closing it means either unit-level controller tests (construct the controller with a mocked use case — the `uses(TestCase::class)` precedent is already set in `tests/Unit/Http/`) or flipping the feature switch.
+  - **The front end has no test runner at all** — no vitest, no jest, no `*.test.*`. `npx tsc --noEmit` is the only automated check, and it verifies types, not behaviour. `lib/http.ts` and the `lib/api.ts` response interceptor carry real logic; the interceptor's error branch in particular must end in `Promise.reject`, and nothing but review enforces that.
+- **The test database has no per-process isolation.** `phpunit.xml` names one `mizita_api_testing` and declares no parallel config, so two concurrent runs race on DDL and the feature suite fails with `relation "users" already exists`. Never run the suite twice at once — including from two agents.
+

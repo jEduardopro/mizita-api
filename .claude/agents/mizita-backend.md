@@ -115,7 +115,7 @@ A generated slice **looks** finished and is not. Walk this list before you call 
 
 | Gap | You write by hand |
 | --- | --- |
-| **No foreign keys between domains** | The only FK it emits is `business_id` → `businesses.uuid`. Declare `customer_id:uuid` for the column, then add the constraint, the relation and the eager loading yourself |
+| **No foreign keys between domains** | The only FK it emits is `business_id` → `businesses.id`, together with the model's `business()` relation and the adapter's `BusinessTeamKey` translation. For any *other* relation declare nothing and hand-write `foreignId('customer_id')->constrained()`, the relation and the eager loading yourself |
 | **No enums** | The backed enum, the cast, and `Rule::enum()` in the FormRequest — even though "enums over string constants" is a standing convention |
 | **No pivot tables** | The entire slice: migration, model, repository methods |
 | **Single-column indexes only** | Every composite, partial or expression index |
@@ -130,11 +130,11 @@ And one footgun that is not a missing feature: **provider registration is not id
 
 `Businesses` is the root domain. Everything else is scoped to a business.
 
-- Tenant-scoped tables carry `business_id` as a **uuid column referencing `businesses.uuid`**, so the entity's `businessId` maps straight across with no lookup.
+- Tenant-scoped tables carry `business_id` as an **int foreign key onto `businesses.id`**. The entity still holds the business **uuid** in `public readonly string $businessId`, so the repository adapter is where the two meet: `App\Shared\Contracts\BusinessTeamKey::teamKeyFor(string $uuid): int` on the way in, feeding `toAttributes(Entity $entity, int $businessKey)`, and the eager-loaded `business` relation on the way out, so the mapper takes the uuid back off it. Nothing above `Infrastructure/` ever sees the int.
 - A use case touching tenant data injects `App\Shared\Contracts\BusinessContext` and passes `businessId: $this->business->currentBusinessId()` into `Entity::create()`.
 - **Never read `business_id` off an Eloquent model in the application layer**, and never pass it in from the HTTP request — it comes from the context port only.
-- `App\Shared\Infrastructure\Concerns\BelongsToBusiness` (global scope + `creating` hook) is a safety net on the model, not the primary mechanism.
-- The `business` route middleware aborts 403 when the authenticated caller has no business. It never binds a null context.
+- `App\Shared\Infrastructure\Concerns\BelongsToBusiness` is **incompatible with the int `business_id`**: it writes and filters the column with the context *uuid*, so on a tenant table Postgres compares a bigint to a uuid and raises `22P02`. Nothing uses it, `make:domain` no longer emits it, and you must not add it until a sibling trait memoises uuid→int per request. Isolation comes from the route middleware plus business-scoped repository methods — which is why a port on a tenant table must never expose a bare `findById($id)`.
+- `App\Http\Middleware\SetBusinessContext` (alias `business`) resolves the tenant from the caller's **staff membership** through `App\Shared\Contracts\BusinessMembership`, and aborts 403 when the caller has none. It never binds a null context. A caller with more than one membership picks with an `X-Business` header carrying the business uuid, validated against their memberships; with no header it gets the owner membership, else the oldest. It also calls `setPermissionsTeamId()` with the business's int key — without it every `can()` and `hasRole()` silently matches nothing.
 - The business id is not serialised by Resources: the caller already operates inside one business.
 
 There are **three** route stacks, and the stack — not the controller — is what guarantees isolation:
@@ -150,7 +150,7 @@ There are **three** route stacks, and the stack — not the controller — is wh
 - **A cross-tenant route binds no context at all.** Binding one would silently narrow a public search to a single tenant. Those endpoints filter explicitly, in a dedicated read adapter, and run outside the global scope on purpose — so a forgotten `where` there leaks other people's data.
 - **A public slug that does not resolve is 404, not 403.** A 403 confirms the slug exists.
 
-Two things here are **changing** and new code should not depend on them: today `SetBusinessContext` reads `$request->user()->business` and `users.business_id` holds the business uuid. The tenant will instead be resolved from the caller's active staff membership, and `users.business_id` is removed. Write against `BusinessContext`, never against `User::business()`.
+`users.business_id` and `User::business()` are **gone**. A `staff_members` row *is* the membership, and it is what `SetBusinessContext` resolves the tenant from; `users` is pure authentication. Write against `BusinessContext`, never against a column on `users`.
 
 ## Soft deletes
 
@@ -260,7 +260,7 @@ A domain entity is **not** an Eloquent model.
 
 - `Entities/Service.php` is a pure PHP class that holds the business rules and protects its invariants: private constructor plus named constructors (`Service::create(...)` for new instances, `Service::restore(...)` for rehydration), behavior methods (`rename()`, `deactivate()`) instead of public setters, and validation that throws a domain exception from `Exceptions/`.
 - The Eloquent class is `Infrastructure/Eloquent/Models/ServiceModel.php`. The `Model` suffix is mandatory so it stays distinguishable from the entity in imports.
-- Translation lives in `Infrastructure/Eloquent/Mappers/ServiceMapper.php` — `toEntity(ServiceModel $model): Service` and `toAttributes(Service $entity): array`. The repository adapter is the only class that touches both sides.
+- Translation lives in `Infrastructure/Eloquent/Mappers/ServiceMapper.php` — `toEntity(ServiceModel $model, string $businessId): Service` and `toAttributes(Service $entity, int $businessKey): array` on a tenant domain, without the business arguments on a root one. The repository adapter is the only class that touches both sides, and the only one that resolves the int business key.
 - Entities never leave the application layer. A use case returns an output DTO built from the entity, so controllers and Resources never see a domain object.
 
 ### Identity: uuid public, int internal
@@ -269,8 +269,10 @@ Every table carries an auto-incrementing `id` (bigint) **and** a unique `uuid` c
 
 - The entity's `id` property holds the **uuid**, produced by `IdGenerator::next()` in memory before the save. That is what lets a use case run without a database.
 - Repositories find and upsert by the `uuid` column, never by the int primary key.
-- The int primary key never appears in an entity, DTO, Resource or event payload. It exists for joins and indexes only.
+- The int primary key never appears in an entity, DTO, Resource, event payload, URL or log line. It exists for joins and indexes only, and exposing it would leak row counts and invite enumeration.
+- **Foreign keys reference the int**, never the uuid: `foreignId('account_id')->constrained('users')`. The adapter resolves uuid→int on the way in and reads the uuid back off the eager-loaded relation on the way out; that translation never appears above `Infrastructure/`.
 - Models use `HasUuids` with `uniqueIds()` overridden to `['uuid']` — that keeps the primary key auto-incrementing — and `getRouteKeyName()` returning `'uuid'`.
+- Self-check before handing back: grep your diff for an int id crossing a boundary — a DTO field, a Resource key, an event constructor argument, a route parameter. If one is there, the design is wrong, not the line.
 
 ### A polymorphic alias is named after the model
 
@@ -282,17 +284,26 @@ A domain enum may share those strings — `PhoneOwnerType` backs `business` and 
 
 ## Use case shape
 
-`final class`, exactly one public entry point:
+`final class`, exactly one public entry point, and it always returns a `UseCaseResponse`:
 
 ```php
-public function handle(CreateServiceInput $input): ServiceData
+/**
+ * @return UseCaseResponse<ServiceData>
+ */
+public function handle(CreateServiceInput $input): UseCaseResponse
 ```
 
-No other public methods, no static state. The flow is always: `$input->validate()` → load or build the entity through the repository port → invoke entity behavior → `$repo->save($entity)` → dispatch domain events → return an output DTO built from the entity.
+No other public methods, no static state. The flow is always: `$input->validate()` → load or build the entity through the repository port → invoke entity behavior → `$repo->save($entity)` → return an output DTO wrapped in `UseCaseResponse::success()`.
 
-**`handle()` opens with `$input->validate();`, as its first statement, always** — whenever the input DTO has one. That is what makes the rules unskippable: HTTP, artisan, queue, seeder and test all arrive through this door, and only the HTTP one ever saw a FormRequest.
+**`handle()` opens with `try {` and `$input->validate();`, in that order, always** — whenever the input DTO has one. That is what makes the rules unskippable: HTTP, artisan, queue, seeder and test all arrive through this door, and only the HTTP one ever saw a FormRequest.
 
-Failures throw a domain exception from `Exceptions/` — never return `null` to signal failure, and never return an HTTP response.
+**A use case never throws a `DomainFailure` at its caller; it returns one.** The `catch (DomainFailure $failure)` returns `UseCaseResponse::failure($failure)`, and `App\Http\Responses\ApiResponder` turns the failure's kind into 422/409/404/403/401 at the edge — which is why `UseCaseResponse` is named after the kind and never after HTTP. Anything that is *not* a `DomainFailure` still escapes: those are programmer errors, and the controller's `catch (Throwable)` logs them as a 500. Never return `null` to signal failure, and never return an HTTP response.
+
+Guards still **throw** inside — `throw ServiceNameAlreadyTaken::for($name);` in a private method, invariants in the entity, rules in `validate()`. The `try` is what translates that throw into a returned failure at the boundary, so the whole domain keeps failing fast while the caller gets a value.
+
+**The `try` closes before any post-commit work.** Events are dispatched after it, never inside it: a listener throwing after the commit would otherwise produce a failure response for a row that exists, which is a lie the client cannot detect.
+
+Only write a `catch` where a `DomainFailure` can actually be thrown. A use case whose ports and DTO can raise none — `AttachPhone`, `ListIndustries` — has no `try` at all, because a catch that cannot fire is dead code.
 
 ### Input DTOs validate themselves
 
@@ -333,7 +344,35 @@ A DTO built domain-to-domain from value objects that already validate themselves
 
 ## Thin adapters
 
-Controllers, Jobs, Commands and Listeners are 3–10 line wrappers: build the input DTO, call the injected use case, map the result. Zero business logic, zero queries. Jobs implement `ShouldQueue` and inject the use case in `handle()`. Business logic never lives in Eloquent models, observers, or middleware.
+Controllers, Jobs, Commands and Listeners are thin wrappers: build the input DTO, call the injected use case, render the result. Zero business logic, zero queries. Jobs implement `ShouldQueue` and inject the use case in `handle()`. Business logic never lives in Eloquent models, observers, or middleware.
+
+A controller action is that shape and nothing else — the responder arrives as a method parameter, so the transport stays visible in the signature:
+
+```php
+public function store(
+    CreateServiceRequest $request,
+    CreateService $createService,
+    ApiResponder $responder,
+): Response {
+    try {
+        $response = $createService->handle(CreateServiceInput::fromRequest($request->validated()));
+
+        if ($response->failed()) {
+            return $responder->failure($response->error(), $response->warnings());
+        }
+
+        return $responder->success(
+            $response,
+            ServiceResource::make($response->value()),
+            Response::HTTP_CREATED,
+        );
+    } catch (Throwable $unexpected) {
+        return $responder->unexpected($request, $unexpected);
+    }
+}
+```
+
+The status is passed explicitly because it is controller knowledge and is never guessed, and `$response->value()` throws on a failed response — which is why `failed()` is checked first. `ApiResponder` for `/api`, `WebResponder` for an Inertia route; never one responder branching on the request. The `catch (Throwable)` is for what a use case never promises — a driver error, a bug in a mapper — and it is the only reason this codebase logs anything at all. It never logs the request body: one endpoint receives an `id_token`.
 
 ## Design for testability
 
@@ -354,7 +393,7 @@ Every task ends with this list, one block per new or modified use case:
 - Use case FQCN.
 - Entry-point signature.
 - Each constructor port: parameter name and interface FQCN.
-- Domain exceptions it can throw.
+- The domain failures it can return, and their `errorCode()`s — plus any new `messages.errors` key, in **both** locale files.
 - Delegated side effects: events dispatched, jobs queued.
 
 ## Adapt to the project, not to this file
@@ -558,10 +597,27 @@ final class CreateService
         private readonly Dispatcher $events,
     ) {}
 
-    public function handle(CreateServiceInput $input): ServiceData
+    /**
+     * @return UseCaseResponse<ServiceData>
+     */
+    public function handle(CreateServiceInput $input): UseCaseResponse
     {
-        $input->validate();
+        try {
+            $input->validate();
 
+            $service = $this->register($input);
+        } catch (DomainFailure $failure) {
+            return UseCaseResponse::failure($failure);
+        }
+
+        $this->events->dispatch(new ServiceCreated($service->id));
+
+        return UseCaseResponse::success(ServiceData::fromEntity($service));
+    }
+
+    /** @throws ServiceSlugAlreadyTaken */
+    private function register(CreateServiceInput $input): Service
+    {
         if ($this->services->existsBySlug($input->slug)) {
             throw ServiceSlugAlreadyTaken::for($input->slug);
         }
@@ -574,9 +630,8 @@ final class CreateService
         );
 
         $this->services->save($service);
-        $this->events->dispatch(new ServiceCreated($service->id));
 
-        return ServiceData::fromEntity($service);
+        return $service;
     }
 }
 ```
