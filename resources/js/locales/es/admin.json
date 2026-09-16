@@ -32,7 +32,7 @@
         "free": "Gratis",
         "price": "${{amount}}",
         "currencySymbol": "$",
-        "hidden": "Oculta",
+        "hidden": "Oculto",
         "summary": "{{duration}} · {{price}}",
         "staffCount_one": "{{count}} en el equipo",
         "staffCount_other": "{{count}} en el equipo",
