@@ -74,7 +74,8 @@ it('hands the repository the query the input built', function () {
 
     $query = $this->services->queries[0];
 
-    expect($query->search)->toBe('corte')
+    expect($query->search->raw())->toBe('corte')
+        ->and($query->search->tokens())->toBe(['corte'])
         ->and($query->sort)->toBe(ServiceSort::Price)
         ->and($query->direction)->toBe(SortDirection::Descending)
         ->and($query->pagination->page)->toBe(3)

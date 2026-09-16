@@ -13,7 +13,10 @@ use App\Domains\Services\Infrastructure\Eloquent\Mappers\ServiceMapper;
 use App\Domains\Services\Infrastructure\Eloquent\Models\ServiceModel;
 use App\Domains\Services\ValueObjects\ServiceQuery;
 use App\Domains\Services\ValueObjects\ServiceSort;
+use App\Shared\Infrastructure\Search\SearchableColumns;
+use App\Shared\Infrastructure\Search\TokenSearch;
 use App\Shared\ValueObjects\Paginated;
+use App\Shared\ValueObjects\SearchTerm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -36,6 +39,7 @@ final class EloquentServiceRepository implements ServiceRepository
 
     public function __construct(
         private readonly ServiceMapper $mapper,
+        private readonly TokenSearch $tokenSearch,
     ) {}
 
     /**
@@ -46,7 +50,7 @@ final class EloquentServiceRepository implements ServiceRepository
         $matching = $this->matching($businessId, $query->search);
         $total = $matching->count();
 
-        $models = $matching
+        $models = $this->mostRelevantFirst($matching, $query->search)
             ->with(self::STAFF_SELECTION)
             ->orderBy(self::columnFor($query->sort), $query->direction->value)
             ->orderBy(self::TIEBREAKER_COLUMN)
@@ -143,7 +147,7 @@ final class EloquentServiceRepository implements ServiceRepository
     /**
      * @return Builder<ServiceModel>
      */
-    private function matching(string $businessId, ?string $search): Builder
+    private function matching(string $businessId, ?SearchTerm $search): Builder
     {
         $query = $this->ofBusiness($businessId);
 
@@ -151,12 +155,26 @@ final class EloquentServiceRepository implements ServiceRepository
             return $query;
         }
 
-        $term = '%'.self::escapeLike($search).'%';
+        return $this->tokenSearch->apply($query, $search, self::searchableColumns());
+    }
 
-        return $query->where(function (Builder $scoped) use ($term): void {
-            $scoped->where('name', 'ilike', $term)
-                ->orWhere('description', 'ilike', $term);
-        });
+    /**
+     * @param  Builder<ServiceModel>  $query
+     * @return Builder<ServiceModel>
+     */
+    private function mostRelevantFirst(Builder $query, ?SearchTerm $search): Builder
+    {
+        if ($search === null) {
+            return $query;
+        }
+
+        return $this->tokenSearch->orderByRelevance($query, $search, self::searchableColumns());
+    }
+
+    private static function searchableColumns(): SearchableColumns
+    {
+        return SearchableColumns::text('name', 'description')
+            ->alsoMatchingNumeric('duration_minutes', 'price');
     }
 
     /**

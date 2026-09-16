@@ -6,6 +6,7 @@ use App\Domains\Services\Application\Dtos\ListServicesInput;
 use App\Domains\Services\Exceptions\InvalidServiceSearch;
 use App\Domains\Services\ValueObjects\ServiceSort;
 use App\Shared\ValueObjects\Pagination;
+use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
 
 describe('reading a query string', function () {
@@ -101,7 +102,9 @@ describe('turning itself into a query', function () {
             'per_page' => 25,
         ])->toQuery();
 
-        expect($query->search)->toBe('corte')
+        expect($query->search)->toBeInstanceOf(SearchTerm::class)
+            ->and($query->search->tokens())->toBe(['corte'])
+            ->and($query->search->raw())->toBe('corte')
             ->and($query->sort)->toBe(ServiceSort::CreatedAt)
             ->and($query->direction)->toBe(SortDirection::Descending)
             ->and($query->pagination->page)->toBe(2)
@@ -139,7 +142,31 @@ describe('turning itself into a query', function () {
     });
 
     it('trims the search term it passes down', function () {
-        expect(ListServicesInput::fromRequest(['search' => '  corte  '])->toQuery()->search)->toBe('corte');
+        $search = ListServicesInput::fromRequest(['search' => '  corte  '])->toQuery()->search;
+
+        expect($search->raw())->toBe('corte')
+            ->and($search->tokens())->toBe(['corte']);
+    });
+
+    it('splits the search term into the words it will look for', function () {
+        expect(ListServicesInput::fromRequest(['search' => 'up tes'])->toQuery()->search->tokens())
+            ->toBe(['up', 'tes']);
+    });
+
+    it('hands down the words already folded, in the spelling the database is searched with', function () {
+        $search = ListServicesInput::fromRequest(['search' => 'Depilación LÁSER'])->toQuery()->search;
+
+        expect($search->tokens())->toBe(['depilacion', 'laser'])
+            ->and($search->raw())->toBe('Depilación LÁSER');
+    });
+
+    it('drops the units a caller typed alongside a number', function () {
+        expect(ListServicesInput::fromRequest(['search' => 'corte 30 min'])->toQuery()->search->tokens())
+            ->toBe(['corte', '30']);
+    });
+
+    it('carries no search term when every word it was given is a unit', function () {
+        expect(ListServicesInput::fromRequest(['search' => 'min horas'])->toQuery()->search)->toBeNull();
     });
 
     it('carries no search term when the one it was given is blank', function (?string $search) {

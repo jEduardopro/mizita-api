@@ -8,6 +8,7 @@ use App\Domains\Services\Exceptions\InvalidServiceSearch;
 use App\Domains\Services\ValueObjects\ServiceQuery;
 use App\Domains\Services\ValueObjects\ServiceSort;
 use App\Shared\ValueObjects\Pagination;
+use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
 
 final readonly class ListServicesInput
@@ -17,6 +18,12 @@ final readonly class ListServicesInput
     private const DEFAULT_SORT = ServiceSort::Name;
 
     private const DEFAULT_DIRECTION = SortDirection::Ascending;
+
+    private const IGNORED_SEARCH_WORDS = [
+        'min', 'mins', 'minute', 'minutes', 'minuto', 'minutos',
+        'h', 'hr', 'hrs', 'hora', 'horas',
+        'eur', 'usd', 'mxn',
+    ];
 
     public function __construct(
         public ?string $search,
@@ -51,7 +58,7 @@ final readonly class ListServicesInput
     public function toQuery(): ServiceQuery
     {
         return new ServiceQuery(
-            search: $this->search === null || trim($this->search) === '' ? null : trim($this->search),
+            search: SearchTerm::of($this->search, self::IGNORED_SEARCH_WORDS),
             sort: ServiceSort::tryFrom((string) $this->sort) ?? self::DEFAULT_SORT,
             direction: SortDirection::tryFrom((string) $this->direction) ?? self::DEFAULT_DIRECTION,
             pagination: Pagination::of($this->page, $this->perPage),

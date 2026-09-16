@@ -49,7 +49,7 @@
         },
         "search": {
             "label": "Buscar servicios",
-            "placeholder": "Busca un servicio"
+            "placeholder": "Busca por nombre, precio o duración"
         },
         "view": {
             "label": "Vista",

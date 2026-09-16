@@ -49,7 +49,7 @@
         },
         "search": {
             "label": "Search services",
-            "placeholder": "Search services"
+            "placeholder": "Search by name, price or duration"
         },
         "view": {
             "label": "View",
