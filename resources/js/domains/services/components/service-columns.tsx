@@ -7,7 +7,7 @@ import { ServiceColorTile } from './ServiceColorTile';
 import { ServiceRowActions } from './ServiceRowActions';
 import { serviceEditUrl } from './service-urls';
 import { ServiceStaffAvatars } from './ServiceStaffAvatars';
-import { formatDuration, formatPrice } from './service-format';
+import { formatBuffer, formatDuration, formatPrice } from './service-format';
 
 type Params = {
     t: TFunction<'admin'>;
@@ -48,6 +48,16 @@ export function serviceColumns({ t, locale }: Params): ColumnDef<Service>[] {
             cell: ({ row }) => (
                 <span className="text-muted-foreground">
                     {formatDuration(row.original.duration_minutes, t)}
+                </span>
+            ),
+        },
+        {
+            id: 'buffer',
+            header: t('services.columns.buffer'),
+            enableSorting: false,
+            cell: ({ row }) => (
+                <span className="text-muted-foreground">
+                    {formatBuffer(row.original.buffer_minutes, t)}
                 </span>
             ),
         },

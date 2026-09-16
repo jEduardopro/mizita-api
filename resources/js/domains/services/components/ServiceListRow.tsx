@@ -8,7 +8,7 @@ import { ServiceColorTile } from './ServiceColorTile';
 import { ServiceRowActions } from './ServiceRowActions';
 import { serviceEditUrl } from './service-urls';
 import { ServiceStaffAvatars } from './ServiceStaffAvatars';
-import { formatDuration, formatPrice } from './service-format';
+import { formatBuffer, formatDuration, formatPrice } from './service-format';
 
 type Props = {
     service: Service;
@@ -16,6 +16,17 @@ type Props = {
 
 export function ServiceListRow({ service }: Props) {
     const { t, i18n } = useTranslation('admin');
+
+    const duration = formatDuration(service.duration_minutes, t);
+    const price = formatPrice(service.price, i18n.language, t);
+    const summary =
+        service.buffer_minutes > 0
+            ? t('services.summaryWithBuffer', {
+                  duration,
+                  buffer: formatBuffer(service.buffer_minutes, t),
+                  price,
+              })
+            : t('services.summary', { duration, price });
 
     return (
         <article className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card py-2.5 pr-2.5 pl-4">
@@ -46,10 +57,7 @@ export function ServiceListRow({ service }: Props) {
                 </div>
 
                 <p className="truncate text-xs text-muted-foreground">
-                    {t('services.summary', {
-                        duration: formatDuration(service.duration_minutes, t),
-                        price: formatPrice(service.price, i18n.language, t),
-                    })}
+                    {summary}
 
                     {service.staff.length > 0 ? (
                         <span className="sm:hidden">
