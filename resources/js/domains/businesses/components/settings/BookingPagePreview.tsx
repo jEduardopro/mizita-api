@@ -1,30 +1,21 @@
 import { cn } from 'cn';
-import { ImageOff, Store } from 'lucide-react';
+import { ExternalLink, ImageOff, Store } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type {
-    BrandColor,
-    ButtonShape,
-    LinkPlatform,
-    PageTheme,
-    WeeklyHours,
-} from '@/domains/businesses/types';
+import {
+    brandColorClasses,
+    BUTTON_SHAPE_CLASSES,
+    THEME_SCOPES,
+    type BrandColor,
+    type ButtonShape,
+    type LinkPlatform,
+    type PageTheme,
+    type WeeklyHours,
+} from '@/lib/booking-brand';
+import { BookingPageLink } from './BookingPageLink';
 import { BookingPagePreviewContact } from './BookingPagePreviewContact';
 import { BookingPagePreviewHours } from './BookingPagePreviewHours';
-import { brandColorClasses } from './brand-color';
 
 const TITLE_ID = 'booking-page-preview-title';
-
-const BUTTON_SHAPE_CLASSES: Record<ButtonShape, string> = {
-    pill: 'rounded-full',
-    rounded: 'rounded-lg',
-    rectangle: 'rounded-none',
-};
-
-const THEME_SCOPES: Record<PageTheme, string | undefined> = {
-    system: undefined,
-    light: 'booking-preview-light',
-    dark: 'dark',
-};
 
 export type BookingPagePreviewValues = {
     name: string;
@@ -44,9 +35,10 @@ type Props = {
     values: BookingPagePreviewValues;
     logoUrl: string | null;
     bannerUrl: string | null;
+    savedSlug: string;
 };
 
-export function BookingPagePreview({ values, logoUrl, bannerUrl }: Props) {
+export function BookingPagePreview({ values, logoUrl, bannerUrl, savedSlug }: Props) {
     const { t } = useTranslation('admin');
 
     const accent = brandColorClasses[values.accentColor];
@@ -56,9 +48,19 @@ export function BookingPagePreview({ values, logoUrl, bannerUrl }: Props) {
     return (
         <section aria-labelledby={TITLE_ID} className="grid gap-3">
             <div className="grid gap-1">
-                <h2 id={TITLE_ID} className="text-sm leading-none font-medium">
-                    {t('businessSettings.preview.title')}
-                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <h2 id={TITLE_ID} className="text-sm leading-none font-medium">
+                        {t('businessSettings.preview.title')}
+                    </h2>
+
+                    <BookingPageLink
+                        slug={savedSlug}
+                        className="-mr-2 h-11 gap-1.5 px-2 text-xs md:h-8"
+                    >
+                        <ExternalLink aria-hidden="true" className="size-3.5" />
+                        {t('businessSettings.preview.open')}
+                    </BookingPageLink>
+                </div>
 
                 <p className="text-xs text-muted-foreground">
                     {t('businessSettings.preview.description')}

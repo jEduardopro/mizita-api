@@ -1,15 +1,17 @@
+import type {
+    BusinessSettings,
+    ScheduleRule,
+    UpdateBusinessSettingsPayload,
+} from '@/domains/businesses/types';
 import {
     LINK_PLATFORMS,
     WEEKDAYS,
     type BrandColor,
-    type BusinessSettings,
     type ButtonShape,
     type LinkPlatform,
     type PageTheme,
-    type ScheduleRule,
-    type UpdateBusinessSettingsPayload,
     type WeeklyHours,
-} from '@/domains/businesses/types';
+} from '@/lib/booking-brand';
 import { SUPPORTED_PHONE_COUNTRIES, type PhoneCountryCode } from '@/lib/phone';
 import { resolvedTimezone } from '@/lib/timezone';
 import { DEFAULT_COUNTRY_CODE, DEFAULT_CURRENCY_CODE } from './location-options';

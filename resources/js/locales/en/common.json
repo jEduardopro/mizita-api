@@ -54,6 +54,18 @@
         "loadingMore": "Loading more…",
         "clear": "Clear search"
     },
+    "weekdays": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+    },
+    "hours": {
+        "closed": "Closed"
+    },
     "notifications": {
         "region": "Notifications",
         "dismiss": "Dismiss notification"

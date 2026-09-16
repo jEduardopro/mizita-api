@@ -8,6 +8,7 @@ use App\Domains\Businesses\BusinessesServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
 use App\Domains\Links\LinksServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
+use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use App\Domains\Services\ServicesServiceProvider;
 use App\Domains\Staff\StaffServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -28,4 +29,5 @@ return [
     LinksServiceProvider::class,
     AvailabilityServiceProvider::class,
     BookingPagesServiceProvider::class,
+    PublicCatalogServiceProvider::class,
 ];

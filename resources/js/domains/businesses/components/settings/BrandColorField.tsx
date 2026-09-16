@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ColorSwatchField } from '@/components/form/ColorSwatchField';
-import { BRAND_COLORS, type BrandColor } from '@/domains/businesses/types';
-import { brandColorClasses } from './brand-color';
+import { BRAND_COLORS, brandColorClasses, type BrandColor } from '@/lib/booking-brand';
 
 const FIELD_ID = 'brand-accent-color';
 

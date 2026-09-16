@@ -31,6 +31,17 @@ final class EloquentBusinessRepository implements BusinessRepository
         return $this->mapper->toEntity($this->modelOrFail($id));
     }
 
+    public function findBySlug(string $slug): Business
+    {
+        $model = $this->matchingSlug($slug)->with('industry')->first();
+
+        if ($model === null) {
+            throw BusinessNotFound::withSlug($slug);
+        }
+
+        return $this->mapper->toEntity($model);
+    }
+
     /**
      * @param  list<string>  $ids
      * @return list<Business>
@@ -67,6 +78,11 @@ final class EloquentBusinessRepository implements BusinessRepository
             ->exists();
     }
 
+    public function existsBySlug(string $slug): bool
+    {
+        return $this->matchingSlug($slug)->exists();
+    }
+
     /**
      * @return list<string>
      */
@@ -96,6 +112,14 @@ final class EloquentBusinessRepository implements BusinessRepository
     public function delete(string $id): void
     {
         $this->modelOrFail($id)->delete();
+    }
+
+    /**
+     * @return Builder<BusinessModel>
+     */
+    private function matchingSlug(string $slug): Builder
+    {
+        return BusinessModel::query()->whereRaw('lower(slug) = ?', [mb_strtolower(trim($slug))]);
     }
 
     private function modelOrFail(string $id): BusinessModel

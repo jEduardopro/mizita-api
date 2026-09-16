@@ -153,11 +153,12 @@
     }
 }
 
-/* .booking-preview-light shares this selector on purpose: the booking page preview
- * renders light inside a dark admin, so the whole :root body has to be re-applied on
- * that nested element. Splitting it out silently returns the preview to dark. */
+/* .theme-light shares this selector on purpose: a booking page whose saved theme is
+ * light renders light inside a dark admin or a dark browser, so the whole :root body
+ * has to be re-applied on that nested element. Splitting it out silently returns the
+ * booking page to dark. */
 :root,
-.booking-preview-light {
+.theme-light {
     color-scheme: light;
 
     --brand-50: oklch(0.974 0.012 258);
@@ -220,11 +221,11 @@
     --service-teal-surface: oklch(0.955 0.026 190);
     --service-green: oklch(0.55 0.135 150);
     --service-green-surface: oklch(0.955 0.03 150);
-    /* `.dark` below repeats this whole set rather than inheriting it: the preview
+    /* `.dark` below repeats this whole set rather than inheriting it: the booking page
      * renders `.dark` on a nested element, and a custom property is substituted
      * where it is declared, so a `var()` resolved here would carry the light value
      * into it. The aliases are safe in this block only because `--service-*` is
-     * declared in it, which both `:root` and `.booking-preview-light` share. */
+     * declared in it, which both `:root` and `.theme-light` share. */
     --brand-accent-ink: oklch(0.24 0.014 258);
     --brand-accent-ink-surface: oklch(0.955 0.005 258);
     --brand-accent-ink-foreground: oklch(0.995 0.002 258);

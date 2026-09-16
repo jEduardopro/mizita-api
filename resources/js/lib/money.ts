@@ -16,3 +16,22 @@ export function formatAmount(amount: string, locale: string): string {
         maximumFractionDigits: 2,
     }).format(value);
 }
+
+export function formatMoney(amount: string, currencyCode: string, locale: string): string {
+    const value = Number.parseFloat(amount);
+
+    if (! Number.isFinite(value)) {
+        return amount;
+    }
+
+    try {
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currencyCode,
+            minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+            maximumFractionDigits: 2,
+        }).format(value);
+    } catch {
+        return formatAmount(amount, locale);
+    }
+}

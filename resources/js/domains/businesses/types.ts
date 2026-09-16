@@ -1,4 +1,24 @@
+import type {
+    BrandColor,
+    ButtonShape,
+    GalleryImage,
+    LinkPlatform,
+    PageTheme,
+    TimeInterval,
+    WeekdayNumber,
+} from '@/lib/booking-brand';
 import type { PhoneCountryCode } from '@/lib/phone';
+
+export type {
+    BrandColor,
+    ButtonShape,
+    GalleryImage,
+    LinkPlatform,
+    PageTheme,
+    TimeInterval,
+    WeekdayNumber,
+    WeeklyHours,
+} from '@/lib/booking-brand';
 
 export type Business = {
     id: string;
@@ -30,53 +50,6 @@ export type CreateBusinessPayload = {
     phone?: BusinessPhonePayload;
 };
 
-export const BRAND_COLORS = [
-    'ink',
-    'red',
-    'orange',
-    'amber',
-    'purple',
-    'blue',
-    'sand',
-    'slate',
-    'teal',
-    'green',
-] as const;
-
-export type BrandColor = (typeof BRAND_COLORS)[number];
-
-export const BUTTON_SHAPES = ['pill', 'rounded', 'rectangle'] as const;
-
-export type ButtonShape = (typeof BUTTON_SHAPES)[number];
-
-export const PAGE_THEMES = ['system', 'light', 'dark'] as const;
-
-export type PageTheme = (typeof PAGE_THEMES)[number];
-
-export const LINK_PLATFORMS = [
-    'website',
-    'instagram',
-    'facebook',
-    'tiktok',
-    'x',
-    'linkedin',
-    'youtube',
-    'whatsapp',
-] as const;
-
-export type LinkPlatform = (typeof LINK_PLATFORMS)[number];
-
-export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
-
-export type WeekdayNumber = (typeof WEEKDAYS)[number];
-
-export type TimeInterval = {
-    starts_at: string;
-    ends_at: string;
-};
-
-export type WeeklyHours = Record<WeekdayNumber, TimeInterval[]>;
-
 export type ScheduleRule = TimeInterval & {
     weekday: WeekdayNumber;
 };
@@ -99,11 +72,6 @@ export type BusinessLink = {
     platform: LinkPlatform;
     url: string;
     position: number;
-};
-
-export type GalleryImage = {
-    id: string;
-    url: string;
 };
 
 export type BookingPageSettings = {

@@ -130,5 +130,68 @@
             "confirmed": "Appointment confirmed",
             "openSlot": "{{time}} free"
         }
+    },
+    "booking": {
+        "pageTitle": "Booking page",
+        "loading": "Loading the page…",
+        "failed": {
+            "title": "We could not load this page.",
+            "body": "Check your connection and try again."
+        },
+        "nav": {
+            "services": "Services",
+            "team": "Team",
+            "about": "About",
+            "gallery": "Gallery",
+            "location": "Address"
+        },
+        "header": {
+            "call": "Call us"
+        },
+        "cta": {
+            "book": "Book",
+            "soon": "Online booking is coming to this page soon."
+        },
+        "services": {
+            "duration_one": "{{count}} min",
+            "duration_other": "{{count}} mins",
+            "free": "Free",
+            "summary": "{{duration}} · {{price}}"
+        },
+        "hours": {
+            "title": "Opening hours",
+            "today": "Today",
+            "openNow": "Open now · closes at {{time}}",
+            "closedNow": "Closed now · opens {{day}} at {{time}}",
+            "timezone": "Times shown in {{timezone}}"
+        },
+        "gallery": {
+            "title": "Photos",
+            "description": "Photos of {{name}}",
+            "showAll": "Show all photos",
+            "close": "Close photos",
+            "openPhoto": "View photo {{position}}",
+            "more_one": "+{{count}} photo",
+            "more_other": "+{{count}} photos"
+        },
+        "location": {
+            "directions": "Get directions"
+        },
+        "links": {
+            "title": "Social",
+            "platforms": {
+                "website": "Website",
+                "instagram": "Instagram",
+                "facebook": "Facebook",
+                "tiktok": "TikTok",
+                "x": "X",
+                "linkedin": "LinkedIn",
+                "youtube": "YouTube",
+                "whatsapp": "WhatsApp"
+            }
+        },
+        "footer": {
+            "poweredBy": "Booking page built with {{name}}"
+        }
     }
 }

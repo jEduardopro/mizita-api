@@ -29,7 +29,7 @@ function serviceResourceData(
         color: $color,
         active: $active,
         imageUrl: $imageUrl,
-        bookingUrl: 'https://mizita.test/b/ada-salon/corte-de-pelo',
+        bookingUrl: 'https://mizita.test/ada-salon/corte-de-pelo',
         staff: $staff,
         createdAt: ServiceFixtures::now(),
     );
@@ -55,7 +55,7 @@ it('serializes exactly the thirteen fields the client transcribed', function () 
         'color' => 'teal',
         'active' => true,
         'image_url' => 'https://cdn.mizita.test/corte.png',
-        'booking_url' => 'https://mizita.test/b/ada-salon/corte-de-pelo',
+        'booking_url' => 'https://mizita.test/ada-salon/corte-de-pelo',
         'staff' => [],
         'created_at' => '2026-01-01T12:00:00+00:00',
     ]);

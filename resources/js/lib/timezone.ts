@@ -29,6 +29,23 @@ export function isoWeekdayIn(timeZone: string, instant: Date): IsoWeekday | null
     }
 }
 
+export function timeOfDayIn(timeZone: string, instant: Date): string | null {
+    if (timeZone === '') {
+        return null;
+    }
+
+    try {
+        return new Intl.DateTimeFormat('en-GB', {
+            timeZone,
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+        }).format(instant);
+    } catch {
+        return null;
+    }
+}
+
 export function resolvedTimezone(): string {
     try {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

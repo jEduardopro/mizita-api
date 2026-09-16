@@ -55,6 +55,7 @@ export function BrandDetailsSection({ form }: Props) {
 
             <BookingUrlField
                 value={form.values.slug}
+                savedSlug={form.savedSlug}
                 onChange={(value) => form.update('slug', value)}
                 error={form.errorFor('slug')}
             />

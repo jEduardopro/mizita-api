@@ -1,7 +1,11 @@
 <?php
 
+use App\Domains\PublicCatalog\Application\Dtos\ConfirmBusinessPageInput;
+use App\Domains\PublicCatalog\Application\UseCases\ConfirmBusinessPage;
+use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 Route::get('/', fn () => Inertia::render('public/welcome'));
 
@@ -24,3 +28,25 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
     Route::get('/settings/business', fn () => Inertia::render('admin/settings/business'))->name('settings.business');
 });
+
+$bookingPageSlug = PublicCatalogServiceProvider::BOOKING_PAGE_SLUG_PATTERN;
+$serviceSlug = PublicCatalogServiceProvider::SLUG_PATTERN;
+
+Route::get('/{slug}', function (string $slug, ConfirmBusinessPage $confirmBusinessPage) {
+    $page = $confirmBusinessPage->handle(new ConfirmBusinessPageInput($slug));
+
+    abort_if($page->failed(), Response::HTTP_NOT_FOUND);
+
+    return Inertia::render('public/businesses/show', ['slug' => $page->value()->slug]);
+})->where('slug', $bookingPageSlug)->name('booking-page');
+
+Route::get('/{slug}/{service}', function (string $slug, string $service, ConfirmBusinessPage $confirmBusinessPage) {
+    $page = $confirmBusinessPage->handle(new ConfirmBusinessPageInput($slug));
+
+    abort_if($page->failed(), Response::HTTP_NOT_FOUND);
+
+    return Inertia::render('public/businesses/show', [
+        'slug' => $page->value()->slug,
+        'serviceSlug' => $service,
+    ]);
+})->where(['slug' => $bookingPageSlug, 'service' => $serviceSlug])->name('booking-page.service');

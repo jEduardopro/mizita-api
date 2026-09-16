@@ -70,7 +70,7 @@ describe('creating a service', function () {
             ->and($data->color)->toBe(ServiceColor::Teal)
             ->and($data->active)->toBeTrue()
             ->and($data->imageUrl)->toBeNull()
-            ->and($data->bookingUrl)->toBe('https://mizita.test/b/ada-salon/corte-de-pelo')
+            ->and($data->bookingUrl)->toBe('https://mizita.test/ada-salon/corte-de-pelo')
             ->and($data->staff)->toHaveCount(1)
             ->and($data->staff[0]->name)->toBe('Ada Lovelace')
             ->and($data->createdAt)->toEqual(ServiceFixtures::now());

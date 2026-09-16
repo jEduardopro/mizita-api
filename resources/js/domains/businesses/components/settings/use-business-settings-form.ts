@@ -18,6 +18,7 @@ export const BUSINESS_SETTINGS_FORM_ID = 'business-settings-form';
 
 export type BusinessSettingsFormController = {
     values: BusinessSettingsFormValues;
+    savedSlug: string;
     update: <TKey extends BusinessSettingsField>(
         key: TKey,
         value: BusinessSettingsFormValues[TKey],
@@ -103,6 +104,7 @@ export function useBusinessSettingsForm(): BusinessSettingsFormController {
 
     return {
         values,
+        savedSlug: settings?.slug ?? '',
         update,
         errorFor,
         isLoading: settingsQuery.isPending,

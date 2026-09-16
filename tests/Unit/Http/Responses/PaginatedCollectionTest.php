@@ -30,7 +30,7 @@ function pagedService(string $id, string $name, string $slug): ServiceData
         color: ServiceColor::Teal,
         active: true,
         imageUrl: null,
-        bookingUrl: 'https://mizita.test/b/ada-salon/'.$slug,
+        bookingUrl: 'https://mizita.test/ada-salon/'.$slug,
         staff: [],
         createdAt: ServiceFixtures::now(),
     );

@@ -232,6 +232,7 @@
         "preview": {
             "title": "Vista previa",
             "description": "Así verán tu página de reservas tus clientes.",
+            "open": "Ver página",
             "book": "Reservar",
             "namePlaceholder": "El nombre de tu negocio",
             "aboutPlaceholder": "Cuenta en dos líneas a qué se dedica tu negocio.",
@@ -291,21 +292,11 @@
         "hours": {
             "label": "Horario de atención",
             "hint": "Puedes abrir y cerrar varias veces el mismo día.",
-            "closed": "Cerrado",
             "from": "Hora de apertura",
             "to": "Hora de cierre",
             "addInterval": "Añadir horario",
             "removeInterval": "Quitar este horario",
             "copyToAllDays": "Copiar {{day}} a todos los días",
-            "days": {
-                "monday": "Lunes",
-                "tuesday": "Martes",
-                "wednesday": "Miércoles",
-                "thursday": "Jueves",
-                "friday": "Viernes",
-                "saturday": "Sábado",
-                "sunday": "Domingo"
-            },
             "title": "Horario de atención",
             "description": "Las horas en las que tus clientes pueden reservar.",
             "staffNote": "Cada persona de tu equipo puede tener su propio horario dentro de estas horas."
@@ -359,7 +350,12 @@
             },
             "url": {
                 "label": "Enlace de tu página de reservas",
-                "hint": "Este es el enlace que compartes con tus clientes."
+                "hint": "Este es el enlace que compartes con tus clientes.",
+                "unsavedHint": "Abrir y copiar siguen usando tu enlace guardado, /{{slug}}. Guarda los cambios para estrenar el nuevo.",
+                "open": "Abrir tu página de reservas",
+                "copy": "Copiar el enlace",
+                "copied": "Enlace copiado",
+                "copyFailed": "No pudimos copiar el enlace. Cópialo a mano."
             },
             "industry": {
                 "label": "Giro",

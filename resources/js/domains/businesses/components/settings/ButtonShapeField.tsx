@@ -2,7 +2,7 @@ import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { BUTTON_SHAPES, type ButtonShape } from '@/domains/businesses/types';
+import { BUTTON_SHAPES, type ButtonShape } from '@/lib/booking-brand';
 
 const FIELD_ID = 'button-shape';
 

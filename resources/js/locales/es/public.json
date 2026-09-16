@@ -130,5 +130,68 @@
             "confirmed": "Cita confirmada",
             "openSlot": "{{time}} libre"
         }
+    },
+    "booking": {
+        "pageTitle": "Página de reservas",
+        "loading": "Cargando la página…",
+        "failed": {
+            "title": "No pudimos cargar esta página.",
+            "body": "Revisa tu conexión e inténtalo otra vez."
+        },
+        "nav": {
+            "services": "Servicios",
+            "team": "Equipo",
+            "about": "Acerca de",
+            "gallery": "Galería",
+            "location": "Dirección"
+        },
+        "header": {
+            "call": "Llámanos"
+        },
+        "cta": {
+            "book": "Reservar",
+            "soon": "Muy pronto podrás reservar en línea desde aquí."
+        },
+        "services": {
+            "duration_one": "{{count}} min",
+            "duration_other": "{{count}} min",
+            "free": "Gratis",
+            "summary": "{{duration}} · {{price}}"
+        },
+        "hours": {
+            "title": "Horarios",
+            "today": "Hoy",
+            "openNow": "Abierto ahora · cierra a las {{time}}",
+            "closedNow": "Cerrado ahora · abre {{day}} a las {{time}}",
+            "timezone": "Horarios en {{timezone}}"
+        },
+        "gallery": {
+            "title": "Fotos",
+            "description": "Fotos de {{name}}",
+            "showAll": "Mostrar todas las fotos",
+            "close": "Cerrar las fotos",
+            "openPhoto": "Ver la foto {{position}}",
+            "more_one": "+{{count}} foto",
+            "more_other": "+{{count}} fotos"
+        },
+        "location": {
+            "directions": "Cómo llegar"
+        },
+        "links": {
+            "title": "Redes",
+            "platforms": {
+                "website": "Sitio web",
+                "instagram": "Instagram",
+                "facebook": "Facebook",
+                "tiktok": "TikTok",
+                "x": "X",
+                "linkedin": "LinkedIn",
+                "youtube": "YouTube",
+                "whatsapp": "WhatsApp"
+            }
+        },
+        "footer": {
+            "poweredBy": "Página de reservas creada con {{name}}"
+        }
     }
 }

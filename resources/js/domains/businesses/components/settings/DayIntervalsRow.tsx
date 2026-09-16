@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { TimeInterval } from '@/domains/businesses/types';
+import type { TimeInterval } from '@/lib/booking-brand';
 
 type IntervalRowProps = {
     interval: TimeInterval;
@@ -72,6 +72,7 @@ export function DayIntervalsRow({
     onCopyToAllDays,
 }: Props) {
     const { t } = useTranslation('admin');
+    const { t: tCommon } = useTranslation('common');
     const switchId = useId();
     const isOpen = intervals.length > 0;
 
@@ -121,7 +122,7 @@ export function DayIntervalsRow({
             ) : (
                 <div className="flex min-h-11 items-center">
                     <Badge variant="outline" className="h-6 px-2.5">
-                        {t('businessSettings.hours.closed')}
+                        {tCommon('hours.closed')}
                     </Badge>
                 </div>
             )}

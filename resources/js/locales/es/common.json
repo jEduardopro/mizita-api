@@ -54,6 +54,18 @@
         "loadingMore": "Cargando más…",
         "clear": "Limpiar la búsqueda"
     },
+    "weekdays": {
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado",
+        "sunday": "Domingo"
+    },
+    "hours": {
+        "closed": "Cerrado"
+    },
     "notifications": {
         "region": "Notificaciones",
         "dismiss": "Cerrar la notificación"

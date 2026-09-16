@@ -19,6 +19,11 @@ interface ServiceRepository
     public function search(string $businessId, ServiceQuery $query): Paginated;
 
     /**
+     * @return list<Service>
+     */
+    public function activeForBusiness(string $businessId): array;
+
+    /**
      * @throws ServiceNotFound
      */
     public function findForBusiness(string $businessId, string $id): Service;

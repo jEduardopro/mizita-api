@@ -58,7 +58,7 @@ describe('describing one service', function () {
             ->and($data->color)->toBe(ServiceColor::Amber)
             ->and($data->active)->toBeTrue()
             ->and($data->imageUrl)->toBe('https://cdn.mizita.test/corte.png')
-            ->and($data->bookingUrl)->toBe('https://mizita.test/b/ada-salon/corte-de-pelo')
+            ->and($data->bookingUrl)->toBe('https://mizita.test/ada-salon/corte-de-pelo')
             ->and($data->createdAt)->toEqual(ServiceFixtures::now());
     });
 
@@ -188,9 +188,9 @@ describe('describing a page of services', function () {
         $page = $this->presenter->describePage(FakeBusinessContext::BUSINESS_ID, ($this->page)($this->services));
 
         expect(array_map(static fn (ServiceData $data): string => $data->bookingUrl, $page->items))->toBe([
-            'https://mizita.test/b/ada-salon/corte-de-pelo',
-            'https://mizita.test/b/ada-salon/barba',
-            'https://mizita.test/b/ada-salon/tinte',
+            'https://mizita.test/ada-salon/corte-de-pelo',
+            'https://mizita.test/ada-salon/barba',
+            'https://mizita.test/ada-salon/tinte',
         ]);
     });
 

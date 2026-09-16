@@ -1,6 +1,56 @@
-import type { BrandColor } from '@/domains/businesses/types';
+export const BRAND_COLORS = [
+    'ink',
+    'red',
+    'orange',
+    'amber',
+    'purple',
+    'blue',
+    'sand',
+    'slate',
+    'teal',
+    'green',
+] as const;
 
-type BrandColorClasses = {
+export type BrandColor = (typeof BRAND_COLORS)[number];
+
+export const BUTTON_SHAPES = ['pill', 'rounded', 'rectangle'] as const;
+
+export type ButtonShape = (typeof BUTTON_SHAPES)[number];
+
+export const PAGE_THEMES = ['system', 'light', 'dark'] as const;
+
+export type PageTheme = (typeof PAGE_THEMES)[number];
+
+export const LINK_PLATFORMS = [
+    'website',
+    'instagram',
+    'facebook',
+    'tiktok',
+    'x',
+    'linkedin',
+    'youtube',
+    'whatsapp',
+] as const;
+
+export type LinkPlatform = (typeof LINK_PLATFORMS)[number];
+
+export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+
+export type WeekdayNumber = (typeof WEEKDAYS)[number];
+
+export type TimeInterval = {
+    starts_at: string;
+    ends_at: string;
+};
+
+export type WeeklyHours = Record<WeekdayNumber, TimeInterval[]>;
+
+export type GalleryImage = {
+    id: string;
+    url: string;
+};
+
+export type BrandColorClasses = {
     accent: string;
     accentForeground: string;
     surface: string;
@@ -57,4 +107,16 @@ export const brandColorClasses: Record<BrandColor, BrandColorClasses> = {
         accentForeground: 'text-brand-accent-green-foreground',
         surface: 'bg-brand-accent-green-surface',
     },
+};
+
+export const BUTTON_SHAPE_CLASSES: Record<ButtonShape, string> = {
+    pill: 'rounded-full',
+    rounded: 'rounded-lg',
+    rectangle: 'rounded-none',
+};
+
+export const THEME_SCOPES: Record<PageTheme, string | undefined> = {
+    system: undefined,
+    light: 'theme-light',
+    dark: 'dark',
 };

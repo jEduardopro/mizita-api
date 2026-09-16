@@ -59,6 +59,24 @@ export function LinkedinIcon(props: SocialIconProps) {
     );
 }
 
+export function TiktokIcon(props: SocialIconProps) {
+    return (
+        <Glyph {...props}>
+            <path d="M15 3v11.5a3.5 3.5 0 1 1-3.5-3.5" />
+            <path d="M15 3a5 5 0 0 0 5 5" />
+        </Glyph>
+    );
+}
+
+export function WhatsappIcon(props: SocialIconProps) {
+    return (
+        <Glyph {...props}>
+            <path d="M21 11.5a8.5 8.5 0 0 1-12.8 7.3L3 21l2.3-5.1A8.5 8.5 0 1 1 21 11.5z" />
+            <path d="M9.4 9.6c0 2.8 2.2 5 5 5" />
+        </Glyph>
+    );
+}
+
 export function YoutubeIcon(props: SocialIconProps) {
     return (
         <Glyph {...props}>

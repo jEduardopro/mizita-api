@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { FormField } from '@/components/form/FormField';
-import { LINK_PLATFORMS, type LinkPlatform } from '@/domains/businesses/types';
+import { LINK_PLATFORMS, type LinkPlatform } from '@/lib/booking-brand';
 import { BUSINESS_SETTINGS_SECTION_IDS } from './business-settings-values';
 import { SettingsSection } from './SettingsSection';
 import type { BusinessSettingsFormController } from './use-business-settings-form';

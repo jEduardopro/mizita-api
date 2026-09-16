@@ -15,6 +15,11 @@ final class BusinessNotFound extends RuntimeException implements DomainFailure
         return new self("Business [{$id}] was not found.");
     }
 
+    public static function withSlug(string $slug): self
+    {
+        return new self("Business [{$slug}] was not found.");
+    }
+
     public function errorCode(): string
     {
         return 'business_not_found';

@@ -6,7 +6,7 @@ namespace App\Domains\Services\Services;
 
 final class BookingLinks
 {
-    private const PUBLIC_PREFIX = '/b/';
+    private const PUBLIC_PREFIX = '/';
 
     private const SEPARATOR = '/';
 

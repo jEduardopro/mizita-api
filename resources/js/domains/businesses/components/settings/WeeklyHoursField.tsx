@@ -5,7 +5,8 @@ import {
     type TimeInterval,
     type WeekdayNumber,
     type WeeklyHours,
-} from '@/domains/businesses/types';
+} from '@/lib/booking-brand';
+import { WEEKDAY_LABEL_KEYS } from '@/lib/weekdays';
 import { DayIntervalsRow } from './DayIntervalsRow';
 
 const FIELD_ID = 'weekly-hours';
@@ -13,16 +14,6 @@ const FIELD_ID = 'weekly-hours';
 const OPENING_INTERVAL: TimeInterval = { starts_at: '09:00', ends_at: '17:00' };
 
 const BLANK_INTERVAL: TimeInterval = { starts_at: '', ends_at: '' };
-
-const DAY_LABEL_KEYS = {
-    1: 'businessSettings.hours.days.monday',
-    2: 'businessSettings.hours.days.tuesday',
-    3: 'businessSettings.hours.days.wednesday',
-    4: 'businessSettings.hours.days.thursday',
-    5: 'businessSettings.hours.days.friday',
-    6: 'businessSettings.hours.days.saturday',
-    7: 'businessSettings.hours.days.sunday',
-} as const satisfies Record<WeekdayNumber, string>;
 
 function clonedIntervals(intervals: TimeInterval[]): TimeInterval[] {
     return intervals.map((interval) => ({ ...interval }));
@@ -48,6 +39,7 @@ type Props = {
 
 export function WeeklyHoursField({ value, onChange, error }: Props) {
     const { t } = useTranslation('admin');
+    const { t: tCommon } = useTranslation('common');
 
     const message = fieldMessage({ id: FIELD_ID, error, hint: t('businessSettings.hours.hint') });
 
@@ -70,7 +62,7 @@ export function WeeklyHoursField({ value, onChange, error }: Props) {
                 {WEEKDAYS.map((weekday) => (
                     <DayIntervalsRow
                         key={weekday}
-                        label={t(DAY_LABEL_KEYS[weekday])}
+                        label={tCommon(WEEKDAY_LABEL_KEYS[weekday])}
                         intervals={value[weekday]}
                         onToggle={(isOpen) =>
                             replaceDay(weekday, isOpen ? [{ ...OPENING_INTERVAL }] : [])

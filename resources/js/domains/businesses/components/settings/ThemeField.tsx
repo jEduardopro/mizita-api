@@ -3,7 +3,7 @@ import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PAGE_THEMES, type PageTheme } from '@/domains/businesses/types';
+import { PAGE_THEMES, type PageTheme } from '@/lib/booking-brand';
 
 const FIELD_ID = 'page-theme';
 

@@ -50,7 +50,7 @@ it('answers with the service of the business in context', function () {
         ->and($data->slug)->toBe(ServiceFixtures::SLUG)
         ->and($data->price)->toBe('250.00')
         ->and($data->imageUrl)->toBe('https://cdn.mizita.test/corte.png')
-        ->and($data->bookingUrl)->toBe('https://mizita.test/b/ada-salon/corte-de-pelo')
+        ->and($data->bookingUrl)->toBe('https://mizita.test/ada-salon/corte-de-pelo')
         ->and($data->staff)->toHaveCount(1)
         ->and($data->staff[0]->name)->toBe('Ada Lovelace');
 });

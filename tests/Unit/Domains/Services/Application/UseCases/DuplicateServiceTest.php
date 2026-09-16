@@ -70,7 +70,7 @@ describe('duplicating a service', function () {
         expect($data->id)->toBe(ServiceFixtures::GENERATED_SERVICE_ID)
             ->and($data->name)->toBe('Corte de pelo (Copy)')
             ->and($data->slug)->toBe('corte-de-pelo-copy')
-            ->and($data->bookingUrl)->toBe('https://mizita.test/b/ada-salon/corte-de-pelo-copy')
+            ->and($data->bookingUrl)->toBe('https://mizita.test/ada-salon/corte-de-pelo-copy')
             ->and($data->createdAt)->toEqual(new DateTimeImmutable('2026-03-29T10:00:00+00:00'));
     });
 

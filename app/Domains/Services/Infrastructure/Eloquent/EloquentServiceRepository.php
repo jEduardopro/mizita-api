@@ -37,6 +37,8 @@ final class EloquentServiceRepository implements ServiceRepository
 
     private const TIEBREAKER_COLUMN = 'id';
 
+    private const MAXIMUM_ACTIVE_SERVICES = 200;
+
     public function __construct(
         private readonly ServiceMapper $mapper,
         private readonly TokenSearch $tokenSearch,
@@ -66,6 +68,23 @@ final class EloquentServiceRepository implements ServiceRepository
             $total,
             $query->pagination,
         );
+    }
+
+    /**
+     * @return list<Service>
+     */
+    public function activeForBusiness(string $businessId): array
+    {
+        return $this->ofBusiness($businessId)
+            ->with(self::STAFF_SELECTION)
+            ->where('active', true)
+            ->orderBy('name')
+            ->orderBy(self::TIEBREAKER_COLUMN)
+            ->limit(self::MAXIMUM_ACTIVE_SERVICES)
+            ->get()
+            ->map(fn (ServiceModel $model): Service => $this->mapper->toEntity($model, $businessId))
+            ->values()
+            ->all();
     }
 
     public function findForBusiness(string $businessId, string $id): Service

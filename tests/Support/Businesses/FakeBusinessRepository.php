@@ -51,6 +51,11 @@ final class FakeBusinessRepository implements BusinessRepository
     /**
      * @var list<string>
      */
+    public array $slugsRead = [];
+
+    /**
+     * @var list<string>
+     */
     public array $deleted = [];
 
     public function store(Business ...$businesses): self
@@ -88,6 +93,21 @@ final class FakeBusinessRepository implements BusinessRepository
         $this->idsRead[] = $id;
 
         return $this->businesses[$id] ?? throw BusinessNotFound::withId($id);
+    }
+
+    public function findBySlug(string $slug): Business
+    {
+        $this->slugsRead[] = $slug;
+
+        return $this->matching($slug) ?? throw BusinessNotFound::withSlug($slug);
+    }
+
+    public function existsBySlug(string $slug): bool
+    {
+        $this->slugsRead[] = $slug;
+
+        return $this->matching($slug) !== null
+            || in_array(self::fold($slug), array_map(self::fold(...), $this->takenSlugs), true);
     }
 
     /**
@@ -144,5 +164,21 @@ final class FakeBusinessRepository implements BusinessRepository
         $this->deleted[] = $id;
 
         unset($this->businesses[$id]);
+    }
+
+    private function matching(string $slug): ?Business
+    {
+        foreach ($this->businesses as $business) {
+            if (self::fold($business->slug()) === self::fold($slug)) {
+                return $business;
+            }
+        }
+
+        return null;
+    }
+
+    private static function fold(string $slug): string
+    {
+        return mb_strtolower(trim($slug));
     }
 }

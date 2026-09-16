@@ -116,6 +116,23 @@ final class FakeServiceRepository implements ServiceRepository
         return $this->page ?? Paginated::of([], 0, $query->pagination);
     }
 
+    /**
+     * @return list<Service>
+     */
+    public function activeForBusiness(string $businessId): array
+    {
+        $this->businessIdsSeen[] = $businessId;
+
+        $active = array_values(array_filter(
+            $this->services,
+            static fn (Service $service): bool => $service->businessId === $businessId && $service->isActive(),
+        ));
+
+        usort($active, static fn (Service $one, Service $other): int => $one->name() <=> $other->name());
+
+        return $active;
+    }
+
     public function findForBusiness(string $businessId, string $id): Service
     {
         $this->businessIdsSeen[] = $businessId;

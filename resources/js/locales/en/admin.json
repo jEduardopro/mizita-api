@@ -232,6 +232,7 @@
         "preview": {
             "title": "Preview",
             "description": "How your booking page will look to customers.",
+            "open": "View page",
             "book": "Book",
             "namePlaceholder": "Your business name",
             "aboutPlaceholder": "Say in two lines what your business does.",
@@ -291,21 +292,11 @@
         "hours": {
             "label": "Opening hours",
             "hint": "You can open and close more than once on the same day.",
-            "closed": "Closed",
             "from": "Opening time",
             "to": "Closing time",
             "addInterval": "Add hours",
             "removeInterval": "Remove these hours",
             "copyToAllDays": "Copy {{day}} to every day",
-            "days": {
-                "monday": "Monday",
-                "tuesday": "Tuesday",
-                "wednesday": "Wednesday",
-                "thursday": "Thursday",
-                "friday": "Friday",
-                "saturday": "Saturday",
-                "sunday": "Sunday"
-            },
             "title": "Business hours",
             "description": "The hours when customers can book with you.",
             "staffNote": "Each team member can keep their own hours within these."
@@ -359,7 +350,12 @@
             },
             "url": {
                 "label": "Your booking page link",
-                "hint": "This is the link you share with your customers."
+                "hint": "This is the link you share with your customers.",
+                "unsavedHint": "Open and copy still use your saved link, /{{slug}}. Save your changes to start using the new one.",
+                "open": "Open your booking page",
+                "copy": "Copy the link",
+                "copied": "Link copied",
+                "copyFailed": "We could not copy the link. Copy it by hand."
             },
             "industry": {
                 "label": "Industry",

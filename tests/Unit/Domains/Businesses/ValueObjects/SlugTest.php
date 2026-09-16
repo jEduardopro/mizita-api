@@ -6,6 +6,17 @@ use App\Domains\Businesses\Exceptions\BusinessNameNotSluggable;
 use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use App\Domains\Businesses\ValueObjects\Slug;
 
+/**
+ * @return list<string>
+ */
+function reservedBusinessSlugs(): array
+{
+    /** @var list<string> $reserved */
+    $reserved = (new ReflectionClass(Slug::class))->getConstant('RESERVED');
+
+    return $reserved;
+}
+
 describe('normalising a name', function () {
     it('turns a name into the address it will publish', function (string $name, string $expected) {
         expect(Slug::fromName($name)->value)->toBe($expected);
@@ -56,15 +67,26 @@ describe('names that produce no address', function () {
         'emoji only' => '💇',
     ]);
 
-    it('refuses every reserved word, whatever case it was typed in', function (string $reserved) {
+    it('refuses every reserved word it declares, whatever case it was typed in', function (string $reserved) {
         expect(fn () => Slug::fromName($reserved))->toThrow(BusinessNameNotSluggable::class)
             ->and(Slug::tryFromName(strtoupper($reserved)))->toBeNull()
             ->and(Slug::tryFromName("  {$reserved}  "))->toBeNull();
-    })->with([
-        'api', 'admin', 'dashboard', 'onboarding', 'calendar', 'services',
-        'customers', 'settings', 'me', 'auth', 'login', 'register', 'logout',
-        'sanctum', 'up', 'terms', 'privacy', 'cookies',
-    ]);
+    })->with(fn () => reservedBusinessSlugs());
+
+    it('refuses every reserved word arriving as a slug of its own', function (string $reserved) {
+        expect(fn () => Slug::fromString($reserved))
+            ->toThrow(InvalidBusinessSlug::class, "[{$reserved}] is a reserved slug.");
+    })->with(fn () => reservedBusinessSlugs());
+
+    it('reserves each word once, and only words a business could otherwise have claimed', function () {
+        $reserved = reservedBusinessSlugs();
+
+        expect(array_values(array_unique($reserved)))->toBe($reserved)
+            ->and(array_values(array_filter(
+                $reserved,
+                static fn (string $word): bool => preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $word) !== 1,
+            )))->toBe([]);
+    });
 
     it('refuses a name that would collide with an admin url', function (string $name, string $collision) {
         expect(fn () => Slug::fromName($name))

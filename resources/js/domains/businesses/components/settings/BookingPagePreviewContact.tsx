@@ -1,7 +1,7 @@
 import { cn } from 'cn';
 import { MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { LINK_PLATFORMS, type LinkPlatform } from '@/domains/businesses/types';
+import { LINK_PLATFORMS, type LinkPlatform } from '@/lib/booking-brand';
 
 const PLATFORM_LABEL_KEYS = {
     website: 'businessSettings.preview.social.platforms.website',

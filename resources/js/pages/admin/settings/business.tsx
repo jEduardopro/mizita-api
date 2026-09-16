@@ -109,6 +109,7 @@ export default function BusinessSettings() {
                             values={form.values}
                             logoUrl={form.logo.shownUrl}
                             bannerUrl={form.banner.shownUrl}
+                            savedSlug={form.savedSlug}
                         />
                     </div>
                 </div>
