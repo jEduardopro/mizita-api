@@ -4,8 +4,8 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     ComboboxField,
+    comboboxOptionsStatus,
     type ComboboxOption,
-    type ComboboxOptionsStatus,
 } from '@/components/form/ComboboxField';
 import type { HintTone } from '@/components/form/FieldMessage';
 import { FormField } from '@/components/form/FormField';
@@ -62,18 +62,6 @@ function nameVerdict(status: NameStatus, slug: string | null, t: AdminTranslate)
     return slug === null
         ? { hint: t('onboarding.name.available'), hintTone: 'positive' }
         : { hint: t('onboarding.name.link', { url: bookingUrl(slug) }), hintTone: 'positive' };
-}
-
-function optionsStatusFrom(isPending: boolean, isError: boolean): ComboboxOptionsStatus {
-    if (isPending) {
-        return 'pending';
-    }
-
-    if (isError) {
-        return 'error';
-    }
-
-    return 'ready';
 }
 
 function phoneErrorFrom(fieldErrors: FieldErrors): string | undefined {
@@ -196,7 +184,7 @@ export function BusinessOnboardingForm({ industries }: Props) {
                         setIndustryId(value);
                         clearField('industry_id');
                     }}
-                    optionsStatus={optionsStatusFrom(industries.isPending, industries.isError)}
+                    optionsStatus={comboboxOptionsStatus(industries.isPending, industries.isError)}
                     onRetryOptions={industries.refetch}
                     messages={{
                         empty: t('onboarding.industry.empty'),

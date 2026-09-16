@@ -15,6 +15,9 @@ final readonly class BusinessData
         public string $slug,
         public string $timezone,
         public string $industryId,
+        public ?string $contactEmail,
+        public ?string $about,
+        public string $currency,
         public DateTimeImmutable $createdAt,
     ) {}
 
@@ -25,7 +28,10 @@ final readonly class BusinessData
             name: $business->name(),
             slug: $business->slug(),
             timezone: $business->timezone(),
-            industryId: $business->industryId,
+            industryId: $business->industryId(),
+            contactEmail: $business->contactEmail(),
+            about: $business->about(),
+            currency: $business->currency(),
             createdAt: $business->createdAt,
         );
     }

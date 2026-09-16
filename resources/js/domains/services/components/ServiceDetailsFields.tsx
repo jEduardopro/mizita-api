@@ -48,8 +48,7 @@ export function ServiceDetailsFields({ form }: Props) {
                 <ImageField
                     id="service-image"
                     label={t('services.form.image.label')}
-                    file={form.image.file}
-                    previewUrl={form.image.previewUrl}
+                    shownUrl={form.image.shownUrl}
                     onSelect={form.image.select}
                     onClear={form.image.clear}
                     accept={SERVICE_IMAGE_MIME_TYPES}

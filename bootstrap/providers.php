@@ -1,8 +1,12 @@
 <?php
 
 use App\Domains\Accounts\AccountsServiceProvider;
+use App\Domains\Addresses\AddressesServiceProvider;
+use App\Domains\Availability\AvailabilityServiceProvider;
+use App\Domains\BookingPages\BookingPagesServiceProvider;
 use App\Domains\Businesses\BusinessesServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
+use App\Domains\Links\LinksServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
 use App\Domains\Services\ServicesServiceProvider;
 use App\Domains\Staff\StaffServiceProvider;
@@ -20,4 +24,8 @@ return [
     PhonesServiceProvider::class,
     StaffServiceProvider::class,
     ServicesServiceProvider::class,
+    AddressesServiceProvider::class,
+    LinksServiceProvider::class,
+    AvailabilityServiceProvider::class,
+    BookingPagesServiceProvider::class,
 ];

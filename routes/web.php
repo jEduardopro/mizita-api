@@ -22,4 +22,5 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/services/{service}/edit', fn (string $service) => Inertia::render('admin/services/edit', ['serviceId' => $service]))->name('services.edit');
     Route::get('/customers', fn () => Inertia::render('admin/customers'))->name('customers');
     Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
+    Route::get('/settings/business', fn () => Inertia::render('admin/settings/business'))->name('settings.business');
 });

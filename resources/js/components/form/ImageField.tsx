@@ -1,6 +1,6 @@
 import { cn } from 'cn';
 import { ImagePlus, X } from 'lucide-react';
-import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { Button, buttonVariants } from '@/components/ui/button';
 
@@ -16,8 +16,7 @@ export type ImageFieldMessages = {
 type Props = {
     id: string;
     label: string;
-    file: File | null;
-    previewUrl: string | null;
+    shownUrl: string | null;
     onSelect: (file: File) => void;
     onClear: () => void;
     accept: readonly string[];
@@ -25,13 +24,13 @@ type Props = {
     messages: ImageFieldMessages;
     error?: string;
     hint?: string;
+    tileClassName?: string;
 };
 
 export function ImageField({
     id,
     label,
-    file,
-    previewUrl,
+    shownUrl,
     onSelect,
     onClear,
     accept,
@@ -39,26 +38,11 @@ export function ImageField({
     messages,
     error,
     hint,
+    tileClassName,
 }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [rejection, setRejection] = useState<string | null>(null);
-    const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (file === null) {
-            setObjectUrl(null);
-
-            return;
-        }
-
-        const url = URL.createObjectURL(file);
-
-        setObjectUrl(url);
-
-        return () => URL.revokeObjectURL(url);
-    }, [file]);
-
-    const shownUrl = objectUrl ?? previewUrl;
     const message = fieldMessage({ id, error: error ?? rejection ?? undefined, hint });
 
     function selectFile(candidate: File | undefined) {
@@ -114,7 +98,8 @@ export function ImageField({
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={drop}
                     className={cn(
-                        'relative flex size-50 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-input bg-muted/40 text-center transition-colors',
+                        'relative flex shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-input bg-muted/40 text-center transition-colors',
+                        tileClassName ?? 'size-50',
                         'hover:border-ring peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50',
                         message?.tone === 'critical' ? 'border-destructive' : undefined,
                     )}

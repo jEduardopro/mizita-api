@@ -4,25 +4,44 @@ declare(strict_types=1);
 
 namespace App\Domains\Businesses;
 
+use App\Domains\Businesses\Contracts\BookingPageSettings;
+use App\Domains\Businesses\Contracts\BusinessAddressBook;
+use App\Domains\Businesses\Contracts\BusinessLinkList;
+use App\Domains\Businesses\Contracts\BusinessLogo;
 use App\Domains\Businesses\Contracts\BusinessRepository;
+use App\Domains\Businesses\Contracts\BusinessSchedule;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Infrastructure\Eloquent\EloquentBusinessRepository;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
+use App\Domains\Businesses\Infrastructure\Gateways\AddressesBusinessAddressBook;
+use App\Domains\Businesses\Infrastructure\Gateways\AvailabilityBusinessSchedule;
+use App\Domains\Businesses\Infrastructure\Gateways\BookingPagesBookingPageSettings;
 use App\Domains\Businesses\Infrastructure\Gateways\EloquentBusinessTeamKey;
 use App\Domains\Businesses\Infrastructure\Gateways\IndustriesIndustryCatalog;
+use App\Domains\Businesses\Infrastructure\Gateways\LinksBusinessLinkList;
 use App\Domains\Businesses\Infrastructure\Gateways\PhonesPhoneBook;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffOwnerRegistrar;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffRoleProvisioner;
+use App\Domains\Businesses\Infrastructure\Media\SpatieBusinessLogo;
 use App\Shared\Contracts\BusinessTeamKey;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 final class BusinessesServiceProvider extends ServiceProvider
 {
+    private const IMAGE_UPLOAD_LIMITER = 'business-image-uploads';
+
+    private const UPLOADS_PER_MINUTE = 10;
+
+    private const UPLOADS_PER_HOUR = 60;
+
     public function register(): void
     {
         $this->app->bind(BusinessRepository::class, EloquentBusinessRepository::class);
@@ -31,11 +50,18 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(RoleProvisioner::class, StaffRoleProvisioner::class);
         $this->app->bind(PhoneBook::class, PhonesPhoneBook::class);
         $this->app->bind(BusinessTeamKey::class, EloquentBusinessTeamKey::class);
+        $this->app->bind(BusinessLogo::class, SpatieBusinessLogo::class);
+        $this->app->bind(BusinessAddressBook::class, AddressesBusinessAddressBook::class);
+        $this->app->bind(BusinessLinkList::class, LinksBusinessLinkList::class);
+        $this->app->bind(BusinessSchedule::class, AvailabilityBusinessSchedule::class);
+        $this->app->bind(BookingPageSettings::class, BookingPagesBookingPageSettings::class);
     }
 
     public function boot(): void
     {
         Relation::enforceMorphMap(['business' => BusinessModel::class]);
+
+        $this->registerImageUploadLimiter();
 
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum'])
@@ -48,5 +74,24 @@ final class BusinessesServiceProvider extends ServiceProvider
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum', 'business'])
             ->group(__DIR__.'/Infrastructure/Http/routes.php');
+
+        Route::prefix('api')
+            ->middleware(['api', 'auth:sanctum', 'business', 'throttle:'.self::IMAGE_UPLOAD_LIMITER])
+            ->group(__DIR__.'/Infrastructure/Http/media.php');
+    }
+
+    private function registerImageUploadLimiter(): void
+    {
+        RateLimiter::for(self::IMAGE_UPLOAD_LIMITER, static fn (Request $request): array => [
+            Limit::perMinute(self::UPLOADS_PER_MINUTE)->by('minute:'.self::limiterKeyFor($request)),
+            Limit::perHour(self::UPLOADS_PER_HOUR)->by('hour:'.self::limiterKeyFor($request)),
+        ]);
+    }
+
+    private static function limiterKeyFor(Request $request): string
+    {
+        $account = $request->user()?->getAuthIdentifier();
+
+        return $account === null ? 'ip:'.(string) $request->ip() : 'account:'.(string) $account;
     }
 }

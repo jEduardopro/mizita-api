@@ -11,6 +11,18 @@ export type { ComboboxOption };
 
 export type ComboboxOptionsStatus = 'pending' | 'error' | 'ready';
 
+export function comboboxOptionsStatus(isPending: boolean, isError: boolean): ComboboxOptionsStatus {
+    if (isPending) {
+        return 'pending';
+    }
+
+    if (isError) {
+        return 'error';
+    }
+
+    return 'ready';
+}
+
 type Messages = {
     empty: string;
     optionsError: string;

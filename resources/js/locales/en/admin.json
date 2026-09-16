@@ -2,7 +2,8 @@
     "nav": {
         "calendar": "Calendar",
         "services": "Services",
-        "customers": "Customers"
+        "customers": "Customers",
+        "settings": "Settings"
     },
     "shell": {
         "toggleSidebar": "Show or hide the menu",
@@ -223,6 +224,247 @@
         "submitting": "Creating business…",
         "errors": {
             "unexpected": "We could not create your business. Try again."
+        }
+    },
+    "businessSettings": {
+        "title": "Business settings",
+        "description": "Your brand, your contact details and how your booking page looks.",
+        "preview": {
+            "title": "Preview",
+            "description": "How your booking page will look to customers.",
+            "book": "Book",
+            "namePlaceholder": "Your business name",
+            "aboutPlaceholder": "Say in two lines what your business does.",
+            "bannerEmpty": "No cover image yet",
+            "hoursTitle": "Opening hours",
+            "hoursEmpty": "No opening hours yet",
+            "today": "Today",
+            "locationTitle": "Where to find us",
+            "locationEmpty": "No address yet",
+            "social": {
+                "title": "Links",
+                "empty": "No links yet",
+                "platforms": {
+                    "website": "Website",
+                    "instagram": "Instagram",
+                    "facebook": "Facebook",
+                    "tiktok": "TikTok",
+                    "x": "X",
+                    "linkedin": "LinkedIn",
+                    "youtube": "YouTube",
+                    "whatsapp": "WhatsApp"
+                }
+            }
+        },
+        "brandColor": {
+            "label": "Your brand colour",
+            "hint": "Tints the buttons and accents on your booking page.",
+            "colors": {
+                "ink": "Ink",
+                "red": "Red",
+                "orange": "Orange",
+                "amber": "Amber",
+                "purple": "Purple",
+                "blue": "Blue",
+                "sand": "Sand",
+                "slate": "Slate",
+                "teal": "Teal",
+                "green": "Green"
+            }
+        },
+        "buttonShape": {
+            "label": "Button shape",
+            "shapes": {
+                "pill": "Pill",
+                "rounded": "Rounded",
+                "rectangle": "Rectangle"
+            }
+        },
+        "theme": {
+            "label": "Page theme",
+            "themes": {
+                "system": "System",
+                "light": "Light",
+                "dark": "Dark"
+            }
+        },
+        "hours": {
+            "label": "Opening hours",
+            "hint": "You can open and close more than once on the same day.",
+            "closed": "Closed",
+            "from": "Opening time",
+            "to": "Closing time",
+            "addInterval": "Add hours",
+            "removeInterval": "Remove these hours",
+            "copyToAllDays": "Copy {{day}} to every day",
+            "days": {
+                "monday": "Monday",
+                "tuesday": "Tuesday",
+                "wednesday": "Wednesday",
+                "thursday": "Thursday",
+                "friday": "Friday",
+                "saturday": "Saturday",
+                "sunday": "Sunday"
+            },
+            "title": "Business hours",
+            "description": "The hours when customers can book with you.",
+            "staffNote": "Each team member can keep their own hours within these."
+        },
+        "media": {
+            "upload": "Upload",
+            "replace": "Replace image",
+            "remove": "Remove",
+            "unsupported": "We accept JPG, PNG and WebP only.",
+            "failed": "We saved your details, but not the images. Try again."
+        },
+        "logo": {
+            "label": "Logo",
+            "hint": "Square, JPG, PNG or WebP, up to 2 MB.",
+            "choose": "Drag your logo here, or tap to choose it",
+            "tooLarge": "That logo is over 2 MB. Choose a smaller one."
+        },
+        "banner": {
+            "label": "Cover image",
+            "hint": "Landscape 16:9, JPG, PNG or WebP, up to 5 MB.",
+            "choose": "Drag your cover image here, or tap to choose it",
+            "tooLarge": "That cover image is over 5 MB. Choose a smaller one."
+        },
+        "gallery": {
+            "label": "Gallery",
+            "count": "{{used}} of {{max}} photos",
+            "add": "Add",
+            "remove": "Remove photo {{position}}",
+            "tooLarge": "Each photo can weigh up to 5 MB. Choose smaller ones.",
+            "full": "You can upload up to {{max}} photos.",
+            "showAll": "See all photos",
+            "sheetTitle": "Your photos",
+            "sheetDescription": "Reorder them or remove the ones you no longer want. The first one opens the gallery.",
+            "moveUp": "Move photo {{position}} up",
+            "moveDown": "Move photo {{position}} down"
+        },
+        "sections": {
+            "brand": "Your brand",
+            "appearance": "Appearance",
+            "contact": "Contact",
+            "location": "Location",
+            "hours": "Hours",
+            "links": "Links"
+        },
+        "brand": {
+            "title": "Your brand",
+            "description": "This is how customers see you on your booking page.",
+            "name": {
+                "label": "Business name",
+                "placeholder": "e.g. Luna Studio"
+            },
+            "url": {
+                "label": "Your booking page link",
+                "hint": "This is the link you share with your customers."
+            },
+            "industry": {
+                "label": "Industry",
+                "placeholder": "Search your industry",
+                "empty": "No industry matches your search.",
+                "error": "We could not load the industries.",
+                "loading": "Loading industries…",
+                "results_one": "{{count}} industry available",
+                "results_other": "{{count}} industries available"
+            },
+            "about": {
+                "label": "About your business",
+                "placeholder": "Tell customers what you do and what sets you apart.",
+                "hint": "It appears at the top of your booking page."
+            }
+        },
+        "appearance": {
+            "title": "Appearance",
+            "description": "Choose the colours and shapes of your booking page."
+        },
+        "contact": {
+            "title": "Contact details",
+            "description": "How customers can write or call you.",
+            "email": {
+                "label": "Contact email",
+                "placeholder": "hello@yourbusiness.com",
+                "hint": "Customer replies arrive here."
+            },
+            "phone": {
+                "label": "Phone",
+                "optional": "Optional",
+                "country": "Phone country",
+                "number": "Phone number",
+                "hint": "Just the number, without the country code.",
+                "countries": {
+                    "MX": "Mexico",
+                    "US": "United States"
+                }
+            }
+        },
+        "location": {
+            "title": "Location",
+            "description": "Where you work and the currency you charge in.",
+            "street": {
+                "label": "Street and number",
+                "placeholder": "e.g. 123 Reforma Ave"
+            },
+            "city": {
+                "label": "City"
+            },
+            "state": {
+                "label": "State",
+                "placeholder": "Search your state",
+                "empty": "No state matches your search.",
+                "error": "We could not load the states.",
+                "loading": "Loading states…",
+                "results_one": "{{count}} state available",
+                "results_other": "{{count}} states available"
+            },
+            "postalCode": {
+                "label": "Postal code"
+            },
+            "country": {
+                "label": "Country"
+            },
+            "currency": {
+                "label": "Currency",
+                "hint": "We show your service prices in this currency."
+            },
+            "countries": {
+                "MX": "Mexico",
+                "US": "United States"
+            },
+            "currencies": {
+                "MXN": "Mexican peso (MXN)",
+                "USD": "US dollar (USD)"
+            }
+        },
+        "links": {
+            "title": "Links",
+            "description": "Connect your profiles so customers can find you.",
+            "platforms": {
+                "website": "Website",
+                "instagram": "Instagram",
+                "facebook": "Facebook",
+                "tiktok": "TikTok",
+                "x": "X",
+                "linkedin": "LinkedIn",
+                "youtube": "YouTube",
+                "whatsapp": "WhatsApp"
+            }
+        },
+        "toasts": {
+            "saved": "Changes saved"
+        },
+        "errors": {
+            "unexpected": "We could not save your changes. Try again."
+        },
+        "failed": {
+            "title": "We could not load your settings",
+            "body": "Check your connection and try again."
+        },
+        "submit": {
+            "save": "Save",
+            "saving": "Saving…"
         }
     }
 }

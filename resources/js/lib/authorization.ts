@@ -4,7 +4,9 @@ export type PermissionName =
     | 'view_services'
     | 'create_service'
     | 'edit_service'
-    | 'delete_service';
+    | 'delete_service'
+    | 'view_business_settings'
+    | 'edit_business_settings';
 
 export type RoleName = 'owner' | 'staff';
 

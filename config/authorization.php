@@ -14,6 +14,16 @@ return [
             'module' => 'business',
         ],
 
+        'view_business_settings' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'business',
+        ],
+
+        'edit_business_settings' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'business',
+        ],
+
         'manage_staff' => [
             'scope' => AuthorizationScope::Business,
             'module' => 'staff',

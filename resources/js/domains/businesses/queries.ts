@@ -1,6 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { checkBusinessNameAvailability, createBusiness, fetchMyBusinesses } from './api';
+import {
+    addGalleryImage,
+    attachBookingPageBanner,
+    attachBusinessLogo,
+    checkBusinessNameAvailability,
+    createBusiness,
+    fetchMyBusinesses,
+    getBusinessSettings,
+    removeBookingPageBanner,
+    removeBusinessLogo,
+    removeGalleryImage,
+    reorderGallery,
+    updateBusinessSettings,
+} from './api';
+import type { BookingPage, BusinessSettings } from './types';
 
 const MIN_NAME_LENGTH_FOR_CHECK = 2;
 
@@ -11,6 +25,7 @@ export const businessKeys = {
     nameAvailability: () => [...businessKeys.all, 'name-availability'] as const,
     nameAvailabilityFor: (name: string) => [...businessKeys.nameAvailability(), name] as const,
     mine: () => [...businessKeys.all, 'mine'] as const,
+    settings: () => [...businessKeys.all, 'settings'] as const,
 };
 
 export function useMyBusinesses() {
@@ -70,4 +85,65 @@ export function useCreateBusiness() {
             queryClient.removeQueries({ queryKey: businessKeys.nameAvailability() });
         },
     });
+}
+
+export function useBusinessSettings() {
+    return useQuery({
+        queryKey: businessKeys.settings(),
+        queryFn: ({ signal }) => getBusinessSettings(signal),
+    });
+}
+
+function useBusinessSettingsMutation<TVariables, TData>(
+    mutationFn: (variables: TVariables) => Promise<TData>,
+) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: businessKeys.all }),
+    });
+}
+
+export function useUpdateBusinessSettings() {
+    return useBusinessSettingsMutation(updateBusinessSettings);
+}
+
+export function useAttachBusinessLogo() {
+    return useBusinessSettingsMutation(attachBusinessLogo);
+}
+
+export function useRemoveBusinessLogo() {
+    return useBusinessSettingsMutation<void, BusinessSettings>(removeBusinessLogo);
+}
+
+function useBookingPageMutation<TVariables, TData>(
+    mutationFn: (variables: TVariables) => Promise<TData>,
+) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: businessKeys.settings() }),
+    });
+}
+
+export function useAttachBookingPageBanner() {
+    return useBookingPageMutation(attachBookingPageBanner);
+}
+
+export function useRemoveBookingPageBanner() {
+    return useBookingPageMutation<void, BookingPage>(removeBookingPageBanner);
+}
+
+export function useAddGalleryImage() {
+    return useBookingPageMutation(addGalleryImage);
+}
+
+export function useRemoveGalleryImage() {
+    return useBookingPageMutation(removeGalleryImage);
+}
+
+export function useReorderGallery() {
+    return useBookingPageMutation(reorderGallery);
 }

@@ -29,6 +29,16 @@ return [
         'description' => 'Edit the business profile, its contact details, its time zone and its booking policy.',
     ],
 
+    'view_business_settings' => [
+        'label' => 'View the business settings',
+        'description' => 'See the brand, contact details, location, opening hours and links of the business.',
+    ],
+
+    'edit_business_settings' => [
+        'label' => 'Edit the business settings',
+        'description' => 'Change the brand, contact details, location, opening hours and links of the business.',
+    ],
+
     'manage_staff' => [
         'label' => 'Manage staff',
         'description' => 'Invite people to the business, change what they are allowed to do, and remove them.',

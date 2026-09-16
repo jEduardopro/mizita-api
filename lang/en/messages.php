@@ -78,6 +78,12 @@ return [
         'invalid_business_name' => 'That business name is not valid.',
         'invalid_business_slug' => 'That web address is not valid.',
         'invalid_business_owner' => 'We could not identify the account registering this business.',
+        'invalid_business_contact_email' => 'That contact email address is not valid.',
+        'invalid_business_about' => 'That description is not valid.',
+        'invalid_business_currency' => 'That currency is not valid.',
+        'invalid_business_coordinates' => 'That map location is not valid.',
+        'business_logo_too_large' => 'That logo is too large. Please use one under 2 MB.',
+        'unsupported_business_logo' => 'That file is not an image we support. Please use a JPG, PNG or WebP.',
 
         // One sentence for every way a phone number is turned down - a country
         // we do not operate in, or digits that are not a number within one we
@@ -107,6 +113,33 @@ return [
         'service_requires_staff' => 'You need to pick at least one person to perform this service.',
         'service_image_too_large' => 'That image is too large. Please use one under 2 MB.',
         'unsupported_service_image' => 'That file is not an image we support. Please use a JPG, PNG or WebP.',
+
+        'invalid_address_street' => 'That street is not valid.',
+        'invalid_address_city' => 'That city is not valid.',
+        'invalid_address_postal_code' => 'That postal code is not valid.',
+        'invalid_coordinates' => 'That location is not a point on the map.',
+        'unsupported_country' => 'We do not operate in that country yet.',
+        'unknown_state' => 'That state is not one we have on record.',
+
+        'invalid_link_url' => 'That link is not a valid web address.',
+        'invalid_link_platform' => 'That is not a network you can link to.',
+        'link_platform_mismatch' => 'That link does not point at the network you picked.',
+        'duplicate_link_platform' => 'You already have a link for that network.',
+
+        'invalid_time_of_day' => 'That time is not valid. Please use the HH:MM format.',
+        'invalid_weekday' => 'That is not a day of the week.',
+        'schedule_interval_inverted' => 'An opening time has to come before its closing time.',
+        'overlapping_schedule_intervals' => 'Two time ranges on the same day overlap.',
+
+        'booking_page_not_found' => 'We could not find your booking page.',
+        'booking_page_image_too_large' => 'That image is too large. Please use one under 5 MB.',
+        'unsupported_booking_page_image' => 'That file is not an image we support. Please use a JPG, PNG or WebP.',
+        'booking_page_gallery_full' => 'Your gallery is full. Remove a photo before adding another.',
+        'booking_page_image_not_found' => 'We could not find that photo.',
+        'invalid_gallery_order' => 'That photo order does not match the photos in your gallery.',
+        'invalid_booking_page_accent_color' => 'That colour is not one a booking page may be given.',
+        'invalid_booking_page_button_shape' => 'That button shape is not one a booking page may be given.',
+        'invalid_booking_page_theme' => 'That theme is not one a booking page may be given.',
 
     ],
 

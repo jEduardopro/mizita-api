@@ -7,6 +7,9 @@ namespace Tests\Support\Businesses;
 use App\Domains\Businesses\Application\Dtos\OnboardBusinessInput;
 use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Entities\Business;
+use App\Domains\Businesses\ValueObjects\About;
+use App\Domains\Businesses\ValueObjects\ContactEmail;
+use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use App\Shared\ValueObjects\CountryCode;
@@ -57,6 +60,9 @@ final class OnboardingFixtures
         string $slug = self::SLUG,
         string $timezone = self::TIMEZONE,
         string $industryId = self::INDUSTRY_ID,
+        ?ContactEmail $contactEmail = null,
+        ?About $about = null,
+        ?CurrencyCode $currency = null,
     ): Business {
         return Business::create(
             id: $id,
@@ -65,6 +71,9 @@ final class OnboardingFixtures
             industryId: $industryId,
             timezone: Timezone::restore($timezone),
             now: self::now(),
+            contactEmail: $contactEmail,
+            about: $about,
+            currency: $currency,
         );
     }
 

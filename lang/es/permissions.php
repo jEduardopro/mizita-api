@@ -25,6 +25,16 @@ return [
         'description' => 'Editar el perfil del negocio, sus datos de contacto, su zona horaria y su política de reservas.',
     ],
 
+    'view_business_settings' => [
+        'label' => 'Ver la configuración del negocio',
+        'description' => 'Ver la marca, los datos de contacto, la ubicación, los horarios y los enlaces del negocio.',
+    ],
+
+    'edit_business_settings' => [
+        'label' => 'Editar la configuración del negocio',
+        'description' => 'Cambiar la marca, los datos de contacto, la ubicación, los horarios y los enlaces del negocio.',
+    ],
+
     'manage_staff' => [
         'label' => 'Gestionar al personal',
         'description' => 'Invitar personas al negocio, cambiar lo que pueden hacer y darlas de baja.',

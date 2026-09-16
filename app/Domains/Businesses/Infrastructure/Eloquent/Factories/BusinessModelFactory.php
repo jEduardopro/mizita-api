@@ -27,6 +27,9 @@ final class BusinessModelFactory extends Factory
             'slug' => implode('-', $words),
             'industry_id' => IndustryModel::factory(),
             'timezone' => 'America/Mexico_City',
+            'contact_email' => fake()->unique()->safeEmail(),
+            'about' => fake()->sentence(),
+            'currency_code' => 'MXN',
         ];
     }
 }

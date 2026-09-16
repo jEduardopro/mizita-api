@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Calendar, ListChecks, Users, type LucideIcon } from 'lucide-react';
+import { Calendar, ListChecks, Settings, Users, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     SidebarGroup,
@@ -13,7 +13,7 @@ import type { PermissionName } from '@/lib/authorization';
 
 type NavItem = {
     href: string;
-    labelKey: 'nav.calendar' | 'nav.services' | 'nav.customers';
+    labelKey: 'nav.calendar' | 'nav.services' | 'nav.customers' | 'nav.settings';
     icon: LucideIcon;
     permission?: PermissionName;
 };
@@ -22,6 +22,12 @@ const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
     { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     { href: '/customers', labelKey: 'nav.customers', icon: Users },
+    {
+        href: '/settings/business',
+        labelKey: 'nav.settings',
+        icon: Settings,
+        permission: 'view_business_settings',
+    },
 ];
 
 function isActive(url: string, href: string): boolean {

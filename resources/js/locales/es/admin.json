@@ -2,7 +2,8 @@
     "nav": {
         "calendar": "Calendario",
         "services": "Servicios",
-        "customers": "Clientes"
+        "customers": "Clientes",
+        "settings": "Configuración"
     },
     "shell": {
         "toggleSidebar": "Mostrar u ocultar el menú",
@@ -223,6 +224,247 @@
         "submitting": "Creando negocio…",
         "errors": {
             "unexpected": "No hemos podido crear tu negocio. Inténtalo otra vez."
+        }
+    },
+    "businessSettings": {
+        "title": "Configuración del negocio",
+        "description": "Tu marca, tus datos de contacto y el aspecto de tu página de reservas.",
+        "preview": {
+            "title": "Vista previa",
+            "description": "Así verán tu página de reservas tus clientes.",
+            "book": "Reservar",
+            "namePlaceholder": "El nombre de tu negocio",
+            "aboutPlaceholder": "Cuenta en dos líneas a qué se dedica tu negocio.",
+            "bannerEmpty": "Todavía sin portada",
+            "hoursTitle": "Horario",
+            "hoursEmpty": "Todavía sin horario",
+            "today": "Hoy",
+            "locationTitle": "Dónde estamos",
+            "locationEmpty": "Todavía sin dirección",
+            "social": {
+                "title": "Enlaces",
+                "empty": "Todavía sin enlaces",
+                "platforms": {
+                    "website": "Sitio web",
+                    "instagram": "Instagram",
+                    "facebook": "Facebook",
+                    "tiktok": "TikTok",
+                    "x": "X",
+                    "linkedin": "LinkedIn",
+                    "youtube": "YouTube",
+                    "whatsapp": "WhatsApp"
+                }
+            }
+        },
+        "brandColor": {
+            "label": "Color de tu marca",
+            "hint": "Tiñe los botones y los detalles de tu página de reservas.",
+            "colors": {
+                "ink": "Tinta",
+                "red": "Rojo",
+                "orange": "Naranja",
+                "amber": "Ámbar",
+                "purple": "Morado",
+                "blue": "Azul",
+                "sand": "Arena",
+                "slate": "Pizarra",
+                "teal": "Turquesa",
+                "green": "Verde"
+            }
+        },
+        "buttonShape": {
+            "label": "Forma de los botones",
+            "shapes": {
+                "pill": "Cápsula",
+                "rounded": "Redondeada",
+                "rectangle": "Rectangular"
+            }
+        },
+        "theme": {
+            "label": "Tema de la página",
+            "themes": {
+                "system": "Sistema",
+                "light": "Claro",
+                "dark": "Oscuro"
+            }
+        },
+        "hours": {
+            "label": "Horario de atención",
+            "hint": "Puedes abrir y cerrar varias veces el mismo día.",
+            "closed": "Cerrado",
+            "from": "Hora de apertura",
+            "to": "Hora de cierre",
+            "addInterval": "Añadir horario",
+            "removeInterval": "Quitar este horario",
+            "copyToAllDays": "Copiar {{day}} a todos los días",
+            "days": {
+                "monday": "Lunes",
+                "tuesday": "Martes",
+                "wednesday": "Miércoles",
+                "thursday": "Jueves",
+                "friday": "Viernes",
+                "saturday": "Sábado",
+                "sunday": "Domingo"
+            },
+            "title": "Horario de atención",
+            "description": "Las horas en las que tus clientes pueden reservar.",
+            "staffNote": "Cada persona de tu equipo puede tener su propio horario dentro de estas horas."
+        },
+        "media": {
+            "upload": "Subir",
+            "replace": "Cambiar la imagen",
+            "remove": "Quitar",
+            "unsupported": "Solo aceptamos JPG, PNG y WebP.",
+            "failed": "Guardamos tus datos, pero no las imágenes. Vuelve a intentarlo."
+        },
+        "logo": {
+            "label": "Logotipo",
+            "hint": "Cuadrado, JPG, PNG o WebP, hasta 2 MB.",
+            "choose": "Arrastra tu logotipo o toca para elegirlo",
+            "tooLarge": "El logotipo pesa más de 2 MB. Elige uno más ligero."
+        },
+        "banner": {
+            "label": "Portada",
+            "hint": "Apaisada 16:9, JPG, PNG o WebP, hasta 5 MB.",
+            "choose": "Arrastra tu portada o toca para elegirla",
+            "tooLarge": "La portada pesa más de 5 MB. Elige una más ligera."
+        },
+        "gallery": {
+            "label": "Galería",
+            "count": "{{used}} de {{max}} fotos",
+            "add": "Añadir",
+            "remove": "Quitar la foto {{position}}",
+            "tooLarge": "Cada foto puede pesar hasta 5 MB. Elige otras más ligeras.",
+            "full": "Puedes subir hasta {{max}} fotos.",
+            "showAll": "Ver todas las fotos",
+            "sheetTitle": "Tus fotos",
+            "sheetDescription": "Cambia el orden o quita las que ya no quieras. La primera abre la galería.",
+            "moveUp": "Subir la foto {{position}}",
+            "moveDown": "Bajar la foto {{position}}"
+        },
+        "sections": {
+            "brand": "Tu marca",
+            "appearance": "Apariencia",
+            "contact": "Contacto",
+            "location": "Ubicación",
+            "hours": "Horario",
+            "links": "Enlaces"
+        },
+        "brand": {
+            "title": "Tu marca",
+            "description": "Así te verán tus clientes en tu página de reservas.",
+            "name": {
+                "label": "Nombre del negocio",
+                "placeholder": "Ej. Estudio Luna"
+            },
+            "url": {
+                "label": "Enlace de tu página de reservas",
+                "hint": "Este es el enlace que compartes con tus clientes."
+            },
+            "industry": {
+                "label": "Giro",
+                "placeholder": "Busca tu giro",
+                "empty": "Ningún giro coincide con tu búsqueda.",
+                "error": "No hemos podido cargar los giros.",
+                "loading": "Cargando giros…",
+                "results_one": "{{count}} giro disponible",
+                "results_other": "{{count}} giros disponibles"
+            },
+            "about": {
+                "label": "Sobre tu negocio",
+                "placeholder": "Cuenta qué haces y qué te distingue.",
+                "hint": "Aparece en la portada de tu página de reservas."
+            }
+        },
+        "appearance": {
+            "title": "Apariencia",
+            "description": "Elige los colores y las formas de tu página de reservas."
+        },
+        "contact": {
+            "title": "Datos de contacto",
+            "description": "Cómo pueden escribirte o llamarte tus clientes.",
+            "email": {
+                "label": "Correo de contacto",
+                "placeholder": "hola@tunegocio.com",
+                "hint": "Aquí te llegarán las respuestas de tus clientes."
+            },
+            "phone": {
+                "label": "Teléfono",
+                "optional": "Opcional",
+                "country": "País del teléfono",
+                "number": "Número de teléfono",
+                "hint": "Solo el número, sin la clave del país.",
+                "countries": {
+                    "MX": "México",
+                    "US": "Estados Unidos"
+                }
+            }
+        },
+        "location": {
+            "title": "Ubicación",
+            "description": "Dónde atiendes y en qué moneda cobras.",
+            "street": {
+                "label": "Calle y número",
+                "placeholder": "Ej. Av. Reforma 123"
+            },
+            "city": {
+                "label": "Ciudad"
+            },
+            "state": {
+                "label": "Estado",
+                "placeholder": "Busca tu estado",
+                "empty": "Ningún estado coincide con tu búsqueda.",
+                "error": "No hemos podido cargar los estados.",
+                "loading": "Cargando estados…",
+                "results_one": "{{count}} estado disponible",
+                "results_other": "{{count}} estados disponibles"
+            },
+            "postalCode": {
+                "label": "Código postal"
+            },
+            "country": {
+                "label": "País"
+            },
+            "currency": {
+                "label": "Moneda",
+                "hint": "Con esta moneda mostramos los precios de tus servicios."
+            },
+            "countries": {
+                "MX": "México",
+                "US": "Estados Unidos"
+            },
+            "currencies": {
+                "MXN": "Peso mexicano (MXN)",
+                "USD": "Dólar estadounidense (USD)"
+            }
+        },
+        "links": {
+            "title": "Enlaces",
+            "description": "Conecta tus redes para que tus clientes te encuentren.",
+            "platforms": {
+                "website": "Sitio web",
+                "instagram": "Instagram",
+                "facebook": "Facebook",
+                "tiktok": "TikTok",
+                "x": "X",
+                "linkedin": "LinkedIn",
+                "youtube": "YouTube",
+                "whatsapp": "WhatsApp"
+            }
+        },
+        "toasts": {
+            "saved": "Cambios guardados"
+        },
+        "errors": {
+            "unexpected": "No hemos podido guardar los cambios. Inténtalo otra vez."
+        },
+        "failed": {
+            "title": "No hemos podido cargar tu configuración",
+            "body": "Revisa tu conexión y vuelve a intentarlo."
+        },
+        "submit": {
+            "save": "Guardar",
+            "saving": "Guardando…"
         }
     }
 }

@@ -115,11 +115,11 @@ final class EloquentBusinessRepository implements BusinessRepository
     private function industryKeyFor(Business $business): int
     {
         $key = IndustryModel::query()
-            ->where('uuid', $business->industryId)
+            ->where('uuid', $business->industryId())
             ->value('id');
 
         if ($key === null) {
-            throw UnknownIndustry::withId($business->industryId);
+            throw UnknownIndustry::withId($business->industryId());
         }
 
         return (int) $key;

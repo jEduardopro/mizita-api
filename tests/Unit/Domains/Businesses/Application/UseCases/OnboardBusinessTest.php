@@ -132,7 +132,7 @@ describe('onboarding a business', function () {
             ->and($saved->name())->toBe('Barbería Ñandú')
             ->and($saved->slug())->toBe('barberia-nandu')
             ->and($saved->timezone())->toBe('Europe/Madrid')
-            ->and($saved->industryId)->toBe(OnboardingFixtures::INDUSTRY_ID)
+            ->and($saved->industryId())->toBe(OnboardingFixtures::INDUSTRY_ID)
             ->and($saved->createdAt)->toEqual(OnboardingFixtures::now());
     });
 

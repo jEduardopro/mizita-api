@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useCallback, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useObjectUrl } from '@/hooks/use-object-url';
 import { useServerErrors } from '@/hooks/use-server-errors';
 import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
 import {
@@ -22,8 +23,7 @@ import { serviceEditUrl, SERVICES_URL } from './service-urls';
 export type ServiceFormMode = 'create' | 'edit';
 
 type ImageState = {
-    file: File | null;
-    previewUrl: string | null;
+    shownUrl: string | null;
     select: (file: File) => void;
     clear: () => void;
 };
@@ -58,6 +58,8 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
         setSavedImageUrl(service?.image_url ?? null);
         setImageFile(null);
     }
+
+    const imageObjectUrl = useObjectUrl(imageFile);
 
     const createService = useCreateService();
     const updateService = useUpdateService();
@@ -149,8 +151,7 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
         update,
         errorFor,
         image: {
-            file: imageFile,
-            previewUrl: savedImageUrl,
+            shownUrl: imageFile === null ? savedImageUrl : imageObjectUrl,
             select: setImageFile,
             clear: clearImage,
         },
