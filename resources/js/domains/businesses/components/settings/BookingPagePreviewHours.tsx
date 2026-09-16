@@ -1,6 +1,7 @@
 import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 import type { TimeInterval, WeekdayNumber, WeeklyHours } from '@/domains/businesses/types';
+import { formatTimeOfDay } from '@/lib/time';
 import { isoWeekdayIn } from '@/lib/timezone';
 
 const MISSING_TIME = '--:--';
@@ -21,11 +22,12 @@ function intervalKey(interval: TimeInterval): string {
     return `${interval.starts_at}-${interval.ends_at}`;
 }
 
-function intervalLabel(interval: TimeInterval): string {
-    const startsAt = interval.starts_at === '' ? MISSING_TIME : interval.starts_at;
-    const endsAt = interval.ends_at === '' ? MISSING_TIME : interval.ends_at;
+function timeLabel(value: string, locale: string): string {
+    return value === '' ? MISSING_TIME : formatTimeOfDay(value, locale);
+}
 
-    return `${startsAt} – ${endsAt}`;
+function intervalLabel(interval: TimeInterval, locale: string): string {
+    return `${timeLabel(interval.starts_at, locale)} – ${timeLabel(interval.ends_at, locale)}`;
 }
 
 type Props = {
@@ -35,7 +37,7 @@ type Props = {
 };
 
 export function BookingPagePreviewHours({ hours, timezone, todayClassName }: Props) {
-    const { t } = useTranslation('admin');
+    const { t, i18n } = useTranslation('admin');
 
     const today = isoWeekdayIn(timezone, new Date());
     const isClosedAllWeek = WEEKDAYS.every((weekday) => hours[weekday].length === 0);
@@ -60,7 +62,7 @@ export function BookingPagePreviewHours({ hours, timezone, todayClassName }: Pro
                             <li
                                 key={weekday}
                                 className={cn(
-                                    'flex items-start justify-between gap-3 rounded-md px-2 py-1',
+                                    'flex flex-wrap items-start justify-between gap-x-3 rounded-md px-2 py-1',
                                     isToday && cn(todayClassName, 'font-medium'),
                                 )}
                             >
@@ -75,14 +77,17 @@ export function BookingPagePreviewHours({ hours, timezone, todayClassName }: Pro
                                 </span>
 
                                 {intervals.length === 0 ? (
-                                    <span className="text-muted-foreground">
+                                    <span className="ml-auto text-muted-foreground">
                                         {t('businessSettings.hours.closed')}
                                     </span>
                                 ) : (
-                                    <span className="grid justify-items-end">
+                                    <span className="ml-auto grid justify-items-end">
                                         {intervals.map((interval) => (
-                                            <span key={intervalKey(interval)}>
-                                                {intervalLabel(interval)}
+                                            <span
+                                                key={intervalKey(interval)}
+                                                className="whitespace-nowrap"
+                                            >
+                                                {intervalLabel(interval, i18n.language)}
                                             </span>
                                         ))}
                                     </span>

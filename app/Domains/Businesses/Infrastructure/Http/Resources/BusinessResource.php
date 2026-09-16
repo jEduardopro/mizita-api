@@ -27,6 +27,7 @@ final class BusinessResource extends JsonResource
             'contact_email' => $this->resource->contactEmail,
             'about' => $this->resource->about,
             'currency_code' => $this->resource->currency,
+            'logo_url' => $this->resource->logoUrl,
             'created_at' => $this->resource->createdAt->format(DATE_ATOM),
         ];
     }

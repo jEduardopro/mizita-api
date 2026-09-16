@@ -8,7 +8,9 @@ use App\Domains\Businesses\Application\UseCases\ListAccountBusinesses;
 use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Entities\Business;
 use App\Shared\Application\UseCaseResponse;
+use Tests\Support\Businesses\FakeBusinessLogo;
 use Tests\Support\Businesses\OnboardingFixtures;
+use Tests\Support\Businesses\SettingsFixtures;
 use Tests\Support\FakeBusinessMembership;
 
 function aListedBusiness(string $id, string $name, string $slug): Business
@@ -33,11 +35,13 @@ beforeEach(function () {
     $this->thirdBusinessId = '01930000-0000-7000-8000-000000000003';
 
     $this->businesses = Mockery::mock(BusinessRepository::class);
+    $this->logo = new FakeBusinessLogo;
 
     $this->useCaseFor = function (array $membershipsByAccount): ListAccountBusinesses {
         return new ListAccountBusinesses(
             new FakeBusinessMembership($membershipsByAccount),
             $this->businesses,
+            $this->logo,
         );
     };
 });
@@ -46,6 +50,8 @@ it('returns the account businesses as data, field by field', function () {
     $this->businesses->shouldReceive('findManyByIds')->once()
         ->with([$this->ownedBusinessId])
         ->andReturn([aListedBusiness($this->ownedBusinessId, 'Barbería Ñandú', 'barberia-nandu')]);
+
+    $this->logo->store($this->ownedBusinessId, SettingsFixtures::LOGO_URL);
 
     $useCase = ($this->useCaseFor)([$this->accountId => [$this->ownedBusinessId]]);
 
@@ -58,7 +64,67 @@ it('returns the account businesses as data, field by field', function () {
         ->and($listed[0]->slug)->toBe('barberia-nandu')
         ->and($listed[0]->timezone)->toBe(OnboardingFixtures::TIMEZONE)
         ->and($listed[0]->industryId)->toBe(OnboardingFixtures::INDUSTRY_ID)
+        ->and($listed[0]->logoUrl)->toBe(SettingsFixtures::LOGO_URL)
         ->and($listed[0]->createdAt)->toEqual(OnboardingFixtures::now());
+});
+
+describe('the logo each business carries', function () {
+    beforeEach(function () {
+        $this->listTwoBusinesses = function (): array {
+            $this->businesses->shouldReceive('findManyByIds')->once()->andReturn([
+                aListedBusiness($this->ownedBusinessId, 'Barbería Ñandú', 'barberia-nandu'),
+                aListedBusiness($this->staffedBusinessId, 'Salón Aurora', 'salon-aurora'),
+            ]);
+
+            $useCase = ($this->useCaseFor)([
+                $this->accountId => [$this->ownedBusinessId, $this->staffedBusinessId],
+            ]);
+
+            return $useCase->handle(new ListAccountBusinessesInput($this->accountId))->value();
+        };
+    });
+
+    it('gives each business the url the port holds for it, and null to the one with no logo', function () {
+        $this->logo->store($this->staffedBusinessId, SettingsFixtures::LOGO_URL);
+
+        $listed = ($this->listTwoBusinesses)();
+
+        expect($listed[0]->logoUrl)->toBeNull()
+            ->and($listed[1]->logoUrl)->toBe(SettingsFixtures::LOGO_URL);
+    });
+
+    it('never hands one business the logo of another', function () {
+        $this->logo->store($this->ownedBusinessId, 'https://mizita.test/media/1/nandu.png')
+            ->store($this->staffedBusinessId, 'https://mizita.test/media/2/aurora.png');
+
+        $listed = ($this->listTwoBusinesses)();
+
+        expect($listed[0]->logoUrl)->toBe('https://mizita.test/media/1/nandu.png')
+            ->and($listed[1]->logoUrl)->toBe('https://mizita.test/media/2/aurora.png');
+    });
+
+    it('asks the port once for each business id it lists', function () {
+        ($this->listTwoBusinesses)();
+
+        expect($this->logo->reads)->toBe([$this->ownedBusinessId, $this->staffedBusinessId]);
+    });
+
+    it('asks the port for no logo at all when the account operates no business', function () {
+        $this->businesses->shouldReceive('findManyByIds')->once()->with([])->andReturn([]);
+
+        $useCase = ($this->useCaseFor)([]);
+
+        $useCase->handle(new ListAccountBusinessesInput($this->accountId));
+
+        expect($this->logo->reads)->toBe([]);
+    });
+
+    it('never writes a logo while listing', function () {
+        ($this->listTwoBusinesses)();
+
+        expect($this->logo->replacements)->toBe([])
+            ->and($this->logo->removals)->toBe([]);
+    });
 });
 
 describe('the order the account sees', function () {

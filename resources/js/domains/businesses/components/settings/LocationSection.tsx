@@ -88,6 +88,7 @@ export function LocationSection({ form }: Props) {
                     id="business-country"
                     label={t('businessSettings.location.country.label')}
                     autoComplete="country"
+                    disabled
                     options={COUNTRY_CODES.map((code) => ({
                         value: code,
                         label: t(COUNTRY_LABEL_KEYS[code]),
@@ -100,6 +101,7 @@ export function LocationSection({ form }: Props) {
                 <SelectField
                     id="business-currency"
                     label={t('businessSettings.location.currency.label')}
+                    disabled
                     options={CURRENCY_CODES.map((code) => ({
                         value: code,
                         label: t(CURRENCY_LABEL_KEYS[code]),

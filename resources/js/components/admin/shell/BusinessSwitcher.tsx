@@ -22,19 +22,24 @@ import { initialsFrom } from '@/lib/initials';
 
 type CrestProps = {
     name: string;
+    logoUrl: string | null;
     className?: string;
 };
 
-function BusinessCrest({ name, className }: CrestProps) {
+function BusinessCrest({ name, logoUrl, className }: CrestProps) {
     return (
         <span
             aria-hidden="true"
             className={cn(
-                'flex aspect-square size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground',
+                'flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground',
                 className,
             )}
         >
-            {initialsFrom(name)}
+            {logoUrl === null ? (
+                initialsFrom(name)
+            ) : (
+                <img src={logoUrl} alt="" className="size-full object-cover" />
+            )}
         </span>
     );
 }
@@ -42,12 +47,13 @@ function BusinessCrest({ name, className }: CrestProps) {
 type IdentityProps = {
     name: string;
     slug: string | undefined;
+    logoUrl: string | null;
 };
 
-function BusinessIdentity({ name, slug }: IdentityProps) {
+function BusinessIdentity({ name, slug, logoUrl }: IdentityProps) {
     return (
         <>
-            <BusinessCrest name={name} />
+            <BusinessCrest name={name} logoUrl={logoUrl} />
 
             <span className="grid flex-1 text-left leading-tight">
                 <span className="truncate text-sm font-medium">{name}</span>
@@ -96,6 +102,7 @@ export function BusinessSwitcher() {
                                 <BusinessIdentity
                                     name={current?.name ?? name}
                                     slug={current?.slug}
+                                    logoUrl={current?.logo_url ?? null}
                                 />
                             )}
 
@@ -123,6 +130,7 @@ export function BusinessSwitcher() {
                                     >
                                         <BusinessCrest
                                             name={business.name}
+                                            logoUrl={business.logo_url}
                                             className="size-6 rounded-sm text-[0.625rem]"
                                         />
                                         <span className="truncate">{business.name}</span>

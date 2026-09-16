@@ -15,7 +15,11 @@ type Props = {
 
 export function BusinessSettingsForm({ form }: Props) {
     return (
-        <form id={BUSINESS_SETTINGS_FORM_ID} onSubmit={form.submit} className="grid gap-5 sm:gap-6">
+        <form
+            id={BUSINESS_SETTINGS_FORM_ID}
+            onSubmit={form.submit}
+            className="grid gap-5 pb-16 sm:gap-6 sm:pb-24"
+        >
             <BrandDetailsSection form={form} />
 
             <AppearanceSection form={form} />

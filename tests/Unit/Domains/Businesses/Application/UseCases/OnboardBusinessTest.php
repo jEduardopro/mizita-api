@@ -125,6 +125,7 @@ describe('onboarding a business', function () {
             ->and($data->slug)->toBe('barberia-nandu')
             ->and($data->timezone)->toBe('Europe/Madrid')
             ->and($data->industryId)->toBe(OnboardingFixtures::INDUSTRY_ID)
+            ->and($data->logoUrl)->toBeNull()
             ->and($data->createdAt)->toEqual(OnboardingFixtures::now());
 
         expect($saved)->toBeInstanceOf(Business::class)

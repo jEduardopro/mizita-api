@@ -18,10 +18,11 @@ final readonly class BusinessData
         public ?string $contactEmail,
         public ?string $about,
         public string $currency,
+        public ?string $logoUrl,
         public DateTimeImmutable $createdAt,
     ) {}
 
-    public static function fromEntity(Business $business): self
+    public static function fromEntity(Business $business, ?string $logoUrl): self
     {
         return new self(
             id: $business->id,
@@ -32,6 +33,7 @@ final readonly class BusinessData
             contactEmail: $business->contactEmail(),
             about: $business->about(),
             currency: $business->currency(),
+            logoUrl: $logoUrl,
             createdAt: $business->createdAt,
         );
     }

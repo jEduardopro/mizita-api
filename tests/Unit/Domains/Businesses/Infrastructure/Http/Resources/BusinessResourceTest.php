@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Businesses\Application\Dtos\BusinessData;
 use App\Domains\Businesses\Infrastructure\Http\Resources\BusinessResource;
+use Tests\Support\Businesses\SettingsFixtures;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -17,6 +18,7 @@ function businessData(
     ?string $contactEmail = 'hola@ada-salon.com',
     ?string $about = 'Cortes y color desde 2019.',
     string $currency = 'MXN',
+    ?string $logoUrl = SettingsFixtures::LOGO_URL,
     string $createdAt = '2026-01-01T12:00:00+00:00',
 ): BusinessData {
     return new BusinessData(
@@ -28,6 +30,7 @@ function businessData(
         contactEmail: $contactEmail,
         about: $about,
         currency: $currency,
+        logoUrl: $logoUrl,
         createdAt: new DateTimeImmutable($createdAt),
     );
 }
@@ -50,8 +53,22 @@ it('serializes exactly the keys the client contract declares', function () {
         'contact_email' => 'hola@ada-salon.com',
         'about' => 'Cortes y color desde 2019.',
         'currency_code' => 'MXN',
+        'logo_url' => SettingsFixtures::LOGO_URL,
         'created_at' => '2026-01-01T12:00:00+00:00',
     ]);
+});
+
+it('keeps the logo key with a null value for a business that uploaded none', function () {
+    $serialized = serializedBusiness(businessData(logoUrl: null));
+
+    expect($serialized['logo_url'])->toBeNull()
+        ->and($serialized)->toHaveKey('logo_url');
+});
+
+it('sends the logo url as the string the media port handed it', function () {
+    expect(serializedBusiness(businessData(logoUrl: 'https://mizita.test/media/7/ada.png'))['logo_url'])
+        ->toBe('https://mizita.test/media/7/ada.png')
+        ->toBeString();
 });
 
 it('wraps the payload in the data envelope', function () {
@@ -65,6 +82,7 @@ it('wraps the payload in the data envelope', function () {
             'contact_email' => 'hola@ada-salon.com',
             'about' => 'Cortes y color desde 2019.',
             'currency_code' => 'MXN',
+            'logo_url' => SettingsFixtures::LOGO_URL,
             'created_at' => '2026-01-01T12:00:00+00:00',
         ]]);
 });

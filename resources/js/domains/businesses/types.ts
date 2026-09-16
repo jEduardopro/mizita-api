@@ -6,6 +6,7 @@ export type Business = {
     slug: string;
     timezone: string;
     industry_id: string;
+    logo_url: string | null;
     created_at: string;
 };
 

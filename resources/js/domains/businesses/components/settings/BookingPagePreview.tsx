@@ -89,7 +89,7 @@ export function BookingPagePreview({ values, logoUrl, bannerUrl }: Props) {
                 <div className="grid justify-items-center gap-3 px-4 pb-4">
                     <span
                         className={cn(
-                            '-mt-9 grid size-18 place-content-center overflow-hidden rounded-full ring-4 ring-card',
+                            'relative z-10 -mt-9 grid size-18 place-content-center overflow-hidden rounded-full ring-4 ring-card',
                             accent.surface,
                         )}
                     >
@@ -115,8 +115,9 @@ export function BookingPagePreview({ values, logoUrl, bannerUrl }: Props) {
 
                     <span
                         className={cn(
-                            'flex h-11 w-full items-center justify-center px-4 text-sm font-medium text-background',
+                            'flex h-11 w-full items-center justify-center px-4 text-sm font-medium',
                             accent.accent,
+                            accent.accentForeground,
                             BUTTON_SHAPE_CLASSES[values.buttonShape],
                         )}
                     >

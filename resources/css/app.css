@@ -47,24 +47,34 @@
 
     --color-brand-accent-ink: var(--brand-accent-ink);
     --color-brand-accent-ink-surface: var(--brand-accent-ink-surface);
+    --color-brand-accent-ink-foreground: var(--brand-accent-ink-foreground);
     --color-brand-accent-red: var(--brand-accent-red);
     --color-brand-accent-red-surface: var(--brand-accent-red-surface);
+    --color-brand-accent-red-foreground: var(--brand-accent-red-foreground);
     --color-brand-accent-orange: var(--brand-accent-orange);
     --color-brand-accent-orange-surface: var(--brand-accent-orange-surface);
+    --color-brand-accent-orange-foreground: var(--brand-accent-orange-foreground);
     --color-brand-accent-amber: var(--brand-accent-amber);
     --color-brand-accent-amber-surface: var(--brand-accent-amber-surface);
+    --color-brand-accent-amber-foreground: var(--brand-accent-amber-foreground);
     --color-brand-accent-purple: var(--brand-accent-purple);
     --color-brand-accent-purple-surface: var(--brand-accent-purple-surface);
+    --color-brand-accent-purple-foreground: var(--brand-accent-purple-foreground);
     --color-brand-accent-blue: var(--brand-accent-blue);
     --color-brand-accent-blue-surface: var(--brand-accent-blue-surface);
+    --color-brand-accent-blue-foreground: var(--brand-accent-blue-foreground);
     --color-brand-accent-sand: var(--brand-accent-sand);
     --color-brand-accent-sand-surface: var(--brand-accent-sand-surface);
+    --color-brand-accent-sand-foreground: var(--brand-accent-sand-foreground);
     --color-brand-accent-slate: var(--brand-accent-slate);
     --color-brand-accent-slate-surface: var(--brand-accent-slate-surface);
+    --color-brand-accent-slate-foreground: var(--brand-accent-slate-foreground);
     --color-brand-accent-teal: var(--brand-accent-teal);
     --color-brand-accent-teal-surface: var(--brand-accent-teal-surface);
+    --color-brand-accent-teal-foreground: var(--brand-accent-teal-foreground);
     --color-brand-accent-green: var(--brand-accent-green);
     --color-brand-accent-green-surface: var(--brand-accent-green-surface);
+    --color-brand-accent-green-foreground: var(--brand-accent-green-foreground);
 
     --color-surface-muted: var(--surface-muted);
     --color-surface-brand: var(--surface-brand);
@@ -143,9 +153,9 @@
     }
 }
 
-/* .booking-preview-light shares this selector on purpose: the booking page preview renders
-   light inside a dark admin, and re-applying the whole :root body is what makes the
-   --brand-accent-* aliases re-resolve. Splitting it out silently returns the preview to dark. */
+/* .booking-preview-light shares this selector on purpose: the booking page preview
+ * renders light inside a dark admin, so the whole :root body has to be re-applied on
+ * that nested element. Splitting it out silently returns the preview to dark. */
 :root,
 .booking-preview-light {
     color-scheme: light;
@@ -210,29 +220,41 @@
     --service-teal-surface: oklch(0.955 0.026 190);
     --service-green: oklch(0.55 0.135 150);
     --service-green-surface: oklch(0.955 0.03 150);
-    /* Nine of the ten booking accents alias `--service-*` so both palettes stay
-     * one hue set. They need no `.dark` entry: `.dark` lands on `<html>`, which
-     * is `:root`, so the alias already resolves to the dark service value. */
+    /* `.dark` below repeats this whole set rather than inheriting it: the preview
+     * renders `.dark` on a nested element, and a custom property is substituted
+     * where it is declared, so a `var()` resolved here would carry the light value
+     * into it. The aliases are safe in this block only because `--service-*` is
+     * declared in it, which both `:root` and `.booking-preview-light` share. */
     --brand-accent-ink: oklch(0.24 0.014 258);
     --brand-accent-ink-surface: oklch(0.955 0.005 258);
+    --brand-accent-ink-foreground: oklch(0.995 0.002 258);
     --brand-accent-red: var(--service-red);
     --brand-accent-red-surface: var(--service-red-surface);
+    --brand-accent-red-foreground: oklch(0.995 0.002 258);
     --brand-accent-orange: var(--service-orange);
     --brand-accent-orange-surface: var(--service-orange-surface);
+    --brand-accent-orange-foreground: oklch(0.995 0.002 258);
     --brand-accent-amber: var(--service-amber);
     --brand-accent-amber-surface: var(--service-amber-surface);
+    --brand-accent-amber-foreground: oklch(0.995 0.002 258);
     --brand-accent-purple: var(--service-purple);
     --brand-accent-purple-surface: var(--service-purple-surface);
+    --brand-accent-purple-foreground: oklch(0.995 0.002 258);
     --brand-accent-blue: var(--service-blue);
     --brand-accent-blue-surface: var(--service-blue-surface);
+    --brand-accent-blue-foreground: oklch(0.995 0.002 258);
     --brand-accent-sand: var(--service-sand);
     --brand-accent-sand-surface: var(--service-sand-surface);
+    --brand-accent-sand-foreground: oklch(0.995 0.002 258);
     --brand-accent-slate: var(--service-slate);
     --brand-accent-slate-surface: var(--service-slate-surface);
+    --brand-accent-slate-foreground: oklch(0.995 0.002 258);
     --brand-accent-teal: var(--service-teal);
     --brand-accent-teal-surface: var(--service-teal-surface);
+    --brand-accent-teal-foreground: oklch(0.995 0.002 258);
     --brand-accent-green: var(--service-green);
     --brand-accent-green-surface: var(--service-green-surface);
+    --brand-accent-green-foreground: oklch(0.995 0.002 258);
     --sidebar: oklch(0.985 0.004 258);
     --sidebar-foreground: oklch(0.16 0.012 258);
     --sidebar-primary: var(--brand-600);
@@ -295,6 +317,34 @@
     --service-green-surface: oklch(0.3 0.045 150);
     --brand-accent-ink: oklch(0.93 0.006 258);
     --brand-accent-ink-surface: oklch(0.3 0.008 258);
+    --brand-accent-ink-foreground: oklch(0.16 0.008 258);
+    --brand-accent-red: oklch(0.56 0.19 25);
+    --brand-accent-red-surface: var(--service-red-surface);
+    --brand-accent-red-foreground: oklch(0.975 0.004 258);
+    --brand-accent-orange: oklch(0.56 0.165 45);
+    --brand-accent-orange-surface: var(--service-orange-surface);
+    --brand-accent-orange-foreground: oklch(0.975 0.004 258);
+    --brand-accent-amber: oklch(0.545 0.135 80);
+    --brand-accent-amber-surface: var(--service-amber-surface);
+    --brand-accent-amber-foreground: oklch(0.975 0.004 258);
+    --brand-accent-purple: oklch(0.56 0.19 305);
+    --brand-accent-purple-surface: var(--service-purple-surface);
+    --brand-accent-purple-foreground: oklch(0.975 0.004 258);
+    --brand-accent-blue: oklch(0.55 0.18 258);
+    --brand-accent-blue-surface: var(--service-blue-surface);
+    --brand-accent-blue-foreground: oklch(0.975 0.004 258);
+    --brand-accent-sand: oklch(0.545 0.07 70);
+    --brand-accent-sand-surface: var(--service-sand-surface);
+    --brand-accent-sand-foreground: oklch(0.975 0.004 258);
+    --brand-accent-slate: oklch(0.545 0.028 258);
+    --brand-accent-slate-surface: var(--service-slate-surface);
+    --brand-accent-slate-foreground: oklch(0.975 0.004 258);
+    --brand-accent-teal: oklch(0.53 0.1 190);
+    --brand-accent-teal-surface: var(--service-teal-surface);
+    --brand-accent-teal-foreground: oklch(0.975 0.004 258);
+    --brand-accent-green: oklch(0.53 0.135 150);
+    --brand-accent-green-surface: var(--service-green-surface);
+    --brand-accent-green-foreground: oklch(0.975 0.004 258);
     --sidebar: oklch(0.208 0.011 258);
     --sidebar-foreground: oklch(0.975 0.004 258);
     --sidebar-primary: var(--brand-400);

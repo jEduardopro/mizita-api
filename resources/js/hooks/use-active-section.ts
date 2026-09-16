@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 
 const OBSERVED_BAND = '-20% 0px -70% 0px';
 
+const BOTTOM_REACHED_THRESHOLD = 24;
+
+function isScrolledToBottom(): boolean {
+    const scrolled = window.scrollY + window.innerHeight;
+
+    return scrolled >= document.documentElement.scrollHeight - BOTTOM_REACHED_THRESHOLD;
+}
+
 export function useActiveSection(ids: string[]): string | undefined {
     const key = ids.join(',');
     const [activeId, setActiveId] = useState<string>();
@@ -17,6 +25,11 @@ export function useActiveSection(ids: string[]): string | undefined {
         }
 
         const inBand = new Set<string>();
+        const lastId = sectionIds.at(-1);
+
+        function resolveActiveId(): void {
+            setActiveId(isScrolledToBottom() ? lastId : sectionIds.find((id) => inBand.has(id)));
+        }
 
         const observer = new IntersectionObserver(
             (entries) => {
@@ -28,14 +41,21 @@ export function useActiveSection(ids: string[]): string | undefined {
                     }
                 }
 
-                setActiveId(sectionIds.find((id) => inBand.has(id)));
+                resolveActiveId();
             },
             { rootMargin: OBSERVED_BAND },
         );
 
         sections.forEach((section) => observer.observe(section));
 
-        return () => observer.disconnect();
+        window.addEventListener('scroll', resolveActiveId, { passive: true });
+        window.addEventListener('resize', resolveActiveId);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('scroll', resolveActiveId);
+            window.removeEventListener('resize', resolveActiveId);
+        };
     }, [key]);
 
     return activeId;

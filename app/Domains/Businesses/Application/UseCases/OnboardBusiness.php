@@ -129,7 +129,7 @@ final class OnboardBusiness
         }
 
         return new OnboardingOutcome(
-            BusinessData::fromEntity($business),
+            BusinessData::fromEntity($business, null),
             [new BusinessCreated($business->id), ...$ownerEvents],
         );
     }
