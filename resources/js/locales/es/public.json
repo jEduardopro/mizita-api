@@ -152,6 +152,10 @@
             "book": "Reservar",
             "soon": "Muy pronto podrás reservar en línea desde aquí."
         },
+        "contact": {
+            "title": "Ponte en contacto con nosotros",
+            "social": "Redes sociales"
+        },
         "services": {
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} min",
@@ -162,8 +166,7 @@
             "title": "Horarios",
             "today": "Hoy",
             "openNow": "Abierto ahora · cierra a las {{time}}",
-            "closedNow": "Cerrado ahora · abre {{day}} a las {{time}}",
-            "timezone": "Horarios en {{timezone}}"
+            "closedNow": "Cerrado ahora · abre {{day}} a las {{time}}"
         },
         "gallery": {
             "title": "Fotos",
@@ -175,10 +178,10 @@
             "more_other": "+{{count}} fotos"
         },
         "location": {
-            "directions": "Cómo llegar"
+            "mapTitle": "Mapa de la dirección",
+            "mapLink": "Ver en Google Maps"
         },
         "links": {
-            "title": "Redes",
             "platforms": {
                 "website": "Sitio web",
                 "instagram": "Instagram",
@@ -189,9 +192,6 @@
                 "youtube": "YouTube",
                 "whatsapp": "WhatsApp"
             }
-        },
-        "footer": {
-            "poweredBy": "Página de reservas creada con {{name}}"
         }
     }
 }

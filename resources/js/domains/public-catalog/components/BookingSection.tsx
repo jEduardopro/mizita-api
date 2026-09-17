@@ -14,7 +14,7 @@ export function BookingSection({ id, title, className, children }: Props) {
             id={id}
             tabIndex={-1}
             aria-labelledby={`${id}-heading`}
-            className={cn('scroll-mt-16 outline-none', className)}
+            className={cn('scroll-mt-16 p-5 outline-none sm:p-6', className)}
         >
             <h2
                 id={`${id}-heading`}

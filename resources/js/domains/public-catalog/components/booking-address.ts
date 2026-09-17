@@ -11,12 +11,22 @@ export function addressLinesFrom(location: PublicLocation): string[] {
     );
 }
 
-export function mapUrlFor(location: PublicLocation): string | null {
+export function addressLineFrom(location: PublicLocation): string {
+    return addressLinesFrom(location).join(', ');
+}
+
+function mapQueryFor(location: PublicLocation): string {
     if (location.latitude === null || location.longitude === null) {
-        return null;
+        return addressLineFrom(location);
     }
 
-    const coordinates = `${location.latitude},${location.longitude}`;
+    return `${location.latitude},${location.longitude}`;
+}
 
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates)}`;
+export function mapUrlFor(location: PublicLocation): string {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQueryFor(location))}`;
+}
+
+export function mapEmbedUrlFor(location: PublicLocation): string {
+    return `https://www.google.com/maps?q=${encodeURIComponent(mapQueryFor(location))}&z=15&output=embed`;
 }

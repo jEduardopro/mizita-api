@@ -21,7 +21,7 @@ export function BookingServiceRow({ service, currencyCode, accentColor, buttonSh
         : formatMoney(service.price, currencyCode, i18n.language);
 
     return (
-        <AccordionItem value={service.slug} className="border-b border-border">
+        <AccordionItem value={service.slug} className="border-b border-border last:border-b-0">
             <AccordionTrigger className="gap-4 py-4 hover:no-underline">
                 <span className="grid gap-1">
                     <span className="text-[0.9375rem] font-medium">{service.name}</span>

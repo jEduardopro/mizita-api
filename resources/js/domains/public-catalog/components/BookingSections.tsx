@@ -2,17 +2,14 @@ import { useTranslation } from 'react-i18next';
 import type { BrandColorClasses, WeekdayNumber } from '@/lib/booking-brand';
 import type { PublicBusinessPage } from '../types';
 import type { BookingDayHours } from './booking-schedule';
-import { BOOKING_SECTION_IDS } from './booking-sections';
+import { aboutTextFrom, BOOKING_SECTION_IDS, hasAboutSection } from './booking-sections';
 import { BookingAbout } from './BookingAbout';
 import { BookingGallery } from './BookingGallery';
 import { BookingHours } from './BookingHours';
-import { BookingLinks } from './BookingLinks';
 import { BookingLocation } from './BookingLocation';
 import { BookingSection } from './BookingSection';
 import { BookingServices } from './BookingServices';
 import { BookingTeam } from './BookingTeam';
-
-const LINKS_SECTION_ID = 'links';
 
 type Props = {
     page: PublicBusinessPage;
@@ -33,10 +30,10 @@ export function BookingSections({
 }: Props) {
     const { t } = useTranslation('public');
 
-    const about = (page.about ?? '').trim();
+    const about = aboutTextFrom(page);
 
     return (
-        <div className="grid gap-12">
+        <div className="divide-y divide-border rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
             {page.services.length === 0 ? null : (
                 <BookingSection
                     id={BOOKING_SECTION_IDS.services}
@@ -58,9 +55,13 @@ export function BookingSections({
                 </BookingSection>
             )}
 
-            {about === '' ? null : (
+            {! hasAboutSection(page) ? null : (
                 <BookingSection id={BOOKING_SECTION_IDS.about} title={t('booking.nav.about')}>
-                    <BookingAbout about={about} />
+                    <BookingAbout
+                        about={about}
+                        phone={page.contact.phone}
+                        links={page.contact.links}
+                    />
                 </BookingSection>
             )}
 
@@ -76,12 +77,7 @@ export function BookingSections({
 
             {page.schedule.length === 0 ? null : (
                 <BookingSection id={BOOKING_SECTION_IDS.hours} title={t('booking.hours.title')}>
-                    <BookingHours
-                        days={days}
-                        today={today}
-                        timezone={page.timezone}
-                        accent={accent}
-                    />
+                    <BookingHours days={days} today={today} accent={accent} />
                 </BookingSection>
             )}
 
@@ -91,12 +87,6 @@ export function BookingSections({
                     title={t('booking.nav.location')}
                 >
                     <BookingLocation location={page.location} />
-                </BookingSection>
-            )}
-
-            {page.contact.links.length === 0 ? null : (
-                <BookingSection id={LINKS_SECTION_ID} title={t('booking.links.title')}>
-                    <BookingLinks links={page.contact.links} />
                 </BookingSection>
             )}
         </div>

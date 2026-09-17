@@ -152,6 +152,10 @@
             "book": "Book",
             "soon": "Online booking is coming to this page soon."
         },
+        "contact": {
+            "title": "Get in touch",
+            "social": "Social media"
+        },
         "services": {
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} mins",
@@ -162,8 +166,7 @@
             "title": "Opening hours",
             "today": "Today",
             "openNow": "Open now · closes at {{time}}",
-            "closedNow": "Closed now · opens {{day}} at {{time}}",
-            "timezone": "Times shown in {{timezone}}"
+            "closedNow": "Closed now · opens {{day}} at {{time}}"
         },
         "gallery": {
             "title": "Photos",
@@ -175,10 +178,10 @@
             "more_other": "+{{count}} photos"
         },
         "location": {
-            "directions": "Get directions"
+            "mapTitle": "Map of the address",
+            "mapLink": "View on Google Maps"
         },
         "links": {
-            "title": "Social",
             "platforms": {
                 "website": "Website",
                 "instagram": "Instagram",
@@ -189,9 +192,6 @@
                 "youtube": "YouTube",
                 "whatsapp": "WhatsApp"
             }
-        },
-        "footer": {
-            "poweredBy": "Booking page built with {{name}}"
         }
     }
 }

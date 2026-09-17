@@ -11,6 +11,18 @@ export const BOOKING_SECTION_IDS = {
     location: 'location',
 } as const;
 
+export function aboutTextFrom(page: PublicBusinessPage): string {
+    return (page.about ?? '').trim();
+}
+
+export function hasContactDetails(page: PublicBusinessPage): boolean {
+    return page.contact.phone !== null || page.contact.links.length > 0;
+}
+
+export function hasAboutSection(page: PublicBusinessPage): boolean {
+    return aboutTextFrom(page) !== '' || hasContactDetails(page);
+}
+
 const NAV_ITEMS = [
     { id: BOOKING_SECTION_IDS.services, labelKey: 'booking.nav.services' },
     { id: BOOKING_SECTION_IDS.team, labelKey: 'booking.nav.team' },
@@ -25,7 +37,7 @@ function filledSections(page: PublicBusinessPage): Record<NavId, boolean> {
     return {
         [BOOKING_SECTION_IDS.services]: page.services.length > 0,
         [BOOKING_SECTION_IDS.team]: page.team.length > 0,
-        [BOOKING_SECTION_IDS.about]: (page.about ?? '').trim() !== '',
+        [BOOKING_SECTION_IDS.about]: hasAboutSection(page),
         [BOOKING_SECTION_IDS.gallery]: page.brand.gallery.length > 0,
         [BOOKING_SECTION_IDS.location]: page.location !== null,
     };

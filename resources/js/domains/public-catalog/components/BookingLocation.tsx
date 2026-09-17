@@ -1,8 +1,7 @@
-import { ExternalLink, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import type { PublicLocation } from '../types';
-import { addressLinesFrom, mapUrlFor } from './booking-address';
+import { addressLineFrom, mapEmbedUrlFor, mapUrlFor } from './booking-address';
 
 type Props = {
     location: PublicLocation;
@@ -11,29 +10,32 @@ type Props = {
 export function BookingLocation({ location }: Props) {
     const { t } = useTranslation('public');
 
-    const lines = addressLinesFrom(location);
-    const mapUrl = mapUrlFor(location);
-
     return (
-        <div className="grid justify-items-start gap-4">
-            <p className="flex items-start gap-2 text-[0.9375rem] leading-relaxed">
+        <div className="grid gap-4">
+            <a
+                href={mapUrlFor(location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-2 justify-self-start rounded-lg py-3 text-[0.9375rem] leading-relaxed underline decoration-muted-foreground/50 underline-offset-4 transition-colors outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
                 <MapPin aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />
 
-                <span className="grid">
-                    {lines.map((line) => (
-                        <span key={line}>{line}</span>
-                    ))}
-                </span>
-            </p>
+                <span>
+                    {addressLineFrom(location)}
 
-            {mapUrl === null ? null : (
-                <Button asChild variant="outline" className="h-11 gap-2 px-4">
-                    <a href={mapUrl} target="_blank" rel="noopener noreferrer">
-                        {t('booking.location.directions')}
-                        <ExternalLink aria-hidden="true" />
-                    </a>
-                </Button>
-            )}
+                    <span className="sr-only">{` (${t('booking.location.mapLink')})`}</span>
+                </span>
+            </a>
+
+            <div className="aspect-[16/9] w-full min-w-0 overflow-hidden rounded-xl border border-border">
+                <iframe
+                    src={mapEmbedUrlFor(location)}
+                    title={t('booking.location.mapTitle')}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="size-full border-0"
+                />
+            </div>
         </div>
     );
 }
