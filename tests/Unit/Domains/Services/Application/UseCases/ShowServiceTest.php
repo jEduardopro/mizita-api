@@ -20,7 +20,7 @@ beforeEach(function () {
     $this->staff = FakeStaffDirectory::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::STAFF_ID => 'Ada Lovelace',
     ]);
-    $this->images = new FakeServiceImages([
+    $this->images = FakeServiceImages::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/corte.png',
     ]);
 

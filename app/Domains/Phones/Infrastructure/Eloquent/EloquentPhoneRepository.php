@@ -8,7 +8,9 @@ use App\Domains\Phones\Contracts\PhoneRepository;
 use App\Domains\Phones\Entities\Phone;
 use App\Domains\Phones\Infrastructure\Eloquent\Mappers\PhoneMapper;
 use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
+use App\Domains\Phones\ValueObjects\PhoneNumberFragment;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
+use App\Shared\ValueObjects\PhoneNumber;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -29,6 +31,66 @@ final class EloquentPhoneRepository implements PhoneRepository
         }
 
         return $this->mapper->toEntity($model, $ownerId);
+    }
+
+    /**
+     * @param  list<string>  $ownerIds
+     * @return array<string, Phone>
+     */
+    public function findForOwners(PhoneOwnerType $ownerType, array $ownerIds): array
+    {
+        if ($ownerIds === []) {
+            return [];
+        }
+
+        $ownerIdsByKey = $this->ownerIdsByKey($ownerType, $ownerIds);
+
+        if ($ownerIdsByKey === []) {
+            return [];
+        }
+
+        $models = PhoneModel::query()
+            ->where('phoneable_type', $ownerType->value)
+            ->whereIn('phoneable_id', array_keys($ownerIdsByKey))
+            ->get();
+
+        $phones = [];
+
+        foreach ($models as $model) {
+            $ownerId = $ownerIdsByKey[(int) $model->phoneable_id];
+
+            $phones[$ownerId] = $this->mapper->toEntity($model, $ownerId);
+        }
+
+        return $phones;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function ownerIdsWithNumber(PhoneOwnerType $ownerType, PhoneNumber $number): array
+    {
+        $ownerKeys = PhoneModel::query()
+            ->where('phoneable_type', $ownerType->value)
+            ->where('e164', $number->e164())
+            ->pluck('phoneable_id')
+            ->all();
+
+        return $this->ownerIdsForKeys($ownerType, $ownerKeys);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function ownerIdsMatchingNumber(PhoneOwnerType $ownerType, PhoneNumberFragment $fragment): array
+    {
+        $ownerKeys = PhoneModel::query()
+            ->where('phoneable_type', $ownerType->value)
+            ->where('e164', 'like', '%'.$fragment->digits.'%')
+            ->pluck('phoneable_id')
+            ->all();
+
+        return $this->ownerIdsForKeys($ownerType, $ownerKeys);
     }
 
     public function save(Phone $phone): void
@@ -54,14 +116,29 @@ final class EloquentPhoneRepository implements PhoneRepository
             ->where('phoneable_id', $this->ownerKey($ownerType, $ownerId));
     }
 
+    /**
+     * @param  list<mixed>  $ownerKeys
+     * @return list<string>
+     */
+    private function ownerIdsForKeys(PhoneOwnerType $ownerType, array $ownerKeys): array
+    {
+        if ($ownerKeys === []) {
+            return [];
+        }
+
+        $owner = $this->ownerModel($ownerType, []);
+
+        return $owner::query()
+            ->whereIn('id', $ownerKeys)
+            ->pluck('uuid')
+            ->map(static fn (mixed $uuid): string => (string) $uuid)
+            ->values()
+            ->all();
+    }
+
     private function ownerKey(PhoneOwnerType $ownerType, string $ownerId): int
     {
-        /** @var class-string<Model>|null $owner */
-        $owner = Relation::getMorphedModel($ownerType->value);
-
-        if ($owner === null) {
-            throw (new ModelNotFoundException)->setModel($ownerType->value, [$ownerId]);
-        }
+        $owner = $this->ownerModel($ownerType, [$ownerId]);
 
         $key = $owner::query()->where('uuid', $ownerId)->value('id');
 
@@ -70,5 +147,39 @@ final class EloquentPhoneRepository implements PhoneRepository
         }
 
         return (int) $key;
+    }
+
+    /**
+     * @param  list<string>  $ownerIds
+     * @return array<int, string>
+     */
+    private function ownerIdsByKey(PhoneOwnerType $ownerType, array $ownerIds): array
+    {
+        $owner = $this->ownerModel($ownerType, $ownerIds);
+
+        /** @var array<int, string> $identities */
+        $identities = $owner::query()
+            ->whereIn('uuid', $ownerIds)
+            ->pluck('uuid', 'id')
+            ->map(static fn (mixed $uuid): string => (string) $uuid)
+            ->all();
+
+        return $identities;
+    }
+
+    /**
+     * @param  list<string>  $ownerIds
+     * @return class-string<Model>
+     */
+    private function ownerModel(PhoneOwnerType $ownerType, array $ownerIds): string
+    {
+        /** @var class-string<Model>|null $owner */
+        $owner = Relation::getMorphedModel($ownerType->value);
+
+        if ($owner === null) {
+            throw (new ModelNotFoundException)->setModel($ownerType->value, $ownerIds);
+        }
+
+        return $owner;
     }
 }

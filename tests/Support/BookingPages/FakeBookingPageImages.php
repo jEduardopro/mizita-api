@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Support\BookingPages;
 
 use App\Domains\BookingPages\Contracts\BookingPageImages;
+use App\Domains\BookingPages\Entities\BookingPage;
 use App\Domains\BookingPages\Exceptions\BookingPageImageNotFound;
+use App\Domains\BookingPages\Exceptions\BookingPageNotFound;
 use App\Domains\BookingPages\Exceptions\InvalidGalleryOrder;
 use App\Domains\BookingPages\ValueObjects\BookingPageImage;
 
@@ -16,116 +18,149 @@ final class FakeBookingPageImages implements BookingPageImages
     private const FIRST_GALLERY_POSITION = 1;
 
     /**
-     * @var array<string, string>
+     * @var array<string, array<string, true>>
+     */
+    private array $pages = [];
+
+    /**
+     * @var array<string, array<string, string>>
      */
     private array $banners = [];
 
     /**
-     * @var array<string, list<BookingPageImage>>
+     * @var array<string, array<string, list<BookingPageImage>>>
      */
     private array $galleries = [];
 
     /**
-     * @var list<array{bookingPageId: string, sourcePath: string, fileName: string}>
+     * @var list<array{businessId: string, bookingPageId: string}>
+     */
+    public array $bannerReads = [];
+
+    /**
+     * @var list<array{businessId: string, bookingPageId: string}>
+     */
+    public array $galleryReads = [];
+
+    /**
+     * @var list<array{businessId: string, bookingPageId: string, sourcePath: string, fileName: string}>
      */
     public array $bannersReplaced = [];
 
     /**
-     * @var list<string>
+     * @var list<array{businessId: string, bookingPageId: string}>
      */
     public array $bannersRemoved = [];
 
     /**
-     * @var list<array{bookingPageId: string, sourcePath: string, fileName: string}>
+     * @var list<array{businessId: string, bookingPageId: string, sourcePath: string, fileName: string}>
      */
     public array $galleryImagesAdded = [];
 
     /**
-     * @var list<array{bookingPageId: string, imageId: string}>
+     * @var list<array{businessId: string, bookingPageId: string, imageId: string}>
      */
     public array $galleryImagesRemoved = [];
 
     /**
-     * @var list<array{bookingPageId: string, imageIds: list<string>}>
+     * @var list<array{businessId: string, bookingPageId: string, imageIds: list<string>}>
      */
     public array $reorders = [];
 
-    /**
-     * @var list<string>
-     */
-    public array $galleryReads = [];
-
-    public function withBanner(string $bookingPageId, string $url): self
+    public function withPage(BookingPage ...$pages): self
     {
-        $this->banners[$bookingPageId] = $url;
+        foreach ($pages as $page) {
+            $this->pages[$page->businessId][$page->id] = true;
+        }
 
         return $this;
     }
 
-    public function withGallery(string $bookingPageId, BookingPageImage ...$images): self
+    public function withBanner(BookingPage $page, string $url): self
     {
-        $this->galleries[$bookingPageId] = array_values($images);
+        $this->withPage($page);
+
+        $this->banners[$page->businessId][$page->id] = $url;
 
         return $this;
     }
 
-    public function withGalleryOf(string $bookingPageId, int $count): self
+    public function withGallery(BookingPage $page, BookingPageImage ...$images): self
+    {
+        $this->withPage($page);
+
+        $this->galleries[$page->businessId][$page->id] = array_values($images);
+
+        return $this;
+    }
+
+    public function withGalleryOf(BookingPage $page, int $count): self
     {
         $images = [];
 
-        for ($position = 1; $position <= $count; $position++) {
+        for ($position = self::FIRST_GALLERY_POSITION; $position <= $count; $position++) {
             $images[] = new BookingPageImage(
                 id: sprintf('01930000-0000-7000-8000-%012d', $position),
-                url: self::URL_PREFIX.$bookingPageId.'/'.$position.'.jpg',
+                url: self::URL_PREFIX.$page->id.'/'.$position.'.jpg',
                 position: $position,
             );
         }
 
-        return $this->withGallery($bookingPageId, ...$images);
+        return $this->withGallery($page, ...$images);
     }
 
-    public function bannerUrlFor(string $bookingPageId): ?string
+    public function bannerUrlFor(string $businessId, string $bookingPageId): ?string
     {
-        return $this->banners[$bookingPageId] ?? null;
+        $this->bannerReads[] = ['businessId' => $businessId, 'bookingPageId' => $bookingPageId];
+
+        return $this->banners[$businessId][$bookingPageId] ?? null;
     }
 
     /**
      * @return list<BookingPageImage>
      */
-    public function galleryFor(string $bookingPageId): array
+    public function galleryFor(string $businessId, string $bookingPageId): array
     {
-        $this->galleryReads[] = $bookingPageId;
+        $this->galleryReads[] = ['businessId' => $businessId, 'bookingPageId' => $bookingPageId];
 
-        return $this->galleries[$bookingPageId] ?? [];
+        return $this->galleries[$businessId][$bookingPageId] ?? [];
     }
 
-    public function replaceBanner(string $bookingPageId, string $sourcePath, string $fileName): string
+    public function replaceBanner(string $businessId, string $bookingPageId, string $sourcePath, string $fileName): string
     {
+        $this->refusePageOutsideBusiness($businessId, $bookingPageId);
+
         $this->bannersReplaced[] = [
+            'businessId' => $businessId,
             'bookingPageId' => $bookingPageId,
             'sourcePath' => $sourcePath,
             'fileName' => $fileName,
         ];
 
-        return $this->banners[$bookingPageId] = self::URL_PREFIX.$bookingPageId.'/'.$fileName;
+        return $this->banners[$businessId][$bookingPageId] = self::URL_PREFIX.$bookingPageId.'/'.$fileName;
     }
 
-    public function removeBanner(string $bookingPageId): void
+    public function removeBanner(string $businessId, string $bookingPageId): void
     {
-        $this->bannersRemoved[] = $bookingPageId;
+        $this->refusePageOutsideBusiness($businessId, $bookingPageId);
 
-        unset($this->banners[$bookingPageId]);
+        $this->bannersRemoved[] = ['businessId' => $businessId, 'bookingPageId' => $bookingPageId];
+
+        unset($this->banners[$businessId][$bookingPageId]);
     }
 
-    public function addGalleryImage(string $bookingPageId, string $sourcePath, string $fileName): BookingPageImage
+    public function addGalleryImage(string $businessId, string $bookingPageId, string $sourcePath, string $fileName): BookingPageImage
     {
+        $this->refusePageOutsideBusiness($businessId, $bookingPageId);
+
         $this->galleryImagesAdded[] = [
+            'businessId' => $businessId,
             'bookingPageId' => $bookingPageId,
             'sourcePath' => $sourcePath,
             'fileName' => $fileName,
         ];
 
-        $gallery = $this->galleries[$bookingPageId] ?? [];
+        $gallery = $this->galleries[$businessId][$bookingPageId] ?? [];
 
         $image = new BookingPageImage(
             id: sprintf('01930000-0000-7000-8000-%012d', count($gallery) + 1),
@@ -133,16 +168,22 @@ final class FakeBookingPageImages implements BookingPageImages
             position: count($gallery) + 1,
         );
 
-        $this->galleries[$bookingPageId] = [...$gallery, $image];
+        $this->galleries[$businessId][$bookingPageId] = [...$gallery, $image];
 
         return $image;
     }
 
-    public function removeGalleryImage(string $bookingPageId, string $imageId): void
+    public function removeGalleryImage(string $businessId, string $bookingPageId, string $imageId): void
     {
-        $this->galleryImagesRemoved[] = ['bookingPageId' => $bookingPageId, 'imageId' => $imageId];
+        $this->refusePageOutsideBusiness($businessId, $bookingPageId);
 
-        $gallery = $this->galleries[$bookingPageId] ?? [];
+        $this->galleryImagesRemoved[] = [
+            'businessId' => $businessId,
+            'bookingPageId' => $bookingPageId,
+            'imageId' => $imageId,
+        ];
+
+        $gallery = $this->galleries[$businessId][$bookingPageId] ?? [];
         $remaining = array_values(array_filter(
             $gallery,
             static fn (BookingPageImage $image): bool => $image->id !== $imageId,
@@ -152,17 +193,23 @@ final class FakeBookingPageImages implements BookingPageImages
             throw BookingPageImageNotFound::withId($imageId);
         }
 
-        $this->galleries[$bookingPageId] = $remaining;
+        $this->galleries[$businessId][$bookingPageId] = $remaining;
     }
 
     /**
      * @param  list<string>  $imageIds
      */
-    public function reorderGallery(string $bookingPageId, array $imageIds): void
+    public function reorderGallery(string $businessId, string $bookingPageId, array $imageIds): void
     {
-        $this->reorders[] = ['bookingPageId' => $bookingPageId, 'imageIds' => array_values($imageIds)];
+        $this->refusePageOutsideBusiness($businessId, $bookingPageId);
 
-        $gallery = $this->galleries[$bookingPageId] ?? [];
+        $this->reorders[] = [
+            'businessId' => $businessId,
+            'bookingPageId' => $bookingPageId,
+            'imageIds' => array_values($imageIds),
+        ];
+
+        $gallery = $this->galleries[$businessId][$bookingPageId] ?? [];
 
         if (count($gallery) !== count($imageIds)) {
             throw InvalidGalleryOrder::incomplete();
@@ -180,7 +227,17 @@ final class FakeBookingPageImages implements BookingPageImages
             );
         }
 
-        $this->galleries[$bookingPageId] = $reordered;
+        $this->galleries[$businessId][$bookingPageId] = $reordered;
+    }
+
+    /**
+     * @throws BookingPageNotFound
+     */
+    private function refusePageOutsideBusiness(string $businessId, string $bookingPageId): void
+    {
+        if (! isset($this->pages[$businessId][$bookingPageId])) {
+            throw BookingPageNotFound::forBusiness($businessId);
+        }
     }
 
     /**

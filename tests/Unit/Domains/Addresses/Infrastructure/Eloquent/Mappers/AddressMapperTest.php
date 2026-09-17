@@ -118,6 +118,16 @@ describe('entity to row', function () {
         expect($this->mapper->toAttributes(AddressFixtures::address(stateId: null), AddressFixtures::OWNER_KEY, null)['state_id'])->toBeNull();
     });
 
+    it('writes an absent city and postal code as null and never as an empty string', function () {
+        $attributes = $this->mapper->toAttributes(AddressFixtures::streetOnly(), AddressFixtures::OWNER_KEY, null);
+
+        expect($attributes['city'])->toBeNull()
+            ->and($attributes['postal_code'])->toBeNull()
+            ->and($attributes['city'])->not->toBe('')
+            ->and($attributes['postal_code'])->not->toBe('')
+            ->and($attributes['street'])->toBe(AddressFixtures::STREET);
+    });
+
     it('never writes the internal primary key', function () {
         expect($this->mapper->toAttributes(AddressFixtures::address(), AddressFixtures::OWNER_KEY, null))
             ->not->toHaveKey('id');
@@ -195,6 +205,18 @@ describe('row to entity', function () {
         expect($this->mapper->toEntity(addressRow(), FakeBusinessContext::BUSINESS_ID)->createdAt)
             ->toEqual(AddressFixtures::now());
     });
+
+    it('reads a row holding nothing but a street as an address with no city and no postal code', function () {
+        $address = $this->mapper->toEntity(
+            addressRow(['city' => null, 'state_id' => null, 'postal_code' => null], withState: false),
+            FakeBusinessContext::BUSINESS_ID,
+        );
+
+        expect($address->street())->toBe(AddressFixtures::STREET)
+            ->and($address->city())->toBeNull()
+            ->and($address->stateId())->toBeNull()
+            ->and($address->postalCode())->toBeNull();
+    });
 });
 
 it('survives a full round trip without losing a fact', function () {
@@ -225,4 +247,22 @@ it('survives a full round trip without losing a fact', function () {
         ->and($restored->coordinates()?->latitude)->toBe(-33.4488897)
         ->and($restored->coordinates()?->longitude)->toBe(-70.6692655)
         ->and($restored->createdAt)->toEqual($address->createdAt);
+});
+
+it('survives a full round trip when all it knows is the street', function () {
+    $address = AddressFixtures::streetOnly(street: 'Callejón del Ñandú 3');
+
+    $attributes = $this->mapper->toAttributes($address, AddressFixtures::OWNER_KEY, null);
+
+    $restored = $this->mapper->toEntity(
+        addressRow([...$attributes, 'created_at' => AddressFixtures::now()], withState: false),
+        FakeBusinessContext::BUSINESS_ID,
+    );
+
+    expect($restored->street())->toBe('Callejón del Ñandú 3')
+        ->and($restored->city())->toBeNull()
+        ->and($restored->stateId())->toBeNull()
+        ->and($restored->postalCode())->toBeNull()
+        ->and($restored->coordinates())->toBeNull()
+        ->and($restored->country())->toBe(CountryCode::Mx);
 });

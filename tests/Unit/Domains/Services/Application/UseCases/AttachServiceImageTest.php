@@ -50,11 +50,23 @@ it('hands the image to the port and answers with the service carrying it', funct
     $data = ($this->attach)()->value();
 
     expect($this->images->replaced)->toBe([[
+        'businessId' => FakeBusinessContext::BUSINESS_ID,
         'serviceId' => ServiceFixtures::SERVICE_ID,
         'sourcePath' => '/tmp/php7Xy9',
         'fileName' => 'corte.png',
     ]])->and($data->id)->toBe(ServiceFixtures::SERVICE_ID)
-        ->and($data->imageUrl)->toBe('https://cdn.mizita.test/services/'.ServiceFixtures::SERVICE_ID.'/corte.png');
+        ->and($data->imageUrl)->toBe(FakeServiceImages::urlOf(ServiceFixtures::SERVICE_ID, 'corte.png'));
+});
+
+it('files the image under the business in context, where no neighbour can read it', function () {
+    $this->services->store(ServiceFixtures::service());
+
+    ($this->attach)();
+
+    expect($this->images->urlFor(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::SERVICE_ID))
+        ->toBe(FakeServiceImages::urlOf(ServiceFixtures::SERVICE_ID, 'corte.png'))
+        ->and($this->images->urlFor(ServiceFixtures::OTHER_BUSINESS_ID, ServiceFixtures::SERVICE_ID))
+        ->toBeNull();
 });
 
 it('replaces the image a service already had', function () {

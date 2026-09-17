@@ -85,6 +85,23 @@ it('assembles the whole settings screen out of the business and its neighbours',
         ->and($data->bookingPage->bannerUrl)->toBe(SettingsFixtures::BANNER_URL);
 });
 
+it('describes an address filed with a street alone, city and postal code null', function () {
+    ($this->store)();
+    $this->addresses->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::address(
+        city: null,
+        stateId: null,
+        postalCode: null,
+    ));
+
+    $address = ($this->describe)()->address;
+
+    expect($address?->street)->toBe(SettingsFixtures::STREET)
+        ->and($address?->city)->toBeNull()
+        ->and($address?->stateId)->toBeNull()
+        ->and($address?->postalCode)->toBeNull()
+        ->and($address?->countryCode)->toBe('MX');
+});
+
 it('describes a business that has filled nothing in beyond onboarding', function () {
     ($this->store)();
 

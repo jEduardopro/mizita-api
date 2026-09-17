@@ -137,16 +137,22 @@ describe('the image each service shows', function () {
     it('asks for every url in one call, rather than one call per service', function () {
         ($this->read)();
 
-        expect($this->images->urlsForCalls)->toHaveCount(1)
-            ->and($this->images->urlsForCalls[0])->toBe([
+        expect($this->images->batchReads)->toHaveCount(1)
+            ->and($this->images->batchReads[0]['serviceIds'])->toBe([
                 PublicCatalogFixtures::SECOND_SERVICE_ID,
                 PublicCatalogFixtures::SERVICE_ID,
             ])
-            ->and($this->images->urlForCalls)->toBe([]);
+            ->and($this->images->reads)->toBe([]);
+    });
+
+    it('asks for the files of the business whose page is being read', function () {
+        ($this->read)();
+
+        expect($this->images->batchReads[0]['businessId'])->toBe(PublicCatalogFixtures::BUSINESS_ID);
     });
 
     it('hands each service the url filed under its own id', function () {
-        $images = new FakeServiceImages([
+        $images = FakeServiceImages::of(PublicCatalogFixtures::BUSINESS_ID, [
             PublicCatalogFixtures::SERVICE_ID => PublicCatalogFixtures::SERVICE_IMAGE_URL,
         ]);
 
@@ -159,8 +165,19 @@ describe('the image each service shows', function () {
             ->and($urlsById[PublicCatalogFixtures::SECOND_SERVICE_ID])->toBeNull();
     });
 
+    it('publishes no file a neighbouring business filed under that same service id', function () {
+        $images = FakeServiceImages::of(PublicCatalogFixtures::OTHER_BUSINESS_ID, [
+            PublicCatalogFixtures::SERVICE_ID => PublicCatalogFixtures::SERVICE_IMAGE_URL,
+        ]);
+
+        $published = (new ServicesPublishedServices($this->services, $images))
+            ->forBusiness(PublicCatalogFixtures::BUSINESS_ID);
+
+        expect(array_column($published, 'imageUrl'))->toBe([null, null]);
+    });
+
     it('asks for no image at all when the business has no active service', function () {
         expect(($this->read)(PublicCatalogFixtures::OTHER_BUSINESS_ID))->toBe([])
-            ->and($this->images->urlsForCalls)->toBe([]);
+            ->and($this->images->batchReads)->toBe([]);
     });
 });

@@ -59,7 +59,7 @@ final class BusinessSettingsResource extends JsonResource
     }
 
     /**
-     * @return array{street: string, city: string, state_id: string|null, postal_code: string, country_code: string, latitude: string|null, longitude: string|null}|null
+     * @return array{street: string, city: string|null, state_id: string|null, postal_code: string|null, country_code: string, latitude: string|null, longitude: string|null}|null
      */
     private static function describeAddress(?BusinessAddressSnapshot $address): ?array
     {

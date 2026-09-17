@@ -6,6 +6,16 @@ const MINUTE_IN_MS = 60_000;
 
 const HOUR_IN_MS = 60 * MINUTE_IN_MS;
 
+const ISO_DATE_LENGTH = 'YYYY-MM-DD'.length;
+
+export function todayAsIsoDate(): string {
+    const today = new Date();
+
+    return new Date(today.getTime() - today.getTimezoneOffset() * MINUTE_IN_MS)
+        .toISOString()
+        .slice(0, ISO_DATE_LENGTH);
+}
+
 export function formatTimeOfDay(value: string, locale: string): string {
     const parts = TIME_OF_DAY_PATTERN.exec(value);
 

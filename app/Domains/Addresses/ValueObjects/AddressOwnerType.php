@@ -9,4 +9,6 @@ enum AddressOwnerType: string
     case Business = 'business';
 
     case StaffMember = 'staff_member';
+
+    case Customer = 'customer';
 }

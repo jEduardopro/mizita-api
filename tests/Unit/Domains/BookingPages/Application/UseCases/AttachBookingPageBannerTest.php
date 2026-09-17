@@ -12,7 +12,7 @@ use Tests\Support\FakeBusinessContext;
 
 beforeEach(function () {
     $this->pages = new FakeCurrentBookingPage(BookingPageFixtures::page());
-    $this->images = new FakeBookingPageImages;
+    $this->images = (new FakeBookingPageImages)->withPage(BookingPageFixtures::page());
 
     $this->useCase = new AttachBookingPageBanner(
         $this->pages,
@@ -38,6 +38,7 @@ describe('uploading a banner', function () {
         ($this->attach)();
 
         expect($this->images->bannersReplaced)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
             'bookingPageId' => BookingPageFixtures::PAGE_ID,
             'sourcePath' => BookingPageFixtures::SOURCE_PATH,
             'fileName' => BookingPageFixtures::FILE_NAME,
@@ -45,7 +46,7 @@ describe('uploading a banner', function () {
     });
 
     it('replaces the banner instead of adding a second one', function () {
-        $this->images->withBanner(BookingPageFixtures::PAGE_ID, 'https://cdn.mizita.test/old.jpg');
+        $this->images->withBanner(BookingPageFixtures::page(), 'https://cdn.mizita.test/old.jpg');
 
         expect(($this->attach)()->value()->bannerUrl)->not->toBe('https://cdn.mizita.test/old.jpg')
             ->and($this->images->bannersReplaced)->toHaveCount(1);
@@ -58,9 +59,36 @@ describe('uploading a banner', function () {
     });
 
     it('leaves the gallery alone', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 3);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 3);
 
         expect(($this->attach)()->value()->gallery)->toHaveCount(3);
+    });
+});
+
+describe('a page the business in context does not own', function () {
+    beforeEach(function () {
+        $this->useCase = new AttachBookingPageBanner(
+            $this->pages,
+            $this->images,
+            new BookingPagePresenter($this->images),
+            new FakeBusinessContext(BookingPageFixtures::OTHER_BUSINESS_ID),
+        );
+    });
+
+    it('refuses the upload rather than writing onto a neighbour page', function () {
+        $response = $this->useCase->handle(BookingPageFixtures::attachInput());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('booking_page_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('stores no banner at all when the page belongs to another business', function () {
+        $this->useCase->handle(BookingPageFixtures::attachInput());
+
+        expect($this->images->bannersReplaced)->toBe([])
+            ->and($this->images->bannerUrlFor(FakeBusinessContext::BUSINESS_ID, BookingPageFixtures::PAGE_ID))
+            ->toBeNull();
     });
 });
 

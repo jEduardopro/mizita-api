@@ -21,8 +21,8 @@ final class BookingPagePresenter
             accentColor: $page->accentColor()->value,
             buttonShape: $page->buttonShape()->value,
             theme: $page->theme()->value,
-            bannerUrl: $this->images->bannerUrlFor($page->id),
-            gallery: $this->images->galleryFor($page->id),
+            bannerUrl: $this->images->bannerUrlFor($page->businessId, $page->id),
+            gallery: $this->images->galleryFor($page->businessId, $page->id),
         );
     }
 }

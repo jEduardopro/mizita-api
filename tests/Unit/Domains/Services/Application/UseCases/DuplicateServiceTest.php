@@ -24,7 +24,7 @@ use Tests\Support\Services\ServiceFixtures;
 
 beforeEach(function () {
     $this->services = new FakeServiceRepository;
-    $this->images = new FakeServiceImages([
+    $this->images = FakeServiceImages::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/corte.png',
     ]);
     $this->staff = FakeStaffDirectory::of(FakeBusinessContext::BUSINESS_ID, [
@@ -33,22 +33,27 @@ beforeEach(function () {
     ]);
     $this->events = Mockery::mock(Dispatcher::class);
 
-    $this->useCase = new DuplicateService(
-        $this->services,
-        $this->images,
-        new ServicePresenter(
-            $this->staff,
-            $this->images,
-            new FakeBusinessProfile,
-            new BookingLinks(ServiceFixtures::BASE_URL),
-        ),
-        new SlugAllocator,
-        new CopyNamer,
-        new FixedIdGenerator(ServiceFixtures::GENERATED_SERVICE_ID),
-        new FakeClock(new DateTimeImmutable('2026-03-29T10:00:00+00:00')),
-        new FakeBusinessContext,
-        $this->events,
-    );
+    $this->withImages = function (FakeServiceImages $images) {
+        $this->images = $images;
+        $this->useCase = new DuplicateService(
+            $this->services,
+            $images,
+            new ServicePresenter(
+                $this->staff,
+                $images,
+                new FakeBusinessProfile,
+                new BookingLinks(ServiceFixtures::BASE_URL),
+            ),
+            new SlugAllocator,
+            new CopyNamer,
+            new FixedIdGenerator(ServiceFixtures::GENERATED_SERVICE_ID),
+            new FakeClock(new DateTimeImmutable('2026-03-29T10:00:00+00:00')),
+            new FakeBusinessContext,
+            $this->events,
+        );
+    };
+
+    ($this->withImages)($this->images);
 
     $this->onRecord = function (...$overrides) {
         $this->services->store(ServiceFixtures::service(...$overrides));
@@ -123,9 +128,40 @@ describe('duplicating a service', function () {
         $data = ($this->duplicate)()->value();
 
         expect($this->images->copied)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
             'source' => ServiceFixtures::SERVICE_ID,
             'target' => ServiceFixtures::GENERATED_SERVICE_ID,
         ]])->and($data->imageUrl)->toBe('https://cdn.mizita.test/corte.png');
+    });
+
+    it('copies within the business in context, naming it once for both ends', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        ($this->onRecord)();
+
+        ($this->duplicate)();
+
+        expect($this->images->copied[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->images->urlFor(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::GENERATED_SERVICE_ID))
+            ->toBe('https://cdn.mizita.test/corte.png')
+            ->and($this->images->urlFor(ServiceFixtures::OTHER_BUSINESS_ID, ServiceFixtures::GENERATED_SERVICE_ID))
+            ->toBeNull();
+    });
+
+    it('copies nothing when the file it would read belongs to a neighbouring business', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        ($this->onRecord)();
+        $images = FakeServiceImages::of(ServiceFixtures::OTHER_BUSINESS_ID, [
+            ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/otro.png',
+        ]);
+        ($this->withImages)($images);
+
+        $data = ($this->duplicate)()->value();
+
+        expect($data->imageUrl)->toBeNull()
+            ->and($images->urlFor(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::GENERATED_SERVICE_ID))
+            ->toBeNull()
+            ->and($images->urlFor(ServiceFixtures::OTHER_BUSINESS_ID, ServiceFixtures::GENERATED_SERVICE_ID))
+            ->toBeNull();
     });
 
     it('announces the copy once, by its own identity', function () {

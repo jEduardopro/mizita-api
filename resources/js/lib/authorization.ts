@@ -5,6 +5,10 @@ export type PermissionName =
     | 'create_service'
     | 'edit_service'
     | 'delete_service'
+    | 'view_customers'
+    | 'create_customer'
+    | 'edit_customer'
+    | 'delete_customer'
     | 'view_business_settings'
     | 'edit_business_settings';
 

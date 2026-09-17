@@ -29,6 +29,8 @@ final class BookingPageFixtures
 
     public const THIRD_IMAGE_ID = '01930000-0000-7000-8000-0000000000c3';
 
+    public const NEIGHBOUR_IMAGE_ID = '01930000-0000-7000-8000-0000000000c9';
+
     public const OTHER_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b2';
 
     public const BANNER_URL = 'https://cdn.mizita.test/booking-pages/banner.jpg';

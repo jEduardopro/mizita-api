@@ -25,11 +25,6 @@ final class FakeBusinessAddressBook implements BusinessAddressBook
     /**
      * @var list<string>
      */
-    public array $removals = [];
-
-    /**
-     * @var list<string>
-     */
     public array $reads = [];
 
     public function store(string $businessId, BusinessAddressSnapshot $address): self
@@ -59,19 +54,21 @@ final class FakeBusinessAddressBook implements BusinessAddressBook
             throw $this->replaceFailure;
         }
 
+        if (self::carriesNoStreet($address) && ! isset($this->addresses[$businessId])) {
+            return;
+        }
+
         $this->addresses[$businessId] = $address;
         $this->replacements[] = ['businessId' => $businessId, 'address' => $address];
     }
 
-    public function removeForBusiness(string $businessId): void
-    {
-        unset($this->addresses[$businessId]);
-
-        $this->removals[] = $businessId;
-    }
-
     public function wasWritten(): bool
     {
-        return $this->replacements !== [] || $this->removals !== [];
+        return $this->replacements !== [];
+    }
+
+    private static function carriesNoStreet(BusinessAddressSnapshot $address): bool
+    {
+        return trim($address->street) === '';
     }
 }

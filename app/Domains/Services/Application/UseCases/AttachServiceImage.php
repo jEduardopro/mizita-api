@@ -33,9 +33,9 @@ final class AttachServiceImage
             $businessId = $this->business->currentBusinessId();
             $service = $this->services->findForBusiness($businessId, $input->serviceId);
 
-            $this->images->replace($service->id, $input->sourcePath, $input->fileName);
+            $this->images->replace($businessId, $service->id, $input->sourcePath, $input->fileName);
 
-            return UseCaseResponse::success($this->presenter->describe($businessId, $service));
+            return UseCaseResponse::success($this->presenter->describe($service));
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }

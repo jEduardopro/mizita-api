@@ -33,9 +33,9 @@ final class RemoveServiceImage
             $businessId = $this->business->currentBusinessId();
             $service = $this->services->findForBusiness($businessId, $input->serviceId);
 
-            $this->images->remove($service->id);
+            $this->images->remove($businessId, $service->id);
 
-            return UseCaseResponse::success($this->presenter->describe($businessId, $service));
+            return UseCaseResponse::success($this->presenter->describe($service));
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }

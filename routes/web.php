@@ -24,7 +24,9 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/services', fn () => Inertia::render('admin/services/index'))->name('services');
     Route::get('/services/new', fn () => Inertia::render('admin/services/create'))->name('services.create');
     Route::get('/services/{service}/edit', fn (string $service) => Inertia::render('admin/services/edit', ['serviceId' => $service]))->name('services.edit');
-    Route::get('/customers', fn () => Inertia::render('admin/customers'))->name('customers');
+    Route::get('/customers', fn () => Inertia::render('admin/customers/index'))->name('customers');
+    Route::get('/customers/new', fn () => Inertia::render('admin/customers/create'))->name('customers.create');
+    Route::get('/customers/{customer}/edit', fn (string $customer) => Inertia::render('admin/customers/edit', ['customerId' => $customer]))->name('customers.edit');
     Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
     Route::get('/settings/business', fn () => Inertia::render('admin/settings/business'))->name('settings.business');
 });

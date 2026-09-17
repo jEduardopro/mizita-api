@@ -124,9 +124,9 @@ final readonly class UpdateBusinessSettingsInput
 
         return new LocationInput(
             street: self::textOrEmpty($section['street'] ?? null),
-            city: self::textOrEmpty($section['city'] ?? null),
+            city: self::textOrNull($section['city'] ?? null),
             stateId: self::textOrNull($section['state_id'] ?? null),
-            postalCode: self::textOrEmpty($section['postal_code'] ?? null),
+            postalCode: self::textOrNull($section['postal_code'] ?? null),
             countryCode: self::textOrEmpty($section['country_code'] ?? null),
             latitude: self::textOrNull($section['latitude'] ?? null),
             longitude: self::textOrNull($section['longitude'] ?? null),

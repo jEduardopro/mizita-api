@@ -22,12 +22,20 @@ final class ReplaceAddress
     ) {}
 
     /**
-     * @return UseCaseResponse<AddressData>
+     * @return UseCaseResponse<?AddressData>
      */
     public function handle(ReplaceAddressInput $input): UseCaseResponse
     {
         try {
-            $address = $this->addressFor($input);
+            $current = $this->addresses->findForOwner($input->ownerType, $input->ownerId);
+
+            if ($current === null && self::carriesNoStreet($input)) {
+                return UseCaseResponse::success(null);
+            }
+
+            $address = $current === null
+                ? $this->registered($input)
+                : $this->relocated($current, $input);
 
             $this->addresses->save($address);
 
@@ -37,25 +45,24 @@ final class ReplaceAddress
         }
     }
 
-    private function addressFor(ReplaceAddressInput $input): Address
+    private function registered(ReplaceAddressInput $input): Address
     {
-        $address = $this->addresses->findForOwner($input->ownerType, $input->ownerId);
+        return Address::create(
+            id: $this->ids->next(),
+            ownerType: $input->ownerType,
+            ownerId: $input->ownerId,
+            street: $input->street,
+            city: $input->city,
+            stateId: $input->stateId,
+            postalCode: $input->postalCode,
+            country: $input->country,
+            coordinates: $input->coordinates,
+            now: $this->clock->now(),
+        );
+    }
 
-        if ($address === null) {
-            return Address::create(
-                id: $this->ids->next(),
-                ownerType: $input->ownerType,
-                ownerId: $input->ownerId,
-                street: $input->street,
-                city: $input->city,
-                stateId: $input->stateId,
-                postalCode: $input->postalCode,
-                country: $input->country,
-                coordinates: $input->coordinates,
-                now: $this->clock->now(),
-            );
-        }
-
+    private function relocated(Address $address, ReplaceAddressInput $input): Address
+    {
         $address->relocateTo(
             street: $input->street,
             city: $input->city,
@@ -78,5 +85,10 @@ final class ReplaceAddress
         }
 
         $address->pinAt($input->coordinates);
+    }
+
+    private static function carriesNoStreet(ReplaceAddressInput $input): bool
+    {
+        return trim($input->street) === '';
     }
 }

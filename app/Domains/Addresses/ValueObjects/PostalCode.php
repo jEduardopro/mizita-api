@@ -36,6 +36,18 @@ final readonly class PostalCode
         return new self($candidate);
     }
 
+    /**
+     * @throws InvalidAddressPostalCode
+     */
+    public static function fromNullable(?string $value): ?self
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return self::fromString($value);
+    }
+
     public static function restore(string $value): self
     {
         return new self($value);

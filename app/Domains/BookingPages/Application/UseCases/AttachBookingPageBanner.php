@@ -30,9 +30,11 @@ final class AttachBookingPageBanner
         try {
             $input->validate();
 
-            $page = $this->pages->forBusiness($this->business->currentBusinessId());
+            $businessId = $this->business->currentBusinessId();
 
-            $this->images->replaceBanner($page->id, $input->sourcePath, $input->fileName);
+            $page = $this->pages->forBusiness($businessId);
+
+            $this->images->replaceBanner($businessId, $page->id, $input->sourcePath, $input->fileName);
 
             return UseCaseResponse::success($this->presenter->describe($page));
         } catch (DomainFailure $failure) {

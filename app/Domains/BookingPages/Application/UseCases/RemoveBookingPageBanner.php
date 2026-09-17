@@ -27,9 +27,11 @@ final class RemoveBookingPageBanner
     public function handle(): UseCaseResponse
     {
         try {
-            $page = $this->pages->ofBusiness($this->business->currentBusinessId());
+            $businessId = $this->business->currentBusinessId();
 
-            $this->images->removeBanner($page->id);
+            $page = $this->pages->ofBusiness($businessId);
+
+            $this->images->removeBanner($businessId, $page->id);
 
             return UseCaseResponse::success($this->presenter->describe($page));
         } catch (DomainFailure $failure) {

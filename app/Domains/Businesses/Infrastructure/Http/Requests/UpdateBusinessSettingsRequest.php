@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Businesses\Infrastructure\Http\Requests;
 
+use App\Domains\Addresses\ValueObjects\PostalCode;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
 use App\Domains\Businesses\ValueObjects\About;
@@ -17,6 +18,10 @@ final class UpdateBusinessSettingsRequest extends FormRequest
     private const CURRENCY_CODE_LENGTH = 3;
 
     private const MAXIMUM_NATIONAL_NUMBER_LENGTH = 24;
+
+    private const MAXIMUM_STREET_LENGTH = 160;
+
+    private const MAXIMUM_CITY_LENGTH = 120;
 
     /**
      * @return array<string, array<int, string>>
@@ -100,10 +105,16 @@ final class UpdateBusinessSettingsRequest extends FormRequest
     {
         return [
             'location' => ['sometimes', 'array'],
-            'location.street' => ['sometimes', 'nullable', 'string'],
-            'location.city' => ['sometimes', 'nullable', 'string'],
+            'location.street' => ['sometimes', 'nullable', 'string', 'max:'.self::MAXIMUM_STREET_LENGTH],
+            'location.city' => ['sometimes', 'nullable', 'string', 'max:'.self::MAXIMUM_CITY_LENGTH],
             'location.state_id' => ['sometimes', 'nullable', 'uuid'],
-            'location.postal_code' => ['sometimes', 'nullable', 'string'],
+            'location.postal_code' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'min:'.PostalCode::MINIMUM_DIGITS,
+                'max:'.PostalCode::MAXIMUM_DIGITS,
+            ],
             'location.country_code' => [
                 'required_with:location',
                 'string',

@@ -15,7 +15,7 @@ use Tests\Support\FakeBusinessContext;
 beforeEach(function () {
     $this->repository = (new FakeBookingPageRepository)->store(BookingPageFixtures::page());
     $this->images = (new FakeBookingPageImages)->withGallery(
-        BookingPageFixtures::PAGE_ID,
+        BookingPageFixtures::page(),
         BookingPageFixtures::image(BookingPageFixtures::IMAGE_ID, position: 1),
         BookingPageFixtures::image(BookingPageFixtures::SECOND_IMAGE_ID, position: 2),
         BookingPageFixtures::image(BookingPageFixtures::THIRD_IMAGE_ID, position: 3),
@@ -54,6 +54,7 @@ describe('reordering the gallery', function () {
         ]);
 
         expect($this->images->reorders)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
             'bookingPageId' => BookingPageFixtures::PAGE_ID,
             'imageIds' => [
                 BookingPageFixtures::SECOND_IMAGE_ID,
@@ -82,12 +83,12 @@ describe('reordering the gallery', function () {
 
         expect(array_map(
             static fn (BookingPageImage $image): int => $image->position,
-            $this->images->galleryFor(BookingPageFixtures::PAGE_ID),
+            $this->images->galleryFor(FakeBusinessContext::BUSINESS_ID, BookingPageFixtures::PAGE_ID),
         ))->toBe([1, 2, 3]);
     });
 
     it('leaves the banner alone', function () {
-        $this->images->withBanner(BookingPageFixtures::PAGE_ID, BookingPageFixtures::BANNER_URL);
+        $this->images->withBanner(BookingPageFixtures::page(), BookingPageFixtures::BANNER_URL);
 
         $data = ($this->reorder)([
             BookingPageFixtures::IMAGE_ID,
@@ -148,7 +149,7 @@ describe('an order it will not apply', function () {
             '01930000-0000-7000-8000-0000000000ff',
         ]);
 
-        $gallery = $this->images->galleryFor(BookingPageFixtures::PAGE_ID);
+        $gallery = $this->images->galleryFor(FakeBusinessContext::BUSINESS_ID, BookingPageFixtures::PAGE_ID);
 
         expect(array_map(static fn (BookingPageImage $image): string => $image->id, $gallery))->toBe([
             BookingPageFixtures::IMAGE_ID,
@@ -193,5 +194,55 @@ describe('an order it will not apply', function () {
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('booking_page_not_found')
             ->and($this->images->reorders)->toBe([]);
+    });
+});
+
+describe('an order naming an image of another business', function () {
+    beforeEach(function () {
+        $this->neighbourPage = BookingPageFixtures::page(
+            id: BookingPageFixtures::OTHER_PAGE_ID,
+            businessId: BookingPageFixtures::OTHER_BUSINESS_ID,
+        );
+
+        $this->images->withGallery(
+            $this->neighbourPage,
+            BookingPageFixtures::image(BookingPageFixtures::NEIGHBOUR_IMAGE_ID, position: 1),
+        );
+
+        $this->orderWithNeighbourImage = fn () => ($this->reorder)([
+            BookingPageFixtures::IMAGE_ID,
+            BookingPageFixtures::SECOND_IMAGE_ID,
+            BookingPageFixtures::NEIGHBOUR_IMAGE_ID,
+        ]);
+    });
+
+    it('refuses the order', function () {
+        $response = ($this->orderWithNeighbourImage)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('booking_page_image_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('leaves its own gallery in the order it already had', function () {
+        ($this->orderWithNeighbourImage)();
+
+        expect(array_column(
+            $this->images->galleryFor(FakeBusinessContext::BUSINESS_ID, BookingPageFixtures::PAGE_ID),
+            'id',
+        ))->toBe([
+            BookingPageFixtures::IMAGE_ID,
+            BookingPageFixtures::SECOND_IMAGE_ID,
+            BookingPageFixtures::THIRD_IMAGE_ID,
+        ]);
+    });
+
+    it('leaves the neighbour gallery untouched', function () {
+        ($this->orderWithNeighbourImage)();
+
+        expect(array_column($this->images->galleryFor(
+            BookingPageFixtures::OTHER_BUSINESS_ID,
+            BookingPageFixtures::OTHER_PAGE_ID,
+        ), 'id'))->toBe([BookingPageFixtures::NEIGHBOUR_IMAGE_ID]);
     });
 });

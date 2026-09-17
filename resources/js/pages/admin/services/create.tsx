@@ -21,7 +21,7 @@ export default function CreateService() {
             ]}
             actions={<ServiceFormActions mode="create" form={form} />}
         >
-            <ServiceForm form={form} staff={staff} />
+            <ServiceForm form={form} staff={staff} focusNameField />
         </AdminLayout>
     );
 }

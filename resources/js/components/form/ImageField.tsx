@@ -1,5 +1,5 @@
 import { cn } from 'cn';
-import { ImagePlus, X } from 'lucide-react';
+import { ImagePlus, X, type LucideIcon } from 'lucide-react';
 import { useRef, useState, type DragEvent } from 'react';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -25,6 +25,7 @@ type Props = {
     error?: string;
     hint?: string;
     tileClassName?: string;
+    placeholderIcon?: LucideIcon;
 };
 
 export function ImageField({
@@ -39,6 +40,7 @@ export function ImageField({
     error,
     hint,
     tileClassName,
+    placeholderIcon: PlaceholderIcon = ImagePlus,
 }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [rejection, setRejection] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export function ImageField({
                         />
                     ) : (
                         <span className="grid justify-items-center gap-2 px-4 text-xs text-balance text-muted-foreground">
-                            <ImagePlus aria-hidden="true" className="size-6" />
+                            <PlaceholderIcon aria-hidden="true" className="size-6" />
                             {messages.choose}
                         </span>
                     )}

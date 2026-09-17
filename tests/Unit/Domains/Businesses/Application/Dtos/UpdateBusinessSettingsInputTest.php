@@ -182,10 +182,33 @@ describe('reading defensively, for the caller who never met a form request', fun
         $location = UpdateBusinessSettingsInput::fromRequest(['location' => []])->location;
 
         expect($location?->street)->toBe('')
+            ->and($location?->city)->toBeNull()
             ->and($location?->stateId)->toBeNull()
+            ->and($location?->postalCode)->toBeNull()
             ->and($location?->latitude)->toBeNull()
             ->and($location?->longitude)->toBeNull()
             ->and($location?->currencyCode)->toBe('');
+    });
+
+    it('reads a blank city and a blank postal code as nothing at all, never as an empty string', function (mixed $blank) {
+        $location = UpdateBusinessSettingsInput::fromRequest([
+            'location' => ['city' => $blank, 'postal_code' => $blank],
+        ])->location;
+
+        expect($location?->city)->toBeNull()
+            ->and($location?->postalCode)->toBeNull();
+    })->with([
+        'an empty string' => '',
+        'spaces' => '   ',
+        'a tab' => "\t",
+        'null' => null,
+    ]);
+
+    it('keeps the street an empty string, because a blank street is what files no address', function () {
+        $location = UpdateBusinessSettingsInput::fromRequest(['location' => ['street' => '   ']])->location;
+
+        expect($location?->street)->toBe('   ')
+            ->and($location?->city)->toBeNull();
     });
 
     it('turns a value of the wrong type into the empty one, rather than a php error', function () {

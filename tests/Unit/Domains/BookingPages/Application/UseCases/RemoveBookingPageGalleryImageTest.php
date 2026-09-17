@@ -14,7 +14,7 @@ use Tests\Support\FakeBusinessContext;
 beforeEach(function () {
     $this->repository = (new FakeBookingPageRepository)->store(BookingPageFixtures::page());
     $this->images = (new FakeBookingPageImages)->withGallery(
-        BookingPageFixtures::PAGE_ID,
+        BookingPageFixtures::page(),
         BookingPageFixtures::image(BookingPageFixtures::IMAGE_ID, position: 1),
         BookingPageFixtures::image(BookingPageFixtures::SECOND_IMAGE_ID, position: 2),
     );
@@ -42,6 +42,7 @@ describe('removing an image', function () {
         ($this->remove)(BookingPageFixtures::SECOND_IMAGE_ID);
 
         expect($this->images->galleryImagesRemoved)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
             'bookingPageId' => BookingPageFixtures::PAGE_ID,
             'imageId' => BookingPageFixtures::SECOND_IMAGE_ID,
         ]]);
@@ -54,7 +55,7 @@ describe('removing an image', function () {
     });
 
     it('leaves the banner alone', function () {
-        $this->images->withBanner(BookingPageFixtures::PAGE_ID, BookingPageFixtures::BANNER_URL);
+        $this->images->withBanner(BookingPageFixtures::page(), BookingPageFixtures::BANNER_URL);
 
         expect(($this->remove)()->value()->bannerUrl)->toBe(BookingPageFixtures::BANNER_URL);
     });
@@ -115,5 +116,52 @@ describe('an image it will not remove', function () {
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('booking_page_not_found')
             ->and($this->images->galleryImagesRemoved)->toBe([]);
+    });
+});
+
+describe('an image uuid the client sent that belongs to another business', function () {
+    beforeEach(function () {
+        $this->images->withGallery(
+            BookingPageFixtures::page(
+                id: BookingPageFixtures::OTHER_PAGE_ID,
+                businessId: BookingPageFixtures::OTHER_BUSINESS_ID,
+            ),
+            BookingPageFixtures::image(BookingPageFixtures::THIRD_IMAGE_ID, position: 1),
+        );
+    });
+
+    it('refuses to delete it', function () {
+        $response = ($this->remove)(BookingPageFixtures::THIRD_IMAGE_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('booking_page_image_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('leaves the neighbour gallery still holding it', function () {
+        ($this->remove)(BookingPageFixtures::THIRD_IMAGE_ID);
+
+        expect(array_column($this->images->galleryFor(
+            BookingPageFixtures::OTHER_BUSINESS_ID,
+            BookingPageFixtures::OTHER_PAGE_ID,
+        ), 'id'))->toBe([BookingPageFixtures::THIRD_IMAGE_ID]);
+    });
+
+    it('answers as it does for an image uuid nobody holds, so the refusal confirms nothing', function () {
+        $neighbourImage = ($this->remove)(BookingPageFixtures::THIRD_IMAGE_ID)->error();
+        $unknownImage = ($this->remove)('01930000-0000-7000-8000-0000000000ff')->error();
+
+        expect($neighbourImage->code)->toBe($unknownImage->code)
+            ->and($neighbourImage->kind)->toBe($unknownImage->kind);
+    });
+
+    it('looks the image up inside the page of the business in context', function () {
+        ($this->remove)(BookingPageFixtures::THIRD_IMAGE_ID);
+
+        expect($this->images->galleryImagesRemoved)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'bookingPageId' => BookingPageFixtures::PAGE_ID,
+            'imageId' => BookingPageFixtures::THIRD_IMAGE_ID,
+        ]]);
     });
 });

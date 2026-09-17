@@ -183,7 +183,163 @@
         }
     },
     "customers": {
-        "title": "Customers"
+        "title": "Customers",
+        "notProvided": "Not set",
+        "columns": {
+            "name": "Name",
+            "email": "Email",
+            "phone": "Phone",
+            "actions": "Actions"
+        },
+        "table": {
+            "caption": "List of customers"
+        },
+        "search": {
+            "label": "Search customers",
+            "placeholder": "Search by name, email or phone"
+        },
+        "actions": {
+            "create": "New customer",
+            "more": "More actions for {{name}}"
+        },
+        "empty": {
+            "search": {
+                "title": "No customer matches",
+                "body": "Nothing matches “{{search}}”. Try another word."
+            },
+            "first": {
+                "title": "No customers yet",
+                "body": "Add your first customer so you can book them in."
+            }
+        },
+        "delete": {
+            "title": "Delete this customer?",
+            "body": "“{{name}}” leaves your customer list, along with their phone and address. Booked appointments do not change."
+        },
+        "toasts": {
+            "created": "Customer created",
+            "saved": "Changes saved",
+            "deleted": "Customer deleted"
+        },
+        "errors": {
+            "deleteFailed": "We could not delete the customer. Try again."
+        },
+        "create": {
+            "title": "New customer",
+            "description": "Only the name is required. Everything else can wait."
+        },
+        "edit": {
+            "title": "Edit customer",
+            "description": "Update who this customer is and how you reach them.",
+            "notFound": {
+                "title": "This customer no longer exists",
+                "body": "Someone may have deleted them. Go back to the customer list."
+            },
+            "failed": {
+                "title": "We could not open this customer",
+                "body": "Check your connection and try again."
+            }
+        },
+        "form": {
+            "photo": {
+                "label": "Photo",
+                "choose": "Add a photo",
+                "upload": "Upload",
+                "replace": "Replace photo",
+                "remove": "Remove",
+                "tooLarge": "That photo is over 2 MB. Choose a smaller one.",
+                "unsupported": "We accept JPG, PNG and WebP only.",
+                "failed": "We saved the customer but not the photo. Try uploading it again."
+            },
+            "details": {
+                "title": "Details",
+                "description": "Who they are and how you reach them."
+            },
+            "name": {
+                "label": "Full name",
+                "placeholder": "e.g. Ada Lovelace"
+            },
+            "email": {
+                "label": "Email",
+                "placeholder": "ada@example.com"
+            },
+            "phone": {
+                "label": "Phone",
+                "country": "Phone country",
+                "number": "Phone number",
+                "hint": "Just the number, without the country code.",
+                "countries": {
+                    "MX": "Mexico",
+                    "US": "United States"
+                }
+            },
+            "birthDate": {
+                "label": "Date of birth",
+                "hint": "So you can greet them on their birthday.",
+                "format": {
+                    "day": "dd",
+                    "month": "mm",
+                    "year": "yyyy"
+                },
+                "picker": {
+                    "calendar": "Choose a date",
+                    "previousMonth": "Previous month",
+                    "nextMonth": "Next month",
+                    "month": "Month",
+                    "year": "Year",
+                    "today": "Today",
+                    "clear": "Clear date"
+                }
+            },
+            "notes": {
+                "label": "Notes",
+                "placeholder": "Anything worth remembering before their next visit.",
+                "hint": "Only your team reads these notes."
+            },
+            "address": {
+                "title": "Address",
+                "description": "Where they are, for when you travel to them.",
+                "cannotClear": {
+                    "field": "Replace this value. Once saved, it cannot be left empty.",
+                    "blocked": "We could not save your changes. Replace the address details you left empty."
+                },
+                "street": {
+                    "label": "Street and number",
+                    "placeholder": "e.g. 123 Reforma Ave"
+                },
+                "city": {
+                    "label": "City"
+                },
+                "postalCode": {
+                    "label": "Postal code"
+                },
+                "state": {
+                    "label": "State",
+                    "placeholder": "Search a state",
+                    "empty": "No state matches your search.",
+                    "error": "We could not load the states.",
+                    "loading": "Loading states…",
+                    "results_one": "{{count}} state available",
+                    "results_other": "{{count}} states available"
+                },
+                "country": {
+                    "label": "Country",
+                    "hint": "We store Mexican addresses for now."
+                },
+                "countries": {
+                    "MX": "Mexico"
+                }
+            },
+            "submit": {
+                "create": "Create",
+                "creating": "Creating…",
+                "edit": "Save",
+                "saving": "Saving…"
+            },
+            "errors": {
+                "unexpected": "We could not save the customer. Try again."
+            }
+        }
     },
     "profile": {
         "title": "My account",
@@ -211,7 +367,6 @@
         },
         "phone": {
             "label": "Phone",
-            "optional": "Optional",
             "country": "Phone country",
             "number": "Phone number",
             "hint": "Whoever books sees it, in case they need to reach you.",
@@ -386,7 +541,6 @@
             },
             "phone": {
                 "label": "Phone",
-                "optional": "Optional",
                 "country": "Phone country",
                 "number": "Phone number",
                 "hint": "Just the number, without the country code.",
@@ -399,6 +553,10 @@
         "location": {
             "title": "Location",
             "description": "Where you work and the currency you charge in.",
+            "cannotClear": {
+                "field": "Replace this value. Once saved, it cannot be left empty.",
+                "blocked": "We could not save your changes. Replace the address details you left empty."
+            },
             "street": {
                 "label": "Street and number",
                 "placeholder": "e.g. 123 Reforma Ave"

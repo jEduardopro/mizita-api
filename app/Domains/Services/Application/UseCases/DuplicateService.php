@@ -48,7 +48,7 @@ final class DuplicateService
             $businessId = $this->business->currentBusinessId();
             $original = $this->services->findForBusiness($businessId, $input->serviceId);
             $copy = $this->duplicate($original, $input->name, $businessId);
-            $data = $this->presenter->describe($businessId, $copy);
+            $data = $this->presenter->describe($copy);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
@@ -72,7 +72,7 @@ final class DuplicateService
         );
 
         $this->services->save($copy);
-        $this->images->copy($original->id, $copy->id);
+        $this->images->copy($businessId, $original->id, $copy->id);
 
         return $copy;
     }

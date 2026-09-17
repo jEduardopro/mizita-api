@@ -22,9 +22,9 @@ final readonly class LocationInput
 
     public function __construct(
         public string $street,
-        public string $city,
+        public ?string $city,
         public ?string $stateId,
-        public string $postalCode,
+        public ?string $postalCode,
         public string $countryCode,
         public ?string $latitude,
         public ?string $longitude,

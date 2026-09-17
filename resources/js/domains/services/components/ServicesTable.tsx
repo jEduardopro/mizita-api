@@ -1,7 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/components/shared/data-table/DataTable';
-import type { DataTableStatus } from '@/components/shared/data-table/types';
+import { dataTableStatus } from '@/components/shared/data-table/status';
+import type { DataTableToolbar } from '@/components/shared/data-table/types';
 import type { DataTableQuery } from '@/components/shared/data-table/use-data-table-query';
 import { useServices } from '../queries';
 import type { ServiceSortField } from '../types';
@@ -9,17 +10,9 @@ import { serviceColumns } from './service-columns';
 import { ServiceListRow } from './ServiceListRow';
 import { ServicesEmptyState } from './ServicesEmptyState';
 
-function statusOf(isPending: boolean, isError: boolean): DataTableStatus {
-    if (isPending) {
-        return 'pending';
-    }
-
-    return isError ? 'error' : 'ready';
-}
-
 type Props = {
     query: DataTableQuery<ServiceSortField>;
-    toolbar: ReactNode;
+    toolbar: DataTableToolbar;
     onClearSearch: () => void;
 };
 
@@ -49,8 +42,9 @@ export function ServicesTable({ query, toolbar, onClearSearch }: Props) {
             onSortingChange={query.onSortingChange}
             pageCount={services.data?.meta.last_page ?? 0}
             totalRows={services.data?.meta.total ?? 0}
-            status={statusOf(services.isPending, services.isError)}
+            status={dataTableStatus(services.isPending, services.isError)}
             isFetching={services.isFetching}
+            showsPreviousRows={services.isPlaceholderData}
             onRetry={() => void services.refetch()}
             emptyState={
                 <ServicesEmptyState search={query.search} onClearSearch={onClearSearch} />

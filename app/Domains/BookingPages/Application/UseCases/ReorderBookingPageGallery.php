@@ -30,9 +30,11 @@ final class ReorderBookingPageGallery
         try {
             $input->validate();
 
-            $page = $this->pages->ofBusiness($this->business->currentBusinessId());
+            $businessId = $this->business->currentBusinessId();
 
-            $this->images->reorderGallery($page->id, $input->imageIds);
+            $page = $this->pages->ofBusiness($businessId);
+
+            $this->images->reorderGallery($businessId, $page->id, $input->imageIds);
 
             return UseCaseResponse::success($this->presenter->describe($page));
         } catch (DomainFailure $failure) {

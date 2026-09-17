@@ -48,7 +48,7 @@ final class UpdateService
             $this->apply($input, $service, $businessId);
             $this->services->save($service);
 
-            return UseCaseResponse::success($this->presenter->describe($businessId, $service));
+            return UseCaseResponse::success($this->presenter->describe($service));
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }

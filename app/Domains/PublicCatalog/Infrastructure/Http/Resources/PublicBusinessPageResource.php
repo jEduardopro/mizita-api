@@ -110,7 +110,7 @@ final class PublicBusinessPageResource extends JsonResource
     }
 
     /**
-     * @return array{street: string, city: string, state: string|null, postal_code: string, country_code: string, latitude: string|null, longitude: string|null}|null
+     * @return array{street: string, city: string|null, state: string|null, postal_code: string|null, country_code: string, latitude: string|null, longitude: string|null}|null
      */
     private static function describeLocation(?PublicLocation $location): ?array
     {

@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Domains\Addresses\Contracts\AddressRepository;
+use App\Domains\Addresses\Entities\Address;
 use App\Domains\Addresses\ValueObjects\AddressOwnerType;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedLocation;
 use App\Domains\PublicCatalog\ValueObjects\PublicLocation;
+use App\Shared\ValueObjects\CountryCode;
 use Tests\Support\Addresses\AddressFixtures;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 
@@ -59,6 +61,30 @@ describe('the address a visitor walks to', function () {
 
         expect($fields)->toBe(['street', 'city', 'state', 'postalCode', 'countryCode', 'latitude', 'longitude'])
             ->and($fields)->not->toContain('stateId');
+    });
+
+    it('publishes null city and postal code for a business that filed a street alone', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(Address::restore(
+            id: AddressFixtures::ADDRESS_ID,
+            ownerType: AddressOwnerType::Business,
+            ownerId: PublicCatalogFixtures::BUSINESS_ID,
+            street: AddressFixtures::STREET,
+            city: null,
+            stateId: null,
+            postalCode: null,
+            country: CountryCode::Mx,
+            coordinates: null,
+            createdAt: AddressFixtures::now(),
+        ));
+
+        $location = ($this->read)();
+
+        expect($location)->toBeInstanceOf(PublicLocation::class)
+            ->and($location->street)->toBe(AddressFixtures::STREET)
+            ->and($location->city)->toBeNull()
+            ->and($location->state)->toBeNull()
+            ->and($location->postalCode)->toBeNull()
+            ->and($location->countryCode)->toBe('MX');
     });
 
     it('sends no state for an address filed without one', function () {

@@ -50,6 +50,7 @@ export function useInfiniteServices(search: string) {
                 },
                 signal,
             ),
+        placeholderData: keepPreviousData,
         initialPageParam: FIRST_PAGE,
         getNextPageParam: (lastPage) =>
             lastPage.meta.current_page < lastPage.meta.last_page

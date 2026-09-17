@@ -60,4 +60,24 @@ return [
         'description' => 'Quitar un servicio del catálogo.',
     ],
 
+    'view_customers' => [
+        'label' => 'Ver los clientes',
+        'description' => 'Ver los clientes del negocio, sus datos de contacto, su dirección y sus notas.',
+    ],
+
+    'create_customer' => [
+        'label' => 'Crear clientes',
+        'description' => 'Añadir un cliente nuevo al negocio.',
+    ],
+
+    'edit_customer' => [
+        'label' => 'Editar clientes',
+        'description' => 'Cambiar un cliente, sus datos de contacto, su dirección y sus notas.',
+    ],
+
+    'delete_customer' => [
+        'label' => 'Eliminar clientes',
+        'description' => 'Quitar un cliente del negocio, junto con su teléfono y su dirección.',
+    ],
+
 ];

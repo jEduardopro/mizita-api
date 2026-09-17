@@ -8,6 +8,7 @@ import { NumberField } from '@/components/form/NumberField';
 import { PriceField } from '@/components/form/PriceField';
 import { TextareaField } from '@/components/form/TextareaField';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useInitialFocus } from '@/hooks/use-initial-focus';
 import {
     SERVICE_COLORS,
     SERVICE_IMAGE_MAXIMUM_BYTES,
@@ -31,10 +32,12 @@ const COLOR_LABEL_KEYS = {
 
 type Props = {
     form: ServiceFormController;
+    focusNameField: boolean;
 };
 
-export function ServiceDetailsFields({ form }: Props) {
+export function ServiceDetailsFields({ form, focusNameField }: Props) {
     const { t } = useTranslation('admin');
+    const nameRef = useInitialFocus<HTMLInputElement>(focusNameField);
 
     const colorOptions = SERVICE_COLORS.map((color) => ({
         value: color,
@@ -66,6 +69,7 @@ export function ServiceDetailsFields({ form }: Props) {
 
                 <div className="grid gap-5">
                     <FormField
+                        ref={nameRef}
                         id="service-name"
                         label={t('services.form.name.label')}
                         placeholder={t('services.form.name.placeholder')}

@@ -50,7 +50,7 @@ final class CreateService
 
             $businessId = $this->business->currentBusinessId();
             $service = $this->register($input, $businessId);
-            $data = $this->presenter->describe($businessId, $service);
+            $data = $this->presenter->describe($service);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }

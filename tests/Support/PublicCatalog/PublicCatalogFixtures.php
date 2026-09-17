@@ -136,9 +136,9 @@ final class PublicCatalogFixtures
 
     public static function location(
         string $street = 'Avenida Insurgentes Sur 1602',
-        string $city = 'Ciudad de México',
+        ?string $city = 'Ciudad de México',
         ?string $state = 'Ciudad de México',
-        string $postalCode = '03940',
+        ?string $postalCode = '03940',
         string $countryCode = 'MX',
         ?string $latitude = '19.3627888',
         ?string $longitude = '-99.1768069',

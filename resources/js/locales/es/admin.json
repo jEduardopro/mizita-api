@@ -183,7 +183,163 @@
         }
     },
     "customers": {
-        "title": "Clientes"
+        "title": "Clientes",
+        "notProvided": "Sin dato",
+        "columns": {
+            "name": "Nombre",
+            "email": "Correo",
+            "phone": "Teléfono",
+            "actions": "Acciones"
+        },
+        "table": {
+            "caption": "Lista de clientes"
+        },
+        "search": {
+            "label": "Buscar clientes",
+            "placeholder": "Busca por nombre, correo o teléfono"
+        },
+        "actions": {
+            "create": "Nuevo cliente",
+            "more": "Más acciones para {{name}}"
+        },
+        "empty": {
+            "search": {
+                "title": "Ningún cliente coincide",
+                "body": "Nada coincide con «{{search}}». Prueba con otra palabra."
+            },
+            "first": {
+                "title": "Todavía no tienes clientes",
+                "body": "Añade tu primer cliente para poder agendarle una cita."
+            }
+        },
+        "delete": {
+            "title": "¿Eliminar este cliente?",
+            "body": "«{{name}}» sale de tu lista de clientes, junto con su teléfono y su dirección. Las citas ya reservadas no cambian."
+        },
+        "toasts": {
+            "created": "Cliente creado",
+            "saved": "Cambios guardados",
+            "deleted": "Cliente eliminado"
+        },
+        "errors": {
+            "deleteFailed": "No hemos podido eliminar el cliente. Inténtalo otra vez."
+        },
+        "create": {
+            "title": "Nuevo cliente",
+            "description": "Solo el nombre es obligatorio. Lo demás puede esperar."
+        },
+        "edit": {
+            "title": "Editar cliente",
+            "description": "Actualiza quién es este cliente y cómo lo contactas.",
+            "notFound": {
+                "title": "Este cliente ya no existe",
+                "body": "Es posible que alguien lo haya eliminado. Vuelve a la lista de clientes."
+            },
+            "failed": {
+                "title": "No hemos podido abrir este cliente",
+                "body": "Revisa tu conexión e inténtalo otra vez."
+            }
+        },
+        "form": {
+            "photo": {
+                "label": "Foto",
+                "choose": "Añadir foto",
+                "upload": "Subir",
+                "replace": "Cambiar la foto",
+                "remove": "Quitar",
+                "tooLarge": "La foto pesa más de 2 MB. Elige una más ligera.",
+                "unsupported": "Solo aceptamos JPG, PNG y WebP.",
+                "failed": "Guardamos el cliente, pero no la foto. Vuelve a subirla."
+            },
+            "details": {
+                "title": "Datos",
+                "description": "Quién es y cómo lo contactas."
+            },
+            "name": {
+                "label": "Nombre completo",
+                "placeholder": "p. ej. Ada Lovelace"
+            },
+            "email": {
+                "label": "Correo",
+                "placeholder": "ada@ejemplo.com"
+            },
+            "phone": {
+                "label": "Teléfono",
+                "country": "País del teléfono",
+                "number": "Número de teléfono",
+                "hint": "Solo el número, sin el código de país.",
+                "countries": {
+                    "MX": "México",
+                    "US": "Estados Unidos"
+                }
+            },
+            "birthDate": {
+                "label": "Fecha de nacimiento",
+                "hint": "Para felicitarle el día de su cumpleaños.",
+                "format": {
+                    "day": "dd",
+                    "month": "mm",
+                    "year": "aaaa"
+                },
+                "picker": {
+                    "calendar": "Elige una fecha",
+                    "previousMonth": "Mes anterior",
+                    "nextMonth": "Mes siguiente",
+                    "month": "Mes",
+                    "year": "Año",
+                    "today": "Hoy",
+                    "clear": "Borrar la fecha"
+                }
+            },
+            "notes": {
+                "label": "Notas",
+                "placeholder": "Lo que convenga recordar antes de su próxima visita.",
+                "hint": "Estas notas solo las lee tu equipo."
+            },
+            "address": {
+                "title": "Dirección",
+                "description": "Dónde está, por si vas tú a atenderle.",
+                "cannotClear": {
+                    "field": "Sustituye este valor. Una vez guardado, no puede quedar vacío.",
+                    "blocked": "No hemos podido guardar los cambios. Sustituye los datos de la dirección que dejaste vacíos."
+                },
+                "street": {
+                    "label": "Calle y número",
+                    "placeholder": "p. ej. Av. Reforma 100"
+                },
+                "city": {
+                    "label": "Ciudad"
+                },
+                "postalCode": {
+                    "label": "Código postal"
+                },
+                "state": {
+                    "label": "Estado",
+                    "placeholder": "Busca un estado",
+                    "empty": "Ningún estado coincide con tu búsqueda.",
+                    "error": "No hemos podido cargar los estados.",
+                    "loading": "Cargando los estados…",
+                    "results_one": "{{count}} estado disponible",
+                    "results_other": "{{count}} estados disponibles"
+                },
+                "country": {
+                    "label": "País",
+                    "hint": "Por ahora guardamos direcciones de México."
+                },
+                "countries": {
+                    "MX": "México"
+                }
+            },
+            "submit": {
+                "create": "Crear",
+                "creating": "Creando…",
+                "edit": "Guardar",
+                "saving": "Guardando…"
+            },
+            "errors": {
+                "unexpected": "No hemos podido guardar el cliente. Inténtalo otra vez."
+            }
+        }
     },
     "profile": {
         "title": "Mi cuenta",
@@ -211,7 +367,6 @@
         },
         "phone": {
             "label": "Teléfono",
-            "optional": "Opcional",
             "country": "País del teléfono",
             "number": "Número de teléfono",
             "hint": "Lo verá quien reserve, por si necesita localizarte.",
@@ -386,7 +541,6 @@
             },
             "phone": {
                 "label": "Teléfono",
-                "optional": "Opcional",
                 "country": "País del teléfono",
                 "number": "Número de teléfono",
                 "hint": "Solo el número, sin la clave del país.",
@@ -399,6 +553,10 @@
         "location": {
             "title": "Ubicación",
             "description": "Dónde atiendes y en qué moneda cobras.",
+            "cannotClear": {
+                "field": "Sustituye este valor. Una vez guardado, no puede quedar vacío.",
+                "blocked": "No hemos podido guardar los cambios. Sustituye los datos de la dirección que dejaste vacíos."
+            },
             "street": {
                 "label": "Calle y número",
                 "placeholder": "Ej. Av. Reforma 123"

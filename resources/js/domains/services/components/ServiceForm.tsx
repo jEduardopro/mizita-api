@@ -7,16 +7,17 @@ export const SERVICE_FORM_ID = 'service-form';
 type Props = {
     form: ServiceFormController;
     staff: StaffChoices;
+    focusNameField?: boolean;
 };
 
-export function ServiceForm({ form, staff }: Props) {
+export function ServiceForm({ form, staff, focusNameField = false }: Props) {
     return (
         <form
             id={SERVICE_FORM_ID}
             onSubmit={form.submit}
             className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
         >
-            <ServiceDetailsFields form={form} />
+            <ServiceDetailsFields form={form} focusNameField={focusNameField} />
 
             <ServiceTeamFields form={form} staff={staff} />
         </form>

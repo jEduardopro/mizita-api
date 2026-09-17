@@ -22,12 +22,14 @@ final class ServicePresenter
         private readonly BookingLinks $bookingLinks,
     ) {}
 
-    public function describe(string $businessId, Service $service): ServiceData
+    public function describe(Service $service): ServiceData
     {
+        $businessId = $service->businessId;
+
         return ServiceData::fromEntity(
             $service,
             $this->staff->membersOf($businessId, $service->staffIds()),
-            $this->images->urlFor($service->id),
+            $this->images->urlFor($businessId, $service->id),
             $this->bookingLinks->forService($this->businesses->slugFor($businessId), $service->slug()),
         );
     }
@@ -38,7 +40,7 @@ final class ServicePresenter
      */
     public function describePage(string $businessId, Paginated $page): Paginated
     {
-        $imageUrls = $this->images->urlsFor(array_map(
+        $imageUrls = $this->images->urlsFor($businessId, array_map(
             static fn (Service $service): string => $service->id,
             $page->items,
         ));

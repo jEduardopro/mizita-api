@@ -53,8 +53,8 @@ it('never reaches for a business other than the one in context', function () {
 
 it('carries the media the page already holds', function () {
     $this->images
-        ->withBanner(BookingPageFixtures::PAGE_ID, BookingPageFixtures::BANNER_URL)
-        ->withGalleryOf(BookingPageFixtures::PAGE_ID, 2);
+        ->withBanner(BookingPageFixtures::page(), BookingPageFixtures::BANNER_URL)
+        ->withGalleryOf(BookingPageFixtures::page(), 2);
 
     $data = $this->useCase->handle()->value();
 

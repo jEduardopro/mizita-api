@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Addresses\Entities;
 
+use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
+use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressCity;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Addresses\ValueObjects\AddressOwnerType;
@@ -23,9 +25,9 @@ final class Address
         public readonly AddressOwnerType $ownerType,
         public readonly string $ownerId,
         private string $street,
-        private string $city,
+        private ?string $city,
         private ?string $stateId,
-        private PostalCode $postalCode,
+        private ?PostalCode $postalCode,
         private CountryCode $country,
         private ?Coordinates $coordinates,
         public readonly DateTimeImmutable $createdAt,
@@ -40,9 +42,9 @@ final class Address
         AddressOwnerType $ownerType,
         string $ownerId,
         string $street,
-        string $city,
+        ?string $city,
         ?string $stateId,
-        PostalCode $postalCode,
+        ?PostalCode $postalCode,
         CountryCode $country,
         ?Coordinates $coordinates,
         DateTimeImmutable $now,
@@ -66,9 +68,9 @@ final class Address
         AddressOwnerType $ownerType,
         string $ownerId,
         string $street,
-        string $city,
+        ?string $city,
         ?string $stateId,
-        PostalCode $postalCode,
+        ?PostalCode $postalCode,
         CountryCode $country,
         ?Coordinates $coordinates,
         DateTimeImmutable $createdAt,
@@ -90,21 +92,24 @@ final class Address
     /**
      * @throws InvalidAddressStreet
      * @throws InvalidAddressCity
+     * @throws AddressCityCannotBeCleared
+     * @throws AddressPostalCodeCannotBeCleared
      */
     public function relocateTo(
         string $street,
-        string $city,
+        ?string $city,
         ?string $stateId,
-        PostalCode $postalCode,
+        ?PostalCode $postalCode,
         CountryCode $country,
     ): void {
         $acceptableStreet = self::acceptableStreet($street);
-        $acceptableCity = self::acceptableCity($city);
+        $acceptableCity = $this->cityAfterMove($city);
+        $acceptablePostalCode = $this->postalCodeAfterMove($postalCode);
 
         $this->street = $acceptableStreet;
         $this->city = $acceptableCity;
         $this->stateId = $stateId;
-        $this->postalCode = $postalCode;
+        $this->postalCode = $acceptablePostalCode;
         $this->country = $country;
     }
 
@@ -123,7 +128,7 @@ final class Address
         return $this->street;
     }
 
-    public function city(): string
+    public function city(): ?string
     {
         return $this->city;
     }
@@ -133,7 +138,7 @@ final class Address
         return $this->stateId;
     }
 
-    public function postalCode(): PostalCode
+    public function postalCode(): ?PostalCode
     {
         return $this->postalCode;
     }
@@ -169,12 +174,12 @@ final class Address
     /**
      * @throws InvalidAddressCity
      */
-    private static function acceptableCity(string $city): string
+    private static function acceptableCity(?string $city): ?string
     {
-        $city = trim($city);
+        $city = trim($city ?? '');
 
         if ($city === '') {
-            throw InvalidAddressCity::empty();
+            return null;
         }
 
         if (mb_strlen($city) > self::MAXIMUM_CITY_LENGTH) {
@@ -182,5 +187,32 @@ final class Address
         }
 
         return $city;
+    }
+
+    /**
+     * @throws InvalidAddressCity
+     * @throws AddressCityCannotBeCleared
+     */
+    private function cityAfterMove(?string $city): ?string
+    {
+        $acceptableCity = self::acceptableCity($city);
+
+        if ($acceptableCity === null && $this->city !== null) {
+            throw AddressCityCannotBeCleared::alreadySet();
+        }
+
+        return $acceptableCity;
+    }
+
+    /**
+     * @throws AddressPostalCodeCannotBeCleared
+     */
+    private function postalCodeAfterMove(?PostalCode $postalCode): ?PostalCode
+    {
+        if ($postalCode === null && $this->postalCode !== null) {
+            throw AddressPostalCodeCannotBeCleared::alreadySet();
+        }
+
+        return $postalCode;
     }
 }

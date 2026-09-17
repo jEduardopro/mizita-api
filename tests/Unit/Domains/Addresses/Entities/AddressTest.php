@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Domains\Addresses\Entities\Address;
+use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
+use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressCity;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Addresses\ValueObjects\AddressOwnerType;
@@ -14,9 +16,9 @@ use Tests\Support\FakeBusinessContext;
 
 function createAddress(
     string $street = AddressFixtures::STREET,
-    string $city = AddressFixtures::CITY,
+    ?string $city = AddressFixtures::CITY,
     ?string $stateId = AddressFixtures::STATE_ID,
-    string $postalCode = AddressFixtures::POSTAL_CODE,
+    ?string $postalCode = AddressFixtures::POSTAL_CODE,
     CountryCode $country = CountryCode::Mx,
     ?Coordinates $coordinates = null,
     AddressOwnerType $ownerType = AddressOwnerType::Business,
@@ -29,7 +31,7 @@ function createAddress(
         street: $street,
         city: $city,
         stateId: $stateId,
-        postalCode: PostalCode::restore($postalCode),
+        postalCode: $postalCode === null ? null : PostalCode::restore($postalCode),
         country: $country,
         coordinates: $coordinates,
         now: AddressFixtures::now(),
@@ -88,14 +90,27 @@ describe('creating an address', function () {
         'one past the maximum' => str_repeat('a', Address::MAXIMUM_STREET_LENGTH + 1),
     ]);
 
-    it('rejects a city it cannot accept', function (string $city) {
-        expect(fn () => createAddress(city: $city))->toThrow(InvalidAddressCity::class);
+    it('rejects a city one past the maximum the column allows', function () {
+        expect(fn () => createAddress(city: str_repeat('a', Address::MAXIMUM_CITY_LENGTH + 1)))
+            ->toThrow(InvalidAddressCity::class);
+    });
+
+    it('is filed with nothing but a street when that is all anyone knows', function () {
+        $address = createAddress(city: null, stateId: null, postalCode: null);
+
+        expect($address->street())->toBe(AddressFixtures::STREET)
+            ->and($address->city())->toBeNull()
+            ->and($address->stateId())->toBeNull()
+            ->and($address->postalCode())->toBeNull();
+    });
+
+    it('files a city that carries nothing as a city it does not have', function (string $city) {
+        expect(createAddress(city: $city)->city())->toBeNull();
     })->with([
         'empty' => '',
         'spaces' => '   ',
         'tab' => "\t",
         'newline' => "\n",
-        'one past the maximum' => str_repeat('a', Address::MAXIMUM_CITY_LENGTH + 1),
     ]);
 
     it('accepts a street exactly as long as the column allows', function () {
@@ -144,6 +159,15 @@ describe('restoring an address from persistence', function () {
     it('keeps a stored value exactly as the column holds it, padding included', function () {
         expect(AddressFixtures::address(street: '  Calle Madero 12  ')->street())
             ->toBe('  Calle Madero 12  ');
+    });
+
+    it('reads a row holding nothing but a street as an address with no city and no postal code', function () {
+        $address = AddressFixtures::streetOnly();
+
+        expect($address->street())->toBe(AddressFixtures::STREET)
+            ->and($address->city())->toBeNull()
+            ->and($address->stateId())->toBeNull()
+            ->and($address->postalCode())->toBeNull();
     });
 });
 
@@ -211,19 +235,89 @@ describe('relocating an address', function () {
         'one past the maximum' => str_repeat('a', Address::MAXIMUM_STREET_LENGTH + 1),
     ]);
 
-    it('refuses to relocate to a city it would have refused at creation', function (string $city) {
+    it('refuses to relocate to a city one past the maximum the column allows', function () {
+        expect(fn () => createAddress()->relocateTo(
+            street: 'Calle Madero 12',
+            city: str_repeat('a', Address::MAXIMUM_CITY_LENGTH + 1),
+            stateId: null,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+        ))->toThrow(InvalidAddressCity::class);
+    });
+
+    it('fills in a city it never had', function () {
+        $address = createAddress(city: null, stateId: null, postalCode: null);
+
+        $address->relocateTo(
+            street: AddressFixtures::STREET,
+            city: '  Mérida  ',
+            stateId: AddressFixtures::SECOND_STATE_ID,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+        );
+
+        expect($address->city())->toBe('Mérida')
+            ->and($address->postalCode()?->value)->toBe('97000');
+    });
+
+    it('stays without a city when it never had one and none was offered', function (?string $city) {
+        $address = createAddress(city: null, stateId: null, postalCode: null);
+
+        $address->relocateTo(
+            street: 'Calle Madero 12',
+            city: $city,
+            stateId: null,
+            postalCode: null,
+            country: CountryCode::Mx,
+        );
+
+        expect($address->city())->toBeNull()
+            ->and($address->postalCode())->toBeNull()
+            ->and($address->street())->toBe('Calle Madero 12');
+    })->with([
+        'nothing at all' => null,
+        'empty' => '',
+        'spaces' => '   ',
+    ]);
+
+    it('refuses to empty a city it already has', function (?string $city) {
         expect(fn () => createAddress()->relocateTo(
             street: 'Calle Madero 12',
             city: $city,
             stateId: null,
             postalCode: PostalCode::restore('97000'),
             country: CountryCode::Mx,
-        ))->toThrow(InvalidAddressCity::class);
+        ))->toThrow(AddressCityCannotBeCleared::class);
     })->with([
+        'nothing at all' => null,
         'empty' => '',
         'spaces' => '   ',
-        'one past the maximum' => str_repeat('a', Address::MAXIMUM_CITY_LENGTH + 1),
+        'tab' => "\t",
     ]);
+
+    it('refuses to empty a postal code it already has', function () {
+        expect(fn () => createAddress()->relocateTo(
+            street: 'Calle Madero 12',
+            city: 'Mérida',
+            stateId: null,
+            postalCode: null,
+            country: CountryCode::Mx,
+        ))->toThrow(AddressPostalCodeCannotBeCleared::class);
+    });
+
+    it('replaces a postal code it already has with another one', function () {
+        $address = createAddress();
+
+        $address->relocateTo(
+            street: 'Calle Madero 12',
+            city: 'Mérida',
+            stateId: null,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+        );
+
+        expect($address->postalCode()?->value)->toBe('97000');
+    });
 
     it('leaves the old address untouched when the new one is refused', function () {
         $address = createAddress();
@@ -236,11 +330,49 @@ describe('relocating an address', function () {
                 postalCode: PostalCode::restore('97000'),
                 country: CountryCode::Mx,
             );
-        } catch (InvalidAddressCity) {
+        } catch (AddressCityCannotBeCleared) {
         }
 
         expect($address->street())->toBe(AddressFixtures::STREET)
-            ->and($address->city())->toBe(AddressFixtures::CITY);
+            ->and($address->city())->toBe(AddressFixtures::CITY)
+            ->and($address->stateId())->toBe(AddressFixtures::STATE_ID)
+            ->and($address->postalCode()?->value)->toBe(AddressFixtures::POSTAL_CODE);
+    });
+
+    it('leaves the old address untouched when the postal code it holds would be emptied', function () {
+        $address = createAddress();
+
+        try {
+            $address->relocateTo(
+                street: 'Paseo de la Reforma 222',
+                city: 'Mérida',
+                stateId: null,
+                postalCode: null,
+                country: CountryCode::Mx,
+            );
+        } catch (AddressPostalCodeCannotBeCleared) {
+        }
+
+        expect($address->street())->toBe(AddressFixtures::STREET)
+            ->and($address->city())->toBe(AddressFixtures::CITY)
+            ->and($address->postalCode()?->value)->toBe(AddressFixtures::POSTAL_CODE);
+    });
+
+    it('still lets the state go, because only the written fields are protected', function () {
+        $address = createAddress();
+
+        $address->relocateTo(
+            street: 'Calle Madero 12',
+            city: 'Mérida',
+            stateId: null,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+        );
+
+        $address->unpin();
+
+        expect($address->stateId())->toBeNull()
+            ->and($address->coordinates())->toBeNull();
     });
 });
 

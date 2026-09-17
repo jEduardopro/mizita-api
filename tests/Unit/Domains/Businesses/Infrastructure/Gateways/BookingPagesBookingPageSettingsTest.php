@@ -126,14 +126,14 @@ describe('reading the booking page a business already styled', function () {
     });
 
     it('carries the banner the page has', function () {
-        $this->images->withBanner(BookingPageFixtures::PAGE_ID, BookingPageFixtures::BANNER_URL);
+        $this->images->withBanner(BookingPageFixtures::page(), BookingPageFixtures::BANNER_URL);
 
         expect(($this->read)()->bannerUrl)->toBe(BookingPageFixtures::BANNER_URL);
     });
 
     it('translates every gallery image into a snapshot carrying its uuid and its url', function () {
         $this->images->withGallery(
-            BookingPageFixtures::PAGE_ID,
+            BookingPageFixtures::page(),
             BookingPageFixtures::image(id: BookingPageFixtures::IMAGE_ID, url: 'https://cdn.mizita.test/one.jpg', position: 1),
             BookingPageFixtures::image(id: BookingPageFixtures::SECOND_IMAGE_ID, url: 'https://cdn.mizita.test/two.jpg', position: 2),
         );
@@ -149,7 +149,7 @@ describe('reading the booking page a business already styled', function () {
     });
 
     it('keeps the gallery in the order the neighbour ordered it', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 3);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 3);
 
         expect(array_map(
             static fn (BookingPageImageSnapshot $image): string => $image->url,
@@ -167,6 +167,17 @@ describe('reading the booking page a business already styled', function () {
         ($this->read)();
 
         expect($this->pages->businessIdsSeen)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('shows a neighbour business none of the media this one uploaded', function () {
+        $this->images
+            ->withBanner(BookingPageFixtures::page(), BookingPageFixtures::BANNER_URL)
+            ->withGalleryOf(BookingPageFixtures::page(), 3);
+
+        $snapshot = $this->settings->forBusiness(BookingPageFixtures::OTHER_BUSINESS_ID);
+
+        expect($snapshot->bannerUrl)->toBeNull()
+            ->and($snapshot->gallery)->toBe([]);
     });
 });
 

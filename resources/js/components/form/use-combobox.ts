@@ -21,6 +21,11 @@ type Params = {
     onChange: (value: string | null) => void;
 };
 
+type OutsideInteraction = {
+    target: EventTarget | null;
+    preventDefault: () => void;
+};
+
 type Combobox = {
     rootRef: RefObject<HTMLDivElement | null>;
     listId: string;
@@ -35,6 +40,8 @@ type Combobox = {
     onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
     onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
     onBlur: (event: FocusEvent<HTMLElement>) => void;
+    onOpenChange: (next: boolean) => void;
+    onInteractOutside: (event: OutsideInteraction) => void;
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -149,6 +156,16 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
         setShownLabel(selectedLabel);
     }
 
+    function onOpenChange(next: boolean) {
+        setOpen(next);
+    }
+
+    function onInteractOutside(event: OutsideInteraction) {
+        if (event.target instanceof Node && rootRef.current?.contains(event.target)) {
+            event.preventDefault();
+        }
+    }
+
     return {
         rootRef,
         listId: `${id}-listbox`,
@@ -163,5 +180,7 @@ export function useCombobox({ id, options, value, onChange }: Params): Combobox 
         onQueryChange,
         onKeyDown,
         onBlur,
+        onOpenChange,
+        onInteractOutside,
     };
 }

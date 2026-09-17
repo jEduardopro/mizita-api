@@ -8,14 +8,18 @@ use App\Domains\Services\Contracts\ServiceImages;
 use App\Domains\Services\Exceptions\ServiceNotFound;
 use App\Domains\Services\Infrastructure\Eloquent\Models\ServiceModel;
 use App\Shared\Infrastructure\Media\SafeFileName;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 final class SpatieServiceImages implements ServiceImages
 {
     private const FALLBACK_FILE_NAME = 'image';
 
-    public function urlFor(string $serviceId): ?string
+    private const BUSINESSES_TABLE = 'businesses';
+
+    public function urlFor(string $businessId, string $serviceId): ?string
     {
-        $model = ServiceModel::query()->with('media')->where('uuid', $serviceId)->first();
+        $model = self::ofBusiness($businessId)->with('media')->where('uuid', $serviceId)->first();
 
         if ($model === null) {
             return null;
@@ -28,7 +32,7 @@ final class SpatieServiceImages implements ServiceImages
      * @param  list<string>  $serviceIds
      * @return array<string, string>
      */
-    public function urlsFor(array $serviceIds): array
+    public function urlsFor(string $businessId, array $serviceIds): array
     {
         if ($serviceIds === []) {
             return [];
@@ -36,7 +40,7 @@ final class SpatieServiceImages implements ServiceImages
 
         $urls = [];
 
-        $models = ServiceModel::query()->with('media')->whereIn('uuid', $serviceIds)->get();
+        $models = self::ofBusiness($businessId)->with('media')->whereIn('uuid', $serviceIds)->get();
 
         foreach ($models as $model) {
             $url = self::urlOrNull($model);
@@ -49,40 +53,57 @@ final class SpatieServiceImages implements ServiceImages
         return $urls;
     }
 
-    public function replace(string $serviceId, string $sourcePath, string $fileName): string
+    public function replace(string $businessId, string $serviceId, string $sourcePath, string $fileName): string
     {
-        return $this->modelOrFail($serviceId)
+        return $this->modelOrFail($businessId, $serviceId)
             ->addMedia($sourcePath)
             ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(ServiceModel::IMAGE_COLLECTION)
             ->getUrl();
     }
 
-    public function remove(string $serviceId): void
+    public function remove(string $businessId, string $serviceId): void
     {
-        $this->modelOrFail($serviceId)->clearMediaCollection(ServiceModel::IMAGE_COLLECTION);
+        $this->modelOrFail($businessId, $serviceId)->clearMediaCollection(ServiceModel::IMAGE_COLLECTION);
     }
 
-    public function copy(string $sourceServiceId, string $targetServiceId): void
+    public function copy(string $businessId, string $sourceServiceId, string $targetServiceId): void
     {
-        $image = $this->modelOrFail($sourceServiceId)->getFirstMedia(ServiceModel::IMAGE_COLLECTION);
+        $source = $this->modelOrFail($businessId, $sourceServiceId);
+        $target = $this->modelOrFail($businessId, $targetServiceId);
+
+        $image = $source->getFirstMedia(ServiceModel::IMAGE_COLLECTION);
 
         if ($image === null) {
             return;
         }
 
-        $image->copy($this->modelOrFail($targetServiceId), ServiceModel::IMAGE_COLLECTION);
+        $image->copy($target, ServiceModel::IMAGE_COLLECTION);
     }
 
-    private function modelOrFail(string $serviceId): ServiceModel
+    private function modelOrFail(string $businessId, string $serviceId): ServiceModel
     {
-        $model = ServiceModel::query()->where('uuid', $serviceId)->first();
+        $model = self::ofBusiness($businessId)->where('uuid', $serviceId)->first();
 
         if ($model === null) {
             throw ServiceNotFound::withId($serviceId);
         }
 
         return $model;
+    }
+
+    /**
+     * @return Builder<ServiceModel>
+     */
+    private static function ofBusiness(string $businessId): Builder
+    {
+        return ServiceModel::query()->whereIn(
+            'business_id',
+            static fn (QueryBuilder $query) => $query
+                ->select('id')
+                ->from(self::BUSINESSES_TABLE)
+                ->where('uuid', $businessId),
+        );
     }
 
     private static function urlOrNull(ServiceModel $model): ?string

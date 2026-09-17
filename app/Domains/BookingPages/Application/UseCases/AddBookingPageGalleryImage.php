@@ -33,11 +33,13 @@ final class AddBookingPageGalleryImage
         try {
             $input->validate();
 
-            $page = $this->pages->forBusiness($this->business->currentBusinessId());
+            $businessId = $this->business->currentBusinessId();
 
-            $this->refuseFullGallery($page->id);
+            $page = $this->pages->forBusiness($businessId);
 
-            $this->images->addGalleryImage($page->id, $input->sourcePath, $input->fileName);
+            $this->refuseFullGallery($businessId, $page->id);
+
+            $this->images->addGalleryImage($businessId, $page->id, $input->sourcePath, $input->fileName);
 
             return UseCaseResponse::success($this->presenter->describe($page));
         } catch (DomainFailure $failure) {
@@ -48,9 +50,9 @@ final class AddBookingPageGalleryImage
     /**
      * @throws BookingPageGalleryFull
      */
-    private function refuseFullGallery(string $bookingPageId): void
+    private function refuseFullGallery(string $businessId, string $bookingPageId): void
     {
-        if (count($this->images->galleryFor($bookingPageId)) >= self::MAXIMUM_GALLERY_IMAGES) {
+        if (count($this->images->galleryFor($businessId, $bookingPageId)) >= self::MAXIMUM_GALLERY_IMAGES) {
             throw BookingPageGalleryFull::atLimit(self::MAXIMUM_GALLERY_IMAGES);
         }
     }

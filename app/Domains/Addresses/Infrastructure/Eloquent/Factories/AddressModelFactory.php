@@ -32,4 +32,25 @@ final class AddressModelFactory extends Factory
             'longitude' => null,
         ];
     }
+
+    public function withoutCity(): self
+    {
+        return $this->state(fn (): array => ['city' => null]);
+    }
+
+    public function withoutPostalCode(): self
+    {
+        return $this->state(fn (): array => ['postal_code' => null]);
+    }
+
+    public function streetOnly(): self
+    {
+        return $this->state(fn (): array => [
+            'city' => null,
+            'state_id' => null,
+            'postal_code' => null,
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+    }
 }

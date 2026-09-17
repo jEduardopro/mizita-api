@@ -202,17 +202,11 @@ final class UpdateBusinessSettings
 
     private function applyAddress(LocationInput $location, string $businessId): void
     {
-        if (self::describesNoPlace($location)) {
-            $this->addresses->removeForBusiness($businessId);
-
-            return;
-        }
-
         $this->addresses->replaceForBusiness($businessId, new BusinessAddressSnapshot(
             street: trim($location->street),
-            city: trim($location->city),
+            city: self::trimmed($location->city),
             stateId: $location->stateId,
-            postalCode: trim($location->postalCode),
+            postalCode: self::trimmed($location->postalCode),
             countryCode: trim($location->countryCode),
             latitude: $location->latitude,
             longitude: $location->longitude,
@@ -274,10 +268,8 @@ final class UpdateBusinessSettings
         return $number;
     }
 
-    private static function describesNoPlace(LocationInput $location): bool
+    private static function trimmed(?string $value): ?string
     {
-        return trim($location->street) === ''
-            && trim($location->city) === ''
-            && trim($location->postalCode) === '';
+        return $value === null ? null : trim($value);
     }
 }

@@ -1,4 +1,11 @@
+import type { ReactNode } from 'react';
+
 export type DataTableStatus = 'pending' | 'error' | 'ready';
+
+export type DataTableToolbar = {
+    content: ReactNode;
+    hasActiveFilters: boolean;
+};
 
 export type SortDirection = 'asc' | 'desc';
 

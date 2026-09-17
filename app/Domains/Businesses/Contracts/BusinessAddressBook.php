@@ -11,6 +11,4 @@ interface BusinessAddressBook
     public function forBusiness(string $businessId): ?BusinessAddressSnapshot;
 
     public function replaceForBusiness(string $businessId, BusinessAddressSnapshot $address): void;
-
-    public function removeForBusiness(string $businessId): void;
 }

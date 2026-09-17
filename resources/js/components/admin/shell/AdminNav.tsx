@@ -21,7 +21,7 @@ type NavItem = {
 const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
     { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
-    { href: '/customers', labelKey: 'nav.customers', icon: Users },
+    { href: '/customers', labelKey: 'nav.customers', icon: Users, permission: 'view_customers' },
     {
         href: '/settings/business',
         labelKey: 'nav.settings',

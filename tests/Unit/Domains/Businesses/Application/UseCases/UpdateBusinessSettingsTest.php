@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
+use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
+use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Availability\Exceptions\OverlappingScheduleIntervals;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
@@ -325,35 +328,46 @@ describe('the location', function () {
             ->and($this->addresses->replacements[0]['address']->longitude)->toBe(SettingsFixtures::LONGITUDE);
     });
 
-    it('accepts a business that keeps no address at all', function () {
+    it('files an address with no city and no postal code, because a street alone names a place', function () {
+        ($this->update)(new UpdateBusinessSettingsInput(location: SettingsFixtures::location(
+            city: null,
+            postalCode: null,
+        )));
+
+        expect($this->addresses->replacements)->toHaveCount(1)
+            ->and($this->addresses->replacements[0]['address']->street)->toBe(SettingsFixtures::STREET)
+            ->and($this->addresses->replacements[0]['address']->city)->toBeNull()
+            ->and($this->addresses->replacements[0]['address']->postalCode)->toBeNull();
+    });
+
+    it('files nothing for a business with no address that left the block blank', function () {
         ($this->update)(new UpdateBusinessSettingsInput(location: SettingsFixtures::location(
             street: '',
-            city: '',
-            postalCode: '',
+            city: null,
+            postalCode: null,
             latitude: null,
             longitude: null,
         )));
 
-        expect($this->addresses->removals)->toBe([FakeBusinessContext::BUSINESS_ID])
-            ->and($this->addresses->replacements)->toBe([]);
+        expect($this->addresses->wasWritten())->toBeFalse()
+            ->and($this->addresses->forBusiness(FakeBusinessContext::BUSINESS_ID))->toBeNull();
     });
 
-    it('removes the address even when a point was sent, because a pin alone is not a place', function () {
+    it('files nothing when the blank block still carried a pin, because a point alone is not a place', function () {
         ($this->update)(new UpdateBusinessSettingsInput(location: SettingsFixtures::location(
             street: '   ',
-            city: '   ',
-            postalCode: '   ',
+            city: null,
+            postalCode: null,
         )));
 
-        expect($this->addresses->removals)->toBe([FakeBusinessContext::BUSINESS_ID])
-            ->and($this->addresses->replacements)->toBe([]);
+        expect($this->addresses->wasWritten())->toBeFalse();
     });
 
-    it('still changes the timezone when the address is being removed', function () {
+    it('still changes the timezone when the address block arrived blank', function () {
         $data = ($this->update)(new UpdateBusinessSettingsInput(location: SettingsFixtures::location(
             street: '',
-            city: '',
-            postalCode: '',
+            city: null,
+            postalCode: null,
             timezone: 'UTC',
         )))->value();
 
@@ -572,6 +586,36 @@ describe('refusing an update', function () {
         'overlapping intervals' => [
             OverlappingScheduleIntervals::onWeekday(1),
             'overlapping_schedule_intervals',
+            DomainFailureKind::Conflict,
+        ],
+    ]);
+
+    it('carries back a refusal the address book raised, having written nothing after it', function (Throwable $refusal, string $code, DomainFailureKind $kind) {
+        $this->addresses->failingOnReplace($refusal);
+
+        $response = ($this->update)(SettingsFixtures::everything());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe($code)
+            ->and($response->error()->kind)->toBe($kind)
+            ->and($this->businesses->saved)->toBe([])
+            ->and($this->bookingPages->applications)->toBe([])
+            ->and($this->schedule->replacements)->toBe([])
+            ->and($this->links->replacements)->toBe([]);
+    })->with([
+        'a street it will not blank, now that this form deletes no address' => [
+            InvalidAddressStreet::empty(),
+            'invalid_address_street',
+            DomainFailureKind::Invalid,
+        ],
+        'a city already on file it will not clear' => [
+            AddressCityCannotBeCleared::alreadySet(),
+            'address_city_cannot_be_cleared',
+            DomainFailureKind::Conflict,
+        ],
+        'a postal code already on file it will not clear' => [
+            AddressPostalCodeCannotBeCleared::alreadySet(),
+            'address_postal_code_cannot_be_cleared',
             DomainFailureKind::Conflict,
         ],
     ]);

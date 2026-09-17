@@ -76,7 +76,9 @@ describe('a business that has never opened its booking page', function () {
 
 describe('a business that styled its booking page', function () {
     beforeEach(function () {
-        $this->pages->store(BookingPageFixtures::page(businessId: PublicCatalogFixtures::BUSINESS_ID));
+        $this->page = BookingPageFixtures::page(businessId: PublicCatalogFixtures::BUSINESS_ID);
+
+        $this->pages->store($this->page);
     });
 
     it('publishes the styling the business chose', function () {
@@ -88,14 +90,14 @@ describe('a business that styled its booking page', function () {
     });
 
     it('publishes the banner the business uploaded', function () {
-        $this->images->withBanner(BookingPageFixtures::PAGE_ID, PublicCatalogFixtures::BANNER_URL);
+        $this->images->withBanner($this->page, PublicCatalogFixtures::BANNER_URL);
 
         expect(($this->read)()->bannerUrl)->toBe(PublicCatalogFixtures::BANNER_URL);
     });
 
     it('publishes every gallery image with its uuid and its url, in the stored order', function () {
         $this->images->withGallery(
-            BookingPageFixtures::PAGE_ID,
+            $this->page,
             BookingPageFixtures::image(id: PublicCatalogFixtures::IMAGE_ID, url: 'https://cdn.mizita.test/one.jpg', position: 1),
             BookingPageFixtures::image(id: PublicCatalogFixtures::SECOND_IMAGE_ID, url: 'https://cdn.mizita.test/two.jpg', position: 2),
         );
@@ -111,7 +113,7 @@ describe('a business that styled its booking page', function () {
     });
 
     it('drops the position, which no visitor reads and the order already carries', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 2);
+        $this->images->withGalleryOf($this->page, 2);
 
         $fields = array_map(
             static fn (ReflectionProperty $property): string => $property->getName(),
@@ -126,6 +128,26 @@ describe('a business that styled its booking page', function () {
         ($this->read)();
 
         expect($this->pages->businessIdsSeen)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+    });
+
+    it('asks the image port about the business whose page it just read', function () {
+        ($this->read)();
+
+        expect($this->images->galleryReads)->toBe([[
+            'businessId' => PublicCatalogFixtures::BUSINESS_ID,
+            'bookingPageId' => BookingPageFixtures::PAGE_ID,
+        ]]);
+    });
+
+    it('publishes none of a neighbouring business files, even for a page carrying the same id', function () {
+        $this->images->withBanner($this->page, PublicCatalogFixtures::BANNER_URL);
+        $this->images->withGalleryOf($this->page, 2);
+        $this->pages->store(BookingPageFixtures::page(businessId: PublicCatalogFixtures::OTHER_BUSINESS_ID));
+
+        $brand = ($this->read)(PublicCatalogFixtures::OTHER_BUSINESS_ID);
+
+        expect($brand->bannerUrl)->toBeNull()
+            ->and($brand->gallery)->toBe([]);
     });
 
     it('serves the defaults for a neighbouring business that styled nothing', function () {

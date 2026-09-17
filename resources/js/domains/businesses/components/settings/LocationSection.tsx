@@ -35,6 +35,7 @@ export function LocationSection({ form }: Props) {
                 label={t('businessSettings.location.street.label')}
                 placeholder={t('businessSettings.location.street.placeholder')}
                 autoComplete="street-address"
+                aria-required={form.isRequired('street')}
                 value={form.values.street}
                 onChange={(event) => form.update('street', event.target.value)}
                 error={form.errorFor('street')}
@@ -45,6 +46,7 @@ export function LocationSection({ form }: Props) {
                     id="business-city"
                     label={t('businessSettings.location.city.label')}
                     autoComplete="address-level2"
+                    aria-required={form.isRequired('city')}
                     value={form.values.city}
                     onChange={(event) => form.update('city', event.target.value)}
                     error={form.errorFor('city')}
@@ -55,6 +57,7 @@ export function LocationSection({ form }: Props) {
                     label={t('businessSettings.location.postalCode.label')}
                     inputMode="numeric"
                     autoComplete="postal-code"
+                    aria-required={form.isRequired('postalCode')}
                     value={form.values.postalCode}
                     onChange={(event) => form.update('postalCode', event.target.value)}
                     error={form.errorFor('postalCode')}

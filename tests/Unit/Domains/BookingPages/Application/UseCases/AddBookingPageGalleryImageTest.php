@@ -12,7 +12,7 @@ use Tests\Support\FakeBusinessContext;
 
 beforeEach(function () {
     $this->pages = new FakeCurrentBookingPage(BookingPageFixtures::page());
-    $this->images = new FakeBookingPageImages;
+    $this->images = (new FakeBookingPageImages)->withPage(BookingPageFixtures::page());
 
     $this->useCase = new AddBookingPageGalleryImage(
         $this->pages,
@@ -37,6 +37,7 @@ describe('adding an image to the gallery', function () {
         ($this->add)(fileName: 'front.jpg');
 
         expect($this->images->galleryImagesAdded)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
             'bookingPageId' => BookingPageFixtures::PAGE_ID,
             'sourcePath' => BookingPageFixtures::SOURCE_PATH,
             'fileName' => 'front.jpg',
@@ -44,7 +45,7 @@ describe('adding an image to the gallery', function () {
     });
 
     it('adds to the gallery a page already has rather than replacing it', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 3);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 3);
 
         expect(($this->add)()->value()->gallery)->toHaveCount(4);
     });
@@ -56,7 +57,7 @@ describe('adding an image to the gallery', function () {
     });
 
     it('leaves the banner alone', function () {
-        $this->images->withBanner(BookingPageFixtures::PAGE_ID, BookingPageFixtures::BANNER_URL);
+        $this->images->withBanner(BookingPageFixtures::page(), BookingPageFixtures::BANNER_URL);
 
         expect(($this->add)()->value()->bannerUrl)->toBe(BookingPageFixtures::BANNER_URL);
     });
@@ -76,7 +77,7 @@ describe('a gallery that is already full', function () {
     });
 
     it('accepts the twentieth image', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 19);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 19);
 
         $response = ($this->add)();
 
@@ -85,7 +86,7 @@ describe('a gallery that is already full', function () {
     });
 
     it('refuses the twenty first', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 20);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 20);
 
         $response = ($this->add)();
 
@@ -95,7 +96,7 @@ describe('a gallery that is already full', function () {
     });
 
     it('stores nothing once the gallery is full', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 20);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 20);
 
         ($this->add)();
 
@@ -103,7 +104,7 @@ describe('a gallery that is already full', function () {
     });
 
     it('says how many images a gallery holds', function () {
-        $this->images->withGalleryOf(BookingPageFixtures::PAGE_ID, 20);
+        $this->images->withGalleryOf(BookingPageFixtures::page(), 20);
 
         expect(fn () => ($this->add)()->value())
             ->toThrow('A booking page gallery holds up to [20] images.');
@@ -135,5 +136,50 @@ describe('an upload it refuses', function () {
         ($this->add)(mimeType: 'application/pdf');
 
         expect($this->pages->businessIdsSeen)->toBe([]);
+    });
+});
+
+describe('a gallery of another business', function () {
+    beforeEach(function () {
+        $this->otherPage = BookingPageFixtures::page(
+            id: BookingPageFixtures::OTHER_PAGE_ID,
+            businessId: BookingPageFixtures::OTHER_BUSINESS_ID,
+        );
+    });
+
+    it('counts only the images of the business in context towards the limit', function () {
+        $this->images->withGalleryOf($this->otherPage, 20);
+
+        $response = ($this->add)();
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value()->gallery)->toHaveCount(1);
+    });
+
+    it('leaves the neighbour gallery exactly as it was', function () {
+        $this->images->withGalleryOf($this->otherPage, 2);
+
+        ($this->add)();
+
+        expect($this->images->galleryFor(
+            BookingPageFixtures::OTHER_BUSINESS_ID,
+            BookingPageFixtures::OTHER_PAGE_ID,
+        ))->toHaveCount(2);
+    });
+
+    it('refuses to add an image to a page the business in context does not own', function () {
+        $useCase = new AddBookingPageGalleryImage(
+            $this->pages,
+            $this->images,
+            new BookingPagePresenter($this->images),
+            new FakeBusinessContext(BookingPageFixtures::OTHER_BUSINESS_ID),
+        );
+
+        $response = $useCase->handle(BookingPageFixtures::attachInput());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('booking_page_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($this->images->galleryImagesAdded)->toBe([]);
     });
 });

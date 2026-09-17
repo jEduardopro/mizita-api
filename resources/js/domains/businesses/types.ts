@@ -60,9 +60,9 @@ export type BusinessPhone = BusinessPhonePayload & {
 
 export type BusinessAddress = {
     street: string;
-    city: string;
+    city: string | null;
     state_id: string | null;
-    postal_code: string;
+    postal_code: string | null;
     country_code: string;
     latitude: string | null;
     longitude: string | null;
@@ -125,7 +125,7 @@ export type ContactSectionPayload = {
     phone: BusinessPhonePayload | null;
 };
 
-export type LocationSectionPayload = {
+type SubmittedAddress = {
     street: string;
     city: string;
     state_id: string | null;
@@ -133,6 +133,9 @@ export type LocationSectionPayload = {
     country_code: string;
     latitude: string | null;
     longitude: string | null;
+};
+
+export type LocationSectionPayload = SubmittedAddress & {
     currency_code: string;
     timezone: string;
 };

@@ -28,7 +28,7 @@ final class ServicesPublishedServices implements PublishedServices
             return [];
         }
 
-        $imageUrls = $this->images->urlsFor(array_map(
+        $imageUrls = $this->images->urlsFor($businessId, array_map(
             static fn (Service $service): string => $service->id,
             $services,
         ));

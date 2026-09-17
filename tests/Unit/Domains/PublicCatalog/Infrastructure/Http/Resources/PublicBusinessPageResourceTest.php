@@ -265,6 +265,19 @@ describe('what an empty business serializes as', function () {
             ->and($serialized['contact']['phone'])->toBeNull();
     });
 
+    it('sends null city and postal code for a business that filed a street alone', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            location: PublicCatalogFixtures::location(city: null, state: null, postalCode: null),
+        ));
+
+        expect(array_keys($serialized['location']))
+            ->toBe(['street', 'city', 'state', 'postal_code', 'country_code', 'latitude', 'longitude'])
+            ->and($serialized['location']['street'])->toBe('Avenida Insurgentes Sur 1602')
+            ->and($serialized['location']['city'])->toBeNull()
+            ->and($serialized['location']['state'])->toBeNull()
+            ->and($serialized['location']['postal_code'])->toBeNull();
+    });
+
     it('sends an empty json array, never an object, for a section with no rows', function () {
         $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage());
 

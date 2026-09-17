@@ -36,9 +36,9 @@ export function SettingsSubnav({ sections }: Props) {
     return (
         <nav
             aria-label={t('nav.sections')}
-            className="sticky top-28 z-10 -mx-5 border-b border-border bg-background/90 py-2 backdrop-blur-sm sm:-mx-8 md:top-32 md:mx-0 md:border-0 md:bg-transparent md:py-0 md:backdrop-blur-none"
+            className="sticky top-28 z-10 -mx-5 min-w-0 border-b border-border bg-background/90 backdrop-blur-sm sm:-mx-8 md:top-32 md:mx-0 md:border-0 md:bg-transparent md:backdrop-blur-none"
         >
-            <ul className="flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] sm:px-8 md:flex-col md:gap-1 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+            <ul className="-mb-px flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] sm:px-8 md:mb-0 md:flex-col md:gap-1 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
                 {sections.map((section) => {
                     const isActive = section.id === activeId;
 
@@ -49,11 +49,11 @@ export function SettingsSubnav({ sections }: Props) {
                                 aria-current={isActive ? 'true' : undefined}
                                 onClick={(event) => scrollToSection(event, section.id)}
                                 className={cn(
-                                    'flex h-11 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                                    'md:h-10 md:rounded-lg md:px-3',
+                                    'flex items-center border-b-2 px-1.5 py-3.5 text-xs font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                                    'md:h-10 md:rounded-lg md:border md:px-3 md:py-0 md:text-sm',
                                     isActive
-                                        ? 'border-border bg-secondary text-foreground'
-                                        : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+                                        ? 'border-primary text-foreground md:border-border md:bg-secondary'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground md:hover:bg-muted',
                                 )}
                             >
                                 {section.label}

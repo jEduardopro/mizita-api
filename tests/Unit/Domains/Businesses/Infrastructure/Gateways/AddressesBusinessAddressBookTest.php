@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domains\Addresses\Application\UseCases\ReplaceAddress;
 use App\Domains\Addresses\Contracts\AddressRepository;
 use App\Domains\Addresses\Entities\Address;
+use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
+use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressCity;
 use App\Domains\Addresses\Exceptions\InvalidAddressPostalCode;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
@@ -25,9 +27,9 @@ use Tests\Support\FixedIdGenerator;
 
 function businessAddressSnapshot(
     string $street = AddressFixtures::STREET,
-    string $city = AddressFixtures::CITY,
+    ?string $city = AddressFixtures::CITY,
     ?string $stateId = AddressFixtures::STATE_ID,
-    string $postalCode = AddressFixtures::POSTAL_CODE,
+    ?string $postalCode = AddressFixtures::POSTAL_CODE,
     string $countryCode = 'MX',
     ?string $latitude = null,
     ?string $longitude = null,
@@ -40,6 +42,22 @@ function businessAddressSnapshot(
         countryCode: $countryCode,
         latitude: $latitude,
         longitude: $longitude,
+    );
+}
+
+function businessStreetOnlyAddress(): Address
+{
+    return Address::restore(
+        id: AddressFixtures::ADDRESS_ID,
+        ownerType: AddressOwnerType::Business,
+        ownerId: FakeBusinessContext::BUSINESS_ID,
+        street: AddressFixtures::STREET,
+        city: null,
+        stateId: null,
+        postalCode: null,
+        country: CountryCode::Mx,
+        coordinates: null,
+        createdAt: AddressFixtures::now(),
     );
 }
 
@@ -82,6 +100,18 @@ describe('reading the address on file', function () {
             ->and($snapshot->city)->toBe(AddressFixtures::CITY)
             ->and($snapshot->stateId)->toBe(AddressFixtures::STATE_ID)
             ->and($snapshot->postalCode)->toBe(AddressFixtures::POSTAL_CODE)
+            ->and($snapshot->countryCode)->toBe('MX');
+    });
+
+    it('hands back a street only address with the city and the postal code null', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(businessStreetOnlyAddress());
+
+        $snapshot = ($this->read)();
+
+        expect($snapshot->street)->toBe(AddressFixtures::STREET)
+            ->and($snapshot->city)->toBeNull()
+            ->and($snapshot->stateId)->toBeNull()
+            ->and($snapshot->postalCode)->toBeNull()
             ->and($snapshot->countryCode)->toBe('MX');
     });
 
@@ -168,6 +198,62 @@ describe('filing the address a business submitted', function () {
         expect($existing->street())->toBe('Calle Madero 12')
             ->and($existing->city())->toBe('Puebla')
             ->and($existing->id)->toBe(AddressFixtures::ADDRESS_ID);
+    });
+
+    it('files an address that carries a street and nothing else', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+
+        $saved = null;
+        $this->addresses->shouldReceive('save')->once()->with(Mockery::capture($saved));
+
+        ($this->replace)(businessAddressSnapshot(city: null, stateId: null, postalCode: null));
+
+        expect($saved->street())->toBe(AddressFixtures::STREET)
+            ->and($saved->city())->toBeNull()
+            ->and($saved->stateId())->toBeNull()
+            ->and($saved->postalCode())->toBeNull();
+    });
+
+    it('files an address with no postal code when the client left the box empty', function (?string $postalCode) {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+
+        $saved = null;
+        $this->addresses->shouldReceive('save')->once()->with(Mockery::capture($saved));
+
+        ($this->replace)(businessAddressSnapshot(postalCode: $postalCode));
+
+        expect($saved->postalCode())->toBeNull();
+    })->with([
+        'no postal code at all' => null,
+        'an empty one' => '',
+        'spaces' => '   ',
+    ]);
+
+    it('files an address with no city when the client left the box empty', function (?string $city) {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+
+        $saved = null;
+        $this->addresses->shouldReceive('save')->once()->with(Mockery::capture($saved));
+
+        ($this->replace)(businessAddressSnapshot(city: $city));
+
+        expect($saved->city())->toBeNull();
+    })->with([
+        'no city at all' => null,
+        'an empty one' => '',
+        'a tab' => "\t",
+    ]);
+
+    it('fills a city the address never carried, because only a value on file is protected', function () {
+        $existing = businessStreetOnlyAddress();
+
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn($existing);
+        $this->addresses->shouldReceive('save')->once();
+
+        ($this->replace)(businessAddressSnapshot(city: 'Puebla', postalCode: '72000'));
+
+        expect($existing->city())->toBe('Puebla')
+            ->and($existing->postalCode()?->value)->toBe('72000');
     });
 
     it('pins the address when the snapshot carries both coordinates', function () {
@@ -327,23 +413,102 @@ describe('refusing an address the neighbour will not take', function () {
         expect(fn () => ($this->replace)(businessAddressSnapshot(postalCode: $postalCode)))
             ->toThrow(InvalidAddressPostalCode::class);
     })->with([
-        'empty' => '',
-        'spaces' => '   ',
         'letters' => 'C1234',
         'too short' => '123',
         'too long' => '12345678901',
     ]);
 
-    it('saves nothing when the street or the city is blank', function (string $street, string $city, string $exception) {
+    it('files nothing at all when a business with no address on file sends a blank street', function (string $street) {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+        $this->addresses->shouldNotReceive('save');
+
+        expect(($this->replace)(businessAddressSnapshot(street: $street, city: null, postalCode: null)))->toBeNull();
+    })->with([
+        'empty' => '',
+        'spaces' => '   ',
+        'a tab' => "\t",
+    ]);
+
+    it('refuses to blank the street of an address already on file, because this form deletes none', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(AddressFixtures::address());
+        $this->addresses->shouldNotReceive('save');
+
+        expect(fn () => ($this->replace)(businessAddressSnapshot(street: '   ')))
+            ->toThrow(InvalidAddressStreet::class);
+    });
+
+    it('refuses to clear a city the address already carries', function (?string $city) {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(AddressFixtures::address());
+        $this->addresses->shouldNotReceive('save');
+
+        $refusal = null;
+
+        try {
+            ($this->replace)(businessAddressSnapshot(city: $city));
+        } catch (Throwable $escaped) {
+            $refusal = $escaped;
+        }
+
+        expect($refusal)->toBeInstanceOf(AddressCityCannotBeCleared::class)
+            ->and($refusal->errorCode())->toBe('address_city_cannot_be_cleared')
+            ->and($refusal->kind())->toBe(DomainFailureKind::Conflict);
+    })->with([
+        'no city at all' => null,
+        'an empty one' => '',
+        'spaces' => '   ',
+    ]);
+
+    it('refuses to clear a postal code the address already carries', function (?string $postalCode) {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(AddressFixtures::address());
+        $this->addresses->shouldNotReceive('save');
+
+        $refusal = null;
+
+        try {
+            ($this->replace)(businessAddressSnapshot(postalCode: $postalCode));
+        } catch (Throwable $escaped) {
+            $refusal = $escaped;
+        }
+
+        expect($refusal)->toBeInstanceOf(AddressPostalCodeCannotBeCleared::class)
+            ->and($refusal->errorCode())->toBe('address_postal_code_cannot_be_cleared')
+            ->and($refusal->kind())->toBe(DomainFailureKind::Conflict);
+    })->with([
+        'no postal code at all' => null,
+        'an empty one' => '',
+        'spaces' => '   ',
+    ]);
+
+    it('names the street first when the whole block arrived blank', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(AddressFixtures::address());
+        $this->addresses->shouldNotReceive('save');
+
+        expect(fn () => ($this->replace)(businessAddressSnapshot(street: '', city: '', postalCode: '')))
+            ->toThrow(InvalidAddressStreet::class);
+    });
+
+    it('leaves the address on file untouched when it refuses the one submitted', function () {
+        $existing = AddressFixtures::address();
+
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn($existing);
+        $this->addresses->shouldNotReceive('save');
+
+        try {
+            ($this->replace)(businessAddressSnapshot(street: 'Calle Madero 12', city: null));
+        } catch (AddressCityCannotBeCleared) {
+        }
+
+        expect($existing->street())->toBe(AddressFixtures::STREET)
+            ->and($existing->city())->toBe(AddressFixtures::CITY);
+    });
+
+    it('refuses a city longer than the column, whether or not one is on file', function () {
         $this->addresses->shouldReceive('findForOwner')->andReturnNull();
         $this->addresses->shouldNotReceive('save');
 
-        expect(fn () => ($this->replace)(businessAddressSnapshot(street: $street, city: $city)))
-            ->toThrow($exception);
-    })->with([
-        'blank street' => ['   ', AddressFixtures::CITY, InvalidAddressStreet::class],
-        'blank city' => [AddressFixtures::STREET, "\t", InvalidAddressCity::class],
-    ]);
+        expect(fn () => ($this->replace)(businessAddressSnapshot(city: str_repeat('a', 121))))
+            ->toThrow(InvalidAddressCity::class);
+    });
 });
 
 describe('the rollback contract', function () {
@@ -366,10 +531,15 @@ describe('the rollback contract', function () {
 
     it('declares void on every write the port exposes', function (string $method) {
         expect((string) (new ReflectionMethod(BusinessAddressBook::class, $method))->getReturnType())->toBe('void');
-    })->with(['replaceForBusiness', 'removeForBusiness']);
+    })->with(['replaceForBusiness']);
+
+    it('exposes no way to delete the address a business filed', function () {
+        expect(method_exists(BusinessAddressBook::class, 'removeForBusiness'))->toBeFalse()
+            ->and(method_exists(AddressesBusinessAddressBook::class, 'removeForBusiness'))->toBeFalse();
+    });
 
     it('rethrows the neighbour refusal itself, so the surrounding transaction rolls back', function () {
-        $this->addresses->shouldReceive('findForOwner')->andReturnNull();
+        $this->addresses->shouldReceive('findForOwner')->andReturn(AddressFixtures::address());
         $this->addresses->shouldNotReceive('save');
 
         try {
@@ -401,35 +571,5 @@ describe('the rollback contract', function () {
         $this->addresses->shouldNotReceive('save');
 
         expect(fn () => ($this->replace)(businessAddressSnapshot()))->toThrow($bug);
-    });
-});
-
-describe('removing the address', function () {
-    it('deletes straight through the repository, since Addresses exposes no delete use case', function () {
-        $this->addresses->shouldReceive('deleteForOwner')->once()
-            ->with(AddressOwnerType::Business, FakeBusinessContext::BUSINESS_ID);
-        $this->addresses->shouldNotReceive('save');
-
-        expect($this->addressBook->removeForBusiness(FakeBusinessContext::BUSINESS_ID))->toBeNull();
-    });
-
-    it('deletes under the business uuid, never an internal key', function () {
-        $ownerId = null;
-
-        $this->addresses->shouldReceive('deleteForOwner')->once()
-            ->with(AddressOwnerType::Business, Mockery::capture($ownerId));
-
-        $this->addressBook->removeForBusiness(FakeBusinessContext::BUSINESS_ID);
-
-        expect($ownerId)->toBe(FakeBusinessContext::BUSINESS_ID)
-            ->and(is_numeric($ownerId))->toBeFalse();
-    });
-
-    it('lets a repository error out untouched', function () {
-        $bug = new RuntimeException('the addresses table is gone');
-
-        $this->addresses->shouldReceive('deleteForOwner')->once()->andThrow($bug);
-
-        expect(fn () => $this->addressBook->removeForBusiness(FakeBusinessContext::BUSINESS_ID))->toThrow($bug);
     });
 });

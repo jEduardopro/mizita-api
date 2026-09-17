@@ -64,4 +64,24 @@ return [
         'description' => 'Remove a service from the catalogue.',
     ],
 
+    'view_customers' => [
+        'label' => 'View customers',
+        'description' => 'See the customers of the business, their contact details, their address and their notes.',
+    ],
+
+    'create_customer' => [
+        'label' => 'Create customers',
+        'description' => 'Add a new customer to the business.',
+    ],
+
+    'edit_customer' => [
+        'label' => 'Edit customers',
+        'description' => 'Change a customer, their contact details, their address and their notes.',
+    ],
+
+    'delete_customer' => [
+        'label' => 'Delete customers',
+        'description' => 'Remove a customer from the business, together with their phone and address.',
+    ],
+
 ];

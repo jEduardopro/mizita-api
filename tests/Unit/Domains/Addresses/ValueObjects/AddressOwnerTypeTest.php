@@ -9,10 +9,11 @@ it('backs each owner with the morph alias the database stores', function (Addres
 })->with([
     'business' => [AddressOwnerType::Business, 'business'],
     'staff member' => [AddressOwnerType::StaffMember, 'staff_member'],
+    'customer' => [AddressOwnerType::Customer, 'customer'],
 ]);
 
 it('exposes exactly the owners an address can belong to', function () {
-    expect(array_column(AddressOwnerType::cases(), 'value'))->toBe(['business', 'staff_member']);
+    expect(array_column(AddressOwnerType::cases(), 'value'))->toBe(['business', 'staff_member', 'customer']);
 });
 
 it('resolves a stored alias back to its case', function (string $alias, AddressOwnerType $ownerType) {
@@ -20,6 +21,7 @@ it('resolves a stored alias back to its case', function (string $alias, AddressO
 })->with([
     'business' => ['business', AddressOwnerType::Business],
     'staff member' => ['staff_member', AddressOwnerType::StaffMember],
+    'customer' => ['customer', AddressOwnerType::Customer],
 ]);
 
 it('refuses an alias no owning domain answers to', function (string $alias) {
@@ -35,5 +37,5 @@ it('refuses an alias no owning domain answers to', function (string $alias) {
 ]);
 
 it('fails loudly rather than guessing when a row carries an alias it does not know', function () {
-    expect(fn () => AddressOwnerType::from('customer'))->toThrow(ValueError::class);
+    expect(fn () => AddressOwnerType::from('appointment'))->toThrow(ValueError::class);
 });

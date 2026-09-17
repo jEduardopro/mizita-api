@@ -1,6 +1,7 @@
 import { useCallback, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBusinessSettings, useUpdateBusinessSettings } from '@/domains/businesses/queries';
+import { useAddressClearingGuard } from '@/hooks/use-address-clearing-guard';
 import { useServerErrors } from '@/hooks/use-server-errors';
 import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
 import {
@@ -24,6 +25,7 @@ export type BusinessSettingsFormController = {
         value: BusinessSettingsFormValues[TKey],
     ) => void;
     errorFor: (field: BusinessSettingsField) => string | undefined;
+    isRequired: (field: BusinessSettingsField) => boolean;
     isLoading: boolean;
     isLoadError: boolean;
     retry: () => void;
@@ -54,6 +56,12 @@ export function useBusinessSettingsForm(): BusinessSettingsFormController {
     }
 
     const media = useBusinessSettingsMedia(settings);
+    const addressGuard = useAddressClearingGuard({
+        stored: settings?.address ?? null,
+        values,
+        fieldMessage: t('businessSettings.location.cannotClear.field'),
+        blockedMessage: t('businessSettings.location.cannotClear.blocked'),
+    });
     const updateSettings = useUpdateBusinessSettings();
 
     const update = useCallback(
@@ -69,7 +77,7 @@ export function useBusinessSettingsForm(): BusinessSettingsFormController {
         [fieldErrors, clearField],
     );
 
-    const errorFor = useCallback(
+    const serverErrorFor = useCallback(
         (field: BusinessSettingsField) => {
             const key = Object.keys(fieldErrors).find((candidate) =>
                 matchesServerField(candidate, serverFields[field]),
@@ -80,14 +88,24 @@ export function useBusinessSettingsForm(): BusinessSettingsFormController {
         [fieldErrors],
     );
 
+    const errorFor = useCallback(
+        (field: BusinessSettingsField) => addressGuard.errorFor(field) ?? serverErrorFor(field),
+        [addressGuard, serverErrorFor],
+    );
+
     const retry = useCallback(() => void settingsQuery.refetch(), [settingsQuery]);
 
     async function save() {
         reset();
 
+        if (! addressGuard.confirmSaveAllowed()) {
+            return;
+        }
+
         try {
             await updateSettings.mutateAsync(businessSettingsPayloadFrom(values));
         } catch (error) {
+            addressGuard.captureRefusal(error);
             capture(error, t('businessSettings.errors.unexpected'));
 
             return;
@@ -107,6 +125,7 @@ export function useBusinessSettingsForm(): BusinessSettingsFormController {
         savedSlug: settings?.slug ?? '',
         update,
         errorFor,
+        isRequired: addressGuard.isRequired,
         isLoading: settingsQuery.isPending,
         isLoadError: settingsQuery.isError,
         retry,

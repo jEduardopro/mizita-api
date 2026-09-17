@@ -37,9 +37,9 @@ export type PublicTeamMember = {
 
 export type PublicLocation = {
     street: string;
-    city: string;
+    city: string | null;
     state: string | null;
-    postal_code: string;
+    postal_code: string | null;
     country_code: string;
     latitude: string | null;
     longitude: string | null;

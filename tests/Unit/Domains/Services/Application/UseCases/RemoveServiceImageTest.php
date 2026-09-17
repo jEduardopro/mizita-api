@@ -16,7 +16,7 @@ use Tests\Support\Services\ServiceFixtures;
 
 beforeEach(function () {
     $this->services = new FakeServiceRepository;
-    $this->images = new FakeServiceImages([
+    $this->images = FakeServiceImages::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/corte.png',
     ]);
     $this->staff = FakeStaffDirectory::of(FakeBusinessContext::BUSINESS_ID, [
@@ -44,9 +44,24 @@ it('removes the image and answers with the service without one', function () {
 
     $data = ($this->remove)()->value();
 
-    expect($this->images->removed)->toBe([ServiceFixtures::SERVICE_ID])
-        ->and($data->id)->toBe(ServiceFixtures::SERVICE_ID)
+    expect($this->images->removed)->toBe([[
+        'businessId' => FakeBusinessContext::BUSINESS_ID,
+        'serviceId' => ServiceFixtures::SERVICE_ID,
+    ]])->and($data->id)->toBe(ServiceFixtures::SERVICE_ID)
         ->and($data->imageUrl)->toBeNull();
+});
+
+it('leaves the file a neighbouring business filed under that same service id', function () {
+    $this->images->add(ServiceFixtures::OTHER_BUSINESS_ID, [
+        ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/otro.png',
+    ]);
+    $this->services->store(ServiceFixtures::service());
+
+    ($this->remove)();
+
+    expect($this->images->urlFor(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::SERVICE_ID))->toBeNull()
+        ->and($this->images->urlFor(ServiceFixtures::OTHER_BUSINESS_ID, ServiceFixtures::SERVICE_ID))
+        ->toBe('https://cdn.mizita.test/otro.png');
 });
 
 it('succeeds when the service had no image to begin with', function () {
@@ -56,7 +71,10 @@ it('succeeds when the service had no image to begin with', function () {
 
     expect($response->succeeded())->toBeTrue()
         ->and($response->value()->imageUrl)->toBeNull()
-        ->and($this->images->removed)->toBe([ServiceFixtures::SECOND_SERVICE_ID]);
+        ->and($this->images->removed)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'serviceId' => ServiceFixtures::SECOND_SERVICE_ID,
+        ]]);
 });
 
 it('succeeds again when asked a second time', function () {

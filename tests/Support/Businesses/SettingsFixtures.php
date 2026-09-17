@@ -83,9 +83,9 @@ final class SettingsFixtures
 
     public static function location(
         string $street = self::STREET,
-        string $city = self::CITY,
+        ?string $city = self::CITY,
         ?string $stateId = self::STATE_ID,
-        string $postalCode = self::POSTAL_CODE,
+        ?string $postalCode = self::POSTAL_CODE,
         string $countryCode = 'MX',
         ?string $latitude = self::LATITUDE,
         ?string $longitude = self::LONGITUDE,
@@ -145,9 +145,9 @@ final class SettingsFixtures
 
     public static function address(
         string $street = self::STREET,
-        string $city = self::CITY,
+        ?string $city = self::CITY,
         ?string $stateId = self::STATE_ID,
-        string $postalCode = self::POSTAL_CODE,
+        ?string $postalCode = self::POSTAL_CODE,
         string $countryCode = 'MX',
         ?string $latitude = self::LATITUDE,
         ?string $longitude = self::LONGITUDE,

@@ -113,7 +113,21 @@ English, everywhere — class names, columns, routes, comments. The non-obvious 
 | `resources/js`, `resources/css` — UI | **`mizita-frontend`** (`.claude/agents/mizita-frontend.md`). Writes front-end code only; never PHP, never tests. Playwright reaches it as MCP tools from `.mcp.json`. |
 | A new module | the **`/new-domain`** skill (`.claude/skills/new-domain/`), a wrapper over `make:domain`. |
 
-A feature that crosses layers runs them in order: backend → tester → frontend.
+### Run everything in parallel that can run in parallel
+
+**Launch as many subagents at once as the work allows**, as several `Agent` calls in a single message. Serialise only on a *real* dependency — one agent cannot start until it has what another produced.
+
+That is why a feature crossing layers still runs backend → tester → frontend: the tester writes against code the backend has just produced, and the front end transcribes a contract that has to exist first. It is not why exploration, impact analysis, an unrelated bug fix or a second domain should wait — those fan out.
+
+Read the dependency, not the habit. A tester updating tests the last change broke and a front-end agent fixing a file the backend never touches are independent, and they go out together.
+
+**The agent type is not the unit of parallelism — the slice of work is.** `mizita-backend`, `mizita-frontend` and `mizita-tester` are each launched as many times at once as the work splits into. Three `mizita-backend` instances writing three domains, four `mizita-tester` instances covering four use cases, two `mizita-frontend` instances on two screens: that is the normal shape of a delegation, not an exception. When handing work over, split it as far as it will go and launch all the pieces in one message.
+
+Split along files, and the one hard constraint follows from it: **two agents must never write the same file.** They cannot see each other's edits, so the second one to save wins and the first one's work disappears with no error anywhere. Before fanning out, name the files each instance owns; when a file would be shared — a service provider, a config catalogue, a locale bundle, a migration everyone appends to — either give it to exactly one instance or keep it for the main session afterwards. A slice that cannot be drawn without overlap is a slice that stays whole.
+
+Each instance gets the full context it needs on its own: they do not talk to each other, and an instruction to "coordinate with the other agent" is never satisfiable.
+
+The same rule governs tool calls: independent `Read`, `Grep`, `Glob` and `Bash` calls go in one message, never chained one per turn.
 
 ### When the main session may edit directly
 
@@ -124,6 +138,14 @@ Only changes that are both small and unverifiable by tests:
 - a one-line change with no behavioural effect
 
 **Override — behaviour beats size.** A change to `app/` that alters behaviour at all is delegated no matter how few lines it is, because it has to be covered or re-verified by the suite: `mizita-backend` makes the change, `mizita-tester` writes or updates the test. A green existing suite is not a reason to skip this.
+
+## Plan mode: ask, never assume
+
+**In plan mode nothing is assumed.** The order is fixed: explore the code read-only until the ground is understood, then use `AskUserQuestion` for everything that admits more than one reasonable reading — with concrete options grounded in what was just read, not generic ones.
+
+Nothing gets implemented until the request is understood with at least 95% confidence. Below that bar the answer is another question, never a guess dressed as a default. A single ambiguity does not block the rest: do everything it does not touch, and ask about the part it does.
+
+Two things are always worth a question rather than a decision: **anything that changes the behaviour of a screen or an endpoint that already exists**, however small it looks, and **anything whose consequences reach beyond the file being edited** — a relaxed invariant, a widened type, a new column on a shared table.
 
 ## Identity: uuid outward, int inward
 

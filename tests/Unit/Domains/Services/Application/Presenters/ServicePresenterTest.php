@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Services\Application\Dtos\ServiceData;
 use App\Domains\Services\Application\Presenters\ServicePresenter;
+use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Services\BookingLinks;
 use App\Domains\Services\ValueObjects\ServiceColor;
 use App\Shared\ValueObjects\Paginated;
@@ -20,7 +21,7 @@ beforeEach(function () {
         ServiceFixtures::SECOND_STAFF_ID => 'Grace Hopper',
     ]);
 
-    $this->images = new FakeServiceImages([
+    $this->images = FakeServiceImages::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/corte.png',
     ]);
 
@@ -42,10 +43,7 @@ beforeEach(function () {
 
 describe('describing one service', function () {
     it('fills every field of the data the client reads', function () {
-        $data = $this->presenter->describe(
-            FakeBusinessContext::BUSINESS_ID,
-            ServiceFixtures::service(color: ServiceColor::Amber),
-        );
+        $data = $this->presenter->describe(ServiceFixtures::service(color: ServiceColor::Amber));
 
         expect($data)->toBeInstanceOf(ServiceData::class)
             ->and($data->id)->toBe(ServiceFixtures::SERVICE_ID)
@@ -63,35 +61,70 @@ describe('describing one service', function () {
     });
 
     it('carries the staff of that service by name', function () {
-        $data = $this->presenter->describe(
-            FakeBusinessContext::BUSINESS_ID,
-            ServiceFixtures::service(staffIds: [ServiceFixtures::SECOND_STAFF_ID, ServiceFixtures::STAFF_ID]),
-        );
+        $data = $this->presenter->describe(ServiceFixtures::service(
+            staffIds: [ServiceFixtures::SECOND_STAFF_ID, ServiceFixtures::STAFF_ID],
+        ));
 
         expect(array_map(static fn (object $member): string => $member->name, $data->staff))
             ->toBe(['Grace Hopper', 'Ada Lovelace']);
     });
 
     it('carries no image url when the service has no image', function () {
-        $data = $this->presenter->describe(
-            FakeBusinessContext::BUSINESS_ID,
-            ServiceFixtures::service(id: ServiceFixtures::SECOND_SERVICE_ID),
-        );
+        $data = $this->presenter->describe(ServiceFixtures::service(id: ServiceFixtures::SECOND_SERVICE_ID));
 
         expect($data->imageUrl)->toBeNull();
     });
 
-    it('asks every collaborator about the business it was given', function () {
-        $this->presenter->describe(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::service());
+    it('does not carry the business it belongs to into the data', function () {
+        $data = $this->presenter->describe(ServiceFixtures::service());
 
-        expect($this->staff->lastCall()['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+        expect(get_object_vars($data))->not->toHaveKey('businessId');
+    });
+});
+
+describe('the business a described service is read under', function () {
+    it('takes the business from the service alone, never from an argument of its own', function () {
+        $parameters = (new ReflectionMethod(ServicePresenter::class, 'describe'))->getParameters();
+
+        expect(array_map(
+            static fn (ReflectionParameter $parameter): string => $parameter->getName().':'.$parameter->getType(),
+            $parameters,
+        ))->toBe(['service:'.Service::class]);
+    });
+
+    it('asks every collaborator about the business the service carries', function () {
+        $this->presenter->describe(ServiceFixtures::service());
+
+        expect($this->images->reads)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'serviceId' => ServiceFixtures::SERVICE_ID,
+        ]])->and($this->staff->lastCall()['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->businesses->calls)->toBe([FakeBusinessContext::BUSINESS_ID]);
     });
 
-    it('does not carry the business it belongs to into the data', function () {
-        $data = $this->presenter->describe(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::service());
+    it('reads a neighbouring business service under that neighbour, not under the first business it saw', function () {
+        $this->presenter->describe(ServiceFixtures::service(businessId: ServiceFixtures::OTHER_BUSINESS_ID));
 
-        expect(get_object_vars($data))->not->toHaveKey('businessId');
+        expect($this->images->reads[0]['businessId'])->toBe(ServiceFixtures::OTHER_BUSINESS_ID)
+            ->and($this->staff->lastCall()['businessId'])->toBe(ServiceFixtures::OTHER_BUSINESS_ID)
+            ->and($this->businesses->calls)->toBe([ServiceFixtures::OTHER_BUSINESS_ID]);
+    });
+
+    it('hands a neighbouring business service none of the first business files', function () {
+        $data = $this->presenter->describe(ServiceFixtures::service(businessId: ServiceFixtures::OTHER_BUSINESS_ID));
+
+        expect($data->id)->toBe(ServiceFixtures::SERVICE_ID)
+            ->and($data->imageUrl)->toBeNull();
+    });
+
+    it('hands it the file its own business filed under that same id', function () {
+        $this->images->add(ServiceFixtures::OTHER_BUSINESS_ID, [
+            ServiceFixtures::SERVICE_ID => 'https://cdn.mizita.test/otro.png',
+        ]);
+
+        $data = $this->presenter->describe(ServiceFixtures::service(businessId: ServiceFixtures::OTHER_BUSINESS_ID));
+
+        expect($data->imageUrl)->toBe('https://cdn.mizita.test/otro.png');
     });
 });
 
@@ -122,8 +155,8 @@ describe('describing a page of services', function () {
     it('asks each collaborator once for the whole page, never once per service', function () {
         $this->presenter->describePage(FakeBusinessContext::BUSINESS_ID, ($this->page)($this->services));
 
-        expect($this->images->urlsForCalls)->toHaveCount(1)
-            ->and($this->images->urlForCalls)->toBe([])
+        expect($this->images->batchReads)->toHaveCount(1)
+            ->and($this->images->reads)->toBe([])
             ->and($this->staff->callCount())->toBe(1)
             ->and($this->businesses->callCount())->toBe(1);
     });
@@ -131,7 +164,7 @@ describe('describing a page of services', function () {
     it('asks for the images of every service on the page in one call', function () {
         $this->presenter->describePage(FakeBusinessContext::BUSINESS_ID, ($this->page)($this->services));
 
-        expect($this->images->urlsForCalls[0])->toBe([
+        expect($this->images->batchReads[0]['serviceIds'])->toBe([
             ServiceFixtures::SERVICE_ID,
             ServiceFixtures::SECOND_SERVICE_ID,
             ServiceFixtures::THIRD_SERVICE_ID,
@@ -224,14 +257,35 @@ describe('describing a page of services', function () {
 
         expect($page->items)->toBe([])
             ->and($page->total)->toBe(0)
-            ->and($this->images->urlsForCalls[0])->toBe([])
+            ->and($this->images->batchReads[0]['serviceIds'])->toBe([])
             ->and($this->staff->lastCall()['staffIds'])->toBe([]);
     });
 
     it('asks every collaborator about the business it was given', function () {
         $this->presenter->describePage(FakeBusinessContext::BUSINESS_ID, ($this->page)($this->services));
 
-        expect($this->staff->lastCall()['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+        expect($this->images->batchReads[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->staff->lastCall()['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->businesses->calls)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('hands out none of a neighbouring business files, whatever ids the page carries', function () {
+        $this->images->add(ServiceFixtures::OTHER_BUSINESS_ID, [
+            ServiceFixtures::SECOND_SERVICE_ID => 'https://cdn.mizita.test/otro.png',
+        ]);
+
+        $page = $this->presenter->describePage(FakeBusinessContext::BUSINESS_ID, ($this->page)($this->services));
+
+        expect(array_map(static fn (ServiceData $data): ?string => $data->imageUrl, $page->items))
+            ->toBe(['https://cdn.mizita.test/corte.png', null, null]);
+    });
+
+    it('still takes the business as an argument, because an empty page carries no service to read it from', function () {
+        $parameters = array_map(
+            static fn (ReflectionParameter $parameter): string => $parameter->getName(),
+            (new ReflectionMethod(ServicePresenter::class, 'describePage'))->getParameters(),
+        );
+
+        expect($parameters)->toBe(['businessId', 'page']);
     });
 });

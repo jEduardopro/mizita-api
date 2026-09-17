@@ -12,6 +12,8 @@ use App\Domains\BookingPages\Infrastructure\Eloquent\Models\BookingPageModel;
 use App\Domains\BookingPages\ValueObjects\BookingPageImage;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\Infrastructure\Media\SafeFileName;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -21,13 +23,15 @@ final class SpatieBookingPageImages implements BookingPageImages
 
     private const FALLBACK_FILE_NAME = 'image';
 
+    private const BUSINESSES_TABLE = 'businesses';
+
     public function __construct(
         private readonly TransactionManager $transactions,
     ) {}
 
-    public function bannerUrlFor(string $bookingPageId): ?string
+    public function bannerUrlFor(string $businessId, string $bookingPageId): ?string
     {
-        $model = BookingPageModel::query()->with('media')->where('uuid', $bookingPageId)->first();
+        $model = self::ofBusiness($businessId)->with('media')->where('uuid', $bookingPageId)->first();
 
         if ($model === null) {
             return null;
@@ -41,9 +45,9 @@ final class SpatieBookingPageImages implements BookingPageImages
     /**
      * @return list<BookingPageImage>
      */
-    public function galleryFor(string $bookingPageId): array
+    public function galleryFor(string $businessId, string $bookingPageId): array
     {
-        $model = BookingPageModel::query()->with('media')->where('uuid', $bookingPageId)->first();
+        $model = self::ofBusiness($businessId)->with('media')->where('uuid', $bookingPageId)->first();
 
         if ($model === null) {
             return [];
@@ -59,23 +63,23 @@ final class SpatieBookingPageImages implements BookingPageImages
             ->all();
     }
 
-    public function replaceBanner(string $bookingPageId, string $sourcePath, string $fileName): string
+    public function replaceBanner(string $businessId, string $bookingPageId, string $sourcePath, string $fileName): string
     {
-        return $this->modelOrFail($bookingPageId)
+        return $this->modelOrFail($businessId, $bookingPageId)
             ->addMedia($sourcePath)
             ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(BookingPageModel::BANNER_COLLECTION)
             ->getUrl();
     }
 
-    public function removeBanner(string $bookingPageId): void
+    public function removeBanner(string $businessId, string $bookingPageId): void
     {
-        $this->modelOrFail($bookingPageId)->clearMediaCollection(BookingPageModel::BANNER_COLLECTION);
+        $this->modelOrFail($businessId, $bookingPageId)->clearMediaCollection(BookingPageModel::BANNER_COLLECTION);
     }
 
-    public function addGalleryImage(string $bookingPageId, string $sourcePath, string $fileName): BookingPageImage
+    public function addGalleryImage(string $businessId, string $bookingPageId, string $sourcePath, string $fileName): BookingPageImage
     {
-        $image = $this->modelOrFail($bookingPageId)
+        $image = $this->modelOrFail($businessId, $bookingPageId)
             ->addMedia($sourcePath)
             ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(BookingPageModel::GALLERY_COLLECTION);
@@ -87,17 +91,17 @@ final class SpatieBookingPageImages implements BookingPageImages
         );
     }
 
-    public function removeGalleryImage(string $bookingPageId, string $imageId): void
+    public function removeGalleryImage(string $businessId, string $bookingPageId, string $imageId): void
     {
-        $this->galleryImageOrFail($bookingPageId, $imageId)->delete();
+        $this->galleryImageOrFail($businessId, $bookingPageId, $imageId)->delete();
     }
 
     /**
      * @param  list<string>  $imageIds
      */
-    public function reorderGallery(string $bookingPageId, array $imageIds): void
+    public function reorderGallery(string $businessId, string $bookingPageId, array $imageIds): void
     {
-        $gallery = $this->modelOrFail($bookingPageId)->getMedia(BookingPageModel::GALLERY_COLLECTION);
+        $gallery = $this->modelOrFail($businessId, $bookingPageId)->getMedia(BookingPageModel::GALLERY_COLLECTION);
 
         if ($gallery->count() !== count($imageIds)) {
             throw InvalidGalleryOrder::incomplete();
@@ -137,20 +141,20 @@ final class SpatieBookingPageImages implements BookingPageImages
         return $resolved;
     }
 
-    private function modelOrFail(string $bookingPageId): BookingPageModel
+    private function modelOrFail(string $businessId, string $bookingPageId): BookingPageModel
     {
-        $model = BookingPageModel::query()->where('uuid', $bookingPageId)->first();
+        $model = self::ofBusiness($businessId)->where('uuid', $bookingPageId)->first();
 
         if ($model === null) {
-            throw BookingPageNotFound::forBusiness($bookingPageId);
+            throw BookingPageNotFound::forBusiness($businessId);
         }
 
         return $model;
     }
 
-    private function galleryImageOrFail(string $bookingPageId, string $imageId): Media
+    private function galleryImageOrFail(string $businessId, string $bookingPageId, string $imageId): Media
     {
-        $image = $this->modelOrFail($bookingPageId)
+        $image = $this->modelOrFail($businessId, $bookingPageId)
             ->getMedia(BookingPageModel::GALLERY_COLLECTION)
             ->firstWhere('uuid', $imageId);
 
@@ -159,5 +163,19 @@ final class SpatieBookingPageImages implements BookingPageImages
         }
 
         return $image;
+    }
+
+    /**
+     * @return Builder<BookingPageModel>
+     */
+    private static function ofBusiness(string $businessId): Builder
+    {
+        return BookingPageModel::query()->whereIn(
+            'business_id',
+            static fn (QueryBuilder $query) => $query
+                ->select('id')
+                ->from(self::BUSINESSES_TABLE)
+                ->where('uuid', $businessId),
+        );
     }
 }

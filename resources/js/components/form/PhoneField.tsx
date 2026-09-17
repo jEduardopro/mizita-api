@@ -11,7 +11,6 @@ type PhoneCountry = {
 type Props = {
     id: string;
     label: string;
-    optionalLabel: string;
     countryLabel: string;
     numberLabel: string;
     countries: readonly PhoneCountry[];
@@ -26,7 +25,6 @@ type Props = {
 export function PhoneField({
     id,
     label,
-    optionalLabel,
     countryLabel,
     numberLabel,
     countries,
@@ -42,12 +40,11 @@ export function PhoneField({
 
     return (
         <div role="group" aria-labelledby={labelId} className="grid gap-2">
-            <span id={labelId} className="flex items-baseline gap-1.5 text-sm font-medium">
+            <span id={labelId} className="text-sm font-medium">
                 {label}
-                <span className="text-xs font-normal text-muted-foreground">{optionalLabel}</span>
             </span>
 
-            <div className="flex items-end gap-2">
+            <div className="flex flex-wrap items-end gap-2">
                 <div className="relative shrink-0">
                     <select
                         id={`${id}-country`}
@@ -85,7 +82,7 @@ export function PhoneField({
                     aria-describedby={message?.id}
                     value={number}
                     onChange={(event) => onNumberChange(event.target.value)}
-                    className="h-11 min-w-0 flex-1 text-base md:text-base"
+                    className="h-11 min-w-32 flex-1 text-base md:text-base"
                 />
             </div>
 

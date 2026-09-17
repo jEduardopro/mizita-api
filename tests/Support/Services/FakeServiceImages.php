@@ -11,85 +11,126 @@ final class FakeServiceImages implements ServiceImages
     private const URL_PREFIX = 'https://cdn.mizita.test/services/';
 
     /**
-     * @var list<array{serviceId: string, sourcePath: string, fileName: string}>
+     * @var array<string, string>
+     */
+    private array $urls = [];
+
+    /**
+     * @var list<array{businessId: string, serviceId: string}>
+     */
+    public array $reads = [];
+
+    /**
+     * @var list<array{businessId: string, serviceIds: list<string>}>
+     */
+    public array $batchReads = [];
+
+    /**
+     * @var list<array{businessId: string, serviceId: string, sourcePath: string, fileName: string}>
      */
     public array $replaced = [];
 
     /**
-     * @var list<string>
+     * @var list<array{businessId: string, serviceId: string}>
      */
     public array $removed = [];
 
     /**
-     * @var list<array{source: string, target: string}>
+     * @var list<array{businessId: string, source: string, target: string}>
      */
     public array $copied = [];
 
     /**
-     * @var list<string>
+     * @param  array<string, string>  $urlsByServiceId
      */
-    public array $urlForCalls = [];
-
-    /**
-     * @var list<list<string>>
-     */
-    public array $urlsForCalls = [];
-
-    /**
-     * @param  array<string, string>  $urls
-     */
-    public function __construct(private array $urls = []) {}
-
-    public function urlFor(string $serviceId): ?string
+    public static function of(string $businessId, array $urlsByServiceId): self
     {
-        $this->urlForCalls[] = $serviceId;
+        return (new self)->add($businessId, $urlsByServiceId);
+    }
 
-        return $this->urls[$serviceId] ?? null;
+    /**
+     * @param  array<string, string>  $urlsByServiceId
+     */
+    public function add(string $businessId, array $urlsByServiceId): self
+    {
+        foreach ($urlsByServiceId as $serviceId => $url) {
+            $this->urls[self::keyFor($businessId, $serviceId)] = $url;
+        }
+
+        return $this;
+    }
+
+    public static function urlOf(string $serviceId, string $fileName): string
+    {
+        return self::URL_PREFIX.$serviceId.'/'.$fileName;
+    }
+
+    public function urlFor(string $businessId, string $serviceId): ?string
+    {
+        $this->reads[] = ['businessId' => $businessId, 'serviceId' => $serviceId];
+
+        return $this->urls[self::keyFor($businessId, $serviceId)] ?? null;
     }
 
     /**
      * @param  list<string>  $serviceIds
      * @return array<string, string>
      */
-    public function urlsFor(array $serviceIds): array
+    public function urlsFor(string $businessId, array $serviceIds): array
     {
-        $this->urlsForCalls[] = array_values($serviceIds);
+        $this->batchReads[] = ['businessId' => $businessId, 'serviceIds' => array_values($serviceIds)];
 
-        $urls = [];
+        $found = [];
 
         foreach ($serviceIds as $serviceId) {
-            if (isset($this->urls[$serviceId])) {
-                $urls[$serviceId] = $this->urls[$serviceId];
+            $url = $this->urls[self::keyFor($businessId, $serviceId)] ?? null;
+
+            if ($url !== null) {
+                $found[$serviceId] = $url;
             }
         }
 
-        return $urls;
+        return $found;
     }
 
-    public function replace(string $serviceId, string $sourcePath, string $fileName): string
+    public function replace(string $businessId, string $serviceId, string $sourcePath, string $fileName): string
     {
         $this->replaced[] = [
+            'businessId' => $businessId,
             'serviceId' => $serviceId,
             'sourcePath' => $sourcePath,
             'fileName' => $fileName,
         ];
 
-        return $this->urls[$serviceId] = self::URL_PREFIX.$serviceId.'/'.$fileName;
+        return $this->urls[self::keyFor($businessId, $serviceId)] = self::urlOf($serviceId, $fileName);
     }
 
-    public function remove(string $serviceId): void
+    public function remove(string $businessId, string $serviceId): void
     {
-        $this->removed[] = $serviceId;
+        $this->removed[] = ['businessId' => $businessId, 'serviceId' => $serviceId];
 
-        unset($this->urls[$serviceId]);
+        unset($this->urls[self::keyFor($businessId, $serviceId)]);
     }
 
-    public function copy(string $sourceServiceId, string $targetServiceId): void
+    public function copy(string $businessId, string $sourceServiceId, string $targetServiceId): void
     {
-        $this->copied[] = ['source' => $sourceServiceId, 'target' => $targetServiceId];
+        $this->copied[] = [
+            'businessId' => $businessId,
+            'source' => $sourceServiceId,
+            'target' => $targetServiceId,
+        ];
 
-        if (isset($this->urls[$sourceServiceId])) {
-            $this->urls[$targetServiceId] = $this->urls[$sourceServiceId];
+        $url = $this->urls[self::keyFor($businessId, $sourceServiceId)] ?? null;
+
+        if ($url === null) {
+            return;
         }
+
+        $this->urls[self::keyFor($businessId, $targetServiceId)] = $url;
+    }
+
+    private static function keyFor(string $businessId, string $serviceId): string
+    {
+        return $businessId.'|'.$serviceId;
     }
 }

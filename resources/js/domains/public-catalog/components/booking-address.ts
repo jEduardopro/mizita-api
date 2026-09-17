@@ -2,7 +2,7 @@ import type { PublicLocation } from '../types';
 
 export function addressLinesFrom(location: PublicLocation): string[] {
     const locality = [location.postal_code, location.city]
-        .map((part) => part.trim())
+        .map((part) => (part ?? '').trim())
         .filter((part) => part !== '')
         .join(' ');
 

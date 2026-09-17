@@ -26,6 +26,15 @@ it('leaves the street, the city and the postal code to the address that owns tho
         ->not->toThrow(Throwable::class);
 });
 
+it('accepts a business that named a street and nothing else around it', function () {
+    $location = SettingsFixtures::location(city: null, stateId: null, postalCode: null);
+
+    expect(fn () => $location->validate())->not->toThrow(Throwable::class)
+        ->and($location->city)->toBeNull()
+        ->and($location->stateId)->toBeNull()
+        ->and($location->postalCode)->toBeNull();
+});
+
 describe('the currency', function () {
     it('accepts a three letter code in any case, because the value object folds it', function (string $code) {
         expect(fn () => SettingsFixtures::location(currencyCode: $code)->validate())->not->toThrow(Throwable::class);

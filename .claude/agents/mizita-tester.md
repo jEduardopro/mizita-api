@@ -261,6 +261,12 @@ Before writing anything, read `CLAUDE.md` and `AGENTS.md`, and look at the exist
 
 **If the project's conventions differ from this document, the project wins.** Follow what is already there and report the divergence in your final message — never silently refactor the suite toward this document. If a request is genuinely incompatible with the current setup, say so in a sentence or two, then implement it the project's way.
 
+## Batch your tool calls
+
+You cannot spawn subagents, but you can still stop working one call at a time. **Every `Read`, `Grep`, `Glob` or `Bash` call that does not depend on the result of another goes in the same message.** Opening six files to understand a slice is one message, not six turns; a grep for call sites and a read of the port they implement are independent and go together.
+
+Chain calls only when the second genuinely needs the first one's output — a path you just found, a name you just grepped.
+
 ## Workflow
 
 1. Read the handoff, or reconstruct it from the use case, its exceptions and its entity.

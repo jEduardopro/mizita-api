@@ -31,7 +31,7 @@ final class ShowService
             $businessId = $this->business->currentBusinessId();
             $service = $this->services->findForBusiness($businessId, $input->serviceId);
 
-            return UseCaseResponse::success($this->presenter->describe($businessId, $service));
+            return UseCaseResponse::success($this->presenter->describe($service));
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }

@@ -49,6 +49,26 @@ return [
             'module' => 'services',
         ],
 
+        'view_customers' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'customers',
+        ],
+
+        'create_customer' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'customers',
+        ],
+
+        'edit_customer' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'customers',
+        ],
+
+        'delete_customer' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'customers',
+        ],
+
     ],
 
     'roles' => [

@@ -23,7 +23,8 @@ import {
 import { DataTableError } from './DataTableError';
 import { DataTablePagination } from './DataTablePagination';
 import { DataTableSkeleton } from './DataTableSkeleton';
-import type { DataTableStatus } from './types';
+import { DataTableToolbarSlot } from './DataTableToolbarSlot';
+import type { DataTableStatus, DataTableToolbar } from './types';
 
 type SortState = false | 'asc' | 'desc';
 
@@ -65,10 +66,11 @@ type Props<TData, TValue> = {
     totalRows: number;
     status: DataTableStatus;
     isFetching: boolean;
+    showsPreviousRows: boolean;
     onRetry: () => void;
     emptyState: ReactNode;
     renderCard: (row: TData) => ReactNode;
-    toolbar?: ReactNode;
+    toolbar?: DataTableToolbar;
 };
 
 export function DataTable<TData, TValue>({
@@ -84,6 +86,7 @@ export function DataTable<TData, TValue>({
     totalRows,
     status,
     isFetching,
+    showsPreviousRows,
     onRetry,
     emptyState,
     renderCard,
@@ -107,7 +110,12 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className="grid gap-4">
-            {toolbar}
+            <DataTableToolbarSlot
+                toolbar={toolbar}
+                status={status}
+                rowCount={data.length}
+                showsPreviousRows={showsPreviousRows}
+            />
 
             {status === 'pending' ? <DataTableSkeleton columns={columns.length} /> : null}
 

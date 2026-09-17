@@ -15,9 +15,9 @@ final readonly class ReplaceAddressInput
         public AddressOwnerType $ownerType,
         public string $ownerId,
         public string $street,
-        public string $city,
+        public ?string $city,
         public ?string $stateId,
-        public PostalCode $postalCode,
+        public ?PostalCode $postalCode,
         public CountryCode $country,
         public ?Coordinates $coordinates,
     ) {}

@@ -43,12 +43,14 @@ function businessSettingsAddress(
     ?string $stateId = SETTINGS_STATE_ID,
     ?string $latitude = '19.3627888',
     ?string $longitude = '-99.1768069',
+    ?string $city = 'Ciudad de México',
+    ?string $postalCode = '03940',
 ): BusinessAddressSnapshot {
     return new BusinessAddressSnapshot(
         street: 'Avenida Insurgentes Sur 1602',
-        city: 'Ciudad de México',
+        city: $city,
         stateId: $stateId,
-        postalCode: '03940',
+        postalCode: $postalCode,
         countryCode: 'MX',
         latitude: $latitude,
         longitude: $longitude,
@@ -312,6 +314,18 @@ describe('values that must survive untouched', function () {
         expect($serialized['address'])->toHaveKeys(['latitude', 'longitude'])
             ->and($serialized['address']['latitude'])->toBeNull()
             ->and($serialized['address']['longitude'])->toBeNull();
+    });
+
+    it('sends null city and postal code for an address filed with a street alone', function () {
+        $serialized = serializedBusinessSettings(businessSettingsData(
+            address: businessSettingsAddress(stateId: null, city: null, postalCode: null),
+        ));
+
+        expect(array_keys($serialized['address']))
+            ->toBe(['street', 'city', 'state_id', 'postal_code', 'country_code', 'latitude', 'longitude'])
+            ->and($serialized['address']['street'])->toBe('Avenida Insurgentes Sur 1602')
+            ->and($serialized['address']['city'])->toBeNull()
+            ->and($serialized['address']['postal_code'])->toBeNull();
     });
 
     it('sends a null state for an address in a country with none', function () {

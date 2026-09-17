@@ -30,9 +30,11 @@ final class RemoveBookingPageGalleryImage
         try {
             $input->validate();
 
-            $page = $this->pages->ofBusiness($this->business->currentBusinessId());
+            $businessId = $this->business->currentBusinessId();
 
-            $this->images->removeGalleryImage($page->id, $input->imageId);
+            $page = $this->pages->ofBusiness($businessId);
+
+            $this->images->removeGalleryImage($businessId, $page->id, $input->imageId);
 
             return UseCaseResponse::success($this->presenter->describe($page));
         } catch (DomainFailure $failure) {

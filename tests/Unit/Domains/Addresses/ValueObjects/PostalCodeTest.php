@@ -59,6 +59,39 @@ it('reads a trailing newline as padding rather than as a character it must refus
     expect(PostalCode::fromString("03940\n")->value)->toBe('03940');
 });
 
+describe('reading an optional postal code', function () {
+    it('reads nothing at all as no postal code', function () {
+        expect(PostalCode::fromNullable(null))->toBeNull();
+    });
+
+    it('reads a blank box as no postal code rather than as a refusal', function (string $value) {
+        expect(PostalCode::fromNullable($value))->toBeNull();
+    })->with([
+        'empty' => '',
+        'spaces' => '   ',
+        'tab' => "\t",
+        'newline' => "\n",
+    ]);
+
+    it('builds the value object when the box carries a code', function () {
+        expect(PostalCode::fromNullable('03940'))->toBeInstanceOf(PostalCode::class)
+            ->and(PostalCode::fromNullable('03940')?->value)->toBe('03940');
+    });
+
+    it('trims the padding a form leaves around an optional code', function () {
+        expect(PostalCode::fromNullable("  03940 \t ")?->value)->toBe('03940');
+    });
+
+    it('still refuses a code that carries something it cannot accept', function (string $value) {
+        expect(fn () => PostalCode::fromNullable($value))->toThrow(InvalidAddressPostalCode::class);
+    })->with([
+        'letters' => 'SW1A1AA',
+        'a dash' => '03940-1234',
+        'one digit short of the minimum' => str_repeat('1', PostalCode::MINIMUM_DIGITS - 1),
+        'one digit past the maximum' => str_repeat('1', PostalCode::MAXIMUM_DIGITS + 1),
+    ]);
+});
+
 it('restores a stored code without asking the rules again', function () {
     expect(PostalCode::restore('not-a-code')->value)->toBe('not-a-code');
 });

@@ -41,7 +41,7 @@ final class AddressesBusinessAddressBook implements BusinessAddressBook
             street: $address->street(),
             city: $address->city(),
             stateId: $address->stateId(),
-            postalCode: $address->postalCode()->value,
+            postalCode: $address->postalCode()?->value,
             countryCode: $address->country()->value,
             latitude: self::decimal($coordinates?->latitude),
             longitude: self::decimal($coordinates?->longitude),
@@ -56,15 +56,10 @@ final class AddressesBusinessAddressBook implements BusinessAddressBook
             street: $address->street,
             city: $address->city,
             stateId: $address->stateId,
-            postalCode: PostalCode::fromString($address->postalCode),
+            postalCode: PostalCode::fromNullable($address->postalCode),
             country: self::country($address->countryCode),
             coordinates: self::coordinates($address),
         ))->value();
-    }
-
-    public function removeForBusiness(string $businessId): void
-    {
-        $this->addresses->deleteForOwner(AddressOwnerType::Business, $businessId);
     }
 
     /**

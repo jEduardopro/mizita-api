@@ -34,7 +34,7 @@ final class AddressesPublishedLocation implements PublishedLocation
             street: $address->street(),
             city: $address->city(),
             state: self::stateNameFor($address->stateId()),
-            postalCode: $address->postalCode()->value,
+            postalCode: $address->postalCode()?->value,
             countryCode: $address->country()->value,
             latitude: self::decimal($coordinates?->latitude),
             longitude: self::decimal($coordinates?->longitude),

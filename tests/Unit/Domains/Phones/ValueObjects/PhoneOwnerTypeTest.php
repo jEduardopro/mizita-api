@@ -9,11 +9,12 @@ it('backs each owner with the morph alias the database stores', function (PhoneO
 })->with([
     'business' => [PhoneOwnerType::Business, 'business'],
     'staff member' => [PhoneOwnerType::StaffMember, 'staff_member'],
+    'customer' => [PhoneOwnerType::Customer, 'customer'],
 ]);
 
 it('exposes exactly the owners a phone can belong to', function () {
     expect(array_column(PhoneOwnerType::cases(), 'value'))
-        ->toBe(['business', 'staff_member']);
+        ->toBe(['business', 'staff_member', 'customer']);
 });
 
 it('resolves a stored alias back to its case', function (string $alias, PhoneOwnerType $ownerType) {
@@ -21,16 +22,22 @@ it('resolves a stored alias back to its case', function (string $alias, PhoneOwn
 })->with([
     'business' => ['business', PhoneOwnerType::Business],
     'staff member' => ['staff_member', PhoneOwnerType::StaffMember],
+    'customer' => ['customer', PhoneOwnerType::Customer],
 ]);
 
 it('refuses an alias no owning domain answers to', function (string $alias) {
     expect(PhoneOwnerType::tryFrom($alias))->toBeNull();
 })->with([
     'unknown owner' => 'appointment',
-    'an owner the platform no longer has' => 'customer',
+    'a synonym from the ubiquitous language' => 'account',
+    'a synonym for an owner it does have' => 'client',
     'wrong case' => 'Business',
     'camel case' => 'staffMember',
     'a model class' => 'App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel',
     'padded' => ' business ',
     'empty' => '',
 ]);
+
+it('fails loudly rather than guessing when a row carries an alias it does not know', function () {
+    expect(fn () => PhoneOwnerType::from('appointment'))->toThrow(ValueError::class);
+});

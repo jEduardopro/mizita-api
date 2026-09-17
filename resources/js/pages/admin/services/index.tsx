@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { DataTableSort } from '@/components/shared/data-table/types';
+import type { DataTableSort, DataTableToolbar } from '@/components/shared/data-table/types';
 import { useDataTableQuery } from '@/components/shared/data-table/use-data-table-query';
 import { Button } from '@/components/ui/button';
 import { ServicesList } from '@/domains/services/components/ServicesList';
@@ -61,14 +61,17 @@ export default function ServicesIndex() {
         ? (SERVICES_VIEWS.find((candidate) => candidate === requestedView) ?? DEFAULT_VIEW)
         : MOBILE_VIEW;
 
-    const toolbar = (
-        <ServicesToolbar
-            search={searchInput}
-            onSearchChange={setSearchInput}
-            view={view}
-            onViewChange={(next) => url.write({ view: next === DEFAULT_VIEW ? null : next })}
-        />
-    );
+    const toolbar: DataTableToolbar = {
+        content: (
+            <ServicesToolbar
+                search={searchInput}
+                onSearchChange={setSearchInput}
+                view={view}
+                onViewChange={(next) => url.write({ view: next === DEFAULT_VIEW ? null : next })}
+            />
+        ),
+        hasActiveFilters: search !== '',
+    };
 
     return (
         <AdminLayout
@@ -91,11 +94,11 @@ export default function ServicesIndex() {
                     onClearSearch={() => setSearchInput('')}
                 />
             ) : (
-                <div className="grid gap-4">
-                    {toolbar}
-
-                    <ServicesList search={search} onClearSearch={() => setSearchInput('')} />
-                </div>
+                <ServicesList
+                    search={search}
+                    onClearSearch={() => setSearchInput('')}
+                    toolbar={toolbar}
+                />
             )}
         </AdminLayout>
     );

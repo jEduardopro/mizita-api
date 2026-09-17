@@ -50,7 +50,6 @@ export function ContactSection({ form }: Props) {
             <PhoneField
                 id="business-phone"
                 label={t('businessSettings.contact.phone.label')}
-                optionalLabel={t('businessSettings.contact.phone.optional')}
                 countryLabel={t('businessSettings.contact.phone.country')}
                 numberLabel={t('businessSettings.contact.phone.number')}
                 countries={SUPPORTED_PHONE_COUNTRIES.map((country) => ({

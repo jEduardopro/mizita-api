@@ -51,9 +51,9 @@ final class AddressFixtures
         AddressOwnerType $ownerType = AddressOwnerType::Business,
         string $ownerId = FakeBusinessContext::BUSINESS_ID,
         string $street = self::STREET,
-        string $city = self::CITY,
+        ?string $city = self::CITY,
         ?string $stateId = self::STATE_ID,
-        string $postalCode = self::POSTAL_CODE,
+        ?string $postalCode = self::POSTAL_CODE,
         CountryCode $country = CountryCode::Mx,
         ?Coordinates $coordinates = null,
         ?DateTimeImmutable $createdAt = null,
@@ -65,10 +65,32 @@ final class AddressFixtures
             street: $street,
             city: $city,
             stateId: $stateId,
-            postalCode: PostalCode::restore($postalCode),
+            postalCode: $postalCode === null ? null : PostalCode::restore($postalCode),
             country: $country,
             coordinates: $coordinates,
             createdAt: $createdAt ?? self::now(),
+        );
+    }
+
+    public static function streetOnly(
+        string $id = self::ADDRESS_ID,
+        AddressOwnerType $ownerType = AddressOwnerType::Business,
+        string $ownerId = FakeBusinessContext::BUSINESS_ID,
+        string $street = self::STREET,
+        CountryCode $country = CountryCode::Mx,
+        ?DateTimeImmutable $createdAt = null,
+    ): Address {
+        return self::address(
+            id: $id,
+            ownerType: $ownerType,
+            ownerId: $ownerId,
+            street: $street,
+            city: null,
+            stateId: null,
+            postalCode: null,
+            country: $country,
+            coordinates: null,
+            createdAt: $createdAt,
         );
     }
 

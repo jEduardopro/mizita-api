@@ -19,9 +19,9 @@ use Tests\Support\FixedIdGenerator;
 
 function replaceAddressInput(
     string $street = AddressFixtures::STREET,
-    string $city = AddressFixtures::CITY,
+    ?string $city = AddressFixtures::CITY,
     ?string $stateId = AddressFixtures::STATE_ID,
-    string $postalCode = AddressFixtures::POSTAL_CODE,
+    ?string $postalCode = AddressFixtures::POSTAL_CODE,
     CountryCode $country = CountryCode::Mx,
     ?Coordinates $coordinates = null,
     AddressOwnerType $ownerType = AddressOwnerType::Business,
@@ -33,7 +33,7 @@ function replaceAddressInput(
         street: $street,
         city: $city,
         stateId: $stateId,
-        postalCode: PostalCode::restore($postalCode),
+        postalCode: $postalCode === null ? null : PostalCode::restore($postalCode),
         country: $country,
         coordinates: $coordinates,
     );
@@ -94,7 +94,9 @@ describe('the owner has no address yet', function () {
     it('saves nothing and refuses when the street is one the entity will not take', function () {
         $this->addresses->shouldNotReceive('save');
 
-        $response = $this->useCase->handle(replaceAddressInput(street: '   '));
+        $response = $this->useCase->handle(replaceAddressInput(
+            street: str_repeat('a', Address::MAXIMUM_STREET_LENGTH + 1),
+        ));
 
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('invalid_address_street')
@@ -104,10 +106,47 @@ describe('the owner has no address yet', function () {
     it('saves nothing and refuses when the city is one the entity will not take', function () {
         $this->addresses->shouldNotReceive('save');
 
-        $response = $this->useCase->handle(replaceAddressInput(city: ''));
+        $response = $this->useCase->handle(replaceAddressInput(
+            city: str_repeat('a', Address::MAXIMUM_CITY_LENGTH + 1),
+        ));
 
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('invalid_address_city');
+    });
+
+    it('files an address with nothing but the street the caller sent', function () {
+        $this->addresses->shouldReceive('save')->once();
+
+        $data = $this->useCase->handle(replaceAddressInput(city: '', stateId: null, postalCode: null))->value();
+
+        expect($data->street)->toBe(AddressFixtures::STREET)
+            ->and($data->city)->toBeNull()
+            ->and($data->stateId)->toBeNull()
+            ->and($data->postalCode)->toBeNull();
+    });
+
+    it('writes nothing at all when the caller describes no place', function (string $street) {
+        $this->addresses->shouldNotReceive('save');
+
+        $response = $this->useCase->handle(replaceAddressInput(
+            street: $street,
+            city: '',
+            stateId: null,
+            postalCode: null,
+        ));
+
+        expect($response->failed())->toBeFalse()
+            ->and($response->value())->toBeNull();
+    })->with([
+        'empty' => '',
+        'spaces' => '   ',
+        'tab' => "\t",
+    ]);
+
+    it('writes nothing even when the rest of the form was filled in without a street', function () {
+        $this->addresses->shouldNotReceive('save');
+
+        expect($this->useCase->handle(replaceAddressInput(street: '  '))->value())->toBeNull();
     });
 });
 
@@ -164,6 +203,80 @@ describe('the owner already has an address', function () {
         $this->addresses->shouldNotReceive('save');
 
         expect($this->useCase->handle(replaceAddressInput(street: ''))->error()->code)
+            ->toBe('invalid_address_street');
+    });
+
+    it('saves nothing and refuses to empty the city the address already carries', function (?string $city) {
+        $this->addresses->shouldNotReceive('save');
+
+        $response = $this->useCase->handle(replaceAddressInput(city: $city));
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('address_city_cannot_be_cleared')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict);
+    })->with([
+        'nothing at all' => null,
+        'empty' => '',
+        'spaces' => '   ',
+    ]);
+
+    it('saves nothing and refuses to empty the postal code the address already carries', function () {
+        $this->addresses->shouldNotReceive('save');
+
+        $response = $this->useCase->handle(replaceAddressInput(postalCode: null));
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('address_postal_code_cannot_be_cleared')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict);
+    });
+
+    it('leaves the address it found untouched when it refuses the move', function () {
+        $this->addresses->shouldNotReceive('save');
+
+        $this->useCase->handle(replaceAddressInput(street: 'Paseo de la Reforma 222', city: ''));
+
+        expect($this->existing->street())->toBe(AddressFixtures::STREET)
+            ->and($this->existing->city())->toBe(AddressFixtures::CITY)
+            ->and($this->existing->coordinates()?->latitude)->toBe(AddressFixtures::LATITUDE);
+    });
+});
+
+describe('the owner already has an address holding nothing but a street', function () {
+    beforeEach(function () {
+        $this->existing = AddressFixtures::streetOnly();
+
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn($this->existing);
+    });
+
+    it('fills in the city and the postal code it never had', function () {
+        $this->addresses->shouldReceive('save')->once();
+
+        $data = $this->useCase->handle(replaceAddressInput())->value();
+
+        expect($data->city)->toBe(AddressFixtures::CITY)
+            ->and($data->postalCode)->toBe(AddressFixtures::POSTAL_CODE)
+            ->and($data->stateId)->toBe(AddressFixtures::STATE_ID);
+    });
+
+    it('moves the street and leaves the empty boxes empty', function () {
+        $this->addresses->shouldReceive('save')->once();
+
+        $data = $this->useCase->handle(replaceAddressInput(
+            street: 'Calle Madero 12',
+            city: '',
+            stateId: null,
+            postalCode: null,
+        ))->value();
+
+        expect($data->street)->toBe('Calle Madero 12')
+            ->and($data->city)->toBeNull()
+            ->and($data->postalCode)->toBeNull();
+    });
+
+    it('still refuses a blank street, because the address already exists', function () {
+        $this->addresses->shouldNotReceive('save');
+
+        expect($this->useCase->handle(replaceAddressInput(street: '   ', city: '', postalCode: null))->error()->code)
             ->toBe('invalid_address_street');
     });
 });

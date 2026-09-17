@@ -202,7 +202,6 @@ export function BusinessOnboardingForm({ industries }: Props) {
                 <PhoneField
                     id="phone"
                     label={t('onboarding.phone.label')}
-                    optionalLabel={t('onboarding.phone.optional')}
                     countryLabel={t('onboarding.phone.country')}
                     numberLabel={t('onboarding.phone.number')}
                     countries={SUPPORTED_PHONE_COUNTRIES.map((country) => ({
