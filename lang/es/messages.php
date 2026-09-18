@@ -155,6 +155,14 @@ return [
         'invalid_booking_page_button_shape' => 'Esa forma de botón no es una de las que puede tener una página de reservas.',
         'invalid_booking_page_theme' => 'Ese tema no es uno de los que puede tener una página de reservas.',
 
+        'appointment_not_found' => 'No hemos encontrado esa cita.',
+        'appointment_service_not_found' => 'Ese servicio no es uno de los que ofrece este negocio.',
+        'appointment_customer_not_found' => 'Ese cliente no es uno de este negocio.',
+        'appointment_staff_not_found' => 'Esa persona del equipo no es de este negocio.',
+        'invalid_appointment_schedule' => 'Ese horario de cita no es válido.',
+        'invalid_appointment_notes' => 'Esas notas son demasiado largas.',
+        'invalid_calendar_range' => 'Ese rango de la agenda no es válido.',
+
     ],
 
     /*

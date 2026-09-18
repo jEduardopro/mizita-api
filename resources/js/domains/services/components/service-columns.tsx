@@ -1,9 +1,9 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
+import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { Badge } from '@/components/ui/badge';
 import type { Service } from '../types';
-import { ServiceColorTile } from './ServiceColorTile';
 import { ServiceRowActions } from './ServiceRowActions';
 import { serviceEditUrl } from './service-urls';
 import { ServiceStaffAvatars } from './ServiceStaffAvatars';

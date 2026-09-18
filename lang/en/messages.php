@@ -155,6 +155,14 @@ return [
         'invalid_booking_page_button_shape' => 'That button shape is not one a booking page may be given.',
         'invalid_booking_page_theme' => 'That theme is not one a booking page may be given.',
 
+        'appointment_not_found' => 'We could not find that appointment.',
+        'appointment_service_not_found' => 'That service is not one this business offers.',
+        'appointment_customer_not_found' => 'That customer is not one of this business.',
+        'appointment_staff_not_found' => 'That team member is not one of this business.',
+        'invalid_appointment_schedule' => 'That appointment time is not valid.',
+        'invalid_appointment_notes' => 'Those notes are too long.',
+        'invalid_calendar_range' => 'That calendar range is not valid.',
+
     ],
 
     /*

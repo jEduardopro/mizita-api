@@ -24,7 +24,97 @@
         "body": "Todavía estamos construyendo esta pantalla. Aparecerá aquí en cuanto esté lista."
     },
     "calendar": {
-        "title": "Calendario"
+        "title": "Calendario",
+        "views": {
+            "day": "Día",
+            "week": "Semana",
+            "month": "Mes"
+        },
+        "actions": {
+            "today": "Hoy",
+            "previous": "Anterior",
+            "next": "Siguiente",
+            "pickDate": "Elige una fecha",
+            "changeView": "Cambiar la vista"
+        },
+        "appointment": {
+            "create": {
+                "title": "Nueva cita"
+            },
+            "edit": {
+                "title": "Editar cita"
+            },
+            "actions": {
+                "create": "Crear",
+                "save": "Guardar"
+            },
+            "form": {
+                "service": {
+                    "label": "Servicio",
+                    "placeholder": "Elige un servicio"
+                },
+                "customer": {
+                    "label": "Cliente",
+                    "placeholder": "Busca por nombre, correo o teléfono",
+                    "create": "Crear «{{name}}»",
+                    "searching": "Buscando…",
+                    "empty": "Ningún cliente coincide",
+                    "createFailed": "No pudimos crear el cliente. Inténtalo de nuevo."
+                },
+                "staff": {
+                    "label": "Quién atiende",
+                    "placeholder": "Elige a alguien de tu equipo"
+                },
+                "date": {
+                    "label": "Fecha"
+                },
+                "startsAt": {
+                    "label": "Empieza a las",
+                    "placeholder": "09:00"
+                },
+                "endsAt": {
+                    "label": "Termina a las",
+                    "hint": "Se calcula con la duración. Cámbiala si la cita termina a otra hora."
+                },
+                "duration": {
+                    "label": "Duración",
+                    "placeholder": "30",
+                    "suffix": "min",
+                    "hint": "En minutos. Viene del servicio y solo cambia esta cita."
+                },
+                "notes": {
+                    "label": "Notas",
+                    "placeholder": "Algo que tu equipo deba saber",
+                    "hint": "Solo lo ve tu equipo."
+                }
+            },
+            "details": {
+                "title": "Cita",
+                "duration": "Duración: {{minutes}} minutos",
+                "customer": "Cliente",
+                "staff": "Atiende",
+                "notes": "Notas",
+                "empty": "Sin notas"
+            },
+            "delete": {
+                "title": "¿Eliminar esta cita?",
+                "description": "La cita sale del calendario y esa hora vuelve a quedar libre. No se puede deshacer.",
+                "confirm": "Eliminar la cita"
+            },
+            "toasts": {
+                "created": "Cita creada",
+                "updated": "Cambios guardados",
+                "deleted": "Cita eliminada"
+            },
+            "errors": {
+                "overlap": "Esa persona ya tiene una cita a esa hora. Elige otro horario u otra persona del equipo.",
+                "saveFailed": "No pudimos guardar la cita. Inténtalo de nuevo.",
+                "deleteFailed": "No pudimos eliminar la cita. Inténtalo de nuevo."
+            }
+        },
+        "errors": {
+            "load": "No hemos podido cargar el calendario. Revisa tu conexión e inténtalo otra vez."
+        }
     },
     "services": {
         "title": "Servicios",

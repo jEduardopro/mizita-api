@@ -80,4 +80,24 @@ return [
         'description' => 'Quitar un cliente del negocio, junto con su teléfono y su dirección.',
     ],
 
+    'view_appointments' => [
+        'label' => 'Ver las citas',
+        'description' => 'Ver la agenda del negocio, quién tiene cita, para qué y cuándo.',
+    ],
+
+    'create_appointment' => [
+        'label' => 'Crear citas',
+        'description' => 'Agendar a un cliente para un servicio con una persona del equipo.',
+    ],
+
+    'edit_appointment' => [
+        'label' => 'Editar citas',
+        'description' => 'Mover una cita, cambiar su servicio, su persona del equipo o sus notas.',
+    ],
+
+    'delete_appointment' => [
+        'label' => 'Eliminar citas',
+        'description' => 'Quitar una cita de la agenda.',
+    ],
+
 ];

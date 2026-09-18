@@ -23,6 +23,11 @@ interface CustomerRepository
      */
     public function findForBusiness(string $businessId, string $id): Customer;
 
+    /**
+     * @throws CustomerNotFound
+     */
+    public function findIncludingArchived(string $businessId, string $id): Customer;
+
     public function existsByEmail(string $businessId, CustomerEmail $email, ?string $exceptId = null): bool;
 
     /**

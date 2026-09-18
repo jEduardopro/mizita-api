@@ -19,6 +19,11 @@ final class FakeServiceRepository implements ServiceRepository
     private array $services = [];
 
     /**
+     * @var array<string, Service>
+     */
+    private array $archived = [];
+
+    /**
      * @var list<string>
      */
     private array $takenNames = [];
@@ -141,6 +146,16 @@ final class FakeServiceRepository implements ServiceRepository
             ?? throw ServiceNotFound::withId($id);
     }
 
+    public function findIncludingArchived(string $businessId, string $id): Service
+    {
+        $this->businessIdsSeen[] = $businessId;
+        $key = $this->keyFor($businessId, $id);
+
+        return $this->services[$key]
+            ?? $this->archived[$key]
+            ?? throw ServiceNotFound::withId($id);
+    }
+
     public function existsByName(string $businessId, string $name): bool
     {
         $this->businessIdsSeen[] = $businessId;
@@ -204,6 +219,7 @@ final class FakeServiceRepository implements ServiceRepository
             throw ServiceNotFound::withId($id);
         }
 
+        $this->archived[$key] = $this->services[$key];
         unset($this->services[$key]);
 
         $this->deleted[] = ['businessId' => $businessId, 'id' => $id];

@@ -1,16 +1,4 @@
-export const SERVICE_COLORS = [
-    'red',
-    'orange',
-    'amber',
-    'purple',
-    'blue',
-    'sand',
-    'slate',
-    'teal',
-    'green',
-] as const;
-
-export type ServiceColor = (typeof SERVICE_COLORS)[number];
+import type { ServiceColor } from '@/lib/service-color';
 
 export const SERVICE_SORT_FIELDS = ['name', 'price', 'duration', 'created_at'] as const;
 

@@ -89,16 +89,12 @@ final class EloquentServiceRepository implements ServiceRepository
 
     public function findForBusiness(string $businessId, string $id): Service
     {
-        $model = $this->ofBusiness($businessId)
-            ->with(self::STAFF_SELECTION)
-            ->where('uuid', $id)
-            ->first();
+        return $this->firstMatchingUuid($this->ofBusiness($businessId), $businessId, $id);
+    }
 
-        if ($model === null) {
-            throw ServiceNotFound::withId($id);
-        }
-
-        return $this->mapper->toEntity($model, $businessId);
+    public function findIncludingArchived(string $businessId, string $id): Service
+    {
+        return $this->firstMatchingUuid($this->ofBusiness($businessId)->withTrashed(), $businessId, $id);
     }
 
     public function existsByName(string $businessId, string $name): bool
@@ -161,6 +157,22 @@ final class EloquentServiceRepository implements ServiceRepository
         }
 
         $model->delete();
+    }
+
+    /**
+     * @param  Builder<ServiceModel>  $scoped
+     *
+     * @throws ServiceNotFound
+     */
+    private function firstMatchingUuid(Builder $scoped, string $businessId, string $id): Service
+    {
+        $model = $scoped->with(self::STAFF_SELECTION)->where('uuid', $id)->first();
+
+        if ($model === null) {
+            throw ServiceNotFound::withId($id);
+        }
+
+        return $this->mapper->toEntity($model, $businessId);
     }
 
     /**

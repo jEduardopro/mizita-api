@@ -32,6 +32,7 @@ function mizitaDomainForModule(): array
         'staff' => 'Staff',
         'services' => 'Services',
         'customers' => 'Customers',
+        'appointments' => 'Appointments',
     ];
 }
 

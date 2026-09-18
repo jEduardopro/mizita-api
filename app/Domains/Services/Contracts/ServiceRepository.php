@@ -28,6 +28,11 @@ interface ServiceRepository
      */
     public function findForBusiness(string $businessId, string $id): Service;
 
+    /**
+     * @throws ServiceNotFound
+     */
+    public function findIncludingArchived(string $businessId, string $id): Service;
+
     public function existsByName(string $businessId, string $name): bool;
 
     /**

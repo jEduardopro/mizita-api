@@ -11,11 +11,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useInitialFocus } from '@/hooks/use-initial-focus';
 import {
     SERVICE_COLORS,
-    SERVICE_IMAGE_MAXIMUM_BYTES,
-    SERVICE_IMAGE_MIME_TYPES,
     type ServiceColor,
-} from '../types';
-import { serviceColorClasses } from './service-color';
+    serviceColorClasses,
+} from '@/lib/service-color';
+import { SERVICE_IMAGE_MAXIMUM_BYTES, SERVICE_IMAGE_MIME_TYPES } from '../types';
 import type { ServiceFormController } from './use-service-form';
 
 const COLOR_LABEL_KEYS = {

@@ -69,6 +69,26 @@ return [
             'module' => 'customers',
         ],
 
+        'view_appointments' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'appointments',
+        ],
+
+        'create_appointment' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'appointments',
+        ],
+
+        'edit_appointment' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'appointments',
+        ],
+
+        'delete_appointment' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'appointments',
+        ],
+
     ],
 
     'roles' => [

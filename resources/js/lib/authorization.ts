@@ -10,7 +10,11 @@ export type PermissionName =
     | 'edit_customer'
     | 'delete_customer'
     | 'view_business_settings'
-    | 'edit_business_settings';
+    | 'edit_business_settings'
+    | 'view_appointments'
+    | 'create_appointment'
+    | 'edit_appointment'
+    | 'delete_appointment';
 
 export type RoleName = 'owner' | 'staff';
 

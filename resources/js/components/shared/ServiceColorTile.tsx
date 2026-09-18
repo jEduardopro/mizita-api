@@ -1,7 +1,6 @@
 import { cn } from 'cn';
 import { ListChecks } from 'lucide-react';
-import type { ServiceColor } from '../types';
-import { serviceColorClasses } from './service-color';
+import { type ServiceColor, serviceColorClasses } from '@/lib/service-color';
 
 type Props = {
     color: ServiceColor;

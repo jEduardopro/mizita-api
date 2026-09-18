@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AdminBreadcrumbs, type Breadcrumb } from '@/components/admin/shell/AdminBreadcrumbs';
 import { Separator } from '@/components/ui/separator';
@@ -8,9 +9,10 @@ const MINIMUM_TRAIL_LENGTH = 2;
 type Props = {
     title: string;
     breadcrumbs?: Breadcrumb[];
+    actions?: ReactNode;
 };
 
-export function AdminHeader({ title, breadcrumbs }: Props) {
+export function AdminHeader({ title, breadcrumbs, actions }: Props) {
     const { t } = useTranslation('admin');
 
     const showsTrail = breadcrumbs !== undefined && breadcrumbs.length >= MINIMUM_TRAIL_LENGTH;
@@ -24,8 +26,12 @@ export function AdminHeader({ title, breadcrumbs }: Props) {
             {showsTrail ? (
                 <AdminBreadcrumbs title={title} breadcrumbs={breadcrumbs} />
             ) : (
-                <h1 className="truncate text-sm font-medium">{title}</h1>
+                <h1 className="min-w-0 truncate text-sm font-medium">{title}</h1>
             )}
+
+            {actions ? (
+                <div className="ml-auto flex shrink-0 items-center gap-2 pl-1">{actions}</div>
+            ) : null}
         </header>
     );
 }

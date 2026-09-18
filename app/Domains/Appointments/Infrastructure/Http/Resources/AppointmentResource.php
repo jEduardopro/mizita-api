@@ -1,0 +1,72 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\Appointments\Infrastructure\Http\Resources;
+
+use App\Domains\Appointments\Application\Dtos\AppointmentCustomerData;
+use App\Domains\Appointments\Application\Dtos\AppointmentData;
+use App\Domains\Appointments\Application\Dtos\AppointmentServiceData;
+use App\Domains\Appointments\Application\Dtos\AppointmentStaffData;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * @property-read AppointmentData $resource
+ */
+final class AppointmentResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->resource->id,
+            'customer' => self::describeCustomer($this->resource->customer),
+            'service' => self::describeService($this->resource->service),
+            'staff_member' => self::describeStaffMember($this->resource->staffMember),
+            'starts_at' => $this->resource->startsAt->format(DATE_ATOM),
+            'ends_at' => $this->resource->endsAt->format(DATE_ATOM),
+            'duration_minutes' => $this->resource->durationMinutes,
+            'notes' => $this->resource->notes,
+            'created_at' => $this->resource->createdAt->format(DATE_ATOM),
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string, email: string|null}
+     */
+    private static function describeCustomer(AppointmentCustomerData $customer): array
+    {
+        return [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'email' => $customer->email,
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string, color: string, duration_minutes: int}
+     */
+    private static function describeService(AppointmentServiceData $service): array
+    {
+        return [
+            'id' => $service->id,
+            'name' => $service->name,
+            'color' => $service->color,
+            'duration_minutes' => $service->durationMinutes,
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string}
+     */
+    private static function describeStaffMember(AppointmentStaffData $member): array
+    {
+        return [
+            'id' => $member->id,
+            'name' => $member->name,
+        ];
+    }
+}

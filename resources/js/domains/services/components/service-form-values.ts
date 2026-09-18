@@ -1,5 +1,6 @@
 import type { NumberValue } from '@/components/form/NumberField';
-import type { Service, ServiceColor, ServicePayload } from '../types';
+import type { ServiceColor } from '@/lib/service-color';
+import type { Service, ServicePayload } from '../types';
 
 const DEFAULT_COLOR: ServiceColor = 'blue';
 

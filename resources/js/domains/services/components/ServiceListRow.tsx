@@ -1,10 +1,10 @@
 import { Link } from '@inertiajs/react';
 import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
+import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { Badge } from '@/components/ui/badge';
+import { serviceColorClasses } from '@/lib/service-color';
 import type { Service } from '../types';
-import { serviceColorClasses } from './service-color';
-import { ServiceColorTile } from './ServiceColorTile';
 import { ServiceRowActions } from './ServiceRowActions';
 import { serviceEditUrl } from './service-urls';
 import { ServiceStaffAvatars } from './ServiceStaffAvatars';

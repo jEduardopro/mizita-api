@@ -63,13 +63,12 @@ final class EloquentCustomerRepository implements CustomerRepository
 
     public function findForBusiness(string $businessId, string $id): Customer
     {
-        $model = $this->ofBusiness($businessId)->where('uuid', $id)->first();
+        return $this->firstMatchingUuid($this->ofBusiness($businessId), $businessId, $id);
+    }
 
-        if ($model === null) {
-            throw CustomerNotFound::withId($id);
-        }
-
-        return $this->mapper->toEntity($model, $businessId);
+    public function findIncludingArchived(string $businessId, string $id): Customer
+    {
+        return $this->firstMatchingUuid($this->ofBusiness($businessId)->withTrashed(), $businessId, $id);
     }
 
     public function existsByEmail(string $businessId, CustomerEmail $email, ?string $exceptId = null): bool
@@ -117,6 +116,22 @@ final class EloquentCustomerRepository implements CustomerRepository
         }
 
         $model->delete();
+    }
+
+    /**
+     * @param  Builder<CustomerModel>  $scoped
+     *
+     * @throws CustomerNotFound
+     */
+    private function firstMatchingUuid(Builder $scoped, string $businessId, string $id): Customer
+    {
+        $model = $scoped->where('uuid', $id)->first();
+
+        if ($model === null) {
+            throw CustomerNotFound::withId($id);
+        }
+
+        return $this->mapper->toEntity($model, $businessId);
     }
 
     /**

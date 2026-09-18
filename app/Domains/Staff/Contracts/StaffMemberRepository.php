@@ -25,5 +25,11 @@ interface StaffMemberRepository
      */
     public function allForBusiness(string $businessId): array;
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<StaffMember>
+     */
+    public function findManyIncludingArchived(string $businessId, array $ids): array;
+
     public function ownsAnyBusiness(string $accountId): bool;
 }

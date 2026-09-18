@@ -412,6 +412,47 @@
     outline-offset: 2px;
 }
 
+/* Schedule-X's own `.sx__calendar-wrapper` stretches to `height: 100%`, but the
+ * plain div `@schedule-x/react` renders around it carries no height of its own,
+ * so the chain collapses to content size unless this is added back here. */
+.sx-react-calendar-wrapper {
+    height: 100%;
+}
+
+/* `@schedule-x/theme-shadcn` declares the three `--sx-*` values below on `:root` as
+ * 100 / 101 / 102, which paints its sticky week header over every dialog, sheet and
+ * popover in the app — Radix layers all sit at z-50. Lowered here, on the wrapper the
+ * vendor markup inherits from: above the calendar's own layers, which top out at 3,
+ * and below the overlay layer. `--calendar-slot-preview-z-index` is ours and belongs
+ * in the same stack, so all four move together. */
+.sx-react-calendar-wrapper {
+    --sx-z-index-week-header: 10;
+    --sx-z-index-event-modal: 11;
+    --sx-calendar-header-popup-z-index: 12;
+    --calendar-slot-preview-z-index: 4;
+}
+
+/* The same stylesheet hardcodes `#f00` for the current-time indicator, dot and
+ * full-week line. `--primary` already flips per theme, so one rule covers both. */
+.sx-react-calendar-wrapper .sx__current-time-indicator,
+.sx-react-calendar-wrapper .sx__current-time-indicator::before {
+    background-color: var(--primary);
+}
+
+.sx-react-calendar-wrapper .sx__current-time-indicator-full-week {
+    background-color: color-mix(in oklab, var(--primary) 38%, transparent);
+}
+
+/* `.sx__month-grid-background-event` paints after these two in CSS's default
+ * stacking order, because an absolutely positioned sibling always paints
+ * above an unpositioned one regardless of DOM order — without this, a closed
+ * day's shading covers its own date number and appointment dots. */
+.sx__month-grid-day__header,
+.sx__month-grid-day__events {
+    position: relative;
+    z-index: 1;
+}
+
 /* The class is written twice on purpose: `.prose` and `.prose-legal` have equal
  * specificity, so a single class would let emit order pick the winner. */
 @layer utilities {

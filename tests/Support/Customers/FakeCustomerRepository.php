@@ -20,6 +20,11 @@ final class FakeCustomerRepository implements CustomerRepository
     private array $customers = [];
 
     /**
+     * @var array<string, Customer>
+     */
+    private array $archived = [];
+
+    /**
      * @var Paginated<Customer>|null
      */
     private ?Paginated $page = null;
@@ -107,6 +112,17 @@ final class FakeCustomerRepository implements CustomerRepository
             ?? throw CustomerNotFound::withId($id);
     }
 
+    public function findIncludingArchived(string $businessId, string $id): Customer
+    {
+        $this->journal->record('customers.findIncludingArchived');
+        $this->businessIdsSeen[] = $businessId;
+        $key = $this->keyFor($businessId, $id);
+
+        return $this->customers[$key]
+            ?? $this->archived[$key]
+            ?? throw CustomerNotFound::withId($id);
+    }
+
     public function existsByEmail(string $businessId, CustomerEmail $email, ?string $exceptId = null): bool
     {
         $this->journal->record('customers.existsByEmail');
@@ -178,6 +194,7 @@ final class FakeCustomerRepository implements CustomerRepository
             throw CustomerNotFound::withId($id);
         }
 
+        $this->archived[$key] = $this->customers[$key];
         unset($this->customers[$key]);
 
         $this->deleted[] = ['businessId' => $businessId, 'id' => $id];

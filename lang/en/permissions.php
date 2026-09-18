@@ -84,4 +84,24 @@ return [
         'description' => 'Remove a customer from the business, together with their phone and address.',
     ],
 
+    'view_appointments' => [
+        'label' => 'View appointments',
+        'description' => 'See the calendar of the business, who is booked, for what and when.',
+    ],
+
+    'create_appointment' => [
+        'label' => 'Create appointments',
+        'description' => 'Book a customer into the calendar for a service with a member of the team.',
+    ],
+
+    'edit_appointment' => [
+        'label' => 'Edit appointments',
+        'description' => 'Move an appointment, change its service, its team member or its notes.',
+    ],
+
+    'delete_appointment' => [
+        'label' => 'Delete appointments',
+        'description' => 'Remove an appointment from the calendar.',
+    ],
+
 ];

@@ -1,4 +1,16 @@
-import type { ServiceColor } from '../types';
+export const SERVICE_COLORS = [
+    'red',
+    'orange',
+    'amber',
+    'purple',
+    'blue',
+    'sand',
+    'slate',
+    'teal',
+    'green',
+] as const;
+
+export type ServiceColor = (typeof SERVICE_COLORS)[number];
 
 type ServiceColorClasses = {
     bar: string;

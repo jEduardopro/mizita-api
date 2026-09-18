@@ -2,6 +2,7 @@
 
 use App\Domains\Accounts\AccountsServiceProvider;
 use App\Domains\Addresses\AddressesServiceProvider;
+use App\Domains\Appointments\AppointmentsServiceProvider;
 use App\Domains\Availability\AvailabilityServiceProvider;
 use App\Domains\BookingPages\BookingPagesServiceProvider;
 use App\Domains\Businesses\BusinessesServiceProvider;
@@ -32,4 +33,5 @@ return [
     BookingPagesServiceProvider::class,
     PublicCatalogServiceProvider::class,
     CustomersServiceProvider::class,
+    AppointmentsServiceProvider::class,
 ];

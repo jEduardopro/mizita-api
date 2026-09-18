@@ -13,6 +13,8 @@ use App\Domains\Staff\Infrastructure\Eloquent\Mappers\StaffMemberMapper;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Domains\Staff\Infrastructure\Permissions\StaffRoleAssignments;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -70,13 +72,55 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
     {
         $businessKey = $this->businessKey($businessId);
 
-        $models = StaffMemberModel::query()
+        return $this->membersOf(
+            $businessId,
+            $businessKey,
+            $this->ofBusinessKey($businessKey)->get(),
+        );
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<StaffMember>
+     */
+    public function findManyIncludingArchived(string $businessId, array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $businessKey = $this->businessKey($businessId);
+
+        return $this->membersOf(
+            $businessId,
+            $businessKey,
+            $this->ofBusinessKey($businessKey)->withTrashed()->whereIn('uuid', $ids)->get(),
+        );
+    }
+
+    public function ownsAnyBusiness(string $accountId): bool
+    {
+        return $this->roles->ownsAnyBusiness($this->accountFor($accountId));
+    }
+
+    /**
+     * @return Builder<StaffMemberModel>
+     */
+    private function ofBusinessKey(int $businessKey): Builder
+    {
+        return StaffMemberModel::query()
             ->with('account')
             ->where('business_id', $businessKey)
             ->orderBy('created_at')
-            ->orderBy('id')
-            ->get();
+            ->orderBy('id');
+    }
 
+    /**
+     * @param  Collection<int, StaffMemberModel>  $models
+     * @return list<StaffMember>
+     */
+    private function membersOf(string $businessId, int $businessKey, Collection $models): array
+    {
         /** @var list<int> $accountKeys */
         $accountKeys = $models
             ->map(static fn (StaffMemberModel $model): int => (int) $model->account_id)
@@ -100,11 +144,6 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
         }
 
         return $members;
-    }
-
-    public function ownsAnyBusiness(string $accountId): bool
-    {
-        return $this->roles->ownsAnyBusiness($this->accountFor($accountId));
     }
 
     private function businessKey(string $businessId): int

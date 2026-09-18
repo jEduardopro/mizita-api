@@ -24,7 +24,97 @@
         "body": "We are still building this screen. It shows up right here as soon as it is ready."
     },
     "calendar": {
-        "title": "Calendar"
+        "title": "Calendar",
+        "views": {
+            "day": "Day",
+            "week": "Week",
+            "month": "Month"
+        },
+        "actions": {
+            "today": "Today",
+            "previous": "Previous",
+            "next": "Next",
+            "pickDate": "Choose a date",
+            "changeView": "Change view"
+        },
+        "appointment": {
+            "create": {
+                "title": "New appointment"
+            },
+            "edit": {
+                "title": "Edit appointment"
+            },
+            "actions": {
+                "create": "Create",
+                "save": "Save"
+            },
+            "form": {
+                "service": {
+                    "label": "Service",
+                    "placeholder": "Choose a service"
+                },
+                "customer": {
+                    "label": "Customer",
+                    "placeholder": "Search by name, email or phone",
+                    "create": "Create “{{name}}”",
+                    "searching": "Searching…",
+                    "empty": "No customer matches",
+                    "createFailed": "We could not create the customer. Try again."
+                },
+                "staff": {
+                    "label": "Who attends",
+                    "placeholder": "Choose someone from your team"
+                },
+                "date": {
+                    "label": "Date"
+                },
+                "startsAt": {
+                    "label": "Starts at",
+                    "placeholder": "09:00"
+                },
+                "endsAt": {
+                    "label": "Ends at",
+                    "hint": "Calculated from the duration. Change it if the appointment ends at another time."
+                },
+                "duration": {
+                    "label": "Duration",
+                    "placeholder": "30",
+                    "suffix": "mins",
+                    "hint": "In minutes. It comes from the service and changes this appointment only."
+                },
+                "notes": {
+                    "label": "Notes",
+                    "placeholder": "Anything your team should know",
+                    "hint": "Only your team sees this."
+                }
+            },
+            "details": {
+                "title": "Appointment",
+                "duration": "Duration: {{minutes}} minutes",
+                "customer": "Customer",
+                "staff": "Attended by",
+                "notes": "Notes",
+                "empty": "No notes"
+            },
+            "delete": {
+                "title": "Delete this appointment?",
+                "description": "The appointment leaves the calendar and that time is free again. This cannot be undone.",
+                "confirm": "Delete appointment"
+            },
+            "toasts": {
+                "created": "Appointment created",
+                "updated": "Changes saved",
+                "deleted": "Appointment deleted"
+            },
+            "errors": {
+                "overlap": "That person already has an appointment at that time. Pick another time or someone else from your team.",
+                "saveFailed": "We could not save the appointment. Try again.",
+                "deleteFailed": "We could not delete the appointment. Try again."
+            }
+        },
+        "errors": {
+            "load": "We could not load the calendar. Check your connection and try again."
+        }
     },
     "services": {
         "title": "Services",
