@@ -26,13 +26,13 @@ export function NewAppointmentLauncher({ timezone = null }: Props) {
         <>
             <Button
                 type="button"
-                variant="brand"
-                size="icon"
-                aria-label={t('calendar.appointment.create.title')}
+                variant="brand-outline"
+                size="lg"
                 onClick={() => setOpen(true)}
-                className="size-11 md:size-9"
+                className="h-11 rounded-full px-4 md:h-9 md:px-3.5"
             >
                 <Plus aria-hidden="true" />
+                {t('calendar.appointment.actions.launch')}
             </Button>
 
             <NewAppointmentDialog

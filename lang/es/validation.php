@@ -245,6 +245,16 @@ return [
         'direction' => 'dirección del orden',
         'page' => 'página',
         'per_page' => 'resultados por página',
+
+        // Appointments.
+        'customer_id' => 'cliente',
+        'service_id' => 'servicio',
+        'staff_member_id' => 'persona del equipo',
+        'starts_at' => 'hora de inicio',
+        'ends_at' => 'hora de fin',
+        'notes' => 'notas',
+        'from' => 'fecha desde',
+        'to' => 'fecha hasta',
     ],
 
 ];

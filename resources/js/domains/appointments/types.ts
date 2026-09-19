@@ -49,6 +49,8 @@ export type BookableService = {
     name: string;
     color: ServiceColor;
     duration_minutes: number;
+    buffer_minutes: number;
+    price: string;
     active: boolean;
 };
 

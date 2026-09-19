@@ -46,20 +46,21 @@
             },
             "actions": {
                 "create": "Crear",
-                "save": "Guardar"
+                "save": "Guardar",
+                "launch": "Registrar cita"
             },
             "form": {
                 "service": {
                     "label": "Servicio",
-                    "placeholder": "Elige un servicio"
+                    "placeholder": "Elige un servicio",
+                    "required": "El servicio es obligatorio."
                 },
                 "customer": {
                     "label": "Cliente",
                     "placeholder": "Busca por nombre, correo o teléfono",
-                    "create": "Crear «{{name}}»",
+                    "create": "Añadir nuevo cliente",
                     "searching": "Buscando…",
-                    "empty": "Ningún cliente coincide",
-                    "createFailed": "No pudimos crear el cliente. Inténtalo de nuevo."
+                    "required": "El cliente es obligatorio."
                 },
                 "staff": {
                     "label": "Quién atiende",
@@ -67,8 +68,7 @@
                 },
                 "dateTime": {
                     "label": "Fecha y hora",
-                    "duration_one": "Dura {{count}} minuto",
-                    "duration_other": "Dura {{count}} minutos",
+                    "required": "La fecha es obligatoria.",
                     "format": {
                         "day": "dd",
                         "month": "mm",
@@ -87,12 +87,14 @@
                 "startsAt": {
                     "label": "Empieza a las",
                     "list": "Horas",
-                    "empty": "Ninguna hora coincide"
+                    "empty": "Ninguna hora coincide",
+                    "required": "La hora de inicio es obligatoria."
                 },
                 "endsAt": {
                     "label": "Termina a las",
                     "list": "Horas",
                     "empty": "Ninguna hora coincide",
+                    "required": "La hora de fin es obligatoria.",
                     "duration": {
                         "minutes": "{{minutes}} min",
                         "hours": "{{hours}} h",
@@ -324,7 +326,7 @@
             "body": "«{{name}}» sale de tu lista de clientes, junto con su teléfono y su dirección. Las citas ya reservadas no cambian."
         },
         "toasts": {
-            "created": "Cliente creado",
+            "created": "Cliente registrado",
             "saved": "Cambios guardados",
             "deleted": "Cliente eliminado"
         },

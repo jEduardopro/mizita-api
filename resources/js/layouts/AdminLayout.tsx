@@ -9,6 +9,8 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NewAppointmentLauncher } from '@/domains/appointments/components/NewAppointmentLauncher';
 import { useBusinessSettings } from '@/domains/businesses/queries';
+import { CreateCustomerDialog } from '@/domains/customers/components/CreateCustomerDialog';
+import { CustomerCreationProvider } from '@/hooks/use-customer-creation';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 
 type Props = {
@@ -39,34 +41,40 @@ export function AdminLayout({
         <TooltipProvider>
             <Head title={title} />
 
-            <SidebarProvider defaultOpen={sidebarOpen} className={cn(fullBleed && 'h-svh')}>
-                <AppSidebar />
+            <CustomerCreationProvider>
+                <SidebarProvider defaultOpen={sidebarOpen} className={cn(fullBleed && 'h-svh')}>
+                    <AppSidebar />
 
-                <SidebarInset className={cn('min-w-0', fullBleed && 'overflow-hidden')}>
-                    <div className="sticky top-0 z-20 shrink-0 bg-background/90 backdrop-blur-sm">
-                        <AdminHeader
-                            title={title}
-                            breadcrumbs={breadcrumbs}
-                            actions={
-                                newAppointment ? (
-                                    <NewAppointmentLauncher timezone={businessSettings?.timezone} />
-                                ) : undefined
-                            }
-                        />
+                    <SidebarInset className={cn('min-w-0', fullBleed && 'overflow-hidden')}>
+                        <div className="sticky top-0 z-20 shrink-0 bg-background/90 backdrop-blur-sm">
+                            <AdminHeader
+                                title={title}
+                                breadcrumbs={breadcrumbs}
+                                actions={
+                                    newAppointment ? (
+                                        <NewAppointmentLauncher
+                                            timezone={businessSettings?.timezone}
+                                        />
+                                    ) : undefined
+                                }
+                            />
 
-                        <AdminSubheader description={description} actions={actions} />
-                    </div>
+                            <AdminSubheader description={description} actions={actions} />
+                        </div>
 
-                    <div
-                        className={cn(
-                            'flex-1',
-                            fullBleed ? 'flex min-h-0 flex-col' : 'px-5 py-8 sm:px-8',
-                        )}
-                    >
-                        {children}
-                    </div>
-                </SidebarInset>
-            </SidebarProvider>
+                        <div
+                            className={cn(
+                                'flex-1',
+                                fullBleed ? 'flex min-h-0 flex-col' : 'px-5 py-8 sm:px-8',
+                            )}
+                        >
+                            {children}
+                        </div>
+                    </SidebarInset>
+                </SidebarProvider>
+
+                <CreateCustomerDialog />
+            </CustomerCreationProvider>
         </TooltipProvider>
     );
 }

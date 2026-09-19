@@ -2,7 +2,9 @@ import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 import { fieldMessage } from '@/components/form/FieldMessage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatBuffer, formatDuration, formatPrice } from '@/lib/service-format';
 import { useBookableServices } from '../queries';
+import type { BookableService } from '../types';
 import { APPOINTMENT_CONTROL_HEIGHT, AppointmentFormRow } from './AppointmentFormRow';
 import { ServiceColorDot } from './ServiceColorDot';
 import type { AppointmentFormController } from './use-appointment-form';
@@ -14,12 +16,33 @@ type Props = {
 };
 
 export function AppointmentServiceField({ form }: Props) {
-    const { t } = useTranslation('admin');
+    const { t, i18n } = useTranslation('admin');
     const { data, isPending, isError } = useBookableServices();
     const selected = form.values.service;
     const error = form.errorFor('service');
-    const message = fieldMessage({ id: FIELD_ID, error });
     const services = (data ?? []).filter((service) => service.active);
+    const selectedService = services.find((service) => service.id === selected?.id) ?? null;
+
+    function summaryOf(service: BookableService): string {
+        const duration = formatDuration(service.duration_minutes, t);
+        const price = formatPrice(service.price, i18n.language, t);
+
+        if (service.buffer_minutes > 0) {
+            return t('services.summaryWithBuffer', {
+                duration,
+                buffer: formatBuffer(service.buffer_minutes, t),
+                price,
+            });
+        }
+
+        return t('services.summary', { duration, price });
+    }
+
+    const message = fieldMessage({
+        id: FIELD_ID,
+        error,
+        hint: selectedService === null ? undefined : summaryOf(selectedService),
+    });
 
     return (
         <AppointmentFormRow

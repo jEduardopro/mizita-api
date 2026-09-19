@@ -1,20 +1,35 @@
+import { cn } from 'cn';
 import { CustomerAddressFields } from './CustomerAddressFields';
 import { CustomerDetailsFields } from './CustomerDetailsFields';
 import type { CustomerFormController } from './use-customer-form';
 
 export const CUSTOMER_FORM_ID = 'customer-form';
 
-type Props = {
-    form: CustomerFormController;
-    focusNameField?: boolean;
+type CustomerFormLayout = 'columns' | 'stacked';
+
+const LAYOUT_CLASSES: Record<CustomerFormLayout, string> = {
+    columns: 'lg:grid-cols-2 lg:items-start',
+    stacked: 'lg:grid-cols-1',
 };
 
-export function CustomerForm({ form, focusNameField = false }: Props) {
+type Props = {
+    form: CustomerFormController;
+    id?: string;
+    focusNameField?: boolean;
+    layout?: CustomerFormLayout;
+};
+
+export function CustomerForm({
+    form,
+    id = CUSTOMER_FORM_ID,
+    focusNameField = false,
+    layout = 'columns',
+}: Props) {
     return (
         <form
-            id={CUSTOMER_FORM_ID}
+            id={id}
             onSubmit={form.submit}
-            className="grid gap-6 lg:grid-cols-2 lg:items-start"
+            className={cn('grid gap-6', LAYOUT_CLASSES[layout])}
         >
             <CustomerDetailsFields form={form} focusNameField={focusNameField} />
 

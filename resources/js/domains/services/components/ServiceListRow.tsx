@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { Badge } from '@/components/ui/badge';
 import { serviceColorClasses } from '@/lib/service-color';
+import { formatBuffer, formatDuration, formatPrice } from '@/lib/service-format';
 import type { Service } from '../types';
 import { ServiceRowActions } from './ServiceRowActions';
 import { serviceEditUrl } from './service-urls';
 import { ServiceStaffAvatars } from './ServiceStaffAvatars';
-import { formatBuffer, formatDuration, formatPrice } from './service-format';
 
 type Props = {
     service: Service;

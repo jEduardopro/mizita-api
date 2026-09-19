@@ -1,46 +1,37 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import 'temporal-polyfill/global';
-import type { NumberValue } from '@/components/form/NumberField';
 import { useErrorToast } from '@/hooks/use-error-toast';
 import { errorCodeFrom, fieldErrorsFrom, formMessageFrom, type FieldErrors } from '@/lib/http';
-import { todayAsIsoDate } from '@/lib/time';
 import { raiseSuccessToast } from '@/lib/toast';
-import { SLOT_MINUTES } from './appointment-slots';
+import {
+    appointmentPayloadFrom,
+    initialAppointmentValues,
+    missingRequiredFields,
+    serverFields,
+    withEndsAt,
+    withService,
+    withStartsAt,
+    type AppointmentChange,
+    type AppointmentField,
+    type AppointmentFormValues,
+    type RequiredAppointmentField,
+} from './appointment-form-values';
 import { useCreateAppointment, useUpdateAppointment } from '../queries';
-import type { Appointment, AppointmentPayload, AppointmentService } from '../types';
+import type { Appointment, AppointmentService } from '../types';
 
 const OVERLAP_ERROR_CODE = 'appointment_overlap';
 
-const MINUTES_PER_DAY = 24 * 60;
+const REQUIRED_MESSAGE_KEYS = {
+    service: 'calendar.appointment.form.service.required',
+    customer: 'calendar.appointment.form.customer.required',
+    date: 'calendar.appointment.form.dateTime.required',
+    startsAt: 'calendar.appointment.form.startsAt.required',
+    endsAt: 'calendar.appointment.form.endsAt.required',
+} as const satisfies Record<RequiredAppointmentField, string>;
+
+type RequiredErrors = Partial<Record<AppointmentField, string>>;
 
 export type AppointmentFormMode = 'create' | 'edit';
-
-type SelectedCustomer = { id: string; name: string };
-
-export type AppointmentFormValues = {
-    service: AppointmentService | null;
-    customer: SelectedCustomer | null;
-    staffMemberId: string;
-    date: string;
-    startsAt: string;
-    endsAt: string;
-    durationMinutes: NumberValue;
-    notes: string;
-};
-
-type AppointmentField = keyof AppointmentFormValues;
-
-const SERVER_FIELDS: Record<AppointmentField, string> = {
-    service: 'service_id',
-    customer: 'customer_id',
-    staffMemberId: 'staff_member_id',
-    date: 'starts_at',
-    startsAt: 'starts_at',
-    endsAt: 'ends_at',
-    durationMinutes: 'starts_at',
-    notes: 'notes',
-};
 
 export type AppointmentFormController = {
     values: AppointmentFormValues;
@@ -61,99 +52,6 @@ export type AppointmentFormParams = {
     onSaved: (appointment: Appointment) => void;
 };
 
-function pad(value: number): string {
-    return String(value).padStart(2, '0');
-}
-
-function minutesSinceMidnight(time: string): number {
-    const [hourText, minuteText] = time.split(':');
-
-    return Number(hourText) * 60 + Number(minuteText);
-}
-
-function timeFromMinutes(totalMinutes: number): string {
-    const clamped = ((totalMinutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
-
-    return `${pad(Math.floor(clamped / 60))}:${pad(clamped % 60)}`;
-}
-
-function toLocalDateAndTime(instant: string, timezone: string): { date: string; time: string } {
-    const zoned = Temporal.Instant.from(instant).toZonedDateTimeISO(timezone);
-
-    return {
-        date: zoned.toPlainDate().toString(),
-        time: zoned.toPlainTime().toString({ smallestUnit: 'minute' }),
-    };
-}
-
-function toInstant(date: string, time: string, timezone: string): string {
-    return Temporal.PlainDate.from(date)
-        .toZonedDateTime({ timeZone: timezone, plainTime: Temporal.PlainTime.from(time) })
-        .toInstant()
-        .toString();
-}
-
-function initialValues(
-    appointment: Appointment | null,
-    timezone: string,
-    prefillStartsAt: string | null,
-): AppointmentFormValues {
-    if (appointment !== null) {
-        const starts = toLocalDateAndTime(appointment.starts_at, timezone);
-        const ends = toLocalDateAndTime(appointment.ends_at, timezone);
-
-        return {
-            service: appointment.service,
-            customer: { id: appointment.customer.id, name: appointment.customer.name },
-            staffMemberId: appointment.staff_member.id,
-            date: starts.date,
-            startsAt: starts.time,
-            endsAt: ends.time,
-            durationMinutes: appointment.duration_minutes,
-            notes: appointment.notes ?? '',
-        };
-    }
-
-    if (prefillStartsAt !== null) {
-        const starts = toLocalDateAndTime(prefillStartsAt, timezone);
-
-        return {
-            service: null,
-            customer: null,
-            staffMemberId: '',
-            date: starts.date,
-            startsAt: starts.time,
-            endsAt: timeFromMinutes(minutesSinceMidnight(starts.time) + SLOT_MINUTES),
-            durationMinutes: SLOT_MINUTES,
-            notes: '',
-        };
-    }
-
-    return {
-        service: null,
-        customer: null,
-        staffMemberId: '',
-        date: todayAsIsoDate(),
-        startsAt: '',
-        endsAt: '',
-        durationMinutes: '',
-        notes: '',
-    };
-}
-
-function payloadFrom(values: AppointmentFormValues, timezone: string): AppointmentPayload {
-    const notes = values.notes.trim();
-
-    return {
-        customer_id: values.customer?.id ?? '',
-        service_id: values.service?.id ?? '',
-        staff_member_id: values.staffMemberId,
-        starts_at: toInstant(values.date, values.startsAt, timezone),
-        ends_at: values.endsAt === '' ? null : toInstant(values.date, values.endsAt, timezone),
-        notes: notes === '' ? null : notes,
-    };
-}
-
 export function useAppointmentForm({
     mode,
     appointment,
@@ -162,13 +60,16 @@ export function useAppointmentForm({
     onSaved,
 }: AppointmentFormParams): AppointmentFormController {
     const { t } = useTranslation('admin');
-    const [values, setValues] = useState(() => initialValues(appointment, timezone, prefillStartsAt));
+    const [values, setValues] = useState(() =>
+        initialAppointmentValues(appointment, timezone, prefillStartsAt),
+    );
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+    const [requiredErrors, setRequiredErrors] = useState<RequiredErrors>({});
     const errorToast = useErrorToast();
     const createAppointment = useCreateAppointment();
     const updateAppointment = useUpdateAppointment();
 
-    const clearField = useCallback((name: string) => {
+    const clearServerError = useCallback((name: string) => {
         setFieldErrors((current) => {
             if (! (name in current)) {
                 return current;
@@ -189,93 +90,83 @@ export function useAppointmentForm({
     const update = useCallback(
         <TKey extends AppointmentField>(key: TKey, value: AppointmentFormValues[TKey]) => {
             setValues((current) => ({ ...current, [key]: value }));
-            clearField(SERVER_FIELDS[key]);
+            clearServerError(serverFields[key]);
         },
-        [clearField],
+        [clearServerError],
     );
 
-    const setService = useCallback(
-        (service: AppointmentService | null) => {
-            setValues((current) => {
-                if (service === null || current.startsAt === '') {
-                    return { ...current, service, durationMinutes: service?.duration_minutes ?? '' };
-                }
+    function applyChange(change: AppointmentChange) {
+        setValues(change.values);
 
-                return {
-                    ...current,
-                    service,
-                    durationMinutes: service.duration_minutes,
-                    endsAt: timeFromMinutes(
-                        minutesSinceMidnight(current.startsAt) + service.duration_minutes,
-                    ),
-                };
-            });
-            clearField(SERVER_FIELDS.service);
-        },
-        [clearField],
-    );
+        for (const field of change.written) {
+            clearServerError(serverFields[field]);
+        }
+    }
 
-    const setStartsAt = useCallback(
-        (time: string) => {
-            setValues((current) => {
-                if (time === '' || current.durationMinutes === '') {
-                    return { ...current, startsAt: time };
-                }
+    function setService(service: AppointmentService | null) {
+        applyChange(withService(values, service));
+    }
 
-                return {
-                    ...current,
-                    startsAt: time,
-                    endsAt: timeFromMinutes(minutesSinceMidnight(time) + current.durationMinutes),
-                };
-            });
-            clearField(SERVER_FIELDS.startsAt);
-        },
-        [clearField],
-    );
+    function setStartsAt(time: string) {
+        applyChange(withStartsAt(values, time));
+    }
 
-    const setEndsAt = useCallback(
-        (time: string) => {
-            setValues((current) => {
-                if (time === '' || current.startsAt === '') {
-                    return { ...current, endsAt: time };
-                }
+    function setEndsAt(time: string) {
+        applyChange(withEndsAt(values, time));
+    }
 
-                return {
-                    ...current,
-                    endsAt: time,
-                    durationMinutes: Math.max(
-                        0,
-                        minutesSinceMidnight(time) - minutesSinceMidnight(current.startsAt),
-                    ),
-                };
-            });
-            clearField(SERVER_FIELDS.endsAt);
-        },
-        [clearField],
-    );
+    const stillMissing = new Set<AppointmentField>(missingRequiredFields(values));
 
-    const errorFor = useCallback(
-        (field: AppointmentField) => fieldErrors[SERVER_FIELDS[field]],
-        [fieldErrors],
-    );
+    function requiredErrorFor(field: AppointmentField): string | undefined {
+        return stillMissing.has(field) ? requiredErrors[field] : undefined;
+    }
+
+    function errorFor(field: AppointmentField): string | undefined {
+        return requiredErrorFor(field) ?? fieldErrors[serverFields[field]];
+    }
+
+    function requiredMessagesFor(fields: RequiredAppointmentField[]): RequiredErrors {
+        const messages: RequiredErrors = {};
+
+        for (const field of fields) {
+            messages[field] = t(REQUIRED_MESSAGE_KEYS[field]);
+        }
+
+        return messages;
+    }
 
     function captureFailure(error: unknown) {
-        setFieldErrors(fieldErrorsFrom(error));
+        const serverErrors = fieldErrorsFrom(error);
 
-        const message =
+        setFieldErrors(serverErrors);
+
+        if (Object.keys(serverErrors).length > 0) {
+            return;
+        }
+
+        errorToast.show(
             errorCodeFrom(error) === OVERLAP_ERROR_CODE
                 ? t('calendar.appointment.errors.overlap')
-                : formMessageFrom(error, t('calendar.appointment.errors.saveFailed'));
-
-        errorToast.show(message);
+                : formMessageFrom(error, t('calendar.appointment.errors.saveFailed')),
+        );
     }
 
     async function submit(): Promise<boolean> {
         setFieldErrors({});
         errorToast.dismiss();
 
+        const missing = missingRequiredFields(values);
+
+        if (missing.length > 0) {
+            setRequiredErrors(requiredMessagesFor(missing));
+
+            return false;
+        }
+
+        setRequiredErrors({});
+
         try {
-            const payload = payloadFrom(values, timezone);
+            const payload = appointmentPayloadFrom(values, timezone);
 
             const saved =
                 mode === 'edit' && appointment !== null

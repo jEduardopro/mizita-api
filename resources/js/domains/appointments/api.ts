@@ -76,16 +76,3 @@ export async function searchBookableCustomers(
 
     return data.data;
 }
-
-export async function createBookableCustomer(name: string): Promise<BookableCustomer> {
-    const { data } = await api.post<{ data: BookableCustomer }>('/customers', {
-        name,
-        email: null,
-        phone: null,
-        birth_date: null,
-        notes: null,
-        address: null,
-    });
-
-    return data.data;
-}

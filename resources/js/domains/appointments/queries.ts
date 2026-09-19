@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import {
     createAppointment,
-    createBookableCustomer,
     deleteAppointment,
     getAppointment,
     listAppointments,
@@ -20,7 +20,9 @@ export const appointmentKeys = {
     detail: (id: string) => [...appointmentKeys.all, 'detail', id] as const,
     bookableServices: () => [...appointmentKeys.all, 'bookable-services'] as const,
     bookableStaff: () => [...appointmentKeys.all, 'bookable-staff'] as const,
-    bookableCustomers: (query: string) => [...appointmentKeys.all, 'bookable-customers', query] as const,
+    bookableCustomers: () => [...appointmentKeys.all, 'bookable-customers'] as const,
+    bookableCustomerSearch: (query: string) =>
+        [...appointmentKeys.bookableCustomers(), query] as const,
 };
 
 export function useAppointments(range: AppointmentRange) {
@@ -80,13 +82,15 @@ export function useBookableStaffMembers() {
 
 export function useBookableCustomerSearch(query: string) {
     return useQuery({
-        queryKey: appointmentKeys.bookableCustomers(query),
+        queryKey: appointmentKeys.bookableCustomerSearch(query),
         queryFn: ({ signal }) => searchBookableCustomers(query, signal),
     });
 }
 
-export function useCreateBookableCustomer() {
-    return useMutation({
-        mutationFn: (name: string) => createBookableCustomer(name),
-    });
+export function useRefreshBookableCustomers() {
+    const queryClient = useQueryClient();
+
+    return useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.bookableCustomers() });
+    }, [queryClient]);
 }

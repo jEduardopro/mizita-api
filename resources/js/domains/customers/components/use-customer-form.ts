@@ -42,13 +42,30 @@ export type CustomerFormController = {
 type Params = {
     mode: CustomerFormMode;
     customer: Customer | null;
+    initialName?: string;
+    onSaved?: (customer: Customer) => void;
 };
 
-export function useCustomerForm({ mode, customer }: Params): CustomerFormController {
+function seededCustomerValues(customer: Customer | null, initialName?: string): CustomerFormValues {
+    const values = initialCustomerValues(customer);
+
+    if (initialName === undefined) {
+        return values;
+    }
+
+    return { ...values, name: initialName };
+}
+
+export function useCustomerForm({
+    mode,
+    customer,
+    initialName,
+    onSaved,
+}: Params): CustomerFormController {
     const { t } = useTranslation('admin');
     const { fieldErrors, capture, clearField, reset } = useServerErrors();
 
-    const [values, setValues] = useState(() => initialCustomerValues(customer));
+    const [values, setValues] = useState(() => seededCustomerValues(customer, initialName));
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [savedPhotoUrl, setSavedPhotoUrl] = useState(customer?.photo_url ?? null);
     const [loadedCustomerId, setLoadedCustomerId] = useState(customer?.id ?? null);
@@ -146,6 +163,12 @@ export function useCustomerForm({ mode, customer }: Params): CustomerFormControl
         if (! (await syncPhoto(saved))) {
             raiseErrorToast(t('customers.form.photo.failed'));
 
+            if (onSaved !== undefined) {
+                onSaved(saved);
+
+                return;
+            }
+
             if (mode === 'create') {
                 navigateTo(customerEditUrl(saved.id));
             }
@@ -156,6 +179,12 @@ export function useCustomerForm({ mode, customer }: Params): CustomerFormControl
         raiseSuccessToast(
             mode === 'create' ? t('customers.toasts.created') : t('customers.toasts.saved'),
         );
+
+        if (onSaved !== undefined) {
+            onSaved(saved);
+
+            return;
+        }
 
         navigateTo(CUSTOMERS_URL);
     }

@@ -46,20 +46,21 @@
             },
             "actions": {
                 "create": "Create",
-                "save": "Save"
+                "save": "Save",
+                "launch": "Book appointment"
             },
             "form": {
                 "service": {
                     "label": "Service",
-                    "placeholder": "Choose a service"
+                    "placeholder": "Choose a service",
+                    "required": "Service is required."
                 },
                 "customer": {
                     "label": "Customer",
                     "placeholder": "Search by name, email or phone",
-                    "create": "Create “{{name}}”",
+                    "create": "Add new customer",
                     "searching": "Searching…",
-                    "empty": "No customer matches",
-                    "createFailed": "We could not create the customer. Try again."
+                    "required": "Customer is required."
                 },
                 "staff": {
                     "label": "Who attends",
@@ -67,8 +68,7 @@
                 },
                 "dateTime": {
                     "label": "Date and time",
-                    "duration_one": "Lasts {{count}} minute",
-                    "duration_other": "Lasts {{count}} minutes",
+                    "required": "Date is required.",
                     "format": {
                         "day": "dd",
                         "month": "mm",
@@ -87,12 +87,14 @@
                 "startsAt": {
                     "label": "Starts at",
                     "list": "Times",
-                    "empty": "No matching time"
+                    "empty": "No matching time",
+                    "required": "Start time is required."
                 },
                 "endsAt": {
                     "label": "Ends at",
                     "list": "Times",
                     "empty": "No matching time",
+                    "required": "End time is required.",
                     "duration": {
                         "minutes": "{{minutes}} min",
                         "hours": "{{hours}} h",
@@ -324,7 +326,7 @@
             "body": "“{{name}}” leaves your customer list, along with their phone and address. Booked appointments do not change."
         },
         "toasts": {
-            "created": "Customer created",
+            "created": "Customer registered",
             "saved": "Changes saved",
             "deleted": "Customer deleted"
         },

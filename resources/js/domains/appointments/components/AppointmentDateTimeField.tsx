@@ -26,17 +26,14 @@ type Props = {
 
 export function AppointmentDateTimeField({ form }: Props) {
     const { t } = useTranslation('admin');
-    const { date, startsAt, endsAt, durationMinutes } = form.values;
+    const { date, startsAt, endsAt } = form.values;
+    const dateError = form.errorFor('date');
     const startsAtError = form.errorFor('startsAt');
     const endsAtError = form.errorFor('endsAt');
 
     const message = fieldMessage({
         id: DATE_FIELD_ID,
-        error: startsAtError ?? endsAtError,
-        hint:
-            durationMinutes === ''
-                ? undefined
-                : t('calendar.appointment.form.dateTime.duration', { count: durationMinutes }),
+        error: dateError ?? startsAtError ?? endsAtError,
     });
 
     function durationLabel(totalMinutes: number): string {
@@ -82,7 +79,7 @@ export function AppointmentDateTimeField({ form }: Props) {
                             today: t('calendar.appointment.form.dateTime.picker.today'),
                             clear: t('calendar.appointment.form.dateTime.picker.clear'),
                         }}
-                        invalid={!! startsAtError}
+                        invalid={!! dateError}
                         describedBy={message?.id}
                         className={DATE_PICKER_HEIGHT}
                     />

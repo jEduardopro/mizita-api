@@ -1,14 +1,13 @@
 import { cn } from 'cn';
-import { UserRound } from 'lucide-react';
-import { useId, useState } from 'react';
+import { Plus, UserRound } from 'lucide-react';
+import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fieldMessage } from '@/components/form/FieldMessage';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
+import { useCustomerCreation } from '@/hooks/use-customer-creation';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { formMessageFrom } from '@/lib/http';
-import { raiseErrorToast } from '@/lib/toast';
-import { useBookableCustomerSearch, useCreateBookableCustomer } from '../queries';
+import { useBookableCustomerSearch, useRefreshBookableCustomers } from '../queries';
 import { APPOINTMENT_CONTROL_HEIGHT, AppointmentFormRow } from './AppointmentFormRow';
 import type { AppointmentFormController } from './use-appointment-form';
 
@@ -22,11 +21,13 @@ export function AppointmentCustomerField({ form }: Props) {
     const { t } = useTranslation('admin');
     const fieldId = useId();
     const listId = `${fieldId}-listbox`;
+    const inputRef = useRef<HTMLInputElement>(null);
     const selected = form.values.customer;
     const [query, setQuery] = useState(selected?.name ?? '');
     const [open, setOpen] = useState(false);
     const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
-    const createCustomer = useCreateBookableCustomer();
+    const { requestCreate } = useCustomerCreation();
+    const refreshCustomers = useRefreshBookableCustomers();
     const error = form.errorFor('customer');
     const message = fieldMessage({ id: fieldId, error });
 
@@ -36,10 +37,7 @@ export function AppointmentCustomerField({ form }: Props) {
     const { data, isPending } = useBookableCustomerSearch(trimmedQuery);
 
     const matches = isSearching ? (data ?? []) : [];
-    const hasExactMatch = matches.some(
-        (customer) => customer.name.trim().toLowerCase() === trimmedQuery.toLowerCase(),
-    );
-    const showCreateRow = open && isSearching && ! isPending && ! hasExactMatch;
+    const showAddRow = isSearching && ! isPending && matches.length === 0;
 
     function selectCustomer(customer: { id: string; name: string }) {
         form.update('customer', customer);
@@ -47,16 +45,20 @@ export function AppointmentCustomerField({ form }: Props) {
         setOpen(false);
     }
 
-    async function createAndSelect() {
-        try {
-            const created = await createCustomer.mutateAsync(trimmedQuery);
-
-            selectCustomer({ id: created.id, name: created.name });
-        } catch (createError) {
-            raiseErrorToast(
-                formMessageFrom(createError, t('calendar.appointment.form.customer.createFailed')),
-            );
+    function keepOpenOnAnchorInteraction(event: Event) {
+        if (inputRef.current !== null && event.target === inputRef.current) {
+            event.preventDefault();
         }
+    }
+
+    function startCustomerCreation() {
+        inputRef.current?.blur();
+        setOpen(false);
+
+        requestCreate(trimmedQuery, (customer) => {
+            selectCustomer(customer);
+            refreshCustomers();
+        });
     }
 
     return (
@@ -66,9 +68,10 @@ export function AppointmentCustomerField({ form }: Props) {
             htmlFor={fieldId}
             message={message}
         >
-            <Popover open={open && (isSearching || showCreateRow)} onOpenChange={setOpen}>
+            <Popover open={open && isSearching} onOpenChange={setOpen}>
                 <PopoverAnchor asChild>
                     <Input
+                        ref={inputRef}
                         id={fieldId}
                         role="combobox"
                         aria-expanded={open}
@@ -94,17 +97,12 @@ export function AppointmentCustomerField({ form }: Props) {
                 <PopoverContent
                     align="start"
                     onOpenAutoFocus={(event) => event.preventDefault()}
+                    onInteractOutside={keepOpenOnAnchorInteraction}
                     className="w-(--radix-popover-trigger-width) gap-0 overflow-hidden p-0 shadow-lg"
                 >
                     {isPending ? (
                         <p role="status" className="px-3 py-2.5 text-sm text-muted-foreground">
                             {t('calendar.appointment.form.customer.searching')}
-                        </p>
-                    ) : null}
-
-                    {! isPending && matches.length === 0 && ! showCreateRow ? (
-                        <p role="status" className="px-3 py-2.5 text-sm text-muted-foreground">
-                            {t('calendar.appointment.form.customer.empty')}
                         </p>
                     ) : null}
 
@@ -125,14 +123,16 @@ export function AppointmentCustomerField({ form }: Props) {
                             </li>
                         ))}
 
-                        {showCreateRow ? (
+                        {showAddRow ? (
                             <li
                                 role="option"
                                 aria-selected={false}
-                                onClick={() => void createAndSelect()}
-                                className="flex min-h-11 cursor-default items-center px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
+                                onClick={startCustomerCreation}
+                                className="flex min-h-11 cursor-default items-center gap-2 px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
                             >
-                                {t('calendar.appointment.form.customer.create', { name: trimmedQuery })}
+                                <Plus aria-hidden="true" className="size-4" />
+
+                                {t('calendar.appointment.form.customer.create')}
                             </li>
                         ) : null}
                     </ul>
