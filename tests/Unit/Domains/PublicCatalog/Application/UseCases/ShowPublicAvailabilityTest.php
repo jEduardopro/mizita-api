@@ -5,11 +5,9 @@ declare(strict_types=1);
 use App\Domains\PublicCatalog\Application\Dtos\ShowPublicAvailabilityInput;
 use App\Domains\PublicCatalog\Application\UseCases\ShowPublicAvailability;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
-use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
 use App\Domains\PublicCatalog\Contracts\PublishedSlots;
 use App\Domains\PublicCatalog\Exceptions\BusinessPageNotFound;
 use App\Domains\PublicCatalog\ValueObjects\PublicAvailableDay;
-use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -18,12 +16,8 @@ use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 beforeEach(function () {
     $this->businesses = Mockery::mock(PublishedBusinesses::class);
     $this->slots = Mockery::mock(PublishedSlots::class);
-    $this->openState = Mockery::mock(PublishedOpenState::class);
-    $this->openState->shouldReceive('forBusiness')
-        ->andReturn(PublicCatalogFixtures::openState())
-        ->byDefault();
 
-    $this->useCase = new ShowPublicAvailability($this->businesses, $this->slots, $this->openState);
+    $this->useCase = new ShowPublicAvailability($this->businesses, $this->slots);
 
     $this->show = fn (string $slug = PublicCatalogFixtures::SLUG, ...$overrides): UseCaseResponse => $this->useCase
         ->handle(new ShowPublicAvailabilityInput($slug, PublicCatalogFixtures::slotQuery(...$overrides)));
@@ -84,81 +78,22 @@ describe('a visitor reading the days they may book', function () {
 
         expect(($this->show)()->value())->toBe([]);
     });
-});
 
-describe('a business whose doors are shut right now', function () {
-    beforeEach(function () {
-        $this->closeUntilMonday = function (): void {
-            $this->openState->shouldReceive('forBusiness')->andReturn(PublicCatalogFixtures::closedState());
-        };
-    });
-
-    it('offers no start on any day, not even one weeks ahead', function () {
-        ($this->closeUntilMonday)();
-        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
-        $this->slots->shouldReceive('forBusiness')->once()->andReturn([
+    it('hands back the days the slot engine returned, whatever the business hours say today', function () {
+        $workedOut = [
             PublicCatalogFixtures::availableDay('2026-03-10'),
             PublicCatalogFixtures::availableDay('2026-03-11', [PublicCatalogFixtures::STARTS_AT]),
             PublicCatalogFixtures::availableDay('2026-06-30', [PublicCatalogFixtures::STARTS_AT]),
-        ]);
+        ];
+
+        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
+        $this->slots->shouldReceive('forBusiness')->once()->andReturn($workedOut);
 
         $days = ($this->show)()->value();
 
-        expect(array_column($days, 'starts'))->toBe([[], [], []]);
-    });
-
-    it('keeps the date of every day, so the calendar still renders its month', function () {
-        ($this->closeUntilMonday)();
-        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
-        $this->slots->shouldReceive('forBusiness')->once()->andReturn([
-            PublicCatalogFixtures::availableDay('2026-03-10'),
-            PublicCatalogFixtures::availableDay('2026-03-11'),
-            PublicCatalogFixtures::availableDay('2026-03-12'),
-        ]);
-
-        $days = ($this->show)()->value();
-
-        expect(array_column($days, 'date'))->toBe(['2026-03-10', '2026-03-11', '2026-03-12'])
-            ->and($days)->toHaveCount(3)
-            ->and($days[0])->toBeInstanceOf(PublicAvailableDay::class);
-    });
-
-    it('answers with a success, because an empty calendar is not a refusal', function () {
-        ($this->closeUntilMonday)();
-        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
-        $this->slots->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::availableDay()]);
-
-        expect(($this->show)()->succeeded())->toBeTrue();
-    });
-
-    it('offers nothing for a business that is closed with no next opening either', function () {
-        $this->openState->shouldReceive('forBusiness')->andReturn(PublicOpenState::closedIndefinitely());
-        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
-        $this->slots->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::availableDay()]);
-
-        expect(($this->show)()->value()[0]->starts)->toBe([]);
-    });
-
-    it('offers the starts the slot engine worked out while the doors are open', function () {
-        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
-        $this->slots->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::availableDay()]);
-
-        expect(($this->show)()->value()[0]->starts)->toHaveCount(1);
-    });
-
-    it('asks about the business the slug resolved to, never about the slug', function () {
-        $asked = null;
-
-        $this->openState->shouldReceive('forBusiness')
-            ->with(Mockery::capture($asked))
-            ->andReturn(PublicCatalogFixtures::closedState());
-        $this->businesses->shouldReceive('identifyBySlug')->once()->andReturn(PublicCatalogFixtures::BUSINESS_ID);
-        $this->slots->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::availableDay()]);
-
-        ($this->show)();
-
-        expect($asked)->toBe(PublicCatalogFixtures::BUSINESS_ID)
-            ->and($asked)->not->toBe(PublicCatalogFixtures::SLUG);
+        expect($days)->toBe($workedOut)
+            ->and(array_column($days, 'date'))->toBe(['2026-03-10', '2026-03-11', '2026-06-30'])
+            ->and(array_map(static fn (PublicAvailableDay $day): int => count($day->starts), $days))->toBe([1, 1, 1]);
     });
 });
 
@@ -219,7 +154,7 @@ describe('the tenant a public read runs under', function () {
             (new ReflectionMethod(ShowPublicAvailability::class, '__construct'))->getParameters(),
         );
 
-        expect($types)->toBe([PublishedBusinesses::class, PublishedSlots::class, PublishedOpenState::class])
+        expect($types)->toBe([PublishedBusinesses::class, PublishedSlots::class])
             ->and($types)->not->toContain(BusinessContext::class);
     });
 

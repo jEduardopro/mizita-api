@@ -2,14 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { BrandColor, ButtonShape } from '@/lib/booking-brand';
 import { formatMoney, isFreeAmount } from '@/lib/money';
-import type { PublicOpenState, PublicService } from '../types';
+import type { PublicService } from '../types';
 import { bookingStepUrl } from './booking/booking-steps';
 import { BookingCta } from './BookingCta';
 
 type Props = {
     slug: string;
     service: PublicService;
-    openState: PublicOpenState;
     currencyCode: string;
     accentColor: BrandColor;
     buttonShape: ButtonShape;
@@ -18,7 +17,6 @@ type Props = {
 export function BookingServiceRow({
     slug,
     service,
-    openState,
     currencyCode,
     accentColor,
     buttonShape,
@@ -53,7 +51,6 @@ export function BookingServiceRow({
 
                         <BookingCta
                             href={bookingStepUrl(slug, 'staff', { service: service.id })}
-                            openState={openState}
                             accentColor={accentColor}
                             buttonShape={buttonShape}
                             className="sm:max-w-xs"

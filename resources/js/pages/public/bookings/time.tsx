@@ -10,7 +10,6 @@ import {
 import { BookingFlowFallback } from '@/domains/public-catalog/components/booking/BookingFlowFallback';
 import { BookingFlowLayout } from '@/domains/public-catalog/components/booking/BookingFlowLayout';
 import { BookingSlotPicker } from '@/domains/public-catalog/components/booking/BookingSlotPicker';
-import { BookingTimezoneSelect } from '@/domains/public-catalog/components/booking/BookingTimezoneSelect';
 import {
     useBookingFlow,
     type BookingFlow,
@@ -73,15 +72,6 @@ export default function BookingTimeStep({ slug }: Props) {
             title={t('booking.flow.time.title')}
             description={t('booking.flow.time.description', { timezone: flow.timezone })}
         >
-            <div className="sm:max-w-sm">
-                <BookingTimezoneSelect
-                    value={flow.timezone}
-                    onChange={(timezone) =>
-                        flow.goTo('time', { at: flow.startsAt, tz: timezone })
-                    }
-                />
-            </div>
-
             {availability.isError ? (
                 <div className="grid justify-items-center gap-4 rounded-xl border border-dashed border-border px-5 py-12 text-center">
                     <p className="max-w-sm text-sm text-pretty text-muted-foreground">

@@ -6,7 +6,6 @@ export type BookingSelection = {
     service: string | null;
     staff: string | null;
     at: string | null;
-    tz: string | null;
 };
 
 export type BookingSelectionKey = keyof BookingSelection;
@@ -15,14 +14,12 @@ export const BOOKING_SELECTION_KEYS: readonly BookingSelectionKey[] = [
     'service',
     'staff',
     'at',
-    'tz',
 ];
 
 export const EMPTY_BOOKING_SELECTION: BookingSelection = {
     service: null,
     staff: null,
     at: null,
-    tz: null,
 };
 
 const FLOW_SEGMENT = 'book';
@@ -39,7 +36,7 @@ const STEP_SEGMENTS: Record<BookingStep, string> = {
 const STEP_OWNED_KEYS: Record<BookingStep, readonly BookingSelectionKey[]> = {
     service: ['service'],
     staff: ['staff'],
-    time: ['at', 'tz'],
+    time: ['at'],
     details: [],
 };
 

@@ -15,9 +15,4 @@ final readonly class PublicAvailableDay
         public string $date,
         public array $starts,
     ) {}
-
-    public function withoutStarts(): self
-    {
-        return new self($this->date, []);
-    }
 }

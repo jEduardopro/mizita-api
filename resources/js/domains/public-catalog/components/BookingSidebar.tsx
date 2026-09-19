@@ -51,7 +51,6 @@ export function BookingSidebar({ page, todayIntervals }: Props) {
             <div className="grid w-full justify-items-center gap-4">
                 <BookingCta
                     href={bookingStepUrl(page.slug, 'service', {})}
-                    openState={page.open_state}
                     accentColor={page.brand.accent_color}
                     buttonShape={page.brand.button_shape}
                     className="w-full"

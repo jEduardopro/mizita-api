@@ -12,14 +12,12 @@ use App\Domains\Appointments\Contracts\BookableSlots;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ManageTokenFactory;
-use App\Domains\Appointments\Contracts\OpeningHours;
 use App\Domains\Appointments\Contracts\ReferenceCodeGenerator;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Events\AppointmentBooked;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
 use App\Domains\Appointments\Exceptions\AppointmentSlotNotBookable;
-use App\Domains\Appointments\Exceptions\BusinessCurrentlyClosed;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
 use App\Domains\Appointments\ValueObjects\ManageToken;
 use App\Domains\Appointments\ValueObjects\ManageTokenExpiry;
@@ -38,7 +36,6 @@ final class BookAppointmentAsGuest
         private readonly ServiceCatalog $services,
         private readonly CustomerDirectory $customers,
         private readonly BookableSlots $slots,
-        private readonly OpeningHours $openingHours,
         private readonly CancellationPolicy $policies,
         private readonly GuestBookingPresenter $presenter,
         private readonly ReferenceCodeGenerator $referenceCodes,
@@ -56,8 +53,6 @@ final class BookAppointmentAsGuest
     {
         try {
             $input->validate();
-
-            $this->refuseWhileClosed($input->businessId);
 
             $now = $this->clock->now();
             $slot = $this->bookableSlotFor($input);
@@ -83,16 +78,6 @@ final class BookAppointmentAsGuest
         $this->events->dispatch(new AppointmentBooked($appointment->id));
 
         return UseCaseResponse::success($confirmation);
-    }
-
-    /**
-     * @throws BusinessCurrentlyClosed
-     */
-    private function refuseWhileClosed(string $businessId): void
-    {
-        if (! $this->openingHours->isOpenNow($businessId)) {
-            throw BusinessCurrentlyClosed::forBusiness($businessId);
-        }
     }
 
     /**

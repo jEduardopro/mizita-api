@@ -149,9 +149,7 @@
             "call": "Call us"
         },
         "cta": {
-            "book": "Book",
-            "closed": "Closed · opens {{day}} at {{time}}",
-            "closedIndefinitely": "Closed for now"
+            "book": "Book"
         },
         "policy": {
             "title": "Before you book"
@@ -212,12 +210,6 @@
                 "description": "Times are shown in {{timezone}}.",
                 "nextMonth": "Next month",
                 "previousMonth": "Previous month",
-                "timezone": {
-                    "label": "Time zone",
-                    "empty": "No matching time zone",
-                    "results_one": "{{count}} time zone",
-                    "results_other": "{{count}} time zones"
-                },
                 "title": "Choose a day and a time"
             },
             "details": {
@@ -286,7 +278,6 @@
                 "success": "Appointment cancelled"
             },
             "cancelledAt": "Cancelled on {{moment}}",
-            "closed": "The business is closed right now, so you cannot change the time. Cancelling is still available.",
             "errors": {
                 "reschedule": "We could not move your appointment. Try again.",
                 "cancel": "We could not cancel your appointment. Try again.",

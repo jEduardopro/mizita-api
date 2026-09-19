@@ -171,7 +171,6 @@ return [
         'staff_member_not_bookable' => 'This team member does not offer the selected service.',
         'invalid_booking_block' => 'This service has no valid duration, so no times can be offered.',
 
-        'business_currently_closed' => 'This business is closed right now. You can book again once it reopens.',
         'guest_booking_not_found' => 'We could not find a booking for that reservation code and link.',
         'appointment_slot_not_bookable' => 'That time is not available for booking.',
         'appointment_changes_not_allowed' => 'This business does not allow customers to change their bookings.',

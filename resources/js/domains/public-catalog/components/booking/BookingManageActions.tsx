@@ -50,10 +50,8 @@ export function BookingManageActions({ page, booking, credentials }: Props) {
     const serviceId = uniqueIdByName(page.services, booking.service_name);
     const staffMemberId = uniqueIdByName(page.team, booking.staff_member_name);
 
-    const isClosed = ! page.open_state.open;
     const canCancel = isOpenToChanges(booking, Date.now());
-    const canReschedule =
-        canCancel && ! isClosed && serviceId !== null && staffMemberId !== null;
+    const canReschedule = canCancel && serviceId !== null && staffMemberId !== null;
 
     const accent = brandColorClasses[page.brand.accent_color];
 
@@ -62,9 +60,7 @@ export function BookingManageActions({ page, booking, credentials }: Props) {
             ? null
             : t('booking.manage.window', { count: booking.cancellation_window_minutes });
 
-    const blockedNote =
-        canCancel && isClosed ? t('booking.manage.closed') : t('booking.manage.locked');
-    const note = canReschedule ? windowNote : blockedNote;
+    const note = canReschedule ? windowNote : t('booking.manage.locked');
 
     if (isRescheduling && serviceId !== null && staffMemberId !== null) {
         return (

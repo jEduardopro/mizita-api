@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
 import { Accordion } from '@/components/ui/accordion';
 import type { BrandColor, ButtonShape } from '@/lib/booking-brand';
-import type { PublicOpenState, PublicService } from '../types';
+import type { PublicService } from '../types';
 import { BOOKING_SECTION_IDS } from './booking-sections';
 import { BookingServiceRow } from './BookingServiceRow';
 
 type Props = {
     slug: string;
     services: PublicService[];
-    openState: PublicOpenState;
     currencyCode: string;
     accentColor: BrandColor;
     buttonShape: ButtonShape;
@@ -30,7 +29,6 @@ function scrollToServices(): void {
 export function BookingServices({
     slug,
     services,
-    openState,
     currencyCode,
     accentColor,
     buttonShape,
@@ -53,7 +51,6 @@ export function BookingServices({
                     key={service.id}
                     slug={slug}
                     service={service}
-                    openState={openState}
                     currencyCode={currencyCode}
                     accentColor={accentColor}
                     buttonShape={buttonShape}

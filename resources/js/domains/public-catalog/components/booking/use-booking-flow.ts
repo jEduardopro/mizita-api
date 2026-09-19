@@ -8,7 +8,6 @@ import {
     BOOKING_STEPS,
     bookingBackUrl,
     bookingStepUrl,
-    businessPageUrl,
     EMPTY_BOOKING_SELECTION,
     previousStep,
     selectionBefore,
@@ -88,10 +87,6 @@ function redirectUrlFor(
         return null;
     }
 
-    if (! page.open_state.open) {
-        return businessPageUrl(slug);
-    }
-
     const furthest = furthestReachableStep(selection);
 
     if (reaches(step, furthest)) {
@@ -147,7 +142,6 @@ export function useBookingFlow(slug: string, step: BookingStep): BookingFlow {
         service: service?.id ?? null,
         staff: staffMember?.id ?? null,
         at: selection.at,
-        tz: selection.tz,
     };
 
     const redirectUrl = redirectUrlFor(page, slug, step, resolved);
@@ -184,6 +178,6 @@ export function useBookingFlow(slug: string, step: BookingStep): BookingFlow {
         service,
         staffMember,
         startsAt: selection.at,
-        timezone: selection.tz ?? page.timezone,
+        timezone: page.timezone,
     };
 }

@@ -6,7 +6,6 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\CancelAppointment;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
-use App\Domains\Appointments\Contracts\OpeningHours;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\Canceller;
@@ -197,19 +196,5 @@ describe('an appointment the caller may not reach', function () {
 
         expect($response->error()->code)->toBe('appointment_not_found')
             ->and($this->journal->entries)->toBe([]);
-    });
-});
-
-describe('the doors an admin cancellation is not held to', function () {
-    it('carries no opening hours port, so the front desk may cancel while the business is closed', function () {
-        $types = array_map(
-            static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
-            (new ReflectionMethod(CancelAppointment::class, '__construct'))->getParameters(),
-        );
-        $source = (string) file_get_contents((string) (new ReflectionClass(CancelAppointment::class))->getFileName());
-
-        expect($types)->not->toContain(OpeningHours::class)
-            ->and($source)->not->toContain('OpeningHours')
-            ->and($source)->not->toContain('BusinessCurrentlyClosed');
     });
 });

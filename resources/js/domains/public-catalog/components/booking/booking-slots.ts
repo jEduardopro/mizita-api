@@ -68,10 +68,6 @@ export function todayIn(timezone: string): string {
     return isoDateIn(timezone, now) ?? now.toISOString().slice(0, ISO_DATE_LENGTH);
 }
 
-export function isUsableTimezone(timezone: string): boolean {
-    return isoDateIn(timezone, new Date()) !== null;
-}
-
 export function dayOfInstantIn(instant: string | null, timezone: string): string | null {
     if (instant === null) {
         return null;

@@ -149,9 +149,7 @@
             "call": "Llámanos"
         },
         "cta": {
-            "book": "Reservar",
-            "closed": "Cerrado · abre el {{day}} a las {{time}}",
-            "closedIndefinitely": "Cerrado por ahora"
+            "book": "Reservar"
         },
         "policy": {
             "title": "Antes de reservar"
@@ -212,12 +210,6 @@
                 "description": "Las horas se muestran en {{timezone}}.",
                 "nextMonth": "Mes siguiente",
                 "previousMonth": "Mes anterior",
-                "timezone": {
-                    "label": "Zona horaria",
-                    "empty": "Ninguna zona horaria coincide",
-                    "results_one": "{{count}} zona horaria",
-                    "results_other": "{{count}} zonas horarias"
-                },
                 "title": "Elige un día y una hora"
             },
             "details": {
@@ -286,7 +278,6 @@
                 "success": "Cita cancelada"
             },
             "cancelledAt": "Cancelada el {{moment}}",
-            "closed": "El negocio está cerrado ahora mismo, así que no puedes cambiar la hora. Cancelar sí está disponible.",
             "errors": {
                 "reschedule": "No pudimos mover tu cita. Inténtalo otra vez.",
                 "cancel": "No pudimos cancelar tu cita. Inténtalo otra vez.",

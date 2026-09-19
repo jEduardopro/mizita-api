@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\UpdateAppointment;
-use App\Domains\Appointments\Contracts\OpeningHours;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\Contracts\Clock;
@@ -295,19 +294,5 @@ describe('the clock it is built with', function () {
     it('no longer reaches for an unguarded reschedule on the entity', function () {
         expect(method_exists(Appointment::class, 'reschedule'))->toBeFalse()
             ->and(method_exists(Appointment::class, 'rescheduleTo'))->toBeTrue();
-    });
-});
-
-describe('the doors an admin change is not held to', function () {
-    it('carries no opening hours port, so the front desk may move a booking while the business is closed', function () {
-        $types = array_map(
-            static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
-            (new ReflectionMethod(UpdateAppointment::class, '__construct'))->getParameters(),
-        );
-        $source = (string) file_get_contents((string) (new ReflectionClass(UpdateAppointment::class))->getFileName());
-
-        expect($types)->not->toContain(OpeningHours::class)
-            ->and($source)->not->toContain('OpeningHours')
-            ->and($source)->not->toContain('BusinessCurrentlyClosed');
     });
 });

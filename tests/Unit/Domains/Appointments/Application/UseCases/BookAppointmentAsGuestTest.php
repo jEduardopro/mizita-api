@@ -29,7 +29,6 @@ use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
 use Tests\Support\Appointments\FakeCustomerDirectory;
-use Tests\Support\Appointments\FakeOpeningHours;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -50,7 +49,6 @@ beforeEach(function () {
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
     $this->slots = Mockery::mock(BookableSlots::class);
-    $this->openingHours = new FakeOpeningHours;
     $this->policies = Mockery::mock(CancellationPolicy::class);
     $this->referenceCodes = Mockery::mock(ReferenceCodeGenerator::class);
     $this->manageTokens = Mockery::mock(ManageTokenFactory::class);
@@ -78,7 +76,6 @@ beforeEach(function () {
         $this->services,
         $this->customers,
         $this->slots,
-        $this->openingHours,
         $this->policies,
         new GuestBookingPresenter($this->services, $this->customers, $this->staff),
         $this->referenceCodes,
@@ -406,60 +403,17 @@ describe('a guest the business cannot reach', function () {
     });
 });
 
-describe('a business that is closed right now', function () {
-    it('refuses the booking with a conflict the public page can render', function () {
-        ($this->allowBooking)();
-        $this->openingHours->close();
-
-        $response = ($this->book)();
-
-        expect($response->failed())->toBeTrue()
-            ->and($response->error()->code)->toBe('business_currently_closed')
-            ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict);
-    });
-
-    it('refuses a start on a future date all the same, because the doors are shut now', function () {
-        ($this->allowBooking)();
-        $this->openingHours->close();
-
-        expect(($this->book)(startsAt: '2026-06-15T09:00:00+00:00')->error()->code)
-            ->toBe('business_currently_closed');
-    });
-
-    it('asks no repository, no catalogue and no slot engine once it knows the doors are shut', function () {
-        $this->slots->shouldNotReceive('isBookable');
-        $this->openingHours->close();
-
-        ($this->book)();
-
-        expect($this->journal->entries)->toBe([])
-            ->and($this->appointments->saved)->toBe([])
-            ->and($this->customers->guestRegistrations)->toBe([])
-            ->and($this->transactions->runs())->toBe(0)
-            ->and($this->dispatched)->toBe([]);
-    });
-
-    it('asks about the business the page belongs to, and only once', function () {
-        ($this->allowBooking)();
-        $this->openingHours->close();
-
-        ($this->book)();
-
-        expect($this->openingHours->asked)->toBe([FakeBusinessContext::BUSINESS_ID]);
-    });
-
-    it('validates the payload before it ever asks whether the doors are open', function () {
-        $this->openingHours->close();
-
-        expect(($this->book)(serviceId: 'not-a-uuid')->error()->code)->toBe('appointment_service_not_found')
-            ->and($this->openingHours->asked)->toBe([]);
-    });
-
-    it('takes the booking while the business is open', function () {
+describe('a business whose doors are shut at the moment the visitor books', function () {
+    it('takes a booking for a future slot the availability engine still offers', function () {
         ($this->allowBooking)();
 
-        expect(($this->book)()->succeeded())->toBeTrue()
-            ->and($this->openingHours->asked)->toBe([FakeBusinessContext::BUSINESS_ID]);
+        $response = ($this->book)(startsAt: '2026-06-15T09:00:00+00:00');
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->appointments->saved)->toHaveCount(1)
+            ->and($this->appointments->saved[0]->slot()->startsAt)
+            ->toEqual(AppointmentFixtures::instant('2026-06-15T09:00:00+00:00'))
+            ->and($this->dispatched)->toHaveCount(1);
     });
 });
 

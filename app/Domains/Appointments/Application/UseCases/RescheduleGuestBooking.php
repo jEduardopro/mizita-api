@@ -11,11 +11,9 @@ use App\Domains\Appointments\Application\Services\GuestBookingFinder;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Contracts\BookableSlots;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
-use App\Domains\Appointments\Contracts\OpeningHours;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Exceptions\AppointmentSlotNotBookable;
-use App\Domains\Appointments\Exceptions\BusinessCurrentlyClosed;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
 use App\Domains\Appointments\ValueObjects\ManageTokenExpiry;
@@ -31,7 +29,6 @@ final class RescheduleGuestBooking
         private readonly GuestBookingFinder $bookings,
         private readonly ServiceCatalog $services,
         private readonly BookableSlots $slots,
-        private readonly OpeningHours $openingHours,
         private readonly CancellationPolicy $policies,
         private readonly AppointmentChangeWindow $changeWindow,
         private readonly GuestBookingPresenter $presenter,
@@ -45,8 +42,6 @@ final class RescheduleGuestBooking
     {
         try {
             $input->validate();
-
-            $this->refuseWhileClosed($input->businessId);
 
             $now = $this->clock->now();
             $appointment = $this->bookings->find($input->businessId, $input->credentials, $now);
@@ -65,16 +60,6 @@ final class RescheduleGuestBooking
             );
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
-        }
-    }
-
-    /**
-     * @throws BusinessCurrentlyClosed
-     */
-    private function refuseWhileClosed(string $businessId): void
-    {
-        if (! $this->openingHours->isOpenNow($businessId)) {
-            throw BusinessCurrentlyClosed::forBusiness($businessId);
         }
     }
 

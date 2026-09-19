@@ -18,7 +18,6 @@ use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
 use Tests\Support\Appointments\FakeCustomerDirectory;
-use Tests\Support\Appointments\FakeOpeningHours;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -36,7 +35,6 @@ beforeEach(function () {
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
     $this->slots = Mockery::mock(BookableSlots::class);
-    $this->openingHours = new FakeOpeningHours;
     $this->policies = Mockery::mock(CancellationPolicy::class);
 
     $this->allowChanges = function (?CancellationRule $rule = null, bool $bookable = true): void {
@@ -54,7 +52,6 @@ beforeEach(function () {
         new GuestBookingFinder($this->appointments),
         $this->services,
         $this->slots,
-        $this->openingHours,
         $this->policies,
         new AppointmentChangeWindow,
         new GuestBookingPresenter($this->services, $this->customers, $this->staff),
@@ -290,77 +287,20 @@ describe('credentials that do not open a booking', function () {
     });
 });
 
-describe('a business that is closed right now', function () {
+describe('a business whose doors are shut at the moment the guest moves their booking', function () {
     beforeEach(function () {
         $this->appointments->store(AppointmentFixtures::guestAppointment());
     });
 
-    it('refuses the move with a conflict the public page can render', function () {
-        ($this->allowChanges)();
-        $this->openingHours->close();
-
-        $response = ($this->reschedule)();
-
-        expect($response->failed())->toBeTrue()
-            ->and($response->error()->code)->toBe('business_currently_closed')
-            ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict);
-    });
-
-    it('refuses a move to a future date all the same, because the doors are shut now', function () {
-        ($this->allowChanges)();
-        $this->openingHours->close();
-
-        expect(($this->reschedule)(AppointmentFixtures::NOW, startsAt: '2026-06-15T11:00:00+00:00')->error()->code)
-            ->toBe('business_currently_closed');
-    });
-
-    it('never looks the booking up, so a closed business leaks nothing about a reference code', function () {
-        $this->openingHours->close();
-        $this->policies->shouldNotReceive('forBusiness');
-        $this->slots->shouldNotReceive('isBookable');
-
-        ($this->reschedule)();
-
-        expect($this->journal->entries)->toBe([])
-            ->and($this->appointments->referenceCodeLookups)->toBe([])
-            ->and($this->appointments->saved)->toBe([]);
-    });
-
-    it('leaves the stored slot exactly where it was', function () {
-        ($this->allowChanges)();
-        $this->openingHours->close();
-
-        ($this->reschedule)();
-
-        expect($this->appointments->findByReferenceCode(
-            FakeBusinessContext::BUSINESS_ID,
-            AppointmentFixtures::REFERENCE_CODE,
-        )?->slot()->startsAt)->toEqual(AppointmentFixtures::instant(AppointmentFixtures::STARTS_AT));
-    });
-
-    it('asks about the business the page belongs to, and only once', function () {
-        ($this->allowChanges)();
-        $this->openingHours->close();
-
-        ($this->reschedule)();
-
-        expect($this->openingHours->asked)->toBe([FakeBusinessContext::BUSINESS_ID]);
-    });
-
-    it('validates the payload before it ever asks whether the doors are open', function () {
-        ($this->allowChanges)();
-        $this->openingHours->close();
-
-        expect(($this->reschedule)(AppointmentFixtures::NOW, startsAt: '')->error()->code)
-            ->toBe('invalid_appointment_schedule')
-            ->and($this->openingHours->asked)->toBe([]);
-    });
-
-    it('moves the booking while the business is open', function () {
+    it('moves the booking to a future slot the availability engine still offers', function () {
         ($this->allowChanges)();
 
-        expect(($this->reschedule)()->succeeded())->toBeTrue()
-            ->and($this->openingHours->asked)->toBe([FakeBusinessContext::BUSINESS_ID]);
+        $response = ($this->reschedule)(AppointmentFixtures::NOW, startsAt: '2026-06-15T11:00:00+00:00');
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->appointments->saved)->toHaveCount(1)
+            ->and($this->appointments->saved[0]->slot()->startsAt)
+            ->toEqual(AppointmentFixtures::instant('2026-06-15T11:00:00+00:00'));
     });
 });
 
