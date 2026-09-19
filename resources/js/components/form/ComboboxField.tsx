@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { ComboboxPanel, type ComboboxOptionsStatus } from '@/components/form/ComboboxPanel';
+import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { useCombobox, type ComboboxOption } from '@/components/form/use-combobox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,7 @@ export function ComboboxField({
 }: Props) {
     const combobox = useCombobox({ id, options, value, onChange });
     const message = fieldMessage({ id, error, hint });
+    const density = useFormDensity();
 
     return (
         <div className="grid gap-2">
@@ -74,7 +76,7 @@ export function ComboboxField({
                                 onChange={combobox.onQueryChange}
                                 onKeyDown={combobox.onKeyDown}
                                 onClick={combobox.openList}
-                                className={cn('h-11 pr-9 text-base md:text-base', className)}
+                                className={cn('pr-9', CONTROL_DENSITY_CLASSES[density], className)}
                             />
 
                             <ChevronDown

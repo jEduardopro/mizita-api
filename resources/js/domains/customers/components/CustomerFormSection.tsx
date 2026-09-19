@@ -2,7 +2,7 @@ import { useId, type ReactNode } from 'react';
 
 type Props = {
     title: string;
-    description: string;
+    description?: string;
     children: ReactNode;
 };
 
@@ -18,7 +18,9 @@ export function CustomerFormSection({ title, description, children }: Props) {
                 {title}
             </h2>
 
-            <p className="mt-1 text-sm text-pretty text-muted-foreground">{description}</p>
+            {description !== undefined && (
+                <p className="mt-1 text-sm text-pretty text-muted-foreground">{description}</p>
+            )}
 
             <div className="mt-5 grid gap-5">{children}</div>
         </section>

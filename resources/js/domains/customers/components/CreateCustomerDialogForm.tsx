@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FormDensityProvider } from '@/components/form/form-density';
 import { DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreateCustomerActions } from './CreateCustomerActions';
 import { CustomerForm } from './CustomerForm';
@@ -17,7 +18,9 @@ export function CreateCustomerDialogForm({ onCancel, ...params }: CreateCustomer
             </DialogHeader>
 
             <div className="max-h-[calc(100svh-14rem)] overflow-y-auto overscroll-contain pr-1">
-                <CustomerForm form={form} id={formId} focusNameField layout="stacked" />
+                <FormDensityProvider density="compact">
+                    <CustomerForm form={form} id={formId} focusNameField layout="stacked" />
+                </FormDensityProvider>
             </div>
 
             <DialogFooter>

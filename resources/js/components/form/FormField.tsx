@@ -1,6 +1,7 @@
 import { cn } from 'cn';
 import type { ComponentProps } from 'react';
 import { fieldMessage, FieldMessage, type HintTone } from '@/components/form/FieldMessage';
+import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -24,6 +25,7 @@ export function FormField({
     ...props
 }: Props) {
     const message = fieldMessage({ id, error, hint, hintTone });
+    const density = useFormDensity();
 
     return (
         <div className="grid gap-2">
@@ -33,7 +35,7 @@ export function FormField({
                 aria-invalid={!! error}
                 aria-describedby={message?.id}
                 {...props}
-                className={cn('h-11 text-base md:text-base', className)}
+                className={cn(CONTROL_DENSITY_CLASSES[density], className)}
             />
             <FieldMessage message={message} reserveSpace={reserveMessageSpace} />
         </div>

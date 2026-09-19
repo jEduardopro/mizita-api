@@ -2,6 +2,7 @@ import { cn } from 'cn';
 import { ChevronDown } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
+import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { Label } from '@/components/ui/label';
 
 export type SelectOption = {
@@ -19,6 +20,7 @@ type Props = Omit<ComponentProps<'select'>, 'children'> & {
 
 export function SelectField({ id, label, options, error, hint, className, ...props }: Props) {
     const message = fieldMessage({ id, error, hint });
+    const density = useFormDensity();
 
     return (
         <div className="grid gap-2">
@@ -31,7 +33,8 @@ export function SelectField({ id, label, options, error, hint, className, ...pro
                     aria-invalid={!! error}
                     aria-describedby={message?.id}
                     className={cn(
-                        'h-11 w-full appearance-none rounded-lg border border-input bg-transparent py-1 pr-9 pl-2.5 text-base transition-colors outline-none',
+                        'w-full appearance-none rounded-lg border border-input bg-transparent py-1 pr-9 pl-2.5 transition-colors outline-none',
+                        CONTROL_DENSITY_CLASSES[density],
                         'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
                         'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
                         'disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground',

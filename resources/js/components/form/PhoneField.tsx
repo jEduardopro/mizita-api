@@ -1,5 +1,7 @@
+import { cn } from 'cn';
 import { DialCodePicker, type DialCodeOption } from '@/components/form/DialCodePicker';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
+import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { Input } from '@/components/ui/input';
 
 type Props = {
@@ -31,6 +33,7 @@ export function PhoneField({
 }: Props) {
     const labelId = `${id}-label`;
     const message = fieldMessage({ id, error, hint });
+    const density = useFormDensity();
 
     return (
         <div role="group" aria-labelledby={labelId} className="grid gap-2">
@@ -58,7 +61,7 @@ export function PhoneField({
                     aria-describedby={message?.id}
                     value={number}
                     onChange={(event) => onNumberChange(event.target.value)}
-                    className="h-11 min-w-32 flex-1 text-base md:text-base"
+                    className={cn('min-w-32 flex-1', CONTROL_DENSITY_CLASSES[density])}
                 />
             </div>
 

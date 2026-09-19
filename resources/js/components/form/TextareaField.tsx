@@ -1,6 +1,7 @@
 import { cn } from 'cn';
 import type { ComponentProps } from 'react';
 import { fieldMessage, FieldMessage, type HintTone } from '@/components/form/FieldMessage';
+import { TEXTAREA_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -14,6 +15,7 @@ type Props = ComponentProps<'textarea'> & {
 
 export function TextareaField({ id, label, error, hint, hintTone, className, ...props }: Props) {
     const message = fieldMessage({ id, error, hint, hintTone });
+    const density = useFormDensity();
 
     return (
         <div className="grid gap-2">
@@ -24,7 +26,7 @@ export function TextareaField({ id, label, error, hint, hintTone, className, ...
                 aria-invalid={!! error}
                 aria-describedby={message?.id}
                 {...props}
-                className={cn('min-h-28 text-base md:text-base', className)}
+                className={cn(TEXTAREA_DENSITY_CLASSES[density], className)}
             />
 
             <FieldMessage message={message} />

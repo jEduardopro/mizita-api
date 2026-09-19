@@ -1,5 +1,6 @@
 import { cn } from 'cn';
 import { Check, ChevronDown } from 'lucide-react';
+import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { useListbox } from '@/components/form/use-listbox';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { keepScrollableWhileModalOpen } from '@/lib/scrollable';
@@ -28,6 +29,7 @@ export function DialCodePicker({ id, label, options, value, onChange, invalid = 
     });
 
     const selected = options.find((option) => option.code === value);
+    const density = useFormDensity();
 
     return (
         <div ref={listbox.rootRef} onBlur={listbox.onBlur} className="shrink-0">
@@ -45,7 +47,8 @@ export function DialCodePicker({ id, label, options, value, onChange, invalid = 
                         onClick={listbox.toggle}
                         onKeyDown={listbox.onKeyDown}
                         className={cn(
-                            'flex h-11 w-20 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-1 pr-2.5 pl-3 text-base tabular-nums transition-colors outline-none',
+                            'flex w-20 items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-1 pr-2.5 pl-3 tabular-nums transition-colors outline-none',
+                            CONTROL_DENSITY_CLASSES[density],
                             'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
                             'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
                             'dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',

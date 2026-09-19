@@ -12,6 +12,11 @@ import {
     fullDateFormatter,
     type DatePartLabels,
 } from '@/components/form/date-format';
+import {
+    CONTROL_DENSITY_CLASSES,
+    useFormDensity,
+    type FormDensity,
+} from '@/components/form/form-density';
 import { useDateField } from '@/components/form/use-date-field';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -49,7 +54,12 @@ const CALENDAR_LOCALES: Record<string, Locale> = {
 };
 
 const FIELD_CLASS =
-    'flex h-11 w-full items-center overflow-hidden rounded-lg border border-input bg-transparent px-2.5 text-left text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40';
+    'flex w-full items-center overflow-hidden rounded-lg border border-input bg-transparent px-2.5 text-left transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40';
+
+const CLEAR_DENSITY_CLASSES: Record<FormDensity, string> = {
+    comfortable: 'size-11',
+    compact: 'size-9',
+};
 
 function calendarLocale(language: string): Locale {
     return CALENDAR_LOCALES[language.split('-')[0]] ?? enUS;
@@ -72,6 +82,7 @@ export function DatePicker({
 }: Props) {
     const { i18n } = useTranslation();
     const locale = i18n.language;
+    const density = useFormDensity();
 
     const earliest = min === undefined ? null : dateFromIso(min);
     const latest = max === undefined ? null : dateFromIso(max);
@@ -111,7 +122,12 @@ export function DatePicker({
                             aria-describedby={describedBy}
                             onClick={field.toggleCalendar}
                             onKeyDown={field.onKeyDown}
-                            className={cn(FIELD_CLASS, showClear ? 'pr-20' : 'pr-10', className)}
+                            className={cn(
+                                FIELD_CLASS,
+                                CONTROL_DENSITY_CLASSES[density],
+                                showClear ? 'pr-20' : 'pr-10',
+                                className,
+                            )}
                         >
                             <span
                                 className={cn(
@@ -131,7 +147,10 @@ export function DatePicker({
                                     size="icon"
                                     aria-label={messages.clear}
                                     onClick={field.clear}
-                                    className="pointer-events-auto size-11 rounded-md text-muted-foreground hover:bg-transparent hover:text-foreground"
+                                    className={cn(
+                                        'pointer-events-auto rounded-md text-muted-foreground hover:bg-transparent hover:text-foreground',
+                                        CLEAR_DENSITY_CLASSES[density],
+                                    )}
                                 >
                                     <X aria-hidden="true" />
                                 </Button>

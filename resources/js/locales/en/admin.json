@@ -361,8 +361,7 @@
                 "failed": "We saved the customer but not the photo. Try uploading it again."
             },
             "details": {
-                "title": "Details",
-                "description": "Who they are and how you reach them."
+                "title": "Details"
             },
             "name": {
                 "label": "Full name",
@@ -376,7 +375,6 @@
                 "label": "Phone",
                 "country": "Phone country",
                 "number": "Phone number",
-                "hint": "Just the number, without the country code.",
                 "countries": {
                     "MX": "Mexico",
                     "US": "United States"
@@ -384,7 +382,6 @@
             },
             "birthDate": {
                 "label": "Date of birth",
-                "hint": "So you can greet them on their birthday.",
                 "format": {
                     "day": "dd",
                     "month": "mm",

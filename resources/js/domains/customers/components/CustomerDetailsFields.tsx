@@ -39,10 +39,7 @@ export function CustomerDetailsFields({ form, focusNameField }: Props) {
     }
 
     return (
-        <CustomerFormSection
-            title={t('customers.form.details.title')}
-            description={t('customers.form.details.description')}
-        >
+        <CustomerFormSection title={t('customers.form.details.title')}>
             <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
                 <div className="sm:w-32">
                     <CustomerPhotoField
@@ -82,7 +79,6 @@ export function CustomerDetailsFields({ form, focusNameField }: Props) {
                         onNumberChange={(value) =>
                             form.update('phoneNumber', value.slice(0, CUSTOMER_PHONE_MAX_LENGTH))
                         }
-                        hint={t('customers.form.phone.hint')}
                         error={form.errorFor('phoneNumber')}
                     />
                 </div>
@@ -124,7 +120,6 @@ export function CustomerDetailsFields({ form, focusNameField }: Props) {
                     today: t('customers.form.birthDate.picker.today'),
                     clear: t('customers.form.birthDate.picker.clear'),
                 }}
-                hint={t('customers.form.birthDate.hint')}
                 error={form.errorFor('birthDate')}
             />
 
@@ -132,7 +127,6 @@ export function CustomerDetailsFields({ form, focusNameField }: Props) {
                 id="customer-notes"
                 label={t('customers.form.notes.label')}
                 placeholder={t('customers.form.notes.placeholder')}
-                rows={4}
                 maxLength={CUSTOMER_NOTES_MAX_LENGTH}
                 value={form.values.notes}
                 onChange={(event) => form.update('notes', event.target.value)}

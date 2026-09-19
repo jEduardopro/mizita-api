@@ -361,8 +361,7 @@
                 "failed": "Guardamos el cliente, pero no la foto. Vuelve a subirla."
             },
             "details": {
-                "title": "Datos",
-                "description": "Quién es y cómo lo contactas."
+                "title": "Datos"
             },
             "name": {
                 "label": "Nombre completo",
@@ -376,7 +375,6 @@
                 "label": "Teléfono",
                 "country": "País del teléfono",
                 "number": "Número de teléfono",
-                "hint": "Solo el número, sin el código de país.",
                 "countries": {
                     "MX": "México",
                     "US": "Estados Unidos"
@@ -384,7 +382,6 @@
             },
             "birthDate": {
                 "label": "Fecha de nacimiento",
-                "hint": "Para felicitarle el día de su cumpleaños.",
                 "format": {
                     "day": "dd",
                     "month": "mm",
