@@ -1,19 +1,13 @@
-import { cn } from 'cn';
-import { ChevronDown } from 'lucide-react';
+import { DialCodePicker, type DialCodeOption } from '@/components/form/DialCodePicker';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { Input } from '@/components/ui/input';
-
-type PhoneCountry = {
-    code: string;
-    label: string;
-};
 
 type Props = {
     id: string;
     label: string;
     countryLabel: string;
     numberLabel: string;
-    countries: readonly PhoneCountry[];
+    countries: readonly DialCodeOption[];
     country: string;
     onCountryChange: (code: string) => void;
     number: string;
@@ -45,32 +39,14 @@ export function PhoneField({
             </span>
 
             <div className="flex flex-wrap items-end gap-2">
-                <div className="relative shrink-0">
-                    <select
-                        id={`${id}-country`}
-                        aria-label={countryLabel}
-                        aria-invalid={!! error}
-                        value={country}
-                        onChange={(event) => onCountryChange(event.target.value)}
-                        className={cn(
-                            'h-11 w-[7.5rem] appearance-none rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-base transition-colors outline-none sm:w-36',
-                            'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-                            'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
-                            'dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',
-                        )}
-                    >
-                        {countries.map((option) => (
-                            <option key={option.code} value={option.code}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
-
-                    <ChevronDown
-                        aria-hidden="true"
-                        className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                    />
-                </div>
+                <DialCodePicker
+                    id={`${id}-country`}
+                    label={countryLabel}
+                    options={countries}
+                    value={country}
+                    onChange={onCountryChange}
+                    invalid={!! error}
+                />
 
                 <Input
                     id={id}

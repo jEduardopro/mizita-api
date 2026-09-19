@@ -54,7 +54,8 @@ export function ContactSection({ form }: Props) {
                 numberLabel={t('businessSettings.contact.phone.number')}
                 countries={SUPPORTED_PHONE_COUNTRIES.map((country) => ({
                     code: country.code,
-                    label: `${t(COUNTRY_NAME_KEYS[country.code])} ${country.dialCode}`,
+                    name: t(COUNTRY_NAME_KEYS[country.code]),
+                    dialCode: country.dialCode,
                 }))}
                 country={form.values.phoneCountry}
                 onCountryChange={selectCountry}
