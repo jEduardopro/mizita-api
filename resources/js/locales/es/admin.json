@@ -65,22 +65,39 @@
                     "label": "Quién atiende",
                     "placeholder": "Elige a alguien de tu equipo"
                 },
-                "date": {
-                    "label": "Fecha"
+                "dateTime": {
+                    "label": "Fecha y hora",
+                    "duration_one": "Dura {{count}} minuto",
+                    "duration_other": "Dura {{count}} minutos",
+                    "format": {
+                        "day": "dd",
+                        "month": "mm",
+                        "year": "aaaa"
+                    },
+                    "picker": {
+                        "calendar": "Elige una fecha",
+                        "previousMonth": "Mes anterior",
+                        "nextMonth": "Mes siguiente",
+                        "month": "Mes",
+                        "year": "Año",
+                        "today": "Hoy",
+                        "clear": "Borrar la fecha"
+                    }
                 },
                 "startsAt": {
                     "label": "Empieza a las",
-                    "placeholder": "09:00"
+                    "list": "Horas",
+                    "empty": "Ninguna hora coincide"
                 },
                 "endsAt": {
                     "label": "Termina a las",
-                    "hint": "Se calcula con la duración. Cámbiala si la cita termina a otra hora."
-                },
-                "duration": {
-                    "label": "Duración",
-                    "placeholder": "30",
-                    "suffix": "min",
-                    "hint": "En minutos. Viene del servicio y solo cambia esta cita."
+                    "list": "Horas",
+                    "empty": "Ninguna hora coincide",
+                    "duration": {
+                        "minutes": "{{minutes}} min",
+                        "hours": "{{hours}} h",
+                        "hoursMinutes": "{{hours}} h {{minutes}} min"
+                    }
                 },
                 "notes": {
                     "label": "Notas",
@@ -539,6 +556,8 @@
             "hint": "Puedes abrir y cerrar varias veces el mismo día.",
             "from": "Hora de apertura",
             "to": "Hora de cierre",
+            "list": "Horas",
+            "empty": "Ninguna hora coincide",
             "addInterval": "Añadir horario",
             "removeInterval": "Quitar este horario",
             "copyToAllDays": "Copiar {{day}} a todos los días",

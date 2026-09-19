@@ -1,9 +1,10 @@
+import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
-import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
-import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
-import { Label } from '@/components/ui/label';
+import { fieldMessage } from '@/components/form/FieldMessage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBookableServices } from '../queries';
+import { APPOINTMENT_CONTROL_HEIGHT, AppointmentFormRow } from './AppointmentFormRow';
+import { ServiceColorDot } from './ServiceColorDot';
 import type { AppointmentFormController } from './use-appointment-form';
 
 const FIELD_ID = 'appointment-service';
@@ -15,16 +16,20 @@ type Props = {
 export function AppointmentServiceField({ form }: Props) {
     const { t } = useTranslation('admin');
     const { data, isPending, isError } = useBookableServices();
+    const selected = form.values.service;
     const error = form.errorFor('service');
     const message = fieldMessage({ id: FIELD_ID, error });
     const services = (data ?? []).filter((service) => service.active);
 
     return (
-        <div className="grid gap-2">
-            <Label htmlFor={FIELD_ID}>{t('calendar.appointment.form.service.label')}</Label>
-
+        <AppointmentFormRow
+            icon={<ServiceColorDot color={selected?.color ?? null} />}
+            label={t('calendar.appointment.form.service.label')}
+            htmlFor={FIELD_ID}
+            message={message}
+        >
             <Select
-                value={form.values.service?.id ?? undefined}
+                value={selected?.id ?? undefined}
                 onValueChange={(nextId) => {
                     const service = services.find((candidate) => candidate.id === nextId) ?? null;
 
@@ -45,22 +50,22 @@ export function AppointmentServiceField({ form }: Props) {
                     id={FIELD_ID}
                     aria-invalid={!! error}
                     aria-describedby={message?.id}
-                    className="h-11 w-full md:h-10"
+                    className={cn('w-full', APPOINTMENT_CONTROL_HEIGHT)}
                 >
-                    <SelectValue placeholder={t('calendar.appointment.form.service.placeholder')} />
+                    <SelectValue placeholder={t('calendar.appointment.form.service.placeholder')}>
+                        {selected?.name}
+                    </SelectValue>
                 </SelectTrigger>
 
                 <SelectContent>
                     {services.map((service) => (
                         <SelectItem key={service.id} value={service.id}>
-                            <ServiceColorTile color={service.color} imageUrl={null} className="size-6 rounded-md" />
+                            <ServiceColorDot color={service.color} />
                             {service.name}
                         </SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-
-            <FieldMessage message={message} />
-        </div>
+        </AppointmentFormRow>
     );
 }

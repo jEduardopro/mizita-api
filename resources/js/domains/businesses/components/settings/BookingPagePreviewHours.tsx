@@ -11,12 +11,12 @@ function intervalKey(interval: TimeInterval): string {
     return `${interval.starts_at}-${interval.ends_at}`;
 }
 
-function timeLabel(value: string, locale: string): string {
-    return value === '' ? MISSING_TIME : formatTimeOfDay(value, locale);
+function timeLabel(value: string): string {
+    return value === '' ? MISSING_TIME : formatTimeOfDay(value);
 }
 
-function intervalLabel(interval: TimeInterval, locale: string): string {
-    return `${timeLabel(interval.starts_at, locale)} – ${timeLabel(interval.ends_at, locale)}`;
+function intervalLabel(interval: TimeInterval): string {
+    return `${timeLabel(interval.starts_at)} – ${timeLabel(interval.ends_at)}`;
 }
 
 type Props = {
@@ -26,7 +26,7 @@ type Props = {
 };
 
 export function BookingPagePreviewHours({ hours, timezone, todayClassName }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
 
     const today = isoWeekdayIn(timezone, new Date());
@@ -77,7 +77,7 @@ export function BookingPagePreviewHours({ hours, timezone, todayClassName }: Pro
                                                 key={intervalKey(interval)}
                                                 className="whitespace-nowrap"
                                             >
-                                                {intervalLabel(interval, i18n.language)}
+                                                {intervalLabel(interval)}
                                             </span>
                                         ))}
                                     </span>

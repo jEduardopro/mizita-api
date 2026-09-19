@@ -115,6 +115,7 @@ export default function Calendar() {
                     onNext={() => calendarRef.current?.shift(1)}
                     selectedDate={dateFromIso(selectedDate) ?? new Date()}
                     onSelectDate={(date) => calendarRef.current?.goToDate(isoFromDate(date))}
+                    timezone={timezone}
                 />
 
                 <div className="relative min-h-0 flex-1">

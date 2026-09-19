@@ -14,8 +14,10 @@ import {
 } from './appointment-events';
 import { SLOT_MINUTES } from './appointment-slots';
 import { businessHoursBackgroundEvents, type BusinessScheduleRule } from './business-hours';
+import { CalendarHourLabel, type CalendarGridStep } from './CalendarHourLabel';
 import { MonthGridEventContent } from './MonthGridEventContent';
 import { SlotHoverPreview } from './SlotHoverPreview';
+import { useCalendarInitialScroll } from './use-calendar-initial-scroll';
 import type { Appointment, AppointmentRange } from '../types';
 
 export type CalendarViewName = 'day' | 'week' | 'month-grid';
@@ -84,12 +86,22 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
             [locale],
         );
 
+        const weekGridHour = useMemo(
+            () =>
+                function WeekGridHour({ gridStep }: { gridStep: CalendarGridStep }) {
+                    return <CalendarHourLabel gridStep={gridStep} locale={locale} />;
+                },
+            [locale],
+        );
+
         const customComponents = useMemo(
-            () => ({ headerContent: EmptyHeader, monthGridEvent }),
-            [monthGridEvent],
+            () => ({ headerContent: EmptyHeader, monthGridEvent, weekGridHour }),
+            [monthGridEvent, weekGridHour],
         );
 
         const wrapperRef = useRef<HTMLDivElement>(null);
+
+        useCalendarInitialScroll(wrapperRef, timezone);
 
         const callbacksRef = useRef({ onRangeChange, onSelectedDateChange, onClickSlot, onClickAppointment });
         callbacksRef.current = { onRangeChange, onSelectedDateChange, onClickSlot, onClickAppointment };

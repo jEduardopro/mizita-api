@@ -6,6 +6,7 @@ import { useErrorToast } from '@/hooks/use-error-toast';
 import { errorCodeFrom, fieldErrorsFrom, formMessageFrom, type FieldErrors } from '@/lib/http';
 import { todayAsIsoDate } from '@/lib/time';
 import { raiseSuccessToast } from '@/lib/toast';
+import { SLOT_MINUTES } from './appointment-slots';
 import { useCreateAppointment, useUpdateAppointment } from '../queries';
 import type { Appointment, AppointmentPayload, AppointmentService } from '../types';
 
@@ -47,13 +48,12 @@ export type AppointmentFormController = {
     setService: (service: AppointmentService | null) => void;
     setStartsAt: (time: string) => void;
     setEndsAt: (time: string) => void;
-    setDuration: (value: NumberValue) => void;
     errorFor: (field: AppointmentField) => string | undefined;
     isSubmitting: boolean;
     submit: () => Promise<boolean>;
 };
 
-type Params = {
+export type AppointmentFormParams = {
     mode: AppointmentFormMode;
     appointment: Appointment | null;
     timezone: string;
@@ -123,8 +123,8 @@ function initialValues(
             staffMemberId: '',
             date: starts.date,
             startsAt: starts.time,
-            endsAt: '',
-            durationMinutes: '',
+            endsAt: timeFromMinutes(minutesSinceMidnight(starts.time) + SLOT_MINUTES),
+            durationMinutes: SLOT_MINUTES,
             notes: '',
         };
     }
@@ -160,7 +160,7 @@ export function useAppointmentForm({
     timezone,
     prefillStartsAt,
     onSaved,
-}: Params): AppointmentFormController {
+}: AppointmentFormParams): AppointmentFormController {
     const { t } = useTranslation('admin');
     const [values, setValues] = useState(() => initialValues(appointment, timezone, prefillStartsAt));
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -254,24 +254,6 @@ export function useAppointmentForm({
         [clearField],
     );
 
-    const setDuration = useCallback(
-        (value: NumberValue) => {
-            setValues((current) => {
-                if (value === '' || current.startsAt === '') {
-                    return { ...current, durationMinutes: value };
-                }
-
-                return {
-                    ...current,
-                    durationMinutes: value,
-                    endsAt: timeFromMinutes(minutesSinceMidnight(current.startsAt) + value),
-                };
-            });
-            clearField(SERVER_FIELDS.durationMinutes);
-        },
-        [clearField],
-    );
-
     const errorFor = useCallback(
         (field: AppointmentField) => fieldErrors[SERVER_FIELDS[field]],
         [fieldErrors],
@@ -321,7 +303,6 @@ export function useAppointmentForm({
         setService,
         setStartsAt,
         setEndsAt,
-        setDuration,
         errorFor,
         isSubmitting: createAppointment.isPending || updateAppointment.isPending,
         submit,

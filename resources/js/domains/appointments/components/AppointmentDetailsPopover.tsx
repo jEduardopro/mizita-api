@@ -71,9 +71,9 @@ export function AppointmentDetailsPopover({ appointment, open, onOpenChange, tim
                             </p>
 
                             <p className="text-muted-foreground">
-                                {formatTimeOfDay(timeOfDay(appointment.starts_at, timezone), i18n.language)}
+                                {formatTimeOfDay(timeOfDay(appointment.starts_at, timezone))}
                                 {' – '}
-                                {formatTimeOfDay(timeOfDay(appointment.ends_at, timezone), i18n.language)}
+                                {formatTimeOfDay(timeOfDay(appointment.ends_at, timezone))}
                             </p>
                         </div>
 

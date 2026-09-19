@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function BookingOpenBadge({ state, accent, className }: Props) {
-    const { t, i18n } = useTranslation('public');
+    const { t } = useTranslation('public');
     const { t: tCommon } = useTranslation('common');
 
     if (state.status === 'unknown') {
@@ -22,10 +22,10 @@ export function BookingOpenBadge({ state, accent, className }: Props) {
     const isOpen = state.status === 'open';
 
     const label = isOpen
-        ? t('booking.hours.openNow', { time: formatTimeOfDay(state.closesAt, i18n.language) })
+        ? t('booking.hours.openNow', { time: formatTimeOfDay(state.closesAt) })
         : t('booking.hours.closedNow', {
               day: tCommon(WEEKDAY_LABEL_KEYS[state.opensWeekday]),
-              time: formatTimeOfDay(state.opensAt, i18n.language),
+              time: formatTimeOfDay(state.opensAt),
           });
 
     return (

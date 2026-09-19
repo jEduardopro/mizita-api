@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function BookingSidebar({ page, todayIntervals, openState }: Props) {
-    const { t, i18n } = useTranslation('public');
+    const { t } = useTranslation('public');
     const { t: tCommon } = useTranslation('common');
 
     const accent = brandColorClasses[page.brand.accent_color];
@@ -72,7 +72,7 @@ export function BookingSidebar({ page, todayIntervals, openState }: Props) {
                                 key={intervalKeyFor(interval)}
                                 className="whitespace-nowrap tabular-nums"
                             >
-                                {intervalLabelFor(interval, i18n.language)}
+                                {intervalLabelFor(interval)}
                             </span>
                         ))
                     )}

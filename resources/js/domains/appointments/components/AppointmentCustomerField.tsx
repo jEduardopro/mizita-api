@@ -1,13 +1,15 @@
+import { cn } from 'cn';
+import { UserRound } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
+import { fieldMessage } from '@/components/form/FieldMessage';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { formMessageFrom } from '@/lib/http';
 import { raiseErrorToast } from '@/lib/toast';
 import { useBookableCustomerSearch, useCreateBookableCustomer } from '../queries';
+import { APPOINTMENT_CONTROL_HEIGHT, AppointmentFormRow } from './AppointmentFormRow';
 import type { AppointmentFormController } from './use-appointment-form';
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -58,9 +60,12 @@ export function AppointmentCustomerField({ form }: Props) {
     }
 
     return (
-        <div className="grid gap-2">
-            <Label htmlFor={fieldId}>{t('calendar.appointment.form.customer.label')}</Label>
-
+        <AppointmentFormRow
+            icon={<UserRound />}
+            label={t('calendar.appointment.form.customer.label')}
+            htmlFor={fieldId}
+            message={message}
+        >
             <Popover open={open && (isSearching || showCreateRow)} onOpenChange={setOpen}>
                 <PopoverAnchor asChild>
                     <Input
@@ -82,7 +87,7 @@ export function AppointmentCustomerField({ form }: Props) {
                             }
                         }}
                         onFocus={() => setOpen(true)}
-                        className="h-11 text-base md:h-10 md:text-sm"
+                        className={cn('w-full', APPOINTMENT_CONTROL_HEIGHT)}
                     />
                 </PopoverAnchor>
 
@@ -133,8 +138,6 @@ export function AppointmentCustomerField({ form }: Props) {
                     </ul>
                 </PopoverContent>
             </Popover>
-
-            <FieldMessage message={message} />
-        </div>
+        </AppointmentFormRow>
     );
 }

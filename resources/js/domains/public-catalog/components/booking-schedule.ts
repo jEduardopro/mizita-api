@@ -28,9 +28,9 @@ export function intervalKeyFor(interval: TimeInterval): string {
     return `${interval.starts_at}-${interval.ends_at}`;
 }
 
-export function intervalLabelFor(interval: TimeInterval, locale: string): string {
-    const opens = formatTimeOfDay(interval.starts_at, locale);
-    const closes = formatTimeOfDay(interval.ends_at, locale);
+export function intervalLabelFor(interval: TimeInterval): string {
+    const opens = formatTimeOfDay(interval.starts_at);
+    const closes = formatTimeOfDay(interval.ends_at);
 
     return `${opens} – ${closes}`;
 }

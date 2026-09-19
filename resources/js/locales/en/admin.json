@@ -65,22 +65,39 @@
                     "label": "Who attends",
                     "placeholder": "Choose someone from your team"
                 },
-                "date": {
-                    "label": "Date"
+                "dateTime": {
+                    "label": "Date and time",
+                    "duration_one": "Lasts {{count}} minute",
+                    "duration_other": "Lasts {{count}} minutes",
+                    "format": {
+                        "day": "dd",
+                        "month": "mm",
+                        "year": "yyyy"
+                    },
+                    "picker": {
+                        "calendar": "Choose a date",
+                        "previousMonth": "Previous month",
+                        "nextMonth": "Next month",
+                        "month": "Month",
+                        "year": "Year",
+                        "today": "Today",
+                        "clear": "Clear date"
+                    }
                 },
                 "startsAt": {
                     "label": "Starts at",
-                    "placeholder": "09:00"
+                    "list": "Times",
+                    "empty": "No matching time"
                 },
                 "endsAt": {
                     "label": "Ends at",
-                    "hint": "Calculated from the duration. Change it if the appointment ends at another time."
-                },
-                "duration": {
-                    "label": "Duration",
-                    "placeholder": "30",
-                    "suffix": "mins",
-                    "hint": "In minutes. It comes from the service and changes this appointment only."
+                    "list": "Times",
+                    "empty": "No matching time",
+                    "duration": {
+                        "minutes": "{{minutes}} min",
+                        "hours": "{{hours}} h",
+                        "hoursMinutes": "{{hours}} h {{minutes}} min"
+                    }
                 },
                 "notes": {
                     "label": "Notes",
@@ -539,6 +556,8 @@
             "hint": "You can open and close more than once on the same day.",
             "from": "Opening time",
             "to": "Closing time",
+            "list": "Times",
+            "empty": "No matching time",
             "addInterval": "Add hours",
             "removeInterval": "Remove these hours",
             "copyToAllDays": "Copy {{day}} to every day",

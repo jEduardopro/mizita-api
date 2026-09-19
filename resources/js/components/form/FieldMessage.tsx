@@ -8,7 +8,7 @@ const tones: Record<HintTone, string> = {
     critical: 'text-destructive',
 };
 
-type FieldMessageState = {
+export type FieldMessageState = {
     id: string;
     text: string;
     tone: HintTone;

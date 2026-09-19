@@ -11,7 +11,7 @@ type Props = {
 };
 
 export function BookingHours({ days, today, accent }: Props) {
-    const { t, i18n } = useTranslation('public');
+    const { t } = useTranslation('public');
     const { t: tCommon } = useTranslation('common');
 
     return (
@@ -46,7 +46,7 @@ export function BookingHours({ days, today, accent }: Props) {
                                         key={intervalKeyFor(interval)}
                                         className="whitespace-nowrap"
                                     >
-                                        {intervalLabelFor(interval, i18n.language)}
+                                        {intervalLabelFor(interval)}
                                     </span>
                                 ))}
                             </span>

@@ -1,12 +1,18 @@
 const TIME_OF_DAY_PATTERN = /^(\d{2}):(\d{2})$/;
 
-const REFERENCE_DAY = Date.UTC(1970, 0, 1);
-
 const MINUTE_IN_MS = 60_000;
 
-const HOUR_IN_MS = 60 * MINUTE_IN_MS;
-
 const ISO_DATE_LENGTH = 'YYYY-MM-DD'.length;
+
+const HOURS_IN_HALF_DAY = 12;
+
+const LAST_HOUR_OF_DAY = 23;
+
+const LAST_MINUTE_OF_HOUR = 59;
+
+const ANTE_MERIDIEM = 'AM';
+
+const POST_MERIDIEM = 'PM';
 
 export function todayAsIsoDate(): string {
     const today = new Date();
@@ -16,28 +22,23 @@ export function todayAsIsoDate(): string {
         .slice(0, ISO_DATE_LENGTH);
 }
 
-export function formatTimeOfDay(value: string, locale: string): string {
+export function formatTimeOfDay(value: string): string {
     const parts = TIME_OF_DAY_PATTERN.exec(value);
 
     if (parts === null) {
         return value;
     }
 
-    const hours = Number(parts[1]);
-    const minutes = Number(parts[2]);
+    const [, hourText, minuteText] = parts;
+    const hours = Number(hourText);
+    const minutes = Number(minuteText);
 
-    if (hours > 23 || minutes > 59) {
+    if (hours > LAST_HOUR_OF_DAY || minutes > LAST_MINUTE_OF_HOUR) {
         return value;
     }
 
-    try {
-        return new Intl.DateTimeFormat(locale, {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: 'UTC',
-        }).format(new Date(REFERENCE_DAY + hours * HOUR_IN_MS + minutes * MINUTE_IN_MS));
-    } catch {
-        return value;
-    }
+    const hoursOnClock = hours % HOURS_IN_HALF_DAY === 0 ? HOURS_IN_HALF_DAY : hours % HOURS_IN_HALF_DAY;
+    const meridiem = hours < HOURS_IN_HALF_DAY ? ANTE_MERIDIEM : POST_MERIDIEM;
+
+    return `${hoursOnClock}:${minuteText} ${meridiem}`;
 }

@@ -1,12 +1,16 @@
 import { Copy, Plus, X } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TimePicker } from '@/components/form/TimePicker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { TimeInterval } from '@/lib/booking-brand';
+
+const TIME_FIELD_WIDTH = 'min-w-28 flex-1';
+
+const TIME_FIELD_HEIGHT = 'h-11 md:h-10 md:min-h-10';
 
 type IntervalRowProps = {
     interval: TimeInterval;
@@ -16,28 +20,41 @@ type IntervalRowProps = {
 
 function IntervalRow({ interval, onChange, onRemove }: IntervalRowProps) {
     const { t } = useTranslation('admin');
+    const rowId = useId();
+
+    const messages = {
+        list: t('businessSettings.hours.list'),
+        empty: t('businessSettings.hours.empty'),
+    };
 
     return (
         <div className="flex flex-wrap items-center gap-2">
-            <Input
-                type="time"
-                aria-label={t('businessSettings.hours.from')}
-                value={interval.starts_at}
-                onChange={(event) => onChange({ ...interval, starts_at: event.target.value })}
-                className="h-11 min-w-28 flex-1 text-base md:h-10 md:text-sm"
-            />
+            <div className={TIME_FIELD_WIDTH}>
+                <TimePicker
+                    id={`${rowId}-from`}
+                    label={t('businessSettings.hours.from')}
+                    value={interval.starts_at}
+                    onChange={(value) => onChange({ ...interval, starts_at: value })}
+                    messages={messages}
+                    className={TIME_FIELD_HEIGHT}
+                />
+            </div>
 
             <span aria-hidden="true" className="text-muted-foreground">
                 –
             </span>
 
-            <Input
-                type="time"
-                aria-label={t('businessSettings.hours.to')}
-                value={interval.ends_at}
-                onChange={(event) => onChange({ ...interval, ends_at: event.target.value })}
-                className="h-11 min-w-28 flex-1 text-base md:h-10 md:text-sm"
-            />
+            <div className={TIME_FIELD_WIDTH}>
+                <TimePicker
+                    id={`${rowId}-to`}
+                    label={t('businessSettings.hours.to')}
+                    value={interval.ends_at}
+                    onChange={(value) => onChange({ ...interval, ends_at: value })}
+                    messages={messages}
+                    startsFrom={interval.starts_at === '' ? undefined : interval.starts_at}
+                    className={TIME_FIELD_HEIGHT}
+                />
+            </div>
 
             <Button
                 type="button"

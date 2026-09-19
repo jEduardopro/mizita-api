@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import type { ComboboxOption } from '@/components/form/use-combobox';
 import { PopoverContent } from '@/components/ui/popover';
+import { keepScrollableWhileModalOpen } from '@/lib/scrollable';
 
 export type ComboboxOptionsStatus = 'pending' | 'error' | 'ready';
 
@@ -78,6 +79,7 @@ export function ComboboxPanel({
             ) : null}
 
             <ul
+                ref={keepScrollableWhileModalOpen}
                 id={listId}
                 role="listbox"
                 aria-label={label}
@@ -92,7 +94,7 @@ export function ComboboxPanel({
                         aria-selected={option.value === selectedValue}
                         onClick={() => onSelect(option)}
                         className={cn(
-                            'flex min-h-11 cursor-default items-center gap-2 px-3 py-2.5 text-base',
+                            'flex min-h-11 cursor-default items-center gap-2 px-3 py-2.5 text-base hover:bg-muted',
                             index === activeIndex ? 'bg-muted text-foreground' : undefined,
                         )}
                     >
