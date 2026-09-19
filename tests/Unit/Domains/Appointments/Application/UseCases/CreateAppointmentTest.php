@@ -6,6 +6,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\CreateAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\CreateAppointment;
+use App\Domains\Appointments\Contracts\OpeningHours;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Events\AppointmentCreated;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
@@ -103,7 +104,7 @@ describe('booking an appointment', function () {
 
         expect($saved)->toBeInstanceOf(Appointment::class)
             ->and($saved->id)->toBe(AppointmentFixtures::GENERATED_APPOINTMENT_ID)
-            ->and($saved->customerId)->toBe(AppointmentFixtures::CUSTOMER_ID)
+            ->and($saved->customerId())->toBe(AppointmentFixtures::CUSTOMER_ID)
             ->and($saved->serviceId())->toBe(AppointmentFixtures::SERVICE_ID)
             ->and($saved->staffMemberId())->toBe(AppointmentFixtures::STAFF_ID)
             ->and($saved->notes()?->value)->toBe(AppointmentFixtures::NOTES)
@@ -291,5 +292,19 @@ describe('refusing to book', function () {
     it('refuses an appointment that runs longer than a day', function () {
         expect(($this->create)(endsAt: '2026-03-11T09:01:00+00:00')->error()->code)
             ->toBe('invalid_appointment_schedule');
+    });
+});
+
+describe('the doors an admin booking is not held to', function () {
+    it('carries no opening hours port, so the front desk may book while the business is closed', function () {
+        $types = array_map(
+            static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
+            (new ReflectionMethod(CreateAppointment::class, '__construct'))->getParameters(),
+        );
+        $source = (string) file_get_contents((string) (new ReflectionClass(CreateAppointment::class))->getFileName());
+
+        expect($types)->not->toContain(OpeningHours::class)
+            ->and($source)->not->toContain('OpeningHours')
+            ->and($source)->not->toContain('BusinessCurrentlyClosed');
     });
 });

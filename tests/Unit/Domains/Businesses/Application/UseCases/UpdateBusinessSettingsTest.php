@@ -6,6 +6,7 @@ use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
 use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Availability\Exceptions\OverlappingScheduleIntervals;
+use App\Domains\BookingPolicies\Exceptions\InvalidLeadTime;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
 use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
@@ -14,11 +15,14 @@ use App\Domains\Businesses\Application\Dtos\UpdateBusinessSettingsInput;
 use App\Domains\Businesses\Application\Presenters\BusinessSettingsPresenter;
 use App\Domains\Businesses\Application\UseCases\UpdateBusinessSettings;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
+use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Links\Exceptions\InvalidLinkPlatform;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\ValueObjects\CountryCode;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\FakeBookingPageSettings;
+use Tests\Support\Businesses\FakeBookingPolicySettings;
 use Tests\Support\Businesses\FakeBusinessAddressBook;
 use Tests\Support\Businesses\FakeBusinessLinkList;
 use Tests\Support\Businesses\FakeBusinessLogo;
@@ -44,6 +48,7 @@ beforeEach(function () {
     $this->links = new FakeBusinessLinkList;
     $this->schedule = new FakeBusinessSchedule;
     $this->bookingPages = new FakeBookingPageSettings;
+    $this->bookingPolicies = new FakeBookingPolicySettings;
     $this->phones = new FakeBusinessPhoneBook;
     $this->logo = new FakeBusinessLogo;
     $this->parser = FakePhoneNumberParser::accepting(PhoneNumbers::mexican(), PhoneNumbers::american());
@@ -55,6 +60,7 @@ beforeEach(function () {
         $this->links,
         $this->schedule,
         $this->bookingPages,
+        $this->bookingPolicies,
         $this->phones,
         $this->logo,
     );
@@ -66,6 +72,7 @@ beforeEach(function () {
         $this->links,
         $this->schedule,
         $this->bookingPages,
+        $this->bookingPolicies,
         $this->phones,
         $this->presenter,
         $this->parser,
@@ -79,6 +86,7 @@ beforeEach(function () {
         ->and($this->phones->replacements)->toBe([])
         ->and($this->addresses->wasWritten())->toBeFalse()
         ->and($this->bookingPages->applications)->toBe([])
+        ->and($this->bookingPolicies->applications)->toBe([])
         ->and($this->schedule->replacements)->toBe([])
         ->and($this->links->replacements)->toBe([]);
 });
@@ -96,7 +104,8 @@ describe('updating every section at once', function () {
             ->and($data->address?->street)->toBe(SettingsFixtures::STREET)
             ->and($data->schedule)->toHaveCount(1)
             ->and($data->links)->toHaveCount(1)
-            ->and($data->bookingPage->accentColor)->toBe('teal');
+            ->and($data->bookingPage->accentColor)->toBe('teal')
+            ->and($data->bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES);
     });
 
     it('hands the whole update to the transaction manager as one unit of work', function () {
@@ -376,6 +385,106 @@ describe('the location', function () {
     });
 });
 
+describe('the booking policy', function () {
+    it('hands the submitted policy to the port that owns it, exactly once', function () {
+        ($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()));
+
+        expect($this->bookingPolicies->applications)->toHaveCount(1)
+            ->and($this->bookingPolicies->applications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('carries every value the client submitted into the preferences the port receives', function () {
+        ($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()));
+
+        $preferences = $this->bookingPolicies->applications[0]['preferences'];
+
+        expect($preferences)->toBeInstanceOf(BookingPolicyPreferences::class)
+            ->and($preferences->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES)
+            ->and($preferences->bookingWindowMinutes)->toBe(SettingsFixtures::BOOKING_WINDOW_MINUTES)
+            ->and($preferences->slotGranularityMinutes)->toBe(SettingsFixtures::SLOT_GRANULARITY_MINUTES)
+            ->and($preferences->cancellationWindowMinutes)->toBe(SettingsFixtures::CANCELLATION_WINDOW_MINUTES)
+            ->and($preferences->policyMessage)->toBe(SettingsFixtures::POLICY_MESSAGE)
+            ->and($preferences->displayOnBookingPage)->toBeTrue();
+    });
+
+    it('leaves the policy untouched when the patch carried no booking policy section', function (UpdateBusinessSettingsInput $input) {
+        ($this->update)($input);
+
+        expect($this->bookingPolicies->applications)->toBe([]);
+    })->with([
+        'nothing at all' => fn () => new UpdateBusinessSettingsInput,
+        'appearance only' => fn () => new UpdateBusinessSettingsInput(appearance: SettingsFixtures::appearance()),
+        'brand only' => fn () => new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()),
+        'schedule only' => fn () => new UpdateBusinessSettingsInput(schedule: SettingsFixtures::schedule()),
+    ]);
+
+    it('answers with the policy as it now stands', function () {
+        $data = ($this->update)(new UpdateBusinessSettingsInput(
+            bookingPolicy: SettingsFixtures::bookingPolicyInput(leadTimeMinutes: 90),
+        ))->value();
+
+        expect($data->bookingPolicy)->toBeInstanceOf(BookingPolicySnapshot::class)
+            ->and($data->bookingPolicy->leadTimeMinutes)->toBe(90)
+            ->and($data->bookingPolicy->displayOnBookingPage)->toBeTrue();
+    });
+
+    it('answers with the policy the business already had when the patch left it out', function () {
+        $data = ($this->update)(new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()))->value();
+
+        expect($data->bookingPolicy->leadTimeMinutes)->toBe(0)
+            ->and($data->bookingPolicy->bookingWindowMinutes)->toBeNull()
+            ->and($data->bookingPolicy->slotGranularityMinutes)->toBe(15)
+            ->and($data->bookingPolicy->cancellationWindowMinutes)->toBe(120)
+            ->and($data->bookingPolicy->displayOnBookingPage)->toBeFalse();
+    });
+
+    it('keeps an unlimited window and a cancellation nobody may use as null, never as zero', function () {
+        $data = ($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput(
+            bookingWindowMinutes: null,
+            cancellationWindowMinutes: null,
+        )))->value();
+
+        $preferences = $this->bookingPolicies->applications[0]['preferences'];
+
+        expect($preferences->bookingWindowMinutes)->toBeNull()
+            ->and($preferences->cancellationWindowMinutes)->toBeNull()
+            ->and($data->bookingPolicy->bookingWindowMinutes)->toBeNull()
+            ->and($data->bookingPolicy->cancellationWindowMinutes)->toBeNull();
+    });
+
+    it('carries a refusal the policy port raised back to the caller', function () {
+        $this->bookingPolicies->failingOnApply(InvalidLeadTime::negative(-1));
+
+        $response = ($this->update)(new UpdateBusinessSettingsInput(
+            bookingPolicy: SettingsFixtures::bookingPolicyInput(leadTimeMinutes: -1),
+        ));
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('invalid_lead_time')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid);
+    });
+
+    it('never reaches the sections that come after a policy the port refused', function () {
+        $this->bookingPolicies->failingOnApply(InvalidLeadTime::negative(-1));
+
+        ($this->update)(SettingsFixtures::everything());
+
+        expect($this->schedule->replacements)->toBe([])
+            ->and($this->links->replacements)->toBe([]);
+    });
+
+    it('leaves another business policy alone', function () {
+        $this->bookingPolicies->store(
+            SettingsFixtures::OTHER_BUSINESS_ID,
+            SettingsFixtures::bookingPolicy(leadTimeMinutes: 15),
+        );
+
+        ($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()));
+
+        expect($this->bookingPolicies->forBusiness(SettingsFixtures::OTHER_BUSINESS_ID)->leadTimeMinutes)->toBe(15);
+    });
+});
+
 describe('patching one section at a time', function () {
     it('never calls the port of a section the client left out', function () {
         ($this->update)(new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()));
@@ -383,6 +492,7 @@ describe('patching one section at a time', function () {
         expect($this->phones->replacements)->toBe([])
             ->and($this->addresses->wasWritten())->toBeFalse()
             ->and($this->bookingPages->applications)->toBe([])
+            ->and($this->bookingPolicies->applications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     });
@@ -441,6 +551,7 @@ describe('patching one section at a time', function () {
             ->and($this->phones->replacements)->toBe([])
             ->and($this->addresses->wasWritten())->toBeFalse()
             ->and($this->bookingPages->applications)->toBe([])
+            ->and($this->bookingPolicies->applications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     });
@@ -460,6 +571,9 @@ describe('leaving the business row alone', function () {
         'an empty schedule only' => fn () => new UpdateBusinessSettingsInput(schedule: new ScheduleInput([])),
         'links only' => fn () => new UpdateBusinessSettingsInput(links: SettingsFixtures::links(SettingsFixtures::link())),
         'an empty link list only' => fn () => new UpdateBusinessSettingsInput(links: new LinksInput([])),
+        'booking policy only' => fn () => new UpdateBusinessSettingsInput(
+            bookingPolicy: SettingsFixtures::bookingPolicyInput(),
+        ),
         'appearance, schedule and links together' => fn () => new UpdateBusinessSettingsInput(
             appearance: SettingsFixtures::appearance(),
             schedule: new ScheduleInput([]),
@@ -551,6 +665,7 @@ describe('refusing an update', function () {
             $this->links,
             $this->schedule,
             $this->bookingPages,
+            $this->bookingPolicies,
             $this->phones,
             new BusinessSettingsPresenter(
                 $elsewhere,
@@ -558,6 +673,7 @@ describe('refusing an update', function () {
                 $this->links,
                 $this->schedule,
                 $this->bookingPages,
+                $this->bookingPolicies,
                 $this->phones,
                 $this->logo,
             ),
@@ -600,6 +716,7 @@ describe('refusing an update', function () {
             ->and($response->error()->kind)->toBe($kind)
             ->and($this->businesses->saved)->toBe([])
             ->and($this->bookingPages->applications)->toBe([])
+            ->and($this->bookingPolicies->applications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     })->with([
@@ -637,6 +754,7 @@ describe('refusing an update', function () {
         expect($response->failed())->toBeTrue()
             ->and($this->businesses->saved)->toBe([])
             ->and($this->bookingPages->applications)->toBe([])
+            ->and($this->bookingPolicies->applications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     });
@@ -688,6 +806,7 @@ describe('the business it belongs to', function () {
         expect($this->phones->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->addresses->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->bookingPages->applications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->bookingPolicies->applications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->schedule->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->links->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID);
     });

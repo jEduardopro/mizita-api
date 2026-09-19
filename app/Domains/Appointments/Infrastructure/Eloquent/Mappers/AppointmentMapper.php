@@ -8,6 +8,7 @@ use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Appointments\ValueObjects\AppointmentNotes;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
+use App\Domains\Appointments\ValueObjects\ReferenceCode;
 use DateTimeImmutable;
 
 final class AppointmentMapper
@@ -26,6 +27,12 @@ final class AppointmentMapper
             ),
             notes: $model->notes === null ? null : AppointmentNotes::restore($model->notes),
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
+            referenceCode: $model->reference_code === null ? null : ReferenceCode::restore($model->reference_code),
+            manageTokenHash: $model->manage_token_hash,
+            manageTokenExpiresAt: $model->manage_token_expires_at,
+            cancelledAt: $model->cancelled_at,
+            cancelledBy: $model->cancelled_by,
+            source: $model->source,
         );
     }
 
@@ -48,6 +55,12 @@ final class AppointmentMapper
             'starts_at' => $appointment->slot()->startsAt->format(DATE_ATOM),
             'ends_at' => $appointment->slot()->endsAt->format(DATE_ATOM),
             'notes' => $appointment->notes()?->value,
+            'reference_code' => $appointment->referenceCode()?->value,
+            'manage_token_hash' => $appointment->manageTokenHash(),
+            'manage_token_expires_at' => $appointment->manageTokenExpiresAt()?->format(DATE_ATOM),
+            'cancelled_at' => $appointment->cancelledAt()?->format(DATE_ATOM),
+            'cancelled_by' => $appointment->cancelledBy(),
+            'source' => $appointment->source(),
         ];
     }
 }

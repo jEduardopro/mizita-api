@@ -2,10 +2,11 @@ import { Head } from '@inertiajs/react';
 import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 import { brandColorClasses, THEME_SCOPES } from '@/lib/booking-brand';
-import { isoWeekdayIn, timeOfDayIn } from '@/lib/timezone';
+import { isoWeekdayIn } from '@/lib/timezone';
 import type { PublicBusinessPage } from '../types';
-import { resolveOpenState, weeklyHoursFrom } from './booking-schedule';
+import { weeklyHoursFrom } from './booking-schedule';
 import { bookingNavSections } from './booking-sections';
+import { BookingPolicyNotice } from './booking/BookingPolicyNotice';
 import { BookingHeader } from './BookingHeader';
 import { BookingHero } from './BookingHero';
 import { BookingSections } from './BookingSections';
@@ -22,10 +23,8 @@ export function BookingPage({ page, openServiceSlug }: Props) {
     const accent = brandColorClasses[page.brand.accent_color];
     const themeScope = THEME_SCOPES[page.brand.theme];
 
-    const now = new Date();
     const days = weeklyHoursFrom(page.schedule);
-    const today = isoWeekdayIn(page.timezone, now);
-    const openState = resolveOpenState(days, today, timeOfDayIn(page.timezone, now));
+    const today = isoWeekdayIn(page.timezone, new Date());
     const todayIntervals = days.find((day) => day.weekday === today)?.intervals ?? [];
 
     return (
@@ -45,14 +44,14 @@ export function BookingPage({ page, openServiceSlug }: Props) {
 
                 <div className="relative z-10 mx-auto -mt-4 grid w-full max-w-5xl gap-8 px-5 pb-16 sm:-mt-8 sm:px-8 sm:pb-24 lg:-mt-12 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10">
                     <div className="min-w-0 lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1 lg:self-start">
-                        <BookingSidebar
-                            page={page}
-                            todayIntervals={todayIntervals}
-                            openState={openState}
-                        />
+                        <BookingSidebar page={page} todayIntervals={todayIntervals} />
                     </div>
 
-                    <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+                    <div className="grid min-w-0 gap-6 lg:col-start-1 lg:row-start-1">
+                        {page.booking_policy === undefined ? null : (
+                            <BookingPolicyNotice message={page.booking_policy.policy_message} />
+                        )}
+
                         <BookingSections
                             page={page}
                             days={days}

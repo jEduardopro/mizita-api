@@ -14,5 +14,10 @@ interface PublishedBusinesses
      */
     public function findBySlug(string $slug): PublicBusinessProfile;
 
+    /**
+     * @throws BusinessPageNotFound
+     */
+    public function identifyBySlug(string $slug): string;
+
     public function existsBySlug(string $slug): bool;
 }

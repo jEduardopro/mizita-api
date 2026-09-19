@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Businesses\Application\Dtos;
 
+use App\Domains\Businesses\Exceptions\IncompleteBookingPolicy;
 use App\Domains\Businesses\Exceptions\InvalidBusinessAbout;
 use App\Domains\Businesses\Exceptions\InvalidBusinessContactEmail;
 use App\Domains\Businesses\Exceptions\InvalidBusinessCurrency;
@@ -24,6 +25,7 @@ final readonly class UpdateBusinessSettingsInput
         public ?LocationInput $location = null,
         public ?ScheduleInput $schedule = null,
         public ?LinksInput $links = null,
+        public ?BookingPolicyInput $bookingPolicy = null,
     ) {}
 
     /**
@@ -38,6 +40,7 @@ final readonly class UpdateBusinessSettingsInput
             location: self::submittedLocation($payload['location'] ?? null),
             schedule: self::submittedSchedule($payload['schedule'] ?? null),
             links: self::submittedLinks($payload['links'] ?? null),
+            bookingPolicy: BookingPolicyInput::fromPayload($payload['booking_policy'] ?? null),
         );
     }
 
@@ -50,12 +53,14 @@ final readonly class UpdateBusinessSettingsInput
      * @throws UnsupportedPhoneNumber
      * @throws InvalidBusinessCurrency
      * @throws InvalidBusinessTimezone
+     * @throws IncompleteBookingPolicy
      */
     public function validate(): void
     {
         $this->brand?->validate();
         $this->contact?->validate();
         $this->location?->validate();
+        $this->bookingPolicy?->validate();
     }
 
     public function changesBusinessRecord(): bool

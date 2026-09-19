@@ -86,7 +86,7 @@ describe('refusing what is not an instant', function () {
     it('refuses a day the calendar does not have rather than moving the appointment to another month', function () {
         expect(fn () => ScheduleInstant::fromString('2026-02-30T10:00:00Z'))
             ->toThrow(InvalidAppointmentSchedule::class);
-    })->todo('blocked: ScheduleInstant accepts 2026-02-30T10:00:00Z and silently rolls it over to 2026-03-02, booking a different day than the caller asked for');
+    });
 });
 
 describe('the day the clocks go forward in Europe/Madrid', function () {

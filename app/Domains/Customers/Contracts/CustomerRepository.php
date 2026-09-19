@@ -35,6 +35,13 @@ interface CustomerRepository
      */
     public function existsAmong(string $businessId, array $customerIds, ?string $exceptId = null): bool;
 
+    public function findByEmail(string $businessId, CustomerEmail $email): ?Customer;
+
+    /**
+     * @param  list<string>  $customerIds
+     */
+    public function findFirstAmong(string $businessId, array $customerIds): ?Customer;
+
     /**
      * @throws CustomerEmailAlreadyTaken
      */

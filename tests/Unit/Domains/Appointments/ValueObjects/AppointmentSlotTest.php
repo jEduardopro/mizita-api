@@ -224,16 +224,16 @@ it('refuses with a failure the responder can classify', function (callable $atte
         ->and($refusal?->errorCode())->toBe('invalid_appointment_schedule')
         ->and($refusal?->kind())->toBe(DomainFailureKind::Invalid);
 })->with([
-    'an inverted slot' => fn () => fn () => AppointmentSlot::between(
+    'an inverted slot' => [fn () => AppointmentSlot::between(
         new DateTimeImmutable('2026-01-01T10:00:00Z'),
         new DateTimeImmutable('2026-01-01T09:00:00Z'),
-    ),
-    'a slot longer than a day' => fn () => fn () => AppointmentSlot::lasting(
+    )],
+    'a slot longer than a day' => [fn () => AppointmentSlot::lasting(
         new DateTimeImmutable('2026-01-01T09:00:00Z'),
         1441,
-    ),
-    'an appointment lasting no time' => fn () => fn () => AppointmentSlot::lasting(
+    )],
+    'an appointment lasting no time' => [fn () => AppointmentSlot::lasting(
         new DateTimeImmutable('2026-01-01T09:00:00Z'),
         0,
-    ),
+    )],
 ]);

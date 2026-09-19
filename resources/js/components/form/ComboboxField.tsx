@@ -15,9 +15,9 @@ export { comboboxOptionsStatus, type ComboboxOptionsStatus } from '@/components/
 
 type Messages = {
     empty: string;
-    optionsError: string;
-    retry: string;
     results: string;
+    optionsError?: string;
+    retry?: string;
 };
 
 type Props = Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'role' | 'list'> & {
@@ -104,7 +104,7 @@ export function ComboboxField({
                     />
                 </Popover>
 
-                {optionsStatus === 'error' ? (
+                {optionsStatus === 'error' && messages.optionsError !== undefined ? (
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="text-xs text-muted-foreground">{messages.optionsError}</p>
 

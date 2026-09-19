@@ -61,6 +61,16 @@ final class FakeCustomerRepository implements CustomerRepository
      */
     public array $membershipChecks = [];
 
+    /**
+     * @var list<array{businessId: string, email: string}>
+     */
+    public array $emailLookups = [];
+
+    /**
+     * @var list<array{businessId: string, customerIds: list<string>}>
+     */
+    public array $membershipLookups = [];
+
     public function __construct(
         public readonly CustomerJournal $journal = new CustomerJournal,
     ) {}
@@ -170,6 +180,45 @@ final class FakeCustomerRepository implements CustomerRepository
         }
 
         return false;
+    }
+
+    public function findByEmail(string $businessId, CustomerEmail $email): ?Customer
+    {
+        $this->journal->record('customers.findByEmail');
+        $this->businessIdsSeen[] = $businessId;
+        $this->emailLookups[] = ['businessId' => $businessId, 'email' => $email->value];
+
+        foreach ($this->customers as $customer) {
+            if ($customer->businessId !== $businessId) {
+                continue;
+            }
+
+            if (mb_strtolower((string) $customer->email()?->value) === mb_strtolower($email->value)) {
+                return $customer;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<string>  $customerIds
+     */
+    public function findFirstAmong(string $businessId, array $customerIds): ?Customer
+    {
+        $this->journal->record('customers.findFirstAmong');
+        $this->businessIdsSeen[] = $businessId;
+        $this->membershipLookups[] = ['businessId' => $businessId, 'customerIds' => $customerIds];
+
+        foreach ($customerIds as $customerId) {
+            $customer = $this->customers[$this->keyFor($businessId, $customerId)] ?? null;
+
+            if ($customer !== null) {
+                return $customer;
+            }
+        }
+
+        return null;
     }
 
     public function save(Customer $customer): void

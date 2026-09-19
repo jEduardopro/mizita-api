@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Application\Dtos;
 
 use App\Domains\Businesses\ValueObjects\BookingPageSnapshot;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
@@ -31,5 +32,6 @@ final readonly class BusinessSettingsData
         public array $schedule,
         public array $links,
         public BookingPageSnapshot $bookingPage,
+        public BookingPolicySnapshot $bookingPolicy,
     ) {}
 }

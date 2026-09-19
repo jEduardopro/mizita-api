@@ -83,5 +83,14 @@
             "title": "We could not load this list.",
             "body": "Check your connection and try again."
         }
+    },
+    "weekdaysInSentence": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
     }
 }

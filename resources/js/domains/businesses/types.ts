@@ -90,6 +90,15 @@ export type ReorderGalleryPayload = {
     images: string[];
 };
 
+export type BookingPolicySettings = {
+    lead_time_minutes: number;
+    booking_window_minutes: number | null;
+    slot_granularity_minutes: number;
+    cancellation_window_minutes: number | null;
+    policy_message: string | null;
+    display_on_booking_page: boolean;
+};
+
 export type BusinessSettings = {
     id: string;
     name: string;
@@ -105,6 +114,7 @@ export type BusinessSettings = {
     schedule: ScheduleRule[];
     links: BusinessLink[];
     booking_page: BookingPageSettings;
+    booking_policy: BookingPolicySettings;
 };
 
 export type BrandSectionPayload = {
@@ -140,6 +150,15 @@ export type LocationSectionPayload = SubmittedAddress & {
     timezone: string;
 };
 
+export type BookingPolicySectionPayload = {
+    lead_time_minutes: number;
+    booking_window_minutes: number | null;
+    slot_granularity_minutes: number;
+    cancellation_window_minutes: number | null;
+    policy_message: string | null;
+    display_on_booking_page: boolean;
+};
+
 export type LinkPayload = {
     platform: LinkPlatform;
     url: string;
@@ -150,6 +169,7 @@ export type UpdateBusinessSettingsPayload = {
     appearance?: AppearanceSectionPayload;
     contact?: ContactSectionPayload;
     location?: LocationSectionPayload;
+    booking_policy?: BookingPolicySectionPayload;
     schedule?: ScheduleRule[];
     links?: LinkPayload[];
 };

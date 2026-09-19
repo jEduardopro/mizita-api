@@ -19,6 +19,13 @@ final readonly class Slug
     private const SHAPE = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
     /**
+     * @var list<string>
+     */
+    private const RESERVED = [
+        'book',
+    ];
+
+    /**
      * @var array<string, string>
      */
     private const TRANSLITERATIONS = [
@@ -43,7 +50,7 @@ final readonly class Slug
     {
         $value = self::normalize($name);
 
-        if ($value === '') {
+        if ($value === '' || self::isReserved($value)) {
             return null;
         }
 
@@ -69,6 +76,10 @@ final readonly class Slug
     public static function fromString(string $value): self
     {
         if (preg_match(self::SHAPE, $value) !== 1 || strlen($value) > self::MAXIMUM_LENGTH) {
+            throw InvalidServiceSlug::forValue($value);
+        }
+
+        if (self::isReserved($value)) {
             throw InvalidServiceSlug::forValue($value);
         }
 
@@ -123,5 +134,10 @@ final readonly class Slug
         }
 
         return substr($clipped, 0, $lastBoundary);
+    }
+
+    private static function isReserved(string $value): bool
+    {
+        return in_array($value, self::RESERVED, true);
     }
 }

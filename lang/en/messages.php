@@ -123,6 +123,7 @@ return [
         'invalid_customer_birth_date' => 'That date of birth is not valid.',
         'invalid_customer_notes' => 'Those notes are too long.',
         'invalid_customer_search' => 'That search is too long.',
+        'invalid_guest_contact' => 'Please leave an email address or a phone number so we can confirm the booking.',
         'customer_photo_too_large' => 'That photo is too large. Please use one under 2 MB.',
         'unsupported_customer_photo' => 'That file is not a photo we support. Please use a JPG, PNG or WebP.',
 
@@ -162,6 +163,36 @@ return [
         'invalid_appointment_schedule' => 'That appointment time is not valid.',
         'invalid_appointment_notes' => 'Those notes are too long.',
         'invalid_calendar_range' => 'That calendar range is not valid.',
+
+        'invalid_availability_range' => 'That availability range is not valid.',
+        'availability_range_too_wide' => 'That availability range covers too many days.',
+        'invalid_slot_query' => 'Choose a service and a team member to see available times.',
+        'bookable_service_not_found' => 'This service is not available for booking.',
+        'staff_member_not_bookable' => 'This team member does not offer the selected service.',
+        'invalid_booking_block' => 'This service has no valid duration, so no times can be offered.',
+
+        'business_currently_closed' => 'This business is closed right now. You can book again once it reopens.',
+        'guest_booking_not_found' => 'We could not find a booking for that reservation code and link.',
+        'appointment_slot_not_bookable' => 'That time is not available for booking.',
+        'appointment_changes_not_allowed' => 'This business does not allow customers to change their bookings.',
+        'cancellation_window_closed' => 'The window for changing this booking has already closed.',
+        'invalid_guest_name' => 'Please enter the name of the person attending.',
+        'invalid_guest_email' => 'That email address is not valid.',
+        'invalid_guest_phone' => 'That phone number is not valid.',
+        'missing_guest_contact_channel' => 'Please provide an email address or a phone number.',
+
+        'invalid_reference_code' => 'That reservation code is not valid.',
+        'invalid_manage_token' => 'That management link is not valid.',
+        'appointment_already_cancelled' => 'That appointment has already been cancelled.',
+        'appointment_already_started' => 'That appointment has already started and can no longer be changed.',
+
+        'booking_policy_not_found' => 'We could not find that booking policy.',
+        'incomplete_booking_policy' => 'The booking policy must be saved with all of its settings.',
+        'invalid_lead_time' => 'That booking lead time is not valid.',
+        'invalid_booking_window' => 'That booking window is not valid.',
+        'invalid_slot_granularity' => 'That slot interval is not valid.',
+        'invalid_cancellation_window' => 'That cancellation window is not valid.',
+        'invalid_policy_message' => 'That policy message is not valid.',
 
     ],
 

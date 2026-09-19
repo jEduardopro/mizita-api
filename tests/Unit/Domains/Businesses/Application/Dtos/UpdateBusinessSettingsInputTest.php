@@ -3,15 +3,19 @@
 declare(strict_types=1);
 
 use App\Domains\Businesses\Application\Dtos\AppearanceInput;
+use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
 use App\Domains\Businesses\Application\Dtos\ScheduleInput;
 use App\Domains\Businesses\Application\Dtos\UpdateBusinessSettingsInput;
+use App\Domains\Businesses\Exceptions\IncompleteBookingPolicy;
 use App\Domains\Businesses\Exceptions\InvalidBusinessContactEmail;
 use App\Domains\Businesses\Exceptions\InvalidBusinessCoordinates;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
+use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\OnboardingFixtures;
 use Tests\Support\Businesses\SettingsFixtures;
 use Tests\Support\PhoneNumbers;
@@ -121,6 +125,196 @@ describe('reading a submitted payload', function () {
     });
 });
 
+describe('the booking policy section', function () {
+    it('reads the booking policy under the keys the client sends', function () {
+        $bookingPolicy = UpdateBusinessSettingsInput::fromRequest(SettingsFixtures::payload([
+            'booking_policy' => SettingsFixtures::bookingPolicySection(),
+        ]))->bookingPolicy;
+
+        expect($bookingPolicy)->toBeInstanceOf(BookingPolicyInput::class)
+            ->and($bookingPolicy?->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES)
+            ->and($bookingPolicy?->bookingWindowMinutes)->toBe(SettingsFixtures::BOOKING_WINDOW_MINUTES)
+            ->and($bookingPolicy?->slotGranularityMinutes)->toBe(SettingsFixtures::SLOT_GRANULARITY_MINUTES)
+            ->and($bookingPolicy?->cancellationWindowMinutes)->toBe(SettingsFixtures::CANCELLATION_WINDOW_MINUTES)
+            ->and($bookingPolicy?->policyMessage)->toBe(SettingsFixtures::POLICY_MESSAGE)
+            ->and($bookingPolicy?->displayOnBookingPage)->toBeTrue();
+    });
+
+    it('reads the minutes the client sent as strings, because a form field is text', function () {
+        $bookingPolicy = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => [
+                'lead_time_minutes' => '60',
+                'booking_window_minutes' => '43200',
+                'slot_granularity_minutes' => '30',
+                'cancellation_window_minutes' => '240',
+            ],
+        ])->bookingPolicy;
+
+        expect($bookingPolicy?->leadTimeMinutes)->toBe(60)
+            ->and($bookingPolicy?->bookingWindowMinutes)->toBe(43200)
+            ->and($bookingPolicy?->slotGranularityMinutes)->toBe(30)
+            ->and($bookingPolicy?->cancellationWindowMinutes)->toBe(240);
+    });
+
+    it('reads a window nobody bounded as null, never as zero', function (mixed $submitted) {
+        $bookingPolicy = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => [
+                'booking_window_minutes' => $submitted,
+                'cancellation_window_minutes' => $submitted,
+            ],
+        ])->bookingPolicy;
+
+        expect($bookingPolicy?->bookingWindowMinutes)->toBeNull()
+            ->and($bookingPolicy?->cancellationWindowMinutes)->toBeNull();
+    })->with([
+        'null' => null,
+        'an empty string' => '',
+        'a word' => 'unlimited',
+    ]);
+
+    it('survives a booking policy with every key missing', function () {
+        $bookingPolicy = UpdateBusinessSettingsInput::fromRequest(['booking_policy' => []])->bookingPolicy;
+
+        expect($bookingPolicy?->leadTimeMinutes)->toBe(0)
+            ->and($bookingPolicy?->bookingWindowMinutes)->toBeNull()
+            ->and($bookingPolicy?->slotGranularityMinutes)->toBe(0)
+            ->and($bookingPolicy?->cancellationWindowMinutes)->toBeNull()
+            ->and($bookingPolicy?->policyMessage)->toBeNull()
+            ->and($bookingPolicy?->displayOnBookingPage)->toBeFalse();
+    });
+
+    it('reads a blank policy message as nothing at all', function (mixed $blank) {
+        expect(UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => ['policy_message' => $blank],
+        ])->bookingPolicy?->policyMessage)->toBeNull();
+    })->with([
+        'an empty string' => '',
+        'spaces' => '   ',
+        'null' => null,
+    ]);
+
+    it('reads the toggle however the client spelled a boolean', function (mixed $submitted, bool $expected) {
+        expect(UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => ['display_on_booking_page' => $submitted],
+        ])->bookingPolicy?->displayOnBookingPage)->toBe($expected);
+    })->with([
+        'true' => [true, true],
+        'the string true' => ['true', true],
+        'one' => [1, true],
+        'false' => [false, false],
+        'the string false' => ['false', false],
+        'zero' => [0, false],
+        'null' => [null, false],
+    ]);
+
+    it('treats a booking policy it cannot read as one the client never sent', function (mixed $section) {
+        expect(UpdateBusinessSettingsInput::fromRequest(['booking_policy' => $section])->bookingPolicy)->toBeNull();
+    })->with([
+        'null' => null,
+        'a string' => 'nonsense',
+        'a number' => 7,
+    ]);
+
+    it('accepts a booking policy that carries every key the section is made of', function () {
+        $input = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => SettingsFixtures::bookingPolicySection(),
+        ]);
+
+        expect(fn () => $input->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('refuses a booking policy submitted without one of its keys', function (string $absent) {
+        $section = SettingsFixtures::bookingPolicySection();
+        unset($section[$absent]);
+
+        $input = UpdateBusinessSettingsInput::fromRequest(['booking_policy' => $section]);
+
+        try {
+            $input->validate();
+            $thrown = null;
+        } catch (Throwable $refusal) {
+            $thrown = $refusal;
+        }
+
+        expect($thrown)->toBeInstanceOf(IncompleteBookingPolicy::class)
+            ->and($thrown->errorCode())->toBe('incomplete_booking_policy')
+            ->and($thrown->kind())->toBe(DomainFailureKind::Invalid)
+            ->and($thrown)->toBeInstanceOf(DomainFailure::class);
+    })->with([
+        'lead time' => 'lead_time_minutes',
+        'booking window' => 'booking_window_minutes',
+        'slot granularity' => 'slot_granularity_minutes',
+        'cancellation window' => 'cancellation_window_minutes',
+        'policy message' => 'policy_message',
+        'display toggle' => 'display_on_booking_page',
+    ]);
+
+    it('refuses a booking policy submitted as an empty section', function () {
+        expect(fn () => UpdateBusinessSettingsInput::fromRequest(['booking_policy' => []])->validate())
+            ->toThrow(IncompleteBookingPolicy::class);
+    });
+
+    it('names every key the section was missing, not only the first', function () {
+        $input = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => ['lead_time_minutes' => 30],
+        ]);
+
+        try {
+            $input->validate();
+            $message = '';
+        } catch (IncompleteBookingPolicy $refusal) {
+            $message = $refusal->getMessage();
+        }
+
+        expect($message)->toContain('booking_window_minutes')
+            ->and($message)->toContain('slot_granularity_minutes')
+            ->and($message)->toContain('cancellation_window_minutes')
+            ->and($message)->toContain('policy_message')
+            ->and($message)->toContain('display_on_booking_page')
+            ->and($message)->not->toContain('lead_time_minutes');
+    });
+
+    it('accepts a key the client deliberately emptied, because null is an answer', function (string $key) {
+        $input = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => [...SettingsFixtures::bookingPolicySection(), $key => null],
+        ]);
+
+        expect(fn () => $input->validate())->not->toThrow(Throwable::class);
+    })->with([
+        'no booking window' => 'booking_window_minutes',
+        'no cancellation window' => 'cancellation_window_minutes',
+        'no policy message' => 'policy_message',
+    ]);
+
+    it('reads an emptied optional key as null rather than as a number', function () {
+        $policy = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => [
+                ...SettingsFixtures::bookingPolicySection(),
+                'booking_window_minutes' => null,
+                'cancellation_window_minutes' => null,
+                'policy_message' => null,
+            ],
+        ])->bookingPolicy;
+
+        expect($policy)->toBeInstanceOf(BookingPolicyInput::class)
+            ->and($policy?->bookingWindowMinutes)->toBeNull()
+            ->and($policy?->cancellationWindowMinutes)->toBeNull()
+            ->and($policy?->policyMessage)->toBeNull();
+    });
+
+    it('leaves the booking policy values themselves to the domain that owns them', function () {
+        $input = UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => [
+                ...SettingsFixtures::bookingPolicySection(),
+                'lead_time_minutes' => -1,
+                'slot_granularity_minutes' => 7,
+            ],
+        ]);
+
+        expect(fn () => $input->validate())->not->toThrow(Throwable::class);
+    });
+});
+
 describe('patching one section at a time', function () {
     it('leaves out every section the client did not send', function () {
         $input = UpdateBusinessSettingsInput::fromRequest([
@@ -136,7 +330,8 @@ describe('patching one section at a time', function () {
             ->and($input->contact)->toBeNull()
             ->and($input->location)->toBeNull()
             ->and($input->schedule)->toBeNull()
-            ->and($input->links)->toBeNull();
+            ->and($input->links)->toBeNull()
+            ->and($input->bookingPolicy)->toBeNull();
     });
 
     it('builds an input that changes nothing out of an empty payload', function () {
@@ -148,6 +343,7 @@ describe('patching one section at a time', function () {
             ->and($input->location)->toBeNull()
             ->and($input->schedule)->toBeNull()
             ->and($input->links)->toBeNull()
+            ->and($input->bookingPolicy)->toBeNull()
             ->and(fn () => $input->validate())->not->toThrow(Throwable::class);
     });
 

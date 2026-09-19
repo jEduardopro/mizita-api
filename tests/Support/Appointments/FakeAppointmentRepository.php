@@ -39,6 +39,11 @@ final class FakeAppointmentRepository implements AppointmentRepository
      */
     public array $searches = [];
 
+    /**
+     * @var list<array{businessId: string, referenceCode: string}>
+     */
+    public array $referenceCodeLookups = [];
+
     public function __construct(
         public readonly AppointmentJournal $journal = new AppointmentJournal,
     ) {}
@@ -93,6 +98,25 @@ final class FakeAppointmentRepository implements AppointmentRepository
 
         return $this->appointments[$this->keyFor($businessId, $id)]
             ?? throw AppointmentNotFound::withId($id);
+    }
+
+    public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment
+    {
+        $this->journal->record('appointments.findByReferenceCode');
+        $this->businessIdsSeen[] = $businessId;
+        $this->referenceCodeLookups[] = ['businessId' => $businessId, 'referenceCode' => $referenceCode];
+
+        foreach ($this->appointments as $appointment) {
+            if ($appointment->businessId !== $businessId) {
+                continue;
+            }
+
+            if ($appointment->referenceCode()?->value === $referenceCode) {
+                return $appointment;
+            }
+        }
+
+        return null;
     }
 
     public function save(Appointment $appointment): void

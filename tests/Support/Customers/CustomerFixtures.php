@@ -6,6 +6,7 @@ namespace Tests\Support\Customers;
 
 use App\Domains\Customers\Application\Dtos\CreateCustomerInput;
 use App\Domains\Customers\Application\Dtos\CustomerPhoneInput;
+use App\Domains\Customers\Application\Dtos\GuestContactInput;
 use App\Domains\Customers\Application\Dtos\UpdateCustomerInput;
 use App\Domains\Customers\Entities\Customer;
 use App\Domains\Customers\ValueObjects\BirthDate;
@@ -136,6 +137,20 @@ final class CustomerFixtures
             birthDate: $birthDate,
             notes: $notes,
             address: $address,
+        );
+    }
+
+    public static function guestContact(
+        string $name = self::NAME,
+        ?string $email = self::EMAIL,
+        ?CustomerPhoneInput $phone = new CustomerPhoneInput(self::COUNTRY_CODE, PhoneNumbers::MX_NATIONAL_NUMBER),
+        ?string $notes = null,
+    ): GuestContactInput {
+        return new GuestContactInput(
+            name: $name,
+            email: $email,
+            phone: $phone,
+            notes: $notes,
         );
     }
 

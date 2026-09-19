@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Businesses\ValueObjects\Slug;
+use App\Domains\PublicCatalog\Contracts\GuestBookingDesk;
 use App\Shared\Contracts\BusinessContext;
 use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\Assert;
@@ -28,6 +29,25 @@ function mizitaPublicCatalogClasses(): array
         DomainLayers::applicationClasses(),
         static fn (string $class): bool => str_starts_with($class, 'App\Domains\PublicCatalog\\'),
     ));
+}
+
+/**
+ * @return list<class-string>
+ */
+function mizitaPublicCatalogPorts(): array
+{
+    return array_values(array_map(
+        static fn (string $file): string => 'App\Domains\PublicCatalog\Contracts\\'.basename($file, '.php'),
+        glob(dirname(__DIR__, 2).'/app/Domains/PublicCatalog/Contracts/*.php') ?: [],
+    ));
+}
+
+/**
+ * @return list<class-string>
+ */
+function mizitaPublicCatalogWritePorts(): array
+{
+    return [GuestBookingDesk::class];
 }
 
 /**
@@ -80,14 +100,28 @@ it('keeps the business context out of the public catalog, which resolves its ten
         ->and($offenders)->toBe([]);
 });
 
-it('declares only reads on the ports the public catalog owns, so an anonymous visit writes nothing', function () {
+it('lets the guest booking desk be the one public catalog port allowed to write, and nothing else', function () {
+    $allowed = mizitaPublicCatalogWritePorts();
+
+    Assert::assertSame(
+        [GuestBookingDesk::class],
+        $allowed,
+        'Booking as a guest is the only write an anonymous visitor may reach, so the carve-out stays a closed list of one port. Widening it is a security decision, not a refactor.',
+    );
+
+    Assert::assertTrue(
+        interface_exists(GuestBookingDesk::class),
+        'The allow-list names a port that no longer exists, so this rule is not checking anything.',
+    );
+});
+
+it('declares only reads on every other port the public catalog owns, so an anonymous visit writes nothing', function () {
     $writeVerbs = ['save', 'store', 'create', 'update', 'delete', 'remove', 'replace', 'attach', 'provision', 'sync'];
     $ports = DomainLayers::namespacesFor('Contracts');
+    $readOnly = array_values(array_diff(mizitaPublicCatalogPorts(), mizitaPublicCatalogWritePorts()));
     $offenders = [];
 
-    foreach (glob(dirname(__DIR__, 2).'/app/Domains/PublicCatalog/Contracts/*.php') ?: [] as $file) {
-        $port = 'App\Domains\PublicCatalog\Contracts\\'.basename($file, '.php');
-
+    foreach ($readOnly as $port) {
         foreach ((new ReflectionClass($port))->getMethods() as $method) {
             $writes = array_filter(
                 $writeVerbs,
@@ -101,7 +135,27 @@ it('declares only reads on the ports the public catalog owns, so an anonymous vi
     }
 
     expect($ports)->toContain('App\Domains\PublicCatalog\Contracts')
+        ->and($readOnly)->not->toBeEmpty()
         ->and($offenders)->toBe([]);
+});
+
+it('makes the one write port hand something back, because a booking owes the visitor its reference and its token', function () {
+    $offenders = [];
+
+    foreach (mizitaPublicCatalogWritePorts() as $port) {
+        foreach ((new ReflectionClass($port))->getMethods() as $method) {
+            if ((string) $method->getReturnType() === 'void') {
+                $offenders[] = $port.'::'.$method->getName().'()';
+            }
+        }
+    }
+
+    Assert::assertSame(
+        [],
+        $offenders,
+        "A guest booking that answered with void would strand the visitor without the reference code and the manage token they need to come back:\n  - "
+        .implode("\n  - ", $offenders),
+    );
 });
 
 it('owns no table, so it declares no model and no repository of its own', function () {

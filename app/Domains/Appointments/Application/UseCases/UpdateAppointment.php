@@ -12,6 +12,8 @@ use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
 use App\Domains\Appointments\Entities\Appointment;
+use App\Domains\Appointments\Exceptions\AppointmentAlreadyCancelled;
+use App\Domains\Appointments\Exceptions\AppointmentAlreadyStarted;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
@@ -20,6 +22,7 @@ use App\Domains\Appointments\ValueObjects\AppointmentSlot;
 use App\Domains\Appointments\ValueObjects\ServiceSnapshot;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
+use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
 use DateTimeImmutable;
 
@@ -32,6 +35,7 @@ final class UpdateAppointment
         private readonly StaffDirectory $staff,
         private readonly AppointmentPresenter $presenter,
         private readonly BusinessContext $business,
+        private readonly Clock $clock,
     ) {}
 
     /**
@@ -58,6 +62,8 @@ final class UpdateAppointment
      * @throws AppointmentServiceNotFound
      * @throws AppointmentStaffNotFound
      * @throws AppointmentOverlaps
+     * @throws AppointmentAlreadyCancelled
+     * @throws AppointmentAlreadyStarted
      */
     private function apply(UpdateAppointmentInput $input, Appointment $appointment, string $businessId): void
     {
@@ -69,7 +75,10 @@ final class UpdateAppointment
         $appointment->changeCustomer($input->customerId);
         $appointment->changeService($input->serviceId);
         $appointment->reassign($input->staffMemberId);
-        $appointment->reschedule(self::slotFor($input->toStartsAt(), $input->toEndsAt(), $service));
+        $appointment->rescheduleTo(
+            self::slotFor($input->toStartsAt(), $input->toEndsAt(), $service),
+            $this->clock->now(),
+        );
         $appointment->changeNotes($input->toNotes());
 
         $this->appointments->save($appointment);

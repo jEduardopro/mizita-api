@@ -2,17 +2,10 @@ import { WEEKDAYS, type TimeInterval, type WeekdayNumber } from '@/lib/booking-b
 import { formatTimeOfDay } from '@/lib/time';
 import type { PublicScheduleEntry } from '../types';
 
-const DAYS_IN_WEEK = WEEKDAYS.length;
-
 export type BookingDayHours = {
     weekday: WeekdayNumber;
     intervals: TimeInterval[];
 };
-
-export type BookingOpenState =
-    | { status: 'open'; closesAt: string }
-    | { status: 'closed'; opensWeekday: WeekdayNumber; opensAt: string }
-    | { status: 'unknown' };
 
 export function weeklyHoursFrom(entries: PublicScheduleEntry[]): BookingDayHours[] {
     return WEEKDAYS.map((weekday) => ({
@@ -33,43 +26,4 @@ export function intervalLabelFor(interval: TimeInterval): string {
     const closes = formatTimeOfDay(interval.ends_at);
 
     return `${opens} – ${closes}`;
-}
-
-function intervalsOn(days: BookingDayHours[], weekday: WeekdayNumber): TimeInterval[] {
-    return days.find((day) => day.weekday === weekday)?.intervals ?? [];
-}
-
-function weekdayAfter(weekday: WeekdayNumber, offset: number): WeekdayNumber {
-    return WEEKDAYS[(weekday - 1 + offset) % DAYS_IN_WEEK];
-}
-
-export function resolveOpenState(
-    days: BookingDayHours[],
-    weekday: WeekdayNumber | null,
-    timeOfDay: string | null,
-): BookingOpenState {
-    if (weekday === null || timeOfDay === null) {
-        return { status: 'unknown' };
-    }
-
-    const current = intervalsOn(days, weekday).find(
-        (interval) => interval.starts_at <= timeOfDay && timeOfDay < interval.ends_at,
-    );
-
-    if (current !== undefined) {
-        return { status: 'open', closesAt: current.ends_at };
-    }
-
-    for (let offset = 0; offset < DAYS_IN_WEEK; offset += 1) {
-        const day = weekdayAfter(weekday, offset);
-        const next = intervalsOn(days, day).find(
-            (interval) => offset > 0 || interval.starts_at > timeOfDay,
-        );
-
-        if (next !== undefined) {
-            return { status: 'closed', opensWeekday: day, opensAt: next.starts_at };
-        }
-    }
-
-    return { status: 'unknown' };
 }

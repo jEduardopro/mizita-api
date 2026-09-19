@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Businesses;
 
 use App\Domains\Businesses\Contracts\BookingPageSettings;
+use App\Domains\Businesses\Contracts\BookingPolicySettings;
 use App\Domains\Businesses\Contracts\BusinessAddressBook;
 use App\Domains\Businesses\Contracts\BusinessLinkList;
 use App\Domains\Businesses\Contracts\BusinessLogo;
@@ -19,6 +20,7 @@ use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Businesses\Infrastructure\Gateways\AddressesBusinessAddressBook;
 use App\Domains\Businesses\Infrastructure\Gateways\AvailabilityBusinessSchedule;
 use App\Domains\Businesses\Infrastructure\Gateways\BookingPagesBookingPageSettings;
+use App\Domains\Businesses\Infrastructure\Gateways\BookingPoliciesBookingPolicySettings;
 use App\Domains\Businesses\Infrastructure\Gateways\EloquentBusinessTeamKey;
 use App\Domains\Businesses\Infrastructure\Gateways\IndustriesIndustryCatalog;
 use App\Domains\Businesses\Infrastructure\Gateways\LinksBusinessLinkList;
@@ -55,6 +57,7 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(BusinessLinkList::class, LinksBusinessLinkList::class);
         $this->app->bind(BusinessSchedule::class, AvailabilityBusinessSchedule::class);
         $this->app->bind(BookingPageSettings::class, BookingPagesBookingPageSettings::class);
+        $this->app->bind(BookingPolicySettings::class, BookingPoliciesBookingPolicySettings::class);
     }
 
     public function boot(): void

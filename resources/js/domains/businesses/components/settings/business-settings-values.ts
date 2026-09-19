@@ -1,3 +1,8 @@
+import {
+    durationFromMinutes,
+    minutesFromDuration,
+    type Duration,
+} from '@/components/form/duration-units';
 import type {
     BusinessSettings,
     ScheduleRule,
@@ -14,6 +19,19 @@ import {
 } from '@/lib/booking-brand';
 import { SUPPORTED_PHONE_COUNTRIES, type PhoneCountryCode } from '@/lib/phone';
 import { resolvedTimezone } from '@/lib/timezone';
+import {
+    BOOKING_WINDOW_UNITS,
+    cancellationWindowFrom,
+    cancellationWindowMinutesFrom,
+    DEFAULT_BOOKING_WINDOW_UNIT,
+    DEFAULT_CANCELLATION_WINDOW,
+    DEFAULT_LEAD_TIME_UNIT,
+    DEFAULT_SLOT_SIZE_MINUTES,
+    DEFAULT_SLOT_SIZE_UNIT,
+    LEAD_TIME_UNITS,
+    SLOT_SIZE_UNITS,
+    type CancellationWindow,
+} from './booking-policy-options';
 import { DEFAULT_COUNTRY_CODE, DEFAULT_CURRENCY_CODE } from './location-options';
 
 const DEFAULT_ACCENT_COLOR: BrandColor = 'ink';
@@ -30,6 +48,7 @@ export const BUSINESS_SETTINGS_SECTION_IDS = {
     contact: 'contact',
     location: 'location',
     hours: 'hours',
+    policy: 'policy',
     links: 'links',
 } as const;
 
@@ -42,6 +61,7 @@ export const BUSINESS_SETTINGS_SECTIONS = [
     { id: BUSINESS_SETTINGS_SECTION_IDS.contact, labelKey: 'businessSettings.sections.contact' },
     { id: BUSINESS_SETTINGS_SECTION_IDS.location, labelKey: 'businessSettings.sections.location' },
     { id: BUSINESS_SETTINGS_SECTION_IDS.hours, labelKey: 'businessSettings.sections.hours' },
+    { id: BUSINESS_SETTINGS_SECTION_IDS.policy, labelKey: 'businessSettings.sections.policy' },
     { id: BUSINESS_SETTINGS_SECTION_IDS.links, labelKey: 'businessSettings.sections.links' },
 ] as const;
 
@@ -66,6 +86,12 @@ export type BusinessSettingsFormValues = {
     currencyCode: string;
     timezone: string;
     hours: WeeklyHours;
+    leadTime: Duration;
+    bookingWindow: Duration;
+    slotSize: Duration;
+    cancellationWindow: CancellationWindow;
+    policyMessage: string;
+    displayPolicyOnBookingPage: boolean;
     links: Record<LinkPlatform, string>;
 };
 
@@ -92,6 +118,12 @@ export const serverFields: Record<BusinessSettingsField, string> = {
     currencyCode: 'location.currency_code',
     timezone: 'location.timezone',
     hours: 'schedule',
+    leadTime: 'booking_policy.lead_time_minutes',
+    bookingWindow: 'booking_policy.booking_window_minutes',
+    slotSize: 'booking_policy.slot_granularity_minutes',
+    cancellationWindow: 'booking_policy.cancellation_window_minutes',
+    policyMessage: 'booking_policy.policy_message',
+    displayPolicyOnBookingPage: 'booking_policy.display_on_booking_page',
     links: 'links',
 };
 
@@ -165,6 +197,12 @@ export function initialBusinessSettingsValues(
             currencyCode: DEFAULT_CURRENCY_CODE,
             timezone: resolvedTimezone(),
             hours: emptyWeeklyHours(),
+            leadTime: { amount: 0, unit: DEFAULT_LEAD_TIME_UNIT },
+            bookingWindow: { amount: 0, unit: DEFAULT_BOOKING_WINDOW_UNIT },
+            slotSize: { amount: DEFAULT_SLOT_SIZE_MINUTES, unit: DEFAULT_SLOT_SIZE_UNIT },
+            cancellationWindow: DEFAULT_CANCELLATION_WINDOW,
+            policyMessage: '',
+            displayPolicyOnBookingPage: false,
             links: emptyLinks(),
         };
     }
@@ -190,6 +228,26 @@ export function initialBusinessSettingsValues(
         currencyCode: settings.currency_code,
         timezone: settings.timezone,
         hours: weeklyHoursFrom(settings.schedule),
+        leadTime: durationFromMinutes(
+            settings.booking_policy.lead_time_minutes,
+            LEAD_TIME_UNITS,
+            DEFAULT_LEAD_TIME_UNIT,
+        ),
+        bookingWindow: durationFromMinutes(
+            settings.booking_policy.booking_window_minutes ?? 0,
+            BOOKING_WINDOW_UNITS,
+            DEFAULT_BOOKING_WINDOW_UNIT,
+        ),
+        slotSize: durationFromMinutes(
+            settings.booking_policy.slot_granularity_minutes,
+            SLOT_SIZE_UNITS,
+            DEFAULT_SLOT_SIZE_UNIT,
+        ),
+        cancellationWindow: cancellationWindowFrom(
+            settings.booking_policy.cancellation_window_minutes,
+        ),
+        policyMessage: settings.booking_policy.policy_message ?? '',
+        displayPolicyOnBookingPage: settings.booking_policy.display_on_booking_page,
         links: linksFrom(settings),
     };
 }
@@ -212,6 +270,12 @@ function scheduleFrom(hours: WeeklyHours): ScheduleRule[] {
 
 function submittedLinkPlatforms(links: Record<LinkPlatform, string>): LinkPlatform[] {
     return LINK_PLATFORMS.filter((platform) => links[platform].trim() !== '');
+}
+
+function bookingWindowMinutesFrom(bookingWindow: Duration): number | null {
+    const minutes = minutesFromDuration(bookingWindow);
+
+    return minutes === 0 ? null : minutes;
 }
 
 export function businessSettingsPayloadFrom(
@@ -248,6 +312,14 @@ export function businessSettingsPayloadFrom(
             longitude: values.longitude,
             currency_code: values.currencyCode,
             timezone: values.timezone,
+        },
+        booking_policy: {
+            lead_time_minutes: minutesFromDuration(values.leadTime),
+            booking_window_minutes: bookingWindowMinutesFrom(values.bookingWindow),
+            slot_granularity_minutes: minutesFromDuration(values.slotSize),
+            cancellation_window_minutes: cancellationWindowMinutesFrom(values.cancellationWindow),
+            policy_message: trimmedOrNull(values.policyMessage),
+            display_on_booking_page: values.displayPolicyOnBookingPage,
         },
         schedule: scheduleFrom(values.hours),
         links: submittedLinkPlatforms(values.links).map((platform) => ({

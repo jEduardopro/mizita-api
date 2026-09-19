@@ -1,4 +1,8 @@
+import { timeOfDayIn } from '@/lib/timezone';
+
 const TIME_OF_DAY_PATTERN = /^(\d{2}):(\d{2})$/;
+
+const UTC_TIMEZONE = 'UTC';
 
 const MINUTE_IN_MS = 60_000;
 
@@ -41,4 +45,11 @@ export function formatTimeOfDay(value: string): string {
     const meridiem = hours < HOURS_IN_HALF_DAY ? ANTE_MERIDIEM : POST_MERIDIEM;
 
     return `${hoursOnClock}:${minuteText} ${meridiem}`;
+}
+
+export function formatInstantTimeOfDay(instant: string, timeZone: string): string {
+    const moment = new Date(instant);
+    const timeOfDay = timeOfDayIn(timeZone, moment) ?? timeOfDayIn(UTC_TIMEZONE, moment);
+
+    return timeOfDay === null ? '' : formatTimeOfDay(timeOfDay);
 }

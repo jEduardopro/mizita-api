@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import {
+    cancelAppointment,
     createAppointment,
     deleteAppointment,
     getAppointment,
@@ -40,15 +41,20 @@ export function useAppointment(id: string) {
     });
 }
 
+function useAppointmentsInvalidation() {
+    const queryClient = useQueryClient();
+
+    return useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+    }, [queryClient]);
+}
+
 function useAppointmentMutation<TVariables, TData>(
     mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
-    const queryClient = useQueryClient();
+    const invalidateAppointments = useAppointmentsInvalidation();
 
-    return useMutation({
-        mutationFn,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: appointmentKeys.all }),
-    });
+    return useMutation({ mutationFn, onSuccess: invalidateAppointments });
 }
 
 export function useCreateAppointment() {
@@ -59,6 +65,15 @@ export function useUpdateAppointment() {
     return useAppointmentMutation(({ id, payload }: { id: string; payload: AppointmentPayload }) =>
         updateAppointment(id, payload),
     );
+}
+
+export function useCancelAppointment() {
+    const invalidateAppointments = useAppointmentsInvalidation();
+
+    return useMutation({
+        mutationFn: (id: string) => cancelAppointment(id),
+        onSettled: invalidateAppointments,
+    });
 }
 
 export function useDeleteAppointment() {

@@ -1,5 +1,5 @@
+import { Link } from '@inertiajs/react';
 import { cn } from 'cn';
-import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     brandColorClasses,
@@ -7,38 +7,81 @@ import {
     type BrandColor,
     type ButtonShape,
 } from '@/lib/booking-brand';
+import { formatTimeOfDay } from '@/lib/time';
+import { WEEKDAY_IN_SENTENCE_LABEL_KEYS } from '@/lib/weekdays';
+import type { PublicOpenState } from '../types';
 
 type Props = {
+    href: string;
+    openState: PublicOpenState;
     accentColor: BrandColor;
     buttonShape: ButtonShape;
     className?: string;
 };
 
-export function BookingCta({ accentColor, buttonShape, className }: Props) {
+const CTA_CLASS =
+    'flex min-h-12 items-center justify-center gap-2 px-6 py-2.5 text-center text-base font-medium text-pretty outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
+
+function useClosedLabel(state: PublicOpenState): string | null {
     const { t } = useTranslation('public');
-    const noteId = useId();
+    const { t: tCommon } = useTranslation('common');
+
+    if (state.open) {
+        return null;
+    }
+
+    if (state.opens_on_weekday === null || state.opens_at === null) {
+        return t('booking.cta.closedIndefinitely');
+    }
+
+    return t('booking.cta.closed', {
+        day: tCommon(WEEKDAY_IN_SENTENCE_LABEL_KEYS[state.opens_on_weekday]),
+        time: formatTimeOfDay(state.opens_at),
+    });
+}
+
+export function BookingCta({ href, openState, accentColor, buttonShape, className }: Props) {
+    const { t } = useTranslation('public');
 
     const accent = brandColorClasses[accentColor];
+    const closedLabel = useClosedLabel(openState);
+    const shape = BUTTON_SHAPE_CLASSES[buttonShape];
 
-    return (
-        <div className={cn('grid gap-2', className)}>
+    if (closedLabel !== null) {
+        return (
             <button
                 type="button"
-                aria-disabled="true"
-                aria-describedby={noteId}
+                disabled
                 className={cn(
-                    'flex h-12 w-full cursor-default items-center justify-center px-6 text-base font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                    accent.accent,
-                    accent.accentForeground,
-                    BUTTON_SHAPE_CLASSES[buttonShape],
+                    CTA_CLASS,
+                    'border border-border bg-muted text-sm text-muted-foreground',
+                    shape,
+                    className,
                 )}
             >
-                {t('booking.cta.book')}
-            </button>
+                <span
+                    aria-hidden="true"
+                    className="size-1.5 shrink-0 rounded-full bg-muted-foreground"
+                />
 
-            <p id={noteId} className="text-center text-xs text-muted-foreground text-balance">
-                {t('booking.cta.soon')}
-            </p>
-        </div>
+                {closedLabel}
+            </button>
+        );
+    }
+
+    return (
+        <Link
+            href={href}
+            className={cn(
+                CTA_CLASS,
+                'motion-safe:transition-opacity hover:opacity-90',
+                accent.accent,
+                accent.accentForeground,
+                shape,
+                className,
+            )}
+        >
+            {t('booking.cta.book')}
+        </Link>
     );
 }

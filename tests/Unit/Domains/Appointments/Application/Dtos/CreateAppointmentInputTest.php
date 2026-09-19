@@ -38,9 +38,7 @@ dataset('ids no appointment participant could ever have', [
     'sql' => "01930000-0000-7000-8000-0000000000c1' or '1'='1",
 ]);
 
-dataset('instants no clock could read', [
-    'empty' => '',
-    'whitespace only' => '   ',
+const MALFORMED_INSTANTS = [
     'a word' => 'tomorrow',
     'a date with no time' => '2026-03-02',
     'a time with no zone' => '2026-03-02T10:00:00',
@@ -52,7 +50,16 @@ dataset('instants no clock could read', [
     'a zone name instead of an offset' => '2026-03-02T10:00:00 Europe/Madrid',
     'a month the calendar lacks' => '2026-13-01T10:00:00Z',
     'an hour the clock lacks' => '2026-03-02T25:00:00Z',
+    'a day the calendar lacks' => '2026-02-30T10:00:00Z',
+];
+
+dataset('instants no clock could read', [
+    'empty' => '',
+    'whitespace only' => '   ',
+    ...MALFORMED_INSTANTS,
 ]);
+
+dataset('written instants no clock could read', MALFORMED_INSTANTS);
 
 describe('reading a payload', function () {
     it('assembles itself from a body the form request would have passed', function () {
@@ -228,7 +235,18 @@ describe('validating the schedule', function () {
         expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
             'ends_at' => $endsAt,
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
-    })->with('instants no clock could read');
+    })->with('written instants no clock could read');
+
+    it('reads an end the client left blank as no end at all, to be derived from the service', function (string $endsAt) {
+        $input = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['ends_at' => $endsAt]));
+
+        expect($input->endsAt)->toBeNull()
+            ->and(fn () => $input->validate())->not->toThrow(Throwable::class)
+            ->and($input->toEndsAt())->toBeNull();
+    })->with([
+        'empty' => '',
+        'whitespace only' => '   ',
+    ]);
 
     it('accepts an instant however its zone is written', function (string $startsAt) {
         expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
@@ -254,14 +272,14 @@ describe('validating the schedule', function () {
             'starts_at' => '2026-03-02T11:00:00Z',
             'ends_at' => '2026-03-02T10:00:00Z',
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
-    })->todo('blocked: CreateAppointmentInput::validateSchedule() parses both instants but never compares them, so the after:starts_at rule the form request states is missing from the DTO leg');
+    });
 
     it('refuses a booking that ends the instant it starts', function () {
         expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
             'starts_at' => '2026-03-02T10:00:00Z',
             'ends_at' => '2026-03-02T10:00:00+00:00',
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
-    })->todo('blocked: CreateAppointmentInput::validateSchedule() parses both instants but never compares them, so a zero length booking passes the DTO leg');
+    });
 });
 
 describe('validating the notes', function () {
@@ -407,10 +425,16 @@ describe('turning itself into what the use case books', function () {
         ]))->toStartsAt())->toThrow(InvalidAppointmentSchedule::class);
     });
 
-    it('rolls a day the calendar lacks over into the next month rather than refusing it', function () {
-        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+    it('refuses a day the calendar lacks rather than rolling it into the next month', function () {
+        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
             'starts_at' => '2026-02-30T10:00:00Z',
-        ]))->toStartsAt())->toEqual(new DateTimeImmutable('2026-03-02T10:00:00+00:00'));
+        ]))->toStartsAt())->toThrow(InvalidAppointmentSchedule::class);
+    });
+
+    it('accepts the twenty ninth of February in a leap year', function () {
+        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+            'starts_at' => '2028-02-29T10:00:00Z',
+        ]))->toStartsAt())->toEqual(new DateTimeImmutable('2028-02-29T10:00:00+00:00'));
     });
 
     it('reads a spring forward booking as the absolute instant its offset names', function () {

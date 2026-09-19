@@ -21,6 +21,8 @@ interface AppointmentRepository
      */
     public function findForBusiness(string $businessId, string $id): Appointment;
 
+    public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment;
+
     /**
      * @throws AppointmentOverlaps
      */

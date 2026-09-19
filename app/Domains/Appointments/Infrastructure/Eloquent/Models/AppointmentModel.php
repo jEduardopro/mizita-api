@@ -6,18 +6,37 @@ namespace App\Domains\Appointments\Infrastructure\Eloquent\Models;
 
 use App\Domains\Appointments\Infrastructure\Eloquent\Casts\UtcInstant;
 use App\Domains\Appointments\Infrastructure\Eloquent\Factories\AppointmentModelFactory;
+use App\Domains\Appointments\ValueObjects\BookingSource;
+use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
 use App\Domains\Services\Infrastructure\Eloquent\Models\ServiceModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['uuid', 'business_id', 'customer_id', 'service_id', 'staff_member_id', 'starts_at', 'ends_at', 'notes'])]
+#[Fillable([
+    'uuid',
+    'business_id',
+    'customer_id',
+    'service_id',
+    'staff_member_id',
+    'starts_at',
+    'ends_at',
+    'notes',
+    'reference_code',
+    'manage_token_hash',
+    'manage_token_expires_at',
+    'cancelled_at',
+    'cancelled_by',
+    'source',
+])]
+#[Hidden(['manage_token_hash'])]
 class AppointmentModel extends Model
 {
     use HasFactory;
@@ -84,6 +103,10 @@ class AppointmentModel extends Model
         return [
             'starts_at' => UtcInstant::class,
             'ends_at' => UtcInstant::class,
+            'manage_token_expires_at' => UtcInstant::class,
+            'cancelled_at' => UtcInstant::class,
+            'cancelled_by' => Canceller::class,
+            'source' => BookingSource::class,
         ];
     }
 

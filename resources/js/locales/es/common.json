@@ -83,5 +83,14 @@
             "title": "No hemos podido cargar la lista.",
             "body": "Revisa tu conexión e inténtalo otra vez."
         }
+    },
+    "weekdaysInSentence": {
+        "monday": "lunes",
+        "tuesday": "martes",
+        "wednesday": "miércoles",
+        "thursday": "jueves",
+        "friday": "viernes",
+        "saturday": "sábado",
+        "sunday": "domingo"
     }
 }

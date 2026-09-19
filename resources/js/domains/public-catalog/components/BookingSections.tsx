@@ -40,7 +40,9 @@ export function BookingSections({
                     title={t('booking.nav.services')}
                 >
                     <BookingServices
+                        slug={page.slug}
                         services={page.services}
+                        openState={page.open_state}
                         currencyCode={page.currency_code}
                         accentColor={page.brand.accent_color}
                         buttonShape={page.brand.button_shape}

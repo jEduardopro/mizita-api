@@ -8,6 +8,7 @@ use App\Domains\Businesses\Application\UseCases\ShowBusinessSettings;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\FakeBookingPageSettings;
+use Tests\Support\Businesses\FakeBookingPolicySettings;
 use Tests\Support\Businesses\FakeBusinessAddressBook;
 use Tests\Support\Businesses\FakeBusinessLinkList;
 use Tests\Support\Businesses\FakeBusinessLogo;
@@ -25,6 +26,7 @@ beforeEach(function () {
     $this->links = new FakeBusinessLinkList;
     $this->schedule = new FakeBusinessSchedule;
     $this->bookingPages = new FakeBookingPageSettings;
+    $this->bookingPolicies = new FakeBookingPolicySettings;
     $this->phones = new FakeBusinessPhoneBook;
     $this->logo = new FakeBusinessLogo;
 
@@ -35,6 +37,7 @@ beforeEach(function () {
             $this->links,
             $this->schedule,
             $this->bookingPages,
+            $this->bookingPolicies,
             $this->phones,
             $this->logo,
         ),
@@ -75,7 +78,27 @@ it('writes nothing while it reads', function () {
         ->and($this->links->replacements)->toBe([])
         ->and($this->schedule->replacements)->toBe([])
         ->and($this->bookingPages->applications)->toBe([])
+        ->and($this->bookingPolicies->applications)->toBe([])
         ->and($this->phones->replacements)->toBe([]);
+});
+
+it('answers with the booking policy of the business in context', function () {
+    $this->businesses->store(OnboardingFixtures::business(id: FakeBusinessContext::BUSINESS_ID));
+    $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+        leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
+        bookingWindowMinutes: null,
+        cancellationWindowMinutes: null,
+        policyMessage: SettingsFixtures::POLICY_MESSAGE,
+        displayOnBookingPage: true,
+    ));
+
+    $bookingPolicy = ($this->show)()->value()->bookingPolicy;
+
+    expect($bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES)
+        ->and($bookingPolicy->bookingWindowMinutes)->toBeNull()
+        ->and($bookingPolicy->cancellationWindowMinutes)->toBeNull()
+        ->and($bookingPolicy->policyMessage)->toBe(SettingsFixtures::POLICY_MESSAGE)
+        ->and($bookingPolicy->displayOnBookingPage)->toBeTrue();
 });
 
 it('answers with a failure when the business in context is not on record', function () {

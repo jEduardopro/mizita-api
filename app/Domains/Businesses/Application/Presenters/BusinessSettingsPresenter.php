@@ -6,6 +6,7 @@ namespace App\Domains\Businesses\Application\Presenters;
 
 use App\Domains\Businesses\Application\Dtos\BusinessSettingsData;
 use App\Domains\Businesses\Contracts\BookingPageSettings;
+use App\Domains\Businesses\Contracts\BookingPolicySettings;
 use App\Domains\Businesses\Contracts\BusinessAddressBook;
 use App\Domains\Businesses\Contracts\BusinessLinkList;
 use App\Domains\Businesses\Contracts\BusinessLogo;
@@ -22,6 +23,7 @@ final class BusinessSettingsPresenter
         private readonly BusinessLinkList $links,
         private readonly BusinessSchedule $schedule,
         private readonly BookingPageSettings $bookingPages,
+        private readonly BookingPolicySettings $bookingPolicies,
         private readonly PhoneBook $phones,
         private readonly BusinessLogo $logo,
     ) {}
@@ -48,6 +50,7 @@ final class BusinessSettingsPresenter
             schedule: $this->schedule->forBusiness($businessId),
             links: $this->links->forBusiness($businessId),
             bookingPage: $this->bookingPages->forBusiness($businessId),
+            bookingPolicy: $this->bookingPolicies->forBusiness($businessId),
         );
     }
 }

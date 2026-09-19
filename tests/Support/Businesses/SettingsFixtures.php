@@ -6,6 +6,7 @@ namespace Tests\Support\Businesses;
 
 use App\Domains\Businesses\Application\Dtos\AppearanceInput;
 use App\Domains\Businesses\Application\Dtos\AttachBusinessLogoInput;
+use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
@@ -14,6 +15,7 @@ use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Application\Dtos\ScheduleInput;
 use App\Domains\Businesses\Application\Dtos\UpdateBusinessSettingsInput;
 use App\Domains\Businesses\ValueObjects\BookingPageSnapshot;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
@@ -45,6 +47,16 @@ final class SettingsFixtures
     public const LATITUDE = '19.3627888';
 
     public const LONGITUDE = '-99.1768069';
+
+    public const LEAD_TIME_MINUTES = 60;
+
+    public const BOOKING_WINDOW_MINUTES = 43200;
+
+    public const SLOT_GRANULARITY_MINUTES = 30;
+
+    public const CANCELLATION_WINDOW_MINUTES = 240;
+
+    public const POLICY_MESSAGE = 'Cancela con cuatro horas de antelación.';
 
     public const SOURCE_PATH = '/tmp/php-upload-logo';
 
@@ -131,6 +143,57 @@ final class SettingsFixtures
         return new BusinessLinkSnapshot($platform, $url, $position);
     }
 
+    public static function bookingPolicyInput(
+        int $leadTimeMinutes = self::LEAD_TIME_MINUTES,
+        ?int $bookingWindowMinutes = self::BOOKING_WINDOW_MINUTES,
+        int $slotGranularityMinutes = self::SLOT_GRANULARITY_MINUTES,
+        ?int $cancellationWindowMinutes = self::CANCELLATION_WINDOW_MINUTES,
+        ?string $policyMessage = self::POLICY_MESSAGE,
+        bool $displayOnBookingPage = true,
+    ): BookingPolicyInput {
+        return new BookingPolicyInput(
+            leadTimeMinutes: $leadTimeMinutes,
+            bookingWindowMinutes: $bookingWindowMinutes,
+            slotGranularityMinutes: $slotGranularityMinutes,
+            cancellationWindowMinutes: $cancellationWindowMinutes,
+            policyMessage: $policyMessage,
+            displayOnBookingPage: $displayOnBookingPage,
+        );
+    }
+
+    public static function bookingPolicy(
+        int $leadTimeMinutes = 0,
+        ?int $bookingWindowMinutes = null,
+        int $slotGranularityMinutes = 15,
+        ?int $cancellationWindowMinutes = 120,
+        ?string $policyMessage = null,
+        bool $displayOnBookingPage = false,
+    ): BookingPolicySnapshot {
+        return new BookingPolicySnapshot(
+            leadTimeMinutes: $leadTimeMinutes,
+            bookingWindowMinutes: $bookingWindowMinutes,
+            slotGranularityMinutes: $slotGranularityMinutes,
+            cancellationWindowMinutes: $cancellationWindowMinutes,
+            policyMessage: $policyMessage,
+            displayOnBookingPage: $displayOnBookingPage,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function bookingPolicySection(): array
+    {
+        return [
+            'lead_time_minutes' => self::LEAD_TIME_MINUTES,
+            'booking_window_minutes' => self::BOOKING_WINDOW_MINUTES,
+            'slot_granularity_minutes' => self::SLOT_GRANULARITY_MINUTES,
+            'cancellation_window_minutes' => self::CANCELLATION_WINDOW_MINUTES,
+            'policy_message' => self::POLICY_MESSAGE,
+            'display_on_booking_page' => true,
+        ];
+    }
+
     public static function everything(): UpdateBusinessSettingsInput
     {
         return new UpdateBusinessSettingsInput(
@@ -140,6 +203,7 @@ final class SettingsFixtures
             location: self::location(),
             schedule: self::schedule(),
             links: self::links(),
+            bookingPolicy: self::bookingPolicyInput(),
         );
     }
 

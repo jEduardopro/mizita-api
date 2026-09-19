@@ -1,5 +1,5 @@
 import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls';
-import { viewDay, viewMonthGrid, viewWeek, type CalendarConfig, type CalendarEvent } from '@schedule-x/calendar';
+import { viewDay, viewMonthGrid, viewWeek, type CalendarConfig } from '@schedule-x/calendar';
 import { createCurrentTimePlugin } from '@schedule-x/current-time';
 import { ScheduleXCalendar, useCalendarApp } from '@schedule-x/react';
 import '@schedule-x/theme-shadcn/dist/index.css';
@@ -8,15 +8,16 @@ import { cn } from 'cn';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { useAppearance } from '@/hooks/use-appearance';
 import {
+    APPOINTMENT_CALENDARS,
     appointmentsToEvents,
     isAppointmentCalendarEvent,
-    SERVICE_COLOR_CALENDARS,
 } from './appointment-events';
 import { SLOT_MINUTES } from './appointment-slots';
 import { businessHoursBackgroundEvents, type BusinessScheduleRule } from './business-hours';
 import { CalendarHourLabel, type CalendarGridStep } from './CalendarHourLabel';
 import { MonthGridEventContent } from './MonthGridEventContent';
 import { SlotHoverPreview } from './SlotHoverPreview';
+import { TimeGridEventContent } from './TimeGridEventContent';
 import { useCalendarInitialScroll } from './use-calendar-initial-scroll';
 import type { Appointment, AppointmentRange } from '../types';
 
@@ -78,14 +79,6 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
         const currentTime = useMemo(() => createCurrentTimePlugin({ fullWeekWidth: true }), []);
         const plugins = useMemo(() => [controls, currentTime], [controls, currentTime]);
 
-        const monthGridEvent = useMemo(
-            () =>
-                function MonthGridEvent({ calendarEvent }: { calendarEvent: CalendarEvent }) {
-                    return <MonthGridEventContent calendarEvent={calendarEvent} locale={locale} />;
-                },
-            [locale],
-        );
-
         const weekGridHour = useMemo(
             () =>
                 function WeekGridHour({ gridStep }: { gridStep: CalendarGridStep }) {
@@ -95,8 +88,13 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
         );
 
         const customComponents = useMemo(
-            () => ({ headerContent: EmptyHeader, monthGridEvent, weekGridHour }),
-            [monthGridEvent, weekGridHour],
+            () => ({
+                headerContent: EmptyHeader,
+                monthGridEvent: MonthGridEventContent,
+                timeGridEvent: TimeGridEventContent,
+                weekGridHour,
+            }),
+            [weekGridHour],
         );
 
         const wrapperRef = useRef<HTMLDivElement>(null);
@@ -120,7 +118,7 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
                 theme: 'shadcn',
                 isDark: resolvedAppearance === 'dark',
                 weekOptions: { gridStep: SLOT_MINUTES },
-                calendars: SERVICE_COLOR_CALENDARS,
+                calendars: APPOINTMENT_CALENDARS,
                 backgroundEvents,
                 callbacks: {
                     onRangeUpdate: (range) => {

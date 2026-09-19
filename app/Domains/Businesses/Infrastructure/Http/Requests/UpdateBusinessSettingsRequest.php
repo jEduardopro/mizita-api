@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Infrastructure\Http\Requests;
 
 use App\Domains\Addresses\ValueObjects\PostalCode;
+use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
 use App\Domains\Businesses\ValueObjects\About;
@@ -31,6 +32,7 @@ final class UpdateBusinessSettingsRequest extends FormRequest
         return [
             ...$this->brandRules(),
             ...$this->appearanceRules(),
+            ...$this->bookingPolicyRules(),
             ...$this->contactRules(),
             ...$this->locationRules(),
             ...$this->scheduleRules(),
@@ -67,6 +69,27 @@ final class UpdateBusinessSettingsRequest extends FormRequest
             'appearance.accent_color' => ['required_with:appearance', 'string'],
             'appearance.button_shape' => ['required_with:appearance', 'string'],
             'appearance.theme' => ['required_with:appearance', 'string'],
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function bookingPolicyRules(): array
+    {
+        return [
+            'booking_policy' => ['sometimes', 'array'],
+            'booking_policy.lead_time_minutes' => ['required_with:booking_policy', 'integer'],
+            'booking_policy.booking_window_minutes' => ['present_with:booking_policy', 'nullable', 'integer'],
+            'booking_policy.slot_granularity_minutes' => ['required_with:booking_policy', 'integer'],
+            'booking_policy.cancellation_window_minutes' => ['present_with:booking_policy', 'nullable', 'integer'],
+            'booking_policy.policy_message' => [
+                'present_with:booking_policy',
+                'nullable',
+                'string',
+                'max:'.PolicyMessage::MAXIMUM_LENGTH,
+            ],
+            'booking_policy.display_on_booking_page' => ['required_with:booking_policy', 'boolean'],
         ];
     }
 

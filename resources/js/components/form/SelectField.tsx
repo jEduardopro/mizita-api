@@ -1,14 +1,9 @@
-import { cn } from 'cn';
-import { ChevronDown } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
-import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
+import { SelectControl, type SelectOption } from '@/components/form/SelectControl';
 import { Label } from '@/components/ui/label';
 
-export type SelectOption = {
-    value: string;
-    label: string;
-};
+export type { SelectOption };
 
 type Props = Omit<ComponentProps<'select'>, 'children'> & {
     id: string;
@@ -18,42 +13,20 @@ type Props = Omit<ComponentProps<'select'>, 'children'> & {
     hint?: string;
 };
 
-export function SelectField({ id, label, options, error, hint, className, ...props }: Props) {
+export function SelectField({ id, label, options, error, hint, ...props }: Props) {
     const message = fieldMessage({ id, error, hint });
-    const density = useFormDensity();
 
     return (
         <div className="grid gap-2">
             <Label htmlFor={id}>{label}</Label>
 
-            <div className="relative">
-                <select
-                    {...props}
-                    id={id}
-                    aria-invalid={!! error}
-                    aria-describedby={message?.id}
-                    className={cn(
-                        'w-full appearance-none rounded-lg border border-input bg-transparent py-1 pr-9 pl-2.5 transition-colors outline-none',
-                        CONTROL_DENSITY_CLASSES[density],
-                        'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-                        'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
-                        'disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground',
-                        'dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 dark:disabled:bg-input/80',
-                        className,
-                    )}
-                >
-                    {options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-
-                <ChevronDown
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-                />
-            </div>
+            <SelectControl
+                {...props}
+                id={id}
+                options={options}
+                aria-invalid={!! error}
+                aria-describedby={message?.id}
+            />
 
             <FieldMessage message={message} />
         </div>

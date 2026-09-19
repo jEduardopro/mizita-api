@@ -19,6 +19,10 @@ Route::match(['put', 'patch'], '/appointments/{appointment}', [AppointmentContro
     ->middleware('permission:edit_appointment')
     ->whereUuid('appointment');
 
+Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancel'])
+    ->middleware('permission:delete_appointment')
+    ->whereUuid('appointment');
+
 Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy'])
     ->middleware('permission:delete_appointment')
     ->whereUuid('appointment');

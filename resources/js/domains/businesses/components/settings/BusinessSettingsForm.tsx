@@ -1,4 +1,5 @@
 import { AppearanceSection } from './AppearanceSection';
+import { BookingPolicySection } from './BookingPolicySection';
 import { BrandDetailsSection } from './BrandDetailsSection';
 import { BusinessHoursSection } from './BusinessHoursSection';
 import { ContactSection } from './ContactSection';
@@ -29,6 +30,8 @@ export function BusinessSettingsForm({ form }: Props) {
             <LocationSection form={form} />
 
             <BusinessHoursSection form={form} />
+
+            <BookingPolicySection form={form} />
 
             <LinksSection form={form} />
         </form>

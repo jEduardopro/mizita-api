@@ -32,7 +32,30 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
 });
 
 $bookingPageSlug = PublicCatalogServiceProvider::BOOKING_PAGE_SLUG_PATTERN;
-$serviceSlug = PublicCatalogServiceProvider::SLUG_PATTERN;
+$serviceSlug = PublicCatalogServiceProvider::SERVICE_PAGE_SLUG_PATTERN;
+$referenceCode = PublicCatalogServiceProvider::REFERENCE_CODE_PATTERN;
+
+Route::get('/{slug}/book', fn (string $slug) => Inertia::render('public/bookings/service', ['slug' => $slug]))
+    ->where('slug', $bookingPageSlug)->name('booking-flow.service');
+
+Route::get('/{slug}/book/staff', fn (string $slug) => Inertia::render('public/bookings/staff', ['slug' => $slug]))
+    ->where('slug', $bookingPageSlug)->name('booking-flow.staff');
+
+Route::get('/{slug}/book/time', fn (string $slug) => Inertia::render('public/bookings/time', ['slug' => $slug]))
+    ->where('slug', $bookingPageSlug)->name('booking-flow.time');
+
+Route::get('/{slug}/book/details', fn (string $slug) => Inertia::render('public/bookings/details', ['slug' => $slug]))
+    ->where('slug', $bookingPageSlug)->name('booking-flow.details');
+
+Route::get('/{slug}/book/confirmed/{reference}', fn (string $slug, string $reference) => Inertia::render(
+    'public/bookings/confirmed',
+    ['slug' => $slug, 'reference' => $reference],
+))->where(['slug' => $bookingPageSlug, 'reference' => $referenceCode])->name('booking-flow.confirmed');
+
+Route::get('/{slug}/book/manage/{reference}', fn (string $slug, string $reference) => Inertia::render(
+    'public/bookings/manage',
+    ['slug' => $slug, 'reference' => $reference],
+))->where(['slug' => $bookingPageSlug, 'reference' => $referenceCode])->name('booking-flow.manage');
 
 Route::get('/{slug}', function (string $slug, ConfirmBusinessPage $confirmBusinessPage) {
     $page = $confirmBusinessPage->handle(new ConfirmBusinessPageInput($slug));

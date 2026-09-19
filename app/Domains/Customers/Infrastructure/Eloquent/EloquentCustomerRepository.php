@@ -92,6 +92,33 @@ final class EloquentCustomerRepository implements CustomerRepository
             ->exists();
     }
 
+    public function findByEmail(string $businessId, CustomerEmail $email): ?Customer
+    {
+        $model = $this->ofBusiness($businessId)
+            ->whereRaw('lower(email) = lower(?)', [$email->value])
+            ->orderBy(self::TIEBREAKER_COLUMN)
+            ->first();
+
+        return $model === null ? null : $this->mapper->toEntity($model, $businessId);
+    }
+
+    /**
+     * @param  list<string>  $customerIds
+     */
+    public function findFirstAmong(string $businessId, array $customerIds): ?Customer
+    {
+        if ($customerIds === []) {
+            return null;
+        }
+
+        $model = $this->ofBusiness($businessId)
+            ->whereIn('uuid', $customerIds)
+            ->orderBy(self::TIEBREAKER_COLUMN)
+            ->first();
+
+        return $model === null ? null : $this->mapper->toEntity($model, $businessId);
+    }
+
     public function save(Customer $customer): void
     {
         try {

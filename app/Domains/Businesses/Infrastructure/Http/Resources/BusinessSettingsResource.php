@@ -7,6 +7,7 @@ namespace App\Domains\Businesses\Infrastructure\Http\Resources;
 use App\Domains\Businesses\Application\Dtos\BusinessSettingsData;
 use App\Domains\Businesses\ValueObjects\BookingPageImageSnapshot;
 use App\Domains\Businesses\ValueObjects\BookingPageSnapshot;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
@@ -39,6 +40,7 @@ final class BusinessSettingsResource extends JsonResource
             'schedule' => array_map(self::describeScheduleEntry(...), $this->resource->schedule),
             'links' => array_map(self::describeLink(...), $this->resource->links),
             'booking_page' => self::describeBookingPage($this->resource->bookingPage),
+            'booking_policy' => self::describeBookingPolicy($this->resource->bookingPolicy),
         ];
     }
 
@@ -113,6 +115,21 @@ final class BusinessSettingsResource extends JsonResource
             'theme' => $bookingPage->theme,
             'banner_url' => $bookingPage->bannerUrl,
             'gallery' => array_map(self::describeGalleryImage(...), $bookingPage->gallery),
+        ];
+    }
+
+    /**
+     * @return array{lead_time_minutes: int, booking_window_minutes: int|null, slot_granularity_minutes: int, cancellation_window_minutes: int|null, policy_message: string|null, display_on_booking_page: bool}
+     */
+    private static function describeBookingPolicy(BookingPolicySnapshot $bookingPolicy): array
+    {
+        return [
+            'lead_time_minutes' => $bookingPolicy->leadTimeMinutes,
+            'booking_window_minutes' => $bookingPolicy->bookingWindowMinutes,
+            'slot_granularity_minutes' => $bookingPolicy->slotGranularityMinutes,
+            'cancellation_window_minutes' => $bookingPolicy->cancellationWindowMinutes,
+            'policy_message' => $bookingPolicy->policyMessage,
+            'display_on_booking_page' => $bookingPolicy->displayOnBookingPage,
         ];
     }
 

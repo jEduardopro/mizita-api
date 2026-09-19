@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Application\UseCases;
 
 use App\Domains\Businesses\Application\Dtos\AppearanceInput;
+use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\BusinessSettingsData;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
@@ -15,6 +16,7 @@ use App\Domains\Businesses\Application\Dtos\ScheduleInput;
 use App\Domains\Businesses\Application\Dtos\UpdateBusinessSettingsInput;
 use App\Domains\Businesses\Application\Presenters\BusinessSettingsPresenter;
 use App\Domains\Businesses\Contracts\BookingPageSettings;
+use App\Domains\Businesses\Contracts\BookingPolicySettings;
 use App\Domains\Businesses\Contracts\BusinessAddressBook;
 use App\Domains\Businesses\Contracts\BusinessLinkList;
 use App\Domains\Businesses\Contracts\BusinessRepository;
@@ -29,6 +31,7 @@ use App\Domains\Businesses\Exceptions\UnknownIndustry;
 use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\BookingPageStyle;
+use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
 use App\Domains\Businesses\ValueObjects\CurrencyCode;
@@ -51,6 +54,7 @@ final class UpdateBusinessSettings
         private readonly BusinessLinkList $links,
         private readonly BusinessSchedule $schedule,
         private readonly BookingPageSettings $bookingPages,
+        private readonly BookingPolicySettings $bookingPolicies,
         private readonly PhoneBook $phones,
         private readonly BusinessSettingsPresenter $presenter,
         private readonly PhoneNumberParser $phoneNumberParser,
@@ -98,6 +102,7 @@ final class UpdateBusinessSettings
         }
 
         $this->applyAppearance($input->appearance, $businessId);
+        $this->applyBookingPolicy($input->bookingPolicy, $businessId);
         $this->applySchedule($input->schedule, $businessId);
         $this->applyLinks($input->links, $businessId);
     }
@@ -223,6 +228,22 @@ final class UpdateBusinessSettings
             accentColor: $appearance->accentColor,
             buttonShape: $appearance->buttonShape,
             theme: $appearance->theme,
+        ));
+    }
+
+    private function applyBookingPolicy(?BookingPolicyInput $bookingPolicy, string $businessId): void
+    {
+        if ($bookingPolicy === null) {
+            return;
+        }
+
+        $this->bookingPolicies->applyTo($businessId, new BookingPolicyPreferences(
+            leadTimeMinutes: $bookingPolicy->leadTimeMinutes,
+            bookingWindowMinutes: $bookingPolicy->bookingWindowMinutes,
+            slotGranularityMinutes: $bookingPolicy->slotGranularityMinutes,
+            cancellationWindowMinutes: $bookingPolicy->cancellationWindowMinutes,
+            policyMessage: $bookingPolicy->policyMessage,
+            displayOnBookingPage: $bookingPolicy->displayOnBookingPage,
         ));
     }
 

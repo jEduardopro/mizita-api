@@ -18,6 +18,10 @@ export type AppointmentStaffMember = {
     name: string;
 };
 
+export type AppointmentStatus = 'booked' | 'cancelled';
+
+export type AppointmentCanceller = 'customer' | 'business';
+
 export type Appointment = {
     id: string;
     customer: AppointmentCustomer;
@@ -28,6 +32,10 @@ export type Appointment = {
     duration_minutes: number;
     notes: string | null;
     created_at: string;
+    status: AppointmentStatus;
+    cancelled_at: string | null;
+    cancelled_by: AppointmentCanceller | null;
+    reference_code: string | null;
 };
 
 export type AppointmentRange = {

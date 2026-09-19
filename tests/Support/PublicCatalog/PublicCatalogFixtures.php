@@ -5,15 +5,26 @@ declare(strict_types=1);
 namespace Tests\Support\PublicCatalog;
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
+use App\Domains\PublicCatalog\ValueObjects\PublicAvailableDay;
+use App\Domains\PublicCatalog\ValueObjects\PublicBookingCredentials;
+use App\Domains\PublicCatalog\ValueObjects\PublicBookingPolicy;
+use App\Domains\PublicCatalog\ValueObjects\PublicBookingRequest;
+use App\Domains\PublicCatalog\ValueObjects\PublicBookingStatus;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
 use App\Domains\PublicCatalog\ValueObjects\PublicGalleryImage;
+use App\Domains\PublicCatalog\ValueObjects\PublicGuestBooking;
+use App\Domains\PublicCatalog\ValueObjects\PublicGuestBookingConfirmation;
+use App\Domains\PublicCatalog\ValueObjects\PublicGuestDetails;
 use App\Domains\PublicCatalog\ValueObjects\PublicLink;
 use App\Domains\PublicCatalog\ValueObjects\PublicLocation;
+use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use App\Domains\PublicCatalog\ValueObjects\PublicScheduleEntry;
 use App\Domains\PublicCatalog\ValueObjects\PublicService;
+use App\Domains\PublicCatalog\ValueObjects\PublicSlotQuery;
 use App\Domains\PublicCatalog\ValueObjects\PublicTeamMember;
+use DateTimeImmutable;
 
 final class PublicCatalogFixtures
 {
@@ -52,6 +63,118 @@ final class PublicCatalogFixtures
     public const SERVICE_IMAGE_URL = 'https://cdn.mizita.test/services/corte.jpg';
 
     public const INSTAGRAM_URL = 'https://instagram.com/ada.salon';
+
+    public const POLICY_MESSAGE = 'Cancela con 24 horas de anticipación.';
+
+    public const REFERENCE_CODE = 'A2B3C4D5';
+
+    public const MANAGE_TOKEN = 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f';
+
+    public const STARTS_AT = '2026-03-10T09:00:00+00:00';
+
+    public const ENDS_AT = '2026-03-10T09:45:00+00:00';
+
+    public const GUEST_NAME = 'Ada Lovelace';
+
+    public const GUEST_EMAIL = 'ada@example.com';
+
+    public const CLOSES_AT = '18:00';
+
+    public const OPENS_AT = '09:00';
+
+    public const OPENS_ON_WEEKDAY = 1;
+
+    public const LAST_BOOKABLE_DATE = '2027-03-10';
+
+    public static function slotQuery(
+        string $serviceId = self::SERVICE_ID,
+        string $staffId = self::TEAM_MEMBER_ID,
+        string $from = '2026-03-10',
+        string $to = '2026-03-12',
+    ): PublicSlotQuery {
+        return new PublicSlotQuery(serviceId: $serviceId, staffId: $staffId, from: $from, to: $to);
+    }
+
+    /**
+     * @param  list<string>  $starts
+     */
+    public static function availableDay(string $date = '2026-03-10', array $starts = [self::STARTS_AT]): PublicAvailableDay
+    {
+        return new PublicAvailableDay(
+            date: $date,
+            starts: array_map(static fn (string $start): DateTimeImmutable => new DateTimeImmutable($start), $starts),
+        );
+    }
+
+    public static function guestDetails(
+        string $name = self::GUEST_NAME,
+        ?string $email = self::GUEST_EMAIL,
+        ?string $phoneCountryCode = null,
+        ?string $phoneNationalNumber = null,
+    ): PublicGuestDetails {
+        return new PublicGuestDetails(
+            name: $name,
+            email: $email,
+            phoneCountryCode: $phoneCountryCode,
+            phoneNationalNumber: $phoneNationalNumber,
+        );
+    }
+
+    public static function bookingRequest(
+        string $serviceId = self::SERVICE_ID,
+        string $staffMemberId = self::TEAM_MEMBER_ID,
+        string $startsAt = self::STARTS_AT,
+        ?PublicGuestDetails $guest = null,
+        ?string $notes = null,
+    ): PublicBookingRequest {
+        return new PublicBookingRequest(
+            serviceId: $serviceId,
+            staffMemberId: $staffMemberId,
+            startsAt: $startsAt,
+            guest: $guest ?? self::guestDetails(),
+            notes: $notes,
+        );
+    }
+
+    public static function bookingCredentials(
+        string $referenceCode = self::REFERENCE_CODE,
+        string $manageToken = self::MANAGE_TOKEN,
+    ): PublicBookingCredentials {
+        return new PublicBookingCredentials(referenceCode: $referenceCode, manageToken: $manageToken);
+    }
+
+    public static function guestBooking(
+        string $referenceCode = self::REFERENCE_CODE,
+        string $customerName = self::GUEST_NAME,
+        PublicBookingStatus $status = PublicBookingStatus::Booked,
+        ?string $cancelledAt = null,
+        ?int $cancellationWindowMinutes = 120,
+        bool $changeable = true,
+    ): PublicGuestBooking {
+        return new PublicGuestBooking(
+            referenceCode: $referenceCode,
+            customerName: $customerName,
+            serviceName: 'Corte de pelo',
+            staffMemberName: 'Ada Lovelace',
+            startsAt: new DateTimeImmutable(self::STARTS_AT),
+            endsAt: new DateTimeImmutable(self::ENDS_AT),
+            durationMinutes: 45,
+            status: $status,
+            cancelledAt: $cancelledAt === null ? null : new DateTimeImmutable($cancelledAt),
+            cancellationWindowMinutes: $cancellationWindowMinutes,
+            changeable: $changeable,
+        );
+    }
+
+    public static function bookingConfirmation(
+        ?PublicGuestBooking $booking = null,
+        string $manageToken = self::MANAGE_TOKEN,
+    ): PublicGuestBookingConfirmation {
+        return new PublicGuestBookingConfirmation(
+            booking: $booking ?? self::guestBooking(),
+            manageToken: $manageToken,
+        );
+    }
 
     public static function profile(
         string $id = self::BUSINESS_ID,
@@ -99,6 +222,18 @@ final class PublicCatalogFixtures
         return new PublicGalleryImage(id: $id, url: $url);
     }
 
+    public static function openState(string $closesAt = self::CLOSES_AT): PublicOpenState
+    {
+        return PublicOpenState::openUntil($closesAt);
+    }
+
+    public static function closedState(
+        int $opensOnWeekday = self::OPENS_ON_WEEKDAY,
+        string $opensAt = self::OPENS_AT,
+    ): PublicOpenState {
+        return PublicOpenState::closedUntil($opensOnWeekday, $opensAt);
+    }
+
     public static function scheduleEntry(
         int $weekday = 1,
         string $startsAt = '09:00',
@@ -107,6 +242,9 @@ final class PublicCatalogFixtures
         return new PublicScheduleEntry(weekday: $weekday, startsAt: $startsAt, endsAt: $endsAt);
     }
 
+    /**
+     * @param  list<string>|null  $staffIds
+     */
     public static function service(
         string $id = self::SERVICE_ID,
         string $name = 'Corte de pelo',
@@ -115,6 +253,7 @@ final class PublicCatalogFixtures
         int $durationMinutes = 45,
         string $price = '250.00',
         ?string $imageUrl = self::SERVICE_IMAGE_URL,
+        ?array $staffIds = null,
     ): PublicService {
         return new PublicService(
             id: $id,
@@ -124,7 +263,13 @@ final class PublicCatalogFixtures
             durationMinutes: $durationMinutes,
             price: $price,
             imageUrl: $imageUrl,
+            staffIds: $staffIds ?? [self::TEAM_MEMBER_ID],
         );
+    }
+
+    public static function bookingPolicy(string $policyMessage = self::POLICY_MESSAGE): PublicBookingPolicy
+    {
+        return new PublicBookingPolicy(policyMessage: $policyMessage);
     }
 
     public static function teamMember(
@@ -176,19 +321,25 @@ final class PublicCatalogFixtures
         ?PublicBusinessProfile $profile = null,
         ?PublicBrand $brand = null,
         ?array $schedule = null,
+        ?PublicOpenState $openState = null,
+        string $lastBookableDate = self::LAST_BOOKABLE_DATE,
         ?array $services = null,
         ?array $team = null,
         ?PublicLocation $location = null,
         ?PublicContact $contact = null,
+        ?PublicBookingPolicy $bookingPolicy = new PublicBookingPolicy(self::POLICY_MESSAGE),
     ): PublicBusinessPageData {
         return new PublicBusinessPageData(
             profile: $profile ?? self::profile(),
             brand: $brand ?? self::brand(),
             schedule: $schedule ?? [self::scheduleEntry()],
+            openState: $openState ?? self::openState(),
+            lastBookableDate: $lastBookableDate,
             services: $services ?? [self::service()],
             team: $team ?? [self::teamMember()],
             location: $location ?? self::location(),
             contact: $contact ?? self::contact(),
+            bookingPolicy: $bookingPolicy,
         );
     }
 
@@ -198,10 +349,13 @@ final class PublicCatalogFixtures
             profile: self::profile(about: null, logoUrl: null),
             brand: self::brand(bannerUrl: null, gallery: []),
             schedule: [],
+            openState: PublicOpenState::closedIndefinitely(),
+            lastBookableDate: self::LAST_BOOKABLE_DATE,
             services: [],
             team: [],
             location: null,
             contact: self::contact(phone: null, links: []),
+            bookingPolicy: null,
         );
     }
 }

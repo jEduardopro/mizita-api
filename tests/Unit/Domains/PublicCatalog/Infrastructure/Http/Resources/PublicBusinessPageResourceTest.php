@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Infrastructure\Http\Resources\PublicBusinessPageResource;
+use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 use Tests\TestCase;
 
@@ -106,11 +107,18 @@ describe('what a visitor is allowed to see', function () {
             'weekday',
             'starts_at',
             'ends_at',
+            'open_state',
+            'open',
+            'closes_at',
+            'opens_on_weekday',
+            'opens_at',
+            'last_bookable_date',
             'services',
             'description',
             'duration_minutes',
             'price',
             'image_url',
+            'staff_ids',
             'team',
             'location',
             'street',
@@ -124,6 +132,8 @@ describe('what a visitor is allowed to see', function () {
             'phone',
             'links',
             'platform',
+            'booking_policy',
+            'policy_message',
         ]);
     });
 
@@ -147,10 +157,13 @@ describe('the client contract', function () {
             'logo_url',
             'brand',
             'schedule',
+            'open_state',
+            'last_bookable_date',
             'services',
             'team',
             'location',
             'contact',
+            'booking_policy',
         ]);
     });
 
@@ -172,7 +185,7 @@ describe('the client contract', function () {
 
         expect(array_keys($serialized['schedule'][0]))->toBe(['weekday', 'starts_at', 'ends_at'])
             ->and(array_keys($serialized['services'][0]))
-            ->toBe(['id', 'name', 'slug', 'description', 'duration_minutes', 'price', 'image_url'])
+            ->toBe(['id', 'name', 'slug', 'description', 'duration_minutes', 'price', 'image_url', 'staff_ids'])
             ->and(array_keys($serialized['team'][0]))->toBe(['id', 'name'])
             ->and(array_keys($serialized['brand']['gallery'][0]))->toBe(['id', 'url'])
             ->and(array_keys($serialized['contact']['links'][0]))->toBe(['platform', 'url']);
@@ -199,6 +212,13 @@ describe('the client contract', function () {
             'schedule' => [
                 ['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '14:00'],
             ],
+            'open_state' => [
+                'open' => true,
+                'closes_at' => PublicCatalogFixtures::CLOSES_AT,
+                'opens_on_weekday' => null,
+                'opens_at' => null,
+            ],
+            'last_bookable_date' => PublicCatalogFixtures::LAST_BOOKABLE_DATE,
             'services' => [
                 [
                     'id' => PublicCatalogFixtures::SERVICE_ID,
@@ -208,6 +228,7 @@ describe('the client contract', function () {
                     'duration_minutes' => 45,
                     'price' => '250.00',
                     'image_url' => PublicCatalogFixtures::SERVICE_IMAGE_URL,
+                    'staff_ids' => [PublicCatalogFixtures::TEAM_MEMBER_ID],
                 ],
             ],
             'team' => [
@@ -228,7 +249,143 @@ describe('the client contract', function () {
                     ['platform' => 'instagram', 'url' => PublicCatalogFixtures::INSTAGRAM_URL],
                 ],
             ],
+            'booking_policy' => ['policy_message' => PublicCatalogFixtures::POLICY_MESSAGE],
         ]);
+    });
+});
+
+describe('the booking policy a visitor is shown', function () {
+    it('carries the message the business chose to display', function () {
+        expect(serializedPublicBusinessPage()['booking_policy'])
+            ->toBe(['policy_message' => PublicCatalogFixtures::POLICY_MESSAGE]);
+    });
+
+    it('leaves the booking policy key out altogether when the business displays none', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(bookingPolicy: null));
+
+        expect($serialized)->not->toHaveKey('booking_policy')
+            ->and(array_keys($serialized))->not->toContain('booking_policy')
+            ->and(json_encode($serialized, JSON_THROW_ON_ERROR))->not->toContain('booking_policy');
+    });
+
+    it('sends no null placeholder for a business that displays no policy', function () {
+        expect(publicPageKeysAtEveryDepth(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())))
+            ->not->toContain('booking_policy')
+            ->and(publicPageKeysAtEveryDepth(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())))
+            ->not->toContain('policy_message');
+    });
+
+    it('carries only the message, never the minutes the business schedules by', function () {
+        $keys = publicPageKeysAtEveryDepth(serializedPublicBusinessPage());
+
+        expect(array_keys(serializedPublicBusinessPage()['booking_policy']))->toBe(['policy_message'])
+            ->and($keys)->not->toContain('lead_time_minutes')
+            ->and($keys)->not->toContain('booking_window_minutes')
+            ->and($keys)->not->toContain('slot_granularity_minutes')
+            ->and($keys)->not->toContain('cancellation_window_minutes')
+            ->and($keys)->not->toContain('display_on_booking_page');
+    });
+});
+
+describe('whether the doors are open right now', function () {
+    it('declares the keys the booking page reads off the open state', function () {
+        expect(array_keys(serializedPublicBusinessPage()['open_state']))
+            ->toBe(['open', 'closes_at', 'opens_on_weekday', 'opens_at']);
+    });
+
+    it('tells a visitor a business is open and when it closes', function () {
+        expect(serializedPublicBusinessPage()['open_state'])->toBe([
+            'open' => true,
+            'closes_at' => PublicCatalogFixtures::CLOSES_AT,
+            'opens_on_weekday' => null,
+            'opens_at' => null,
+        ]);
+    });
+
+    it('tells a visitor a closed business when it opens next', function () {
+        expect(serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            openState: PublicCatalogFixtures::closedState(),
+        ))['open_state'])->toBe([
+            'open' => false,
+            'closes_at' => null,
+            'opens_on_weekday' => PublicCatalogFixtures::OPENS_ON_WEEKDAY,
+            'opens_at' => PublicCatalogFixtures::OPENS_AT,
+        ]);
+    });
+
+    it('promises no next opening for a business that publishes no hours at all', function () {
+        expect(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())['open_state'])->toBe([
+            'open' => false,
+            'closes_at' => null,
+            'opens_on_weekday' => null,
+            'opens_at' => null,
+        ]);
+    });
+
+    it('never lets the open flag disagree with the payload it was derived from', function (PublicOpenState $state) {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(openState: $state))['open_state'];
+
+        expect($serialized['open'])->toBe($serialized['closes_at'] !== null)->toBeBool();
+    })->with([
+        'open until closing time' => [fn () => PublicOpenState::openUntil('18:00')],
+        'open until midnight' => [fn () => PublicOpenState::openUntil('23:59')],
+        'closed until Monday' => [fn () => PublicOpenState::closedUntil(1, '09:00')],
+        'closed until Sunday' => [fn () => PublicOpenState::closedUntil(7, '10:30')],
+        'closed indefinitely' => [fn () => PublicOpenState::closedIndefinitely()],
+    ]);
+
+    it('sends the local times of the open state as HH:mm strings, never instants', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            openState: PublicOpenState::closedUntil(7, '10:30'),
+        ))['open_state'];
+
+        expect($serialized['opens_at'])->toBe('10:30')
+            ->and($serialized['opens_on_weekday'])->toBe(7)->toBeInt();
+    });
+});
+
+describe('the last date a visitor may still book', function () {
+    it('is always present, so the calendar always has a bound to render', function () {
+        expect(serializedPublicBusinessPage())->toHaveKey('last_bookable_date')
+            ->and(serializedPublicBusinessPage()['last_bookable_date'])
+            ->toBe(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
+    });
+
+    it('is never null, not even for a business that filled nothing in', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage());
+
+        expect($serialized)->toHaveKey('last_bookable_date')
+            ->and($serialized['last_bookable_date'])->not->toBeNull()
+            ->and($serialized['last_bookable_date'])->toBeString();
+    });
+
+    it('is a calendar date, never an instant', function () {
+        expect(serializedPublicBusinessPage(PublicCatalogFixtures::page(lastBookableDate: '2026-12-31')))
+            ->toMatchArray(['last_bookable_date' => '2026-12-31']);
+    });
+});
+
+describe('the staff a service may be booked with', function () {
+    it('sends every staff id as a uuid string, never an internal key', function () {
+        $staffIds = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            services: [PublicCatalogFixtures::service(staffIds: [
+                PublicCatalogFixtures::TEAM_MEMBER_ID,
+                PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+            ])],
+        ))['services'][0]['staff_ids'];
+
+        expect($staffIds)->toBe([
+            PublicCatalogFixtures::TEAM_MEMBER_ID,
+            PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+        ])->and(array_filter($staffIds, is_numeric(...)))->toBe([]);
+    });
+
+    it('sends an empty json array, never an object, for a service nobody performs', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            services: [PublicCatalogFixtures::service(staffIds: [])],
+        ));
+
+        expect(json_encode($serialized['services'][0]['staff_ids'], JSON_THROW_ON_ERROR))->toBe('[]');
     });
 });
 

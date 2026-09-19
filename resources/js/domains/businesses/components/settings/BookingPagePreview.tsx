@@ -14,6 +14,7 @@ import {
 import { BookingPageLink } from './BookingPageLink';
 import { BookingPagePreviewContact } from './BookingPagePreviewContact';
 import { BookingPagePreviewHours } from './BookingPagePreviewHours';
+import { BookingPagePreviewPolicy } from './BookingPagePreviewPolicy';
 
 const TITLE_ID = 'booking-page-preview-title';
 
@@ -28,6 +29,8 @@ export type BookingPagePreviewValues = {
     street: string;
     city: string;
     postalCode: string;
+    policyMessage: string;
+    displayPolicyOnBookingPage: boolean;
     links: Partial<Record<LinkPlatform, string>>;
 };
 
@@ -73,6 +76,13 @@ export function BookingPagePreview({ values, logoUrl, bannerUrl, savedSlug }: Pr
                     THEME_SCOPES[values.theme],
                 )}
             >
+                {values.displayPolicyOnBookingPage ? (
+                    <BookingPagePreviewPolicy
+                        message={values.policyMessage}
+                        surfaceClassName={accent.surface}
+                    />
+                ) : null}
+
                 <div className={cn('relative aspect-video', accent.surface)}>
                     {bannerUrl === null ? (
                         <span className="absolute inset-0 grid content-center justify-items-center gap-1.5 px-4 text-center text-xs text-balance text-muted-foreground">

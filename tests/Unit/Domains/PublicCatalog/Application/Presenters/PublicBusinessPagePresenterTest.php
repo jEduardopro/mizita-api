@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Application\Presenters\PublicBusinessPagePresenter;
+use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
+use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
 use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
+use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
 use App\Domains\PublicCatalog\Contracts\PublishedSchedule;
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
@@ -15,6 +18,7 @@ use App\Domains\PublicCatalog\Exceptions\BusinessPageNotFound;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
+use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 
@@ -22,19 +26,25 @@ beforeEach(function () {
     $this->businesses = Mockery::mock(PublishedBusinesses::class);
     $this->brand = Mockery::mock(PublishedBrand::class);
     $this->schedule = Mockery::mock(PublishedSchedule::class);
+    $this->openState = Mockery::mock(PublishedOpenState::class);
+    $this->bookingHorizon = Mockery::mock(PublishedBookingHorizon::class);
     $this->services = Mockery::mock(PublishedServices::class);
     $this->team = Mockery::mock(PublishedTeam::class);
     $this->location = Mockery::mock(PublishedLocation::class);
     $this->contact = Mockery::mock(PublishedContact::class);
+    $this->bookingPolicy = Mockery::mock(PublishedBookingPolicy::class);
 
     $this->presenter = new PublicBusinessPagePresenter(
         $this->businesses,
         $this->brand,
         $this->schedule,
+        $this->openState,
+        $this->bookingHorizon,
         $this->services,
         $this->team,
         $this->location,
         $this->contact,
+        $this->bookingPolicy,
     );
 
     $this->publish = function (?PublicBusinessProfile $profile = null): void {
@@ -43,10 +53,15 @@ beforeEach(function () {
 
         $this->brand->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::brand());
         $this->schedule->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::scheduleEntry()]);
+        $this->openState->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::openState());
+        $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+            ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
         $this->services->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::service()]);
         $this->team->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::teamMember()]);
         $this->location->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::location());
         $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
+        $this->bookingPolicy->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::bookingPolicy());
     };
 
     $this->describe = fn (string $slug = PublicCatalogFixtures::SLUG): PublicBusinessPageData => $this->presenter
@@ -99,6 +114,10 @@ describe('assembling the page a visitor reads', function () {
             ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::brand());
         $this->schedule->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn([]);
+        $this->openState->shouldReceive('forBusiness')->once()
+            ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::openState());
+        $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+            ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
         $this->services->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn([]);
         $this->team->shouldReceive('forBusiness')->once()
@@ -107,10 +126,12 @@ describe('assembling the page a visitor reads', function () {
             ->with(Mockery::on($record))->andReturnNull();
         $this->contact->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::contact());
+        $this->bookingPolicy->shouldReceive('forBusiness')->once()
+            ->with(Mockery::on($record))->andReturnNull();
 
         ($this->describe)();
 
-        expect($asked)->toBe(array_fill(0, 6, PublicCatalogFixtures::BUSINESS_ID));
+        expect($asked)->toBe(array_fill(0, 9, PublicCatalogFixtures::BUSINESS_ID));
     });
 
     it('carries the section each port answered with, without rewriting it', function () {
@@ -120,10 +141,14 @@ describe('assembling the page a visitor reads', function () {
         $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
         $this->brand->shouldReceive('forBusiness')->once()->andReturn($brand);
         $this->schedule->shouldReceive('forBusiness')->once()->andReturn([]);
+        $this->openState->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::openState());
+        $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+            ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
         $this->services->shouldReceive('forBusiness')->once()->andReturn([]);
         $this->team->shouldReceive('forBusiness')->once()->andReturn([]);
         $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contact->shouldReceive('forBusiness')->once()->andReturn($contact);
+        $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
 
         $page = ($this->describe)();
 
@@ -136,15 +161,21 @@ describe('assembling the page a visitor reads', function () {
         $this->brand->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::brand(bannerUrl: null, gallery: []));
         $this->schedule->shouldReceive('forBusiness')->once()->andReturn([]);
+        $this->openState->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicOpenState::closedIndefinitely());
+        $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+            ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
         $this->services->shouldReceive('forBusiness')->once()->andReturn([]);
         $this->team->shouldReceive('forBusiness')->once()->andReturn([]);
         $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contact->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::contact(phone: null, links: []));
+        $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
 
         $page = ($this->describe)();
 
-        expect($page->schedule)->toBe([])
+        expect($page->bookingPolicy)->toBeNull()
+            ->and($page->schedule)->toBe([])
             ->and($page->services)->toBe([])
             ->and($page->team)->toBe([])
             ->and($page->location)->toBeNull()
@@ -163,6 +194,131 @@ describe('assembling the page a visitor reads', function () {
 
         expect($page->profile->id)->toBe(PublicCatalogFixtures::OTHER_BUSINESS_ID)
             ->and($page->profile->slug)->toBe('peluqueria-ambar');
+    });
+});
+
+describe('the staff a service may be booked with', function () {
+    beforeEach(function () {
+        $this->publishWith = function (array $serviceStaffIds, array $team): void {
+            $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
+            $this->brand->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::brand());
+            $this->schedule->shouldReceive('forBusiness')->once()->andReturn([]);
+            $this->openState->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::openState());
+            $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+                ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
+            $this->services->shouldReceive('forBusiness')->once()
+                ->andReturn([PublicCatalogFixtures::service(staffIds: $serviceStaffIds)]);
+            $this->team->shouldReceive('forBusiness')->once()->andReturn($team);
+            $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
+            $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
+            $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+        };
+    });
+
+    it('offers only the staff who are both on the service and on the published team', function () {
+        ($this->publishWith)(
+            [PublicCatalogFixtures::TEAM_MEMBER_ID, PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID],
+            [PublicCatalogFixtures::teamMember()],
+        );
+
+        expect(($this->describe)()->services[0]->staffIds)->toBe([PublicCatalogFixtures::TEAM_MEMBER_ID]);
+    });
+
+    it('never offers a staff member the business removed from the team', function () {
+        ($this->publishWith)(
+            [PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID],
+            [PublicCatalogFixtures::teamMember()],
+        );
+
+        $staffIds = ($this->describe)()->services[0]->staffIds;
+
+        expect($staffIds)->toBe([])
+            ->and($staffIds)->not->toContain(PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID);
+    });
+
+    it('offers nothing for a service when the business publishes no team at all', function () {
+        ($this->publishWith)([PublicCatalogFixtures::TEAM_MEMBER_ID], []);
+
+        expect(($this->describe)()->services[0]->staffIds)->toBe([]);
+    });
+
+    it('offers every staff member the team still carries', function () {
+        ($this->publishWith)(
+            [PublicCatalogFixtures::TEAM_MEMBER_ID, PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID],
+            [
+                PublicCatalogFixtures::teamMember(),
+                PublicCatalogFixtures::teamMember(
+                    id: PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+                    name: 'Grace Hopper',
+                ),
+            ],
+        );
+
+        expect(($this->describe)()->services[0]->staffIds)->toBe([
+            PublicCatalogFixtures::TEAM_MEMBER_ID,
+            PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+        ]);
+    });
+
+    it('hands back a list with no gaps, so it serializes as a json array', function () {
+        ($this->publishWith)(
+            [PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID, PublicCatalogFixtures::TEAM_MEMBER_ID],
+            [PublicCatalogFixtures::teamMember()],
+        );
+
+        $staffIds = ($this->describe)()->services[0]->staffIds;
+
+        expect(array_keys($staffIds))->toBe([0])
+            ->and(json_encode($staffIds, JSON_THROW_ON_ERROR))
+            ->toBe('["'.PublicCatalogFixtures::TEAM_MEMBER_ID.'"]');
+    });
+
+    it('carries the staff uuid, never an internal key', function () {
+        ($this->publishWith)([PublicCatalogFixtures::TEAM_MEMBER_ID], [PublicCatalogFixtures::teamMember()]);
+
+        $staffIds = ($this->describe)()->services[0]->staffIds;
+
+        expect(array_filter($staffIds, is_numeric(...)))->toBe([]);
+    });
+});
+
+describe('whether the doors are open right now', function () {
+    it('carries the open state the availability port worked out', function () {
+        ($this->publish)();
+
+        $page = ($this->describe)();
+
+        expect($page->openState->isOpen())->toBeTrue()
+            ->and($page->openState->closesAt)->toBe(PublicCatalogFixtures::CLOSES_AT)
+            ->and($page->openState->opensOnWeekday)->toBeNull()
+            ->and($page->openState->opensAt)->toBeNull();
+    });
+
+    it('carries when a closed business opens next', function () {
+        $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
+        $this->brand->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::brand());
+        $this->schedule->shouldReceive('forBusiness')->once()->andReturn([]);
+        $this->openState->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::closedState());
+        $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+            ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
+        $this->services->shouldReceive('forBusiness')->once()->andReturn([]);
+        $this->team->shouldReceive('forBusiness')->once()->andReturn([]);
+        $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
+        $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
+        $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+
+        $page = ($this->describe)();
+
+        expect($page->openState->isOpen())->toBeFalse()
+            ->and($page->openState->closesAt)->toBeNull()
+            ->and($page->openState->opensOnWeekday)->toBe(PublicCatalogFixtures::OPENS_ON_WEEKDAY)
+            ->and($page->openState->opensAt)->toBe(PublicCatalogFixtures::OPENS_AT);
+    });
+
+    it('carries the last date the visitor may still book', function () {
+        ($this->publish)();
+
+        expect(($this->describe)()->lastBookableDate)->toBe(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
     });
 });
 
@@ -196,10 +352,13 @@ describe('the ports it is built from', function () {
             PublishedBusinesses::class,
             PublishedBrand::class,
             PublishedSchedule::class,
+            PublishedOpenState::class,
+            PublishedBookingHorizon::class,
             PublishedServices::class,
             PublishedTeam::class,
             PublishedLocation::class,
             PublishedContact::class,
+            PublishedBookingPolicy::class,
         ])->and(array_filter($types, static fn (string $type): bool => ! interface_exists($type)))->toBe([]);
     });
 

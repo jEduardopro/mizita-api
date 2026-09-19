@@ -46,6 +46,12 @@ export async function updateAppointment(
     return data.data;
 }
 
+export async function cancelAppointment(id: string): Promise<Appointment> {
+    const { data } = await api.post<{ data: Appointment }>(`/appointments/${id}/cancel`);
+
+    return data.data;
+}
+
 export async function deleteAppointment(id: string): Promise<void> {
     await api.delete(`/appointments/${id}`);
 }

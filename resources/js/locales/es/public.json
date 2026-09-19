@@ -150,13 +150,18 @@
         },
         "cta": {
             "book": "Reservar",
-            "soon": "Muy pronto podrás reservar en línea desde aquí."
+            "closed": "Cerrado · abre el {{day}} a las {{time}}",
+            "closedIndefinitely": "Cerrado por ahora"
+        },
+        "policy": {
+            "title": "Antes de reservar"
         },
         "contact": {
             "title": "Ponte en contacto con nosotros",
             "social": "Redes sociales"
         },
         "services": {
+            "details": "Detalles",
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} min",
             "free": "Gratis",
@@ -165,8 +170,7 @@
         "hours": {
             "title": "Horarios",
             "today": "Hoy",
-            "openNow": "Abierto ahora · cierra a las {{time}}",
-            "closedNow": "Cerrado ahora · abre {{day}} a las {{time}}"
+            "openNow": "Abierto ahora · cierra a las {{time}}"
         },
         "gallery": {
             "title": "Fotos",
@@ -192,6 +196,122 @@
                 "youtube": "YouTube",
                 "whatsapp": "WhatsApp"
             }
+        },
+        "flow": {
+            "back": "Volver",
+            "progress": "Paso {{current}} de {{total}}",
+            "service": {
+                "title": "Elige un servicio",
+                "description": "Escoge lo que quieres reservar."
+            },
+            "staff": {
+                "title": "Elige quién te atiende",
+                "description": "Escoge a la persona con la que quieres la cita."
+            },
+            "time": {
+                "description": "Las horas se muestran en {{timezone}}.",
+                "nextMonth": "Mes siguiente",
+                "previousMonth": "Mes anterior",
+                "timezone": {
+                    "label": "Zona horaria",
+                    "empty": "Ninguna zona horaria coincide",
+                    "results_one": "{{count}} zona horaria",
+                    "results_other": "{{count}} zonas horarias"
+                },
+                "title": "Elige un día y una hora"
+            },
+            "details": {
+                "title": "Deja tus datos",
+                "description": "Los usamos para confirmar tu cita. No necesitas una cuenta.",
+                "name": {
+                    "label": "Nombre completo",
+                    "placeholder": "Marta García"
+                },
+                "email": {
+                    "label": "Correo electrónico",
+                    "hint": "Te enviamos aquí la confirmación y el enlace de tu cita."
+                },
+                "phone": {
+                    "country": "Código de país",
+                    "hint": "Para que el negocio pueda localizarte por esta cita.",
+                    "label": "Teléfono",
+                    "number": "Número de teléfono"
+                },
+                "contactHint": "Deja un correo o un teléfono para que podamos localizarte.",
+                "notes": {
+                    "label": "¿Algo que debamos saber?",
+                    "hint": "Opcional."
+                },
+                "submit": "Confirmar la reserva",
+                "submitting": "Confirmando…"
+            },
+            "confirmed": {
+                "title": "Tu cita está reservada",
+                "description": "Guarda este enlace: es con el que puedes cambiar o cancelar la cita.",
+                "reference": "Referencia {{code}}",
+                "manage": "Cambiar o cancelar",
+                "backToPage": "Volver a {{name}}"
+            },
+            "summary": {
+                "title": "Tu reserva",
+                "service": "Servicio",
+                "staff": "Con",
+                "when": "Cuándo",
+                "duration": "Duración",
+                "price": "Precio",
+                "moment": "{{day}} a las {{time}}"
+            },
+            "business": {
+                "title": "Reserva con",
+                "viewPage": "Ver la página"
+            },
+            "empty": {
+                "services": "Este negocio no tiene nada que reservar ahora mismo.",
+                "staff": "Nadie puede dar este servicio ahora mismo.",
+                "slots": "No quedan horas libres este mes. Prueba con el siguiente."
+            },
+            "errors": {
+                "availability": "No pudimos cargar las horas libres.",
+                "booking": "No pudimos confirmar tu reserva. Inténtalo otra vez.",
+                "tooMany": "Demasiados intentos. Espera un minuto y vuelve a enviarlo."
+            }
+        },
+        "manage": {
+            "cancel": {
+                "action": "Cancelar la cita",
+                "title": "¿Cancelar esta cita?",
+                "body": "La hora vuelve a ofrecerse y no podremos guardártela.",
+                "confirm": "Cancelar la cita",
+                "keep": "Mantener la cita",
+                "success": "Cita cancelada"
+            },
+            "cancelledAt": "Cancelada el {{moment}}",
+            "closed": "El negocio está cerrado ahora mismo, así que no puedes cambiar la hora. Cancelar sí está disponible.",
+            "errors": {
+                "reschedule": "No pudimos mover tu cita. Inténtalo otra vez.",
+                "cancel": "No pudimos cancelar tu cita. Inténtalo otra vez.",
+                "tooMany": "Demasiados intentos. Espera un minuto e inténtalo otra vez."
+            },
+            "invalid": {
+                "title": "Este enlace ya no funciona.",
+                "body": "Revisa el enlace de tu confirmación o pide uno nuevo al negocio."
+            },
+            "locked": "Esta cita ya no se puede cambiar desde aquí. Llama al negocio.",
+            "reference": "Referencia {{code}}",
+            "reschedule": {
+                "action": "Cambiar la hora",
+                "title": "Elige una hora nueva",
+                "submit": "Mover la cita",
+                "keep": "Dejar la hora actual",
+                "success": "Cita movida"
+            },
+            "status": {
+                "booked": "Confirmada",
+                "cancelled": "Cancelada"
+            },
+            "title": "Tu cita",
+            "window_one": "Puedes cambiarla o cancelarla hasta {{count}} minuto antes de que empiece.",
+            "window_other": "Puedes cambiarla o cancelarla hasta {{count}} minutos antes de que empiece."
         }
     }
 }

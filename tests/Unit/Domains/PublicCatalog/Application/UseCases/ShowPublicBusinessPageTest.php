@@ -6,10 +6,13 @@ use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Application\Dtos\ShowPublicBusinessPageInput;
 use App\Domains\PublicCatalog\Application\Presenters\PublicBusinessPagePresenter;
 use App\Domains\PublicCatalog\Application\UseCases\ShowPublicBusinessPage;
+use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
+use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
 use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
+use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
 use App\Domains\PublicCatalog\Contracts\PublishedSchedule;
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
@@ -50,38 +53,51 @@ beforeEach(function () {
     $this->businesses = Mockery::mock(PublishedBusinesses::class);
     $this->brand = Mockery::mock(PublishedBrand::class);
     $this->schedule = Mockery::mock(PublishedSchedule::class);
+    $this->openState = Mockery::mock(PublishedOpenState::class);
+    $this->bookingHorizon = Mockery::mock(PublishedBookingHorizon::class);
     $this->services = Mockery::mock(PublishedServices::class);
     $this->team = Mockery::mock(PublishedTeam::class);
     $this->location = Mockery::mock(PublishedLocation::class);
     $this->contact = Mockery::mock(PublishedContact::class);
+    $this->bookingPolicy = Mockery::mock(PublishedBookingPolicy::class);
 
     $this->useCase = new ShowPublicBusinessPage(new PublicBusinessPagePresenter(
         $this->businesses,
         $this->brand,
         $this->schedule,
+        $this->openState,
+        $this->bookingHorizon,
         $this->services,
         $this->team,
         $this->location,
         $this->contact,
+        $this->bookingPolicy,
     ));
 
     $this->sectionPorts = fn (): array => [
         $this->brand,
         $this->schedule,
+        $this->openState,
         $this->services,
         $this->team,
         $this->location,
         $this->contact,
+        $this->bookingPolicy,
     ];
 
     $this->publish = function (): void {
         $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
         $this->brand->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::brand());
         $this->schedule->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::scheduleEntry()]);
+        $this->openState->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::openState());
+        $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+            ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
         $this->services->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::service()]);
         $this->team->shouldReceive('forBusiness')->once()->andReturn([PublicCatalogFixtures::teamMember()]);
         $this->location->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::location());
         $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
+        $this->bookingPolicy->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::bookingPolicy());
     };
 
     $this->show = fn (string $slug = PublicCatalogFixtures::SLUG): UseCaseResponse => $this->useCase
@@ -105,6 +121,9 @@ describe('showing the page a visitor opened', function () {
             ->and($page->profile->logoUrl)->toBe(PublicCatalogFixtures::LOGO_URL)
             ->and($page->brand->bannerUrl)->toBe(PublicCatalogFixtures::BANNER_URL)
             ->and($page->schedule[0]->startsAt)->toBe('09:00')
+            ->and($page->openState->isOpen())->toBeTrue()
+            ->and($page->openState->closesAt)->toBe(PublicCatalogFixtures::CLOSES_AT)
+            ->and($page->lastBookableDate)->toBe(PublicCatalogFixtures::LAST_BOOKABLE_DATE)
             ->and($page->services[0]->slug)->toBe('corte-de-pelo')
             ->and($page->team[0]->name)->toBe('Ada Lovelace')
             ->and($page->location->countryCode)->toBe('MX')
@@ -158,6 +177,8 @@ describe('a slug that answers to nothing', function () {
             $port->shouldNotReceive('forBusiness');
         }
 
+        $this->bookingHorizon->shouldNotReceive('lastBookableDateFor');
+
         expect(($this->show)(PublicCatalogFixtures::UNKNOWN_SLUG)->failed())->toBeTrue();
     });
 
@@ -191,6 +212,7 @@ describe('what is not a refusal', function () {
         $bug = new RuntimeException('the media disk went away');
 
         $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
+        $this->team->shouldReceive('forBusiness')->andReturn([PublicCatalogFixtures::teamMember()]);
         $this->brand->shouldReceive('forBusiness')->once()->andThrow($bug);
 
         expect(fn () => ($this->show)())->toThrow($bug);

@@ -9,3 +9,13 @@ export const WEEKDAY_LABEL_KEYS = {
     6: 'weekdays.saturday',
     7: 'weekdays.sunday',
 } as const satisfies Record<WeekdayNumber, string>;
+
+export const WEEKDAY_IN_SENTENCE_LABEL_KEYS = {
+    1: 'weekdaysInSentence.monday',
+    2: 'weekdaysInSentence.tuesday',
+    3: 'weekdaysInSentence.wednesday',
+    4: 'weekdaysInSentence.thursday',
+    5: 'weekdaysInSentence.friday',
+    6: 'weekdaysInSentence.saturday',
+    7: 'weekdaysInSentence.sunday',
+} as const satisfies Record<WeekdayNumber, string>;

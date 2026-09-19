@@ -5,7 +5,8 @@ import { brandColorClasses, type TimeInterval } from '@/lib/booking-brand';
 import type { PublicBusinessPage } from '../types';
 import { addressLinesFrom } from './booking-address';
 import { socialLinksFrom, websiteLinkFrom } from './booking-links';
-import { intervalKeyFor, intervalLabelFor, type BookingOpenState } from './booking-schedule';
+import { intervalKeyFor, intervalLabelFor } from './booking-schedule';
+import { bookingStepUrl } from './booking/booking-steps';
 import { BookingContactPills } from './BookingContactPills';
 import { BookingCta } from './BookingCta';
 import { BookingOpenBadge } from './BookingOpenBadge';
@@ -14,10 +15,9 @@ import { BookingSocialLinks } from './BookingSocialLinks';
 type Props = {
     page: PublicBusinessPage;
     todayIntervals: TimeInterval[];
-    openState: BookingOpenState;
 };
 
-export function BookingSidebar({ page, todayIntervals, openState }: Props) {
+export function BookingSidebar({ page, todayIntervals }: Props) {
     const { t } = useTranslation('public');
     const { t: tCommon } = useTranslation('common');
 
@@ -50,12 +50,16 @@ export function BookingSidebar({ page, todayIntervals, openState }: Props) {
 
             <div className="grid w-full justify-items-center gap-4">
                 <BookingCta
+                    href={bookingStepUrl(page.slug, 'service', {})}
+                    openState={page.open_state}
                     accentColor={page.brand.accent_color}
                     buttonShape={page.brand.button_shape}
                     className="w-full"
                 />
 
-                <BookingOpenBadge state={openState} accent={accent} />
+                {page.open_state.open ? (
+                    <BookingOpenBadge closesAt={page.open_state.closes_at} accent={accent} />
+                ) : null}
             </div>
 
             {page.schedule.length === 0 ? null : (

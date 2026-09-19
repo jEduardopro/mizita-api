@@ -42,6 +42,7 @@ final class ServicesPublishedServices implements PublishedServices
                 durationMinutes: $service->durationMinutes(),
                 price: $service->price(),
                 imageUrl: $imageUrls[$service->id] ?? null,
+                staffIds: $service->staffIds(),
             ),
             $services,
         );

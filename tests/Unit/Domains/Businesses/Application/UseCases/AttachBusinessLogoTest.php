@@ -8,6 +8,7 @@ use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\Exceptions\UnsupportedBusinessLogo;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\FakeBookingPageSettings;
+use Tests\Support\Businesses\FakeBookingPolicySettings;
 use Tests\Support\Businesses\FakeBusinessAddressBook;
 use Tests\Support\Businesses\FakeBusinessLinkList;
 use Tests\Support\Businesses\FakeBusinessLogo;
@@ -25,6 +26,7 @@ beforeEach(function () {
     $this->links = new FakeBusinessLinkList;
     $this->schedule = new FakeBusinessSchedule;
     $this->bookingPages = new FakeBookingPageSettings;
+    $this->bookingPolicies = new FakeBookingPolicySettings;
     $this->phones = new FakeBusinessPhoneBook;
     $this->logo = new FakeBusinessLogo;
 
@@ -36,6 +38,7 @@ beforeEach(function () {
             $this->links,
             $this->schedule,
             $this->bookingPages,
+            $this->bookingPolicies,
             $this->phones,
             $this->logo,
         ),

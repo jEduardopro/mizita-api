@@ -3,6 +3,10 @@ import type { ApiWarning } from '@/types/api';
 
 const VALIDATION_STATUS = 422;
 
+const NOT_FOUND_STATUS = 404;
+
+const TOO_MANY_REQUESTS_STATUS = 429;
+
 export type FieldErrors = Record<string, string>;
 
 function propertyOf(source: unknown, key: string): unknown {
@@ -56,6 +60,14 @@ export function responseBodyFrom(error: unknown): unknown {
 
 export function isValidationError(error: unknown): boolean {
     return httpStatusFrom(error) === VALIDATION_STATUS;
+}
+
+export function isNotFoundError(error: unknown): boolean {
+    return httpStatusFrom(error) === NOT_FOUND_STATUS;
+}
+
+export function isRateLimitedError(error: unknown): boolean {
+    return httpStatusFrom(error) === TOO_MANY_REQUESTS_STATUS;
 }
 
 export function httpStatusFrom(error: unknown): number | undefined {

@@ -6,6 +6,7 @@ namespace App\Domains\PublicCatalog\Infrastructure\Gateways;
 
 use App\Domains\Businesses\Contracts\BusinessLogo;
 use App\Domains\Businesses\Contracts\BusinessRepository;
+use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
 use App\Domains\PublicCatalog\Exceptions\BusinessPageNotFound;
@@ -20,11 +21,7 @@ final class BusinessesPublishedBusinesses implements PublishedBusinesses
 
     public function findBySlug(string $slug): PublicBusinessProfile
     {
-        try {
-            $business = $this->businesses->findBySlug($slug);
-        } catch (BusinessNotFound $absent) {
-            throw BusinessPageNotFound::withSlug($slug, $absent);
-        }
+        $business = $this->businessBySlug($slug);
 
         return new PublicBusinessProfile(
             id: $business->id,
@@ -37,8 +34,25 @@ final class BusinessesPublishedBusinesses implements PublishedBusinesses
         );
     }
 
+    public function identifyBySlug(string $slug): string
+    {
+        return $this->businessBySlug($slug)->id;
+    }
+
     public function existsBySlug(string $slug): bool
     {
         return $this->businesses->existsBySlug($slug);
+    }
+
+    /**
+     * @throws BusinessPageNotFound
+     */
+    private function businessBySlug(string $slug): Business
+    {
+        try {
+            return $this->businesses->findBySlug($slug);
+        } catch (BusinessNotFound $absent) {
+            throw BusinessPageNotFound::withSlug($slug, $absent);
+        }
     }
 }

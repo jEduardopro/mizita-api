@@ -123,6 +123,7 @@ return [
         'invalid_customer_birth_date' => 'Esa fecha de nacimiento no es válida.',
         'invalid_customer_notes' => 'Esas notas son demasiado largas.',
         'invalid_customer_search' => 'Esa búsqueda es demasiado larga.',
+        'invalid_guest_contact' => 'Deja un correo electrónico o un número de teléfono para poder confirmar la reserva.',
         'customer_photo_too_large' => 'Esa foto es demasiado grande. Usa una de menos de 2 MB.',
         'unsupported_customer_photo' => 'Ese archivo no es una foto compatible. Usa un JPG, PNG o WebP.',
 
@@ -162,6 +163,36 @@ return [
         'invalid_appointment_schedule' => 'Ese horario de cita no es válido.',
         'invalid_appointment_notes' => 'Esas notas son demasiado largas.',
         'invalid_calendar_range' => 'Ese rango de la agenda no es válido.',
+
+        'invalid_availability_range' => 'Ese rango de disponibilidad no es válido.',
+        'availability_range_too_wide' => 'Ese rango de disponibilidad abarca demasiados días.',
+        'invalid_slot_query' => 'Elige un servicio y un miembro del equipo para ver los horarios disponibles.',
+        'bookable_service_not_found' => 'Este servicio no está disponible para reservar.',
+        'staff_member_not_bookable' => 'Este miembro del equipo no ofrece el servicio seleccionado.',
+        'invalid_booking_block' => 'Este servicio no tiene una duración válida, así que no se pueden ofrecer horarios.',
+
+        'business_currently_closed' => 'Este negocio está cerrado en este momento. Podrás reservar cuando vuelva a abrir.',
+        'guest_booking_not_found' => 'No encontramos ninguna reserva con ese código y ese enlace.',
+        'appointment_slot_not_bookable' => 'Ese horario no está disponible para reservar.',
+        'appointment_changes_not_allowed' => 'Este negocio no permite que los clientes modifiquen sus reservas.',
+        'cancellation_window_closed' => 'El plazo para modificar esta reserva ya se cerró.',
+        'invalid_guest_name' => 'Ingresa el nombre de la persona que asistirá.',
+        'invalid_guest_email' => 'Ese correo electrónico no es válido.',
+        'invalid_guest_phone' => 'Ese número de teléfono no es válido.',
+        'missing_guest_contact_channel' => 'Proporciona un correo electrónico o un número de teléfono.',
+
+        'invalid_reference_code' => 'Ese código de reserva no es válido.',
+        'invalid_manage_token' => 'Ese enlace de gestión no es válido.',
+        'appointment_already_cancelled' => 'Esa cita ya fue cancelada.',
+        'appointment_already_started' => 'Esa cita ya comenzó y ya no puede modificarse.',
+
+        'booking_policy_not_found' => 'No hemos encontrado esa política de reservas.',
+        'incomplete_booking_policy' => 'La política de reservas debe guardarse con todos sus ajustes.',
+        'invalid_lead_time' => 'Esa antelación mínima de reserva no es válida.',
+        'invalid_booking_window' => 'Ese periodo de reserva no es válido.',
+        'invalid_slot_granularity' => 'Ese intervalo entre horarios no es válido.',
+        'invalid_cancellation_window' => 'Ese plazo de cancelación no es válido.',
+        'invalid_policy_message' => 'Ese mensaje de la política no es válido.',
 
     ],
 

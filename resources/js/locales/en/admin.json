@@ -47,7 +47,9 @@
             "actions": {
                 "create": "Create",
                 "save": "Save",
-                "launch": "Book appointment"
+                "launch": "Book appointment",
+                "cancel": "Cancel appointment",
+                "delete": "Delete permanently"
             },
             "form": {
                 "service": {
@@ -113,21 +115,37 @@
                 "customer": "Customer",
                 "staff": "Attended by",
                 "notes": "Notes",
-                "empty": "No notes"
+                "empty": "No notes",
+                "reference": "Booking code"
+            },
+            "cancelled": {
+                "badge": "Cancelled",
+                "title": "Appointment cancelled",
+                "byCustomer": "The customer cancelled it",
+                "byBusiness": "Your business cancelled it",
+                "locked": "A cancelled appointment can no longer be edited."
+            },
+            "cancel": {
+                "title": "Cancel this appointment?",
+                "description": "That time is free again and the appointment stays on the calendar, marked as cancelled.",
+                "keep": "Keep appointment",
+                "confirm": "Cancel appointment"
             },
             "delete": {
                 "title": "Delete this appointment?",
-                "description": "The appointment leaves the calendar and that time is free again. This cannot be undone.",
-                "confirm": "Delete appointment"
+                "description": "The appointment leaves the calendar for good and no record of it is kept. To keep the record, cancel it instead.",
+                "confirm": "Delete permanently"
             },
             "toasts": {
                 "created": "Appointment created",
                 "updated": "Changes saved",
+                "cancelled": "Appointment cancelled",
                 "deleted": "Appointment deleted"
             },
             "errors": {
                 "overlap": "That person already has an appointment at that time. Pick another time or someone else from your team.",
                 "saveFailed": "We could not save the appointment. Try again.",
+                "cancelFailed": "We could not cancel the appointment. Try again.",
                 "deleteFailed": "We could not delete the appointment. Try again."
             }
         },
@@ -502,6 +520,7 @@
             "hoursEmpty": "No opening hours yet",
             "today": "Today",
             "locationTitle": "Where to find us",
+            "policyTitle": "Before you book:",
             "locationEmpty": "No address yet",
             "social": {
                 "title": "Links",
@@ -602,6 +621,7 @@
             "contact": "Contact",
             "location": "Location",
             "hours": "Hours",
+            "policy": "Booking policy",
             "links": "Links"
         },
         "brand": {
@@ -698,6 +718,58 @@
             "currencies": {
                 "MXN": "Mexican peso (MXN)",
                 "USD": "US dollar (USD)"
+            }
+        },
+        "policy": {
+            "title": "Booking policy",
+            "description": "When customers can book, and how late they can change an appointment.",
+            "leadTime": {
+                "label": "Lead time",
+                "helper": "How far in advance must an appointment be booked?",
+                "unit": "Lead time unit"
+            },
+            "bookingWindow": {
+                "label": "Booking window",
+                "helper": "How far ahead can customers book an appointment?",
+                "hint": "Enter 0 to set no limit.",
+                "unit": "Booking window unit"
+            },
+            "slotSize": {
+                "label": "Booking slot size",
+                "helper": "How often should available booking slots appear?",
+                "hint": "Between 5 and 60 minutes, in steps of 5.",
+                "unit": "Slot size unit",
+                "help": "More about slot size",
+                "tooltip": "Customers see a start time every so often. A larger size groups appointments together and leaves fewer gaps."
+            },
+            "cancellation": {
+                "label": "Cancellation policy",
+                "helper": "How long before an appointment can your customers reschedule or cancel it?",
+                "options": {
+                    "none": "No restriction",
+                    "h1": "1 hour",
+                    "h2": "2 hours",
+                    "h4": "4 hours",
+                    "h12": "12 hours",
+                    "h24": "24 hours",
+                    "h48": "48 hours",
+                    "never": "Do not allow"
+                }
+            },
+            "message": {
+                "label": "Custom message",
+                "helper": "Share the details customers need to know \u2014 about changes to bookings, refunds and more \u2014 before they confirm their booking.",
+                "placeholder": "Write your policy or share a link"
+            },
+            "display": {
+                "label": "Add the policy to the booking page",
+                "helper": "Show your booking policy at the top of your booking page so it gets more attention."
+            },
+            "units": {
+                "minutes": "Minutes",
+                "hours": "Hours",
+                "days": "Days",
+                "months": "Months"
             }
         },
         "links": {

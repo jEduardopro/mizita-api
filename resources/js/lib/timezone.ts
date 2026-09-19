@@ -46,6 +46,28 @@ export function timeOfDayIn(timeZone: string, instant: Date): string | null {
     }
 }
 
+export function isoDateIn(timeZone: string, instant: Date): string | null {
+    if (timeZone === '') {
+        return null;
+    }
+
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).formatToParts(instant);
+
+        const partOf = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+        const [year, month, day] = [partOf('year'), partOf('month'), partOf('day')];
+
+        return year === '' || month === '' || day === '' ? null : `${year}-${month}-${day}`;
+    } catch {
+        return null;
+    }
+}
+
 export function resolvedTimezone(): string {
     try {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

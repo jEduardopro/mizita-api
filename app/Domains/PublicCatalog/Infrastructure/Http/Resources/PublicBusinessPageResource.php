@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Domains\PublicCatalog\Infrastructure\Http\Resources;
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
+use App\Domains\PublicCatalog\ValueObjects\PublicBookingPolicy;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
 use App\Domains\PublicCatalog\ValueObjects\PublicGalleryImage;
 use App\Domains\PublicCatalog\ValueObjects\PublicLink;
 use App\Domains\PublicCatalog\ValueObjects\PublicLocation;
+use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use App\Domains\PublicCatalog\ValueObjects\PublicScheduleEntry;
 use App\Domains\PublicCatalog\ValueObjects\PublicService;
 use App\Domains\PublicCatalog\ValueObjects\PublicTeamMember;
@@ -38,10 +40,27 @@ final class PublicBusinessPageResource extends JsonResource
             'logo_url' => $profile->logoUrl,
             'brand' => self::describeBrand($this->resource->brand),
             'schedule' => array_map(self::describeScheduleEntry(...), $this->resource->schedule),
+            'open_state' => self::describeOpenState($this->resource->openState),
+            'last_bookable_date' => $this->resource->lastBookableDate,
             'services' => array_map(self::describeService(...), $this->resource->services),
             'team' => array_map(self::describeTeamMember(...), $this->resource->team),
             'location' => self::describeLocation($this->resource->location),
             'contact' => self::describeContact($this->resource->contact),
+            ...self::describeBookingPolicy($this->resource->bookingPolicy),
+        ];
+    }
+
+    /**
+     * @return array{booking_policy?: array{policy_message: string}}
+     */
+    private static function describeBookingPolicy(?PublicBookingPolicy $policy): array
+    {
+        if ($policy === null) {
+            return [];
+        }
+
+        return [
+            'booking_policy' => ['policy_message' => $policy->policyMessage],
         ];
     }
 
@@ -83,7 +102,20 @@ final class PublicBusinessPageResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, name: string, slug: string, description: string|null, duration_minutes: int, price: string, image_url: string|null}
+     * @return array{open: bool, closes_at: string|null, opens_on_weekday: int|null, opens_at: string|null}
+     */
+    private static function describeOpenState(PublicOpenState $state): array
+    {
+        return [
+            'open' => $state->isOpen(),
+            'closes_at' => $state->closesAt,
+            'opens_on_weekday' => $state->opensOnWeekday,
+            'opens_at' => $state->opensAt,
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string, slug: string, description: string|null, duration_minutes: int, price: string, image_url: string|null, staff_ids: list<string>}
      */
     private static function describeService(PublicService $service): array
     {
@@ -95,6 +127,7 @@ final class PublicBusinessPageResource extends JsonResource
             'duration_minutes' => $service->durationMinutes,
             'price' => $service->price,
             'image_url' => $service->imageUrl,
+            'staff_ids' => $service->staffIds,
         ];
     }
 

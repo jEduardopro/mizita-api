@@ -31,6 +31,10 @@ final class AppointmentResource extends JsonResource
             'duration_minutes' => $this->resource->durationMinutes,
             'notes' => $this->resource->notes,
             'created_at' => $this->resource->createdAt->format(DATE_ATOM),
+            'status' => $this->resource->status->value,
+            'cancelled_at' => $this->resource->cancelledAt?->format(DATE_ATOM),
+            'cancelled_by' => $this->resource->cancelledBy?->value,
+            'reference_code' => $this->resource->referenceCode,
         ];
     }
 

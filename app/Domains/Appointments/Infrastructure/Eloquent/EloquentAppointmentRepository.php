@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Appointments\Infrastructure\Eloquent;
 
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\ReferenceCodeGenerator;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentNotFound;
@@ -24,6 +25,10 @@ final class EloquentAppointmentRepository implements AppointmentRepository
 {
     private const OVERLAP_SQLSTATE = '23P01';
 
+    private const REFERENCE_CODE_UNIQUE_INDEX = 'appointments_reference_code_unique';
+
+    private const MAXIMUM_REFERENCE_CODE_ATTEMPTS = 5;
+
     private const BUSINESSES_TABLE = 'businesses';
 
     private const CUSTOMERS_TABLE = 'customers';
@@ -42,6 +47,7 @@ final class EloquentAppointmentRepository implements AppointmentRepository
     public function __construct(
         private readonly AppointmentMapper $mapper,
         private readonly BusinessTeamKey $businessKeys,
+        private readonly ReferenceCodeGenerator $referenceCodes,
     ) {}
 
     /**
@@ -68,27 +74,63 @@ final class EloquentAppointmentRepository implements AppointmentRepository
         return $this->mapper->toEntity($this->modelOrFail($businessId, $id), $businessId);
     }
 
+    public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment
+    {
+        $model = $this->ofBusiness($businessId)
+            ->with(self::PARTICIPANT_RELATIONS)
+            ->where('reference_code', $referenceCode)
+            ->first();
+
+        return $model === null ? null : $this->mapper->toEntity($model, $businessId);
+    }
+
     public function save(Appointment $appointment): void
     {
-        try {
-            AppointmentModel::query()->updateOrCreate(
-                ['uuid' => $appointment->id],
-                $this->mapper->toAttributes(
-                    $appointment,
-                    $this->businessKeys->teamKeyFor($appointment->businessId),
-                    $this->customerKeyFor($appointment->customerId()),
-                    $this->serviceKeyFor($appointment->serviceId()),
-                    $this->staffMemberKeyFor($appointment->staffMemberId()),
-                ),
-            );
-        } catch (QueryException $violation) {
-            $this->failFrom($violation);
+        if ($appointment->referenceCode() === null) {
+            $appointment->assignReferenceCode($this->referenceCodes->next());
+        }
+
+        $remainingAttempts = self::MAXIMUM_REFERENCE_CODE_ATTEMPTS;
+
+        while (true) {
+            try {
+                $this->persist($appointment);
+
+                return;
+            } catch (QueryException $violation) {
+                $remainingAttempts--;
+
+                if ($remainingAttempts === 0 || ! self::isReferenceCodeCollision($violation)) {
+                    $this->failFrom($violation);
+                }
+
+                $appointment->assignReferenceCode($this->referenceCodes->next());
+            }
         }
     }
 
     public function delete(string $businessId, string $id): void
     {
         $this->modelOrFail($businessId, $id)->delete();
+    }
+
+    private function persist(Appointment $appointment): void
+    {
+        AppointmentModel::query()->updateOrCreate(
+            ['uuid' => $appointment->id],
+            $this->mapper->toAttributes(
+                $appointment,
+                $this->businessKeys->teamKeyFor($appointment->businessId),
+                $this->customerKeyFor($appointment->customerId()),
+                $this->serviceKeyFor($appointment->serviceId()),
+                $this->staffMemberKeyFor($appointment->staffMemberId()),
+            ),
+        );
+    }
+
+    private static function isReferenceCodeCollision(QueryException $violation): bool
+    {
+        return str_contains($violation->getMessage(), self::REFERENCE_CODE_UNIQUE_INDEX);
     }
 
     private function modelOrFail(string $businessId, string $id): AppointmentModel

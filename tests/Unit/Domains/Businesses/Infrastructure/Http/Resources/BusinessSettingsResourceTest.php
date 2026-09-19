@@ -6,6 +6,7 @@ use App\Domains\Businesses\Application\Dtos\BusinessSettingsData;
 use App\Domains\Businesses\Infrastructure\Http\Resources\BusinessSettingsResource;
 use App\Domains\Businesses\ValueObjects\BookingPageImageSnapshot;
 use App\Domains\Businesses\ValueObjects\BookingPageSnapshot;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
@@ -36,6 +37,24 @@ function businessSettingsBookingPage(
         theme: $theme,
         bannerUrl: $bannerUrl,
         gallery: $gallery ?? [new BookingPageImageSnapshot(id: SETTINGS_IMAGE_ID, url: 'https://cdn.mizita.test/one.jpg')],
+    );
+}
+
+function businessSettingsBookingPolicy(
+    int $leadTimeMinutes = 60,
+    ?int $bookingWindowMinutes = 43200,
+    int $slotGranularityMinutes = 30,
+    ?int $cancellationWindowMinutes = 240,
+    ?string $policyMessage = 'Cancela con cuatro horas de antelación.',
+    bool $displayOnBookingPage = true,
+): BookingPolicySnapshot {
+    return new BookingPolicySnapshot(
+        leadTimeMinutes: $leadTimeMinutes,
+        bookingWindowMinutes: $bookingWindowMinutes,
+        slotGranularityMinutes: $slotGranularityMinutes,
+        cancellationWindowMinutes: $cancellationWindowMinutes,
+        policyMessage: $policyMessage,
+        displayOnBookingPage: $displayOnBookingPage,
     );
 }
 
@@ -72,6 +91,7 @@ function businessSettingsData(
     ?array $schedule = null,
     ?array $links = null,
     ?BookingPageSnapshot $bookingPage = null,
+    ?BookingPolicySnapshot $bookingPolicy = null,
 ): BusinessSettingsData {
     return new BusinessSettingsData(
         id: $id,
@@ -88,6 +108,7 @@ function businessSettingsData(
         schedule: $schedule ?? [new BusinessScheduleEntry(weekday: 1, startsAt: '09:00', endsAt: '14:00')],
         links: $links ?? [new BusinessLinkSnapshot(platform: 'instagram', url: 'https://instagram.com/ada.salon', position: 0)],
         bookingPage: $bookingPage ?? businessSettingsBookingPage(),
+        bookingPolicy: $bookingPolicy ?? businessSettingsBookingPolicy(),
     );
 }
 
@@ -108,6 +129,14 @@ function businessSettingsNothingFiled(): BusinessSettingsData
         schedule: [],
         links: [],
         bookingPage: businessSettingsBookingPage(bannerUrl: null, gallery: []),
+        bookingPolicy: businessSettingsBookingPolicy(
+            leadTimeMinutes: 0,
+            bookingWindowMinutes: null,
+            slotGranularityMinutes: 15,
+            cancellationWindowMinutes: null,
+            policyMessage: null,
+            displayOnBookingPage: false,
+        ),
     );
 }
 
@@ -138,6 +167,7 @@ describe('the client contract', function () {
             'schedule',
             'links',
             'booking_page',
+            'booking_policy',
         ]);
     });
 
@@ -186,6 +216,14 @@ describe('the client contract', function () {
                     ['id' => SETTINGS_IMAGE_ID, 'url' => 'https://cdn.mizita.test/one.jpg'],
                 ],
             ],
+            'booking_policy' => [
+                'lead_time_minutes' => 60,
+                'booking_window_minutes' => 43200,
+                'slot_granularity_minutes' => 30,
+                'cancellation_window_minutes' => 240,
+                'policy_message' => 'Cancela con cuatro horas de antelación.',
+                'display_on_booking_page' => true,
+            ],
         ]);
     });
 
@@ -195,6 +233,14 @@ describe('the client contract', function () {
         'phone' => ['phone', ['country_code', 'national_number', 'e164']],
         'address' => ['address', ['street', 'city', 'state_id', 'postal_code', 'country_code', 'latitude', 'longitude']],
         'booking page' => ['booking_page', ['accent_color', 'button_shape', 'theme', 'banner_url', 'gallery']],
+        'booking policy' => ['booking_policy', [
+            'lead_time_minutes',
+            'booking_window_minutes',
+            'slot_granularity_minutes',
+            'cancellation_window_minutes',
+            'policy_message',
+            'display_on_booking_page',
+        ]],
     ]);
 
     it('declares the keys of every row in a collection section', function () {
@@ -255,6 +301,34 @@ describe('what an empty business serializes as', function () {
 
         expect($serialized['booking_page'])->toBeArray()
             ->and($serialized['booking_page']['accent_color'])->toBe('teal');
+    });
+
+    it('still sends the booking policy, which is provisioned rather than optional', function () {
+        $serialized = serializedBusinessSettings(businessSettingsNothingFiled());
+
+        expect($serialized['booking_policy'])->toBeArray()
+            ->and($serialized['booking_policy']['lead_time_minutes'])->toBe(0)
+            ->and($serialized['booking_policy']['slot_granularity_minutes'])->toBe(15)
+            ->and($serialized['booking_policy']['display_on_booking_page'])->toBeFalse();
+    });
+
+    it('sends an unlimited window and a cancellation nobody may use as null, never as zero', function () {
+        $serialized = serializedBusinessSettings(businessSettingsNothingFiled());
+
+        expect($serialized['booking_policy'])->toHaveKeys(['booking_window_minutes', 'cancellation_window_minutes'])
+            ->and($serialized['booking_policy']['booking_window_minutes'])->toBeNull()
+            ->and($serialized['booking_policy']['cancellation_window_minutes'])->toBeNull()
+            ->and($serialized['booking_policy']['policy_message'])->toBeNull();
+    });
+
+    it('never confuses an unlimited window with a window of zero minutes', function () {
+        $serialized = serializedBusinessSettings(businessSettingsData(
+            bookingPolicy: businessSettingsBookingPolicy(bookingWindowMinutes: null, cancellationWindowMinutes: 0),
+        ));
+
+        expect($serialized['booking_policy']['booking_window_minutes'])->not->toBe(0)
+            ->and($serialized['booking_policy']['booking_window_minutes'])->toBeNull()
+            ->and($serialized['booking_policy']['cancellation_window_minutes'])->toBe(0);
     });
 
     it('sends an empty json array, never an object, for a section with no rows', function () {

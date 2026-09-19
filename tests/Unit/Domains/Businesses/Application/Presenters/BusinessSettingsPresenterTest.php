@@ -6,9 +6,11 @@ use App\Domains\Businesses\Application\Dtos\BusinessSettingsData;
 use App\Domains\Businesses\Application\Presenters\BusinessSettingsPresenter;
 use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\ValueObjects\About;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
 use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use Tests\Support\Businesses\FakeBookingPageSettings;
+use Tests\Support\Businesses\FakeBookingPolicySettings;
 use Tests\Support\Businesses\FakeBusinessAddressBook;
 use Tests\Support\Businesses\FakeBusinessLinkList;
 use Tests\Support\Businesses\FakeBusinessLogo;
@@ -26,6 +28,7 @@ beforeEach(function () {
     $this->links = new FakeBusinessLinkList;
     $this->schedule = new FakeBusinessSchedule;
     $this->bookingPages = new FakeBookingPageSettings;
+    $this->bookingPolicies = new FakeBookingPolicySettings;
     $this->phones = new FakeBusinessPhoneBook;
     $this->logo = new FakeBusinessLogo;
 
@@ -35,6 +38,7 @@ beforeEach(function () {
         $this->links,
         $this->schedule,
         $this->bookingPages,
+        $this->bookingPolicies,
         $this->phones,
         $this->logo,
     );
@@ -63,6 +67,9 @@ it('assembles the whole settings screen out of the business and its neighbours',
     $this->bookingPages->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPage(
         bannerUrl: SettingsFixtures::BANNER_URL,
     ));
+    $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+        leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
+    ));
 
     $data = ($this->describe)();
 
@@ -82,7 +89,35 @@ it('assembles the whole settings screen out of the business and its neighbours',
         ->and($data->schedule[0]->weekday)->toBe(1)
         ->and($data->links)->toHaveCount(1)
         ->and($data->links[0]->platform)->toBe('instagram')
-        ->and($data->bookingPage->bannerUrl)->toBe(SettingsFixtures::BANNER_URL);
+        ->and($data->bookingPage->bannerUrl)->toBe(SettingsFixtures::BANNER_URL)
+        ->and($data->bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES);
+});
+
+it('always describes a booking policy, because one is provisioned on first use', function () {
+    ($this->store)();
+
+    $bookingPolicy = ($this->describe)()->bookingPolicy;
+
+    expect($bookingPolicy)->toBeInstanceOf(BookingPolicySnapshot::class)
+        ->and($bookingPolicy->leadTimeMinutes)->toBe(0)
+        ->and($bookingPolicy->bookingWindowMinutes)->toBeNull()
+        ->and($bookingPolicy->slotGranularityMinutes)->toBe(15)
+        ->and($bookingPolicy->cancellationWindowMinutes)->toBe(120)
+        ->and($bookingPolicy->policyMessage)->toBeNull()
+        ->and($bookingPolicy->displayOnBookingPage)->toBeFalse();
+});
+
+it('keeps an unlimited window and a cancellation nobody may use as null', function () {
+    ($this->store)();
+    $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+        bookingWindowMinutes: null,
+        cancellationWindowMinutes: null,
+    ));
+
+    $bookingPolicy = ($this->describe)()->bookingPolicy;
+
+    expect($bookingPolicy->bookingWindowMinutes)->toBeNull()
+        ->and($bookingPolicy->cancellationWindowMinutes)->toBeNull();
 });
 
 it('describes an address filed with a street alone, city and postal code null', function () {
@@ -148,6 +183,7 @@ it('asks every neighbour about the business it was given and about no other', fu
         ->and($this->schedule->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
         ->and($this->links->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
         ->and($this->bookingPages->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
+        ->and($this->bookingPolicies->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
         ->and($this->businesses->idsRead)->toBe([FakeBusinessContext::BUSINESS_ID]);
 });
 
@@ -185,5 +221,6 @@ it('asks no neighbour about a business it could not find', function () {
 
     expect($this->logo->reads)->toBe([])
         ->and($this->phones->reads)->toBe([])
-        ->and($this->addresses->reads)->toBe([]);
+        ->and($this->addresses->reads)->toBe([])
+        ->and($this->bookingPolicies->reads)->toBe([]);
 });

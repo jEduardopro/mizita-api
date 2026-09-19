@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domains\Appointments\Infrastructure\Http\Controllers;
 
+use App\Domains\Appointments\Application\Dtos\CancelAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\CreateAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\DeleteAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\ListAppointmentsInput;
 use App\Domains\Appointments\Application\Dtos\ShowAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\UpdateAppointmentInput;
+use App\Domains\Appointments\Application\UseCases\CancelAppointment;
 use App\Domains\Appointments\Application\UseCases\CreateAppointment;
 use App\Domains\Appointments\Application\UseCases\DeleteAppointment;
 use App\Domains\Appointments\Application\UseCases\ListAppointments;
@@ -103,6 +105,29 @@ final class AppointmentController extends Controller
             $response = $updateAppointment->handle(
                 UpdateAppointmentInput::fromRequest($request->validated(), $appointment),
             );
+
+            if ($response->failed()) {
+                return $responder->failure($response->error(), $response->warnings());
+            }
+
+            return $responder->success(
+                $response,
+                AppointmentResource::make($response->value()),
+                Response::HTTP_OK,
+            );
+        } catch (Throwable $unexpected) {
+            return $responder->unexpected($request, $unexpected);
+        }
+    }
+
+    public function cancel(
+        Request $request,
+        string $appointment,
+        CancelAppointment $cancelAppointment,
+        ApiResponder $responder,
+    ): Response {
+        try {
+            $response = $cancelAppointment->handle(new CancelAppointmentInput($appointment));
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());

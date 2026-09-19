@@ -7,6 +7,8 @@ namespace Tests\Support\Appointments;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
+use App\Domains\Appointments\ValueObjects\GuestContact;
+use Throwable;
 
 final class FakeCustomerDirectory implements CustomerDirectory
 {
@@ -25,9 +27,32 @@ final class FakeCustomerDirectory implements CustomerDirectory
      */
     public array $batchReads = [];
 
+    /**
+     * @var list<array{businessId: string, guest: GuestContact}>
+     */
+    public array $guestRegistrations = [];
+
+    private ?CustomerSnapshot $guestSnapshot = null;
+
+    private ?Throwable $guestRejection = null;
+
     public function __construct(
         public readonly AppointmentJournal $journal = new AppointmentJournal,
     ) {}
+
+    public function registeringGuestAs(CustomerSnapshot $snapshot): self
+    {
+        $this->guestSnapshot = $snapshot;
+
+        return $this;
+    }
+
+    public function rejectingGuestWith(Throwable $rejection): self
+    {
+        $this->guestRejection = $rejection;
+
+        return $this;
+    }
 
     public static function of(string $businessId, CustomerSnapshot ...$customers): self
     {
@@ -50,6 +75,22 @@ final class FakeCustomerDirectory implements CustomerDirectory
 
         return $this->customersByBusiness[$businessId][$customerId]
             ?? throw AppointmentCustomerNotFound::withId($customerId);
+    }
+
+    public function findOrCreateGuest(string $businessId, GuestContact $guest): CustomerSnapshot
+    {
+        $this->journal->record('customers.findOrCreateGuest');
+        $this->guestRegistrations[] = ['businessId' => $businessId, 'guest' => $guest];
+
+        if ($this->guestRejection !== null) {
+            throw $this->guestRejection;
+        }
+
+        return $this->guestSnapshot ?? new CustomerSnapshot(
+            AppointmentFixtures::CUSTOMER_ID,
+            $guest->name,
+            $guest->email,
+        );
     }
 
     /**

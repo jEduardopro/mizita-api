@@ -50,11 +50,34 @@ describe('the services a visitor may book', function () {
             (new ReflectionClass(PublicService::class))->getProperties(),
         );
 
-        expect($fields)->toBe(['id', 'name', 'slug', 'description', 'durationMinutes', 'price', 'imageUrl'])
+        expect($fields)->toBe([
+            'id',
+            'name',
+            'slug',
+            'description',
+            'durationMinutes',
+            'price',
+            'imageUrl',
+            'staffIds',
+        ])
             ->and($fields)->not->toContain('bufferMinutes')
             ->and($fields)->not->toContain('color')
-            ->and($fields)->not->toContain('staffIds')
             ->and(($this->read)()[0]->durationMinutes)->toBe(45);
+    });
+
+    it('publishes the staff a visitor may pick for the service', function () {
+        $this->services->store(ServiceFixtures::service(
+            id: PublicCatalogFixtures::SERVICE_ID,
+            businessId: PublicCatalogFixtures::BUSINESS_ID,
+            staffIds: [PublicCatalogFixtures::TEAM_MEMBER_ID, PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID],
+        ));
+
+        $staffIds = ($this->read)()[0]->staffIds;
+
+        expect($staffIds)->toBe([
+            PublicCatalogFixtures::TEAM_MEMBER_ID,
+            PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+        ])->and(array_filter($staffIds, is_numeric(...)))->toBe([]);
     });
 
     it('carries the service uuid, never an internal key', function () {

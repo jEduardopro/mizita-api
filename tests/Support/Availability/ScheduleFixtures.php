@@ -10,6 +10,7 @@ use App\Domains\Availability\ValueObjects\ScheduleInterval;
 use App\Domains\Availability\ValueObjects\ScheduleOwnerType;
 use App\Domains\Availability\ValueObjects\TimeOfDay;
 use App\Domains\Availability\ValueObjects\Weekday;
+use App\Domains\Availability\ValueObjects\WeeklyIntervals;
 use DateTimeImmutable;
 use Tests\Support\FakeBusinessContext;
 
@@ -64,6 +65,36 @@ final class ScheduleFixtures
             endsAt: TimeOfDay::fromString($endsAt),
             now: $now ?? self::now(),
         );
+    }
+
+    /**
+     * @param  array<int, list<array{string, string}>>  $intervalsByWeekday
+     */
+    public static function weeklyIntervals(
+        array $intervalsByWeekday,
+        ScheduleOwnerType $ownerType = ScheduleOwnerType::Business,
+        ?string $ownerId = null,
+    ): WeeklyIntervals {
+        $owner = $ownerId ?? FakeBusinessContext::BUSINESS_ID;
+        $rules = [];
+        $sequence = 0;
+
+        foreach ($intervalsByWeekday as $weekday => $intervals) {
+            foreach ($intervals as [$startsAt, $endsAt]) {
+                $rules[] = self::rule(
+                    id: sprintf('01930000-0000-7000-8000-0000000%05d', $sequence),
+                    ownerType: $ownerType,
+                    ownerId: $owner,
+                    weekday: Weekday::fromNumber($weekday),
+                    startsAt: $startsAt,
+                    endsAt: $endsAt,
+                );
+
+                $sequence++;
+            }
+        }
+
+        return WeeklyIntervals::fromRules($rules, $ownerType, $owner);
     }
 
     public static function interval(

@@ -47,7 +47,9 @@
             "actions": {
                 "create": "Crear",
                 "save": "Guardar",
-                "launch": "Registrar cita"
+                "launch": "Registrar cita",
+                "cancel": "Cancelar la cita",
+                "delete": "Eliminar definitivamente"
             },
             "form": {
                 "service": {
@@ -113,21 +115,37 @@
                 "customer": "Cliente",
                 "staff": "Atiende",
                 "notes": "Notas",
-                "empty": "Sin notas"
+                "empty": "Sin notas",
+                "reference": "Código de reserva"
+            },
+            "cancelled": {
+                "badge": "Cancelada",
+                "title": "Cita cancelada",
+                "byCustomer": "La canceló el cliente",
+                "byBusiness": "La canceló tu negocio",
+                "locked": "Una cita cancelada ya no se puede editar."
+            },
+            "cancel": {
+                "title": "¿Cancelar esta cita?",
+                "description": "Esa hora vuelve a quedar libre y la cita se queda en el calendario, marcada como cancelada.",
+                "keep": "Mantener la cita",
+                "confirm": "Cancelar la cita"
             },
             "delete": {
                 "title": "¿Eliminar esta cita?",
-                "description": "La cita sale del calendario y esa hora vuelve a quedar libre. No se puede deshacer.",
-                "confirm": "Eliminar la cita"
+                "description": "La cita sale del calendario para siempre y no queda ningún registro de ella. Si quieres conservar el registro, cancélala.",
+                "confirm": "Eliminar definitivamente"
             },
             "toasts": {
                 "created": "Cita creada",
                 "updated": "Cambios guardados",
+                "cancelled": "Cita cancelada",
                 "deleted": "Cita eliminada"
             },
             "errors": {
                 "overlap": "Esa persona ya tiene una cita a esa hora. Elige otro horario u otra persona del equipo.",
                 "saveFailed": "No pudimos guardar la cita. Inténtalo de nuevo.",
+                "cancelFailed": "No pudimos cancelar la cita. Inténtalo de nuevo.",
                 "deleteFailed": "No pudimos eliminar la cita. Inténtalo de nuevo."
             }
         },
@@ -502,6 +520,7 @@
             "hoursEmpty": "Todavía sin horario",
             "today": "Hoy",
             "locationTitle": "Dónde estamos",
+            "policyTitle": "Antes de reservar:",
             "locationEmpty": "Todavía sin dirección",
             "social": {
                 "title": "Enlaces",
@@ -602,6 +621,7 @@
             "contact": "Contacto",
             "location": "Ubicación",
             "hours": "Horario",
+            "policy": "Políticas de reserva",
             "links": "Enlaces"
         },
         "brand": {
@@ -698,6 +718,58 @@
             "currencies": {
                 "MXN": "Peso mexicano (MXN)",
                 "USD": "Dólar estadounidense (USD)"
+            }
+        },
+        "policy": {
+            "title": "Políticas de reserva",
+            "description": "Cuándo pueden reservar sus clientes y hasta cuándo pueden cambiar una cita.",
+            "leadTime": {
+                "label": "Tiempo de espera",
+                "helper": "¿Con cuánta antelación debe concertarse una cita?",
+                "unit": "Unidad del tiempo de espera"
+            },
+            "bookingWindow": {
+                "label": "Ventana de programación",
+                "helper": "¿Con qué antelación pueden concertar una cita los clientes?",
+                "hint": "Escriba 0 para no poner límite.",
+                "unit": "Unidad de la ventana de programación"
+            },
+            "slotSize": {
+                "label": "Tamaño de los espacios de reserva",
+                "helper": "¿Con qué frecuencia deben aparecer las franjas de reserva disponibles?",
+                "hint": "Entre 5 y 60 minutos, en múltiplos de 5.",
+                "unit": "Unidad del tamaño de los espacios",
+                "help": "Más sobre el tamaño de los espacios",
+                "tooltip": "Sus clientes verán una hora de inicio cada cierto tiempo. Un tamaño mayor agrupa las citas y deja menos huecos."
+            },
+            "cancellation": {
+                "label": "Política de cancelación",
+                "helper": "¿Con qué antelación antes de una cita pueden reprogramarla o cancelarla sus clientes?",
+                "options": {
+                    "none": "Sin restricción",
+                    "h1": "1 hora",
+                    "h2": "2 horas",
+                    "h4": "4 horas",
+                    "h12": "12 horas",
+                    "h24": "24 horas",
+                    "h48": "48 horas",
+                    "never": "No permitir"
+                }
+            },
+            "message": {
+                "label": "Mensaje personalizado",
+                "helper": "Comparta los detalles que necesita saber \u2014sobre modificación de reservas, reembolsos y mucho más\u2014 antes de que los clientes confirmen sus reservas.",
+                "placeholder": "Escriba su política o comparta un enlace"
+            },
+            "display": {
+                "label": "Añadir la política a la página de inicio",
+                "helper": "Muestre su política de reservas en la parte superior de su página de reservas para llamar más la atención."
+            },
+            "units": {
+                "minutes": "Minutos",
+                "hours": "Horas",
+                "days": "Días",
+                "months": "Meses"
             }
         },
         "links": {

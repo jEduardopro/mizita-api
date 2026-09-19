@@ -119,15 +119,15 @@ describe('reading a range off the wire', function () {
             ->and($refusal?->errorCode())->toBe('invalid_calendar_range')
             ->and($refusal?->kind())->toBe(DomainFailureKind::Invalid);
     })->with([
-        'unreadable ends' => fn () => fn () => CalendarRange::fromStrings('yesterday', 'today'),
-        'an inverted range' => fn () => fn () => CalendarRange::between(
+        'unreadable ends' => [fn () => CalendarRange::fromStrings('yesterday', 'today')],
+        'an inverted range' => [fn () => CalendarRange::between(
             new DateTimeImmutable('2026-01-08T00:00:00Z'),
             new DateTimeImmutable('2026-01-01T00:00:00Z'),
-        ),
-        'a range wider than the cap' => fn () => fn () => CalendarRange::between(
+        )],
+        'a range wider than the cap' => [fn () => CalendarRange::between(
             new DateTimeImmutable('2026-01-01T00:00:00Z'),
             new DateTimeImmutable('2026-06-01T00:00:00Z'),
-        ),
+        )],
     ]);
 });
 

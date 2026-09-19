@@ -150,13 +150,18 @@
         },
         "cta": {
             "book": "Book",
-            "soon": "Online booking is coming to this page soon."
+            "closed": "Closed · opens {{day}} at {{time}}",
+            "closedIndefinitely": "Closed for now"
+        },
+        "policy": {
+            "title": "Before you book"
         },
         "contact": {
             "title": "Get in touch",
             "social": "Social media"
         },
         "services": {
+            "details": "Details",
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} mins",
             "free": "Free",
@@ -165,8 +170,7 @@
         "hours": {
             "title": "Opening hours",
             "today": "Today",
-            "openNow": "Open now · closes at {{time}}",
-            "closedNow": "Closed now · opens {{day}} at {{time}}"
+            "openNow": "Open now · closes at {{time}}"
         },
         "gallery": {
             "title": "Photos",
@@ -192,6 +196,122 @@
                 "youtube": "YouTube",
                 "whatsapp": "WhatsApp"
             }
+        },
+        "flow": {
+            "back": "Go back",
+            "progress": "Step {{current}} of {{total}}",
+            "service": {
+                "title": "Choose a service",
+                "description": "Pick what you would like to book."
+            },
+            "staff": {
+                "title": "Choose who attends you",
+                "description": "Pick the person you would like to see."
+            },
+            "time": {
+                "description": "Times are shown in {{timezone}}.",
+                "nextMonth": "Next month",
+                "previousMonth": "Previous month",
+                "timezone": {
+                    "label": "Time zone",
+                    "empty": "No matching time zone",
+                    "results_one": "{{count}} time zone",
+                    "results_other": "{{count}} time zones"
+                },
+                "title": "Choose a day and a time"
+            },
+            "details": {
+                "title": "Leave your details",
+                "description": "We use them to confirm your appointment. You do not need an account.",
+                "name": {
+                    "label": "Full name",
+                    "placeholder": "Marta García"
+                },
+                "email": {
+                    "label": "Email",
+                    "hint": "We send your confirmation and your booking link here."
+                },
+                "phone": {
+                    "country": "Country code",
+                    "hint": "So the business can reach you about this appointment.",
+                    "label": "Phone",
+                    "number": "Phone number"
+                },
+                "contactHint": "Leave an email or a phone number so we can reach you.",
+                "notes": {
+                    "label": "Anything we should know?",
+                    "hint": "Optional."
+                },
+                "submit": "Confirm booking",
+                "submitting": "Confirming…"
+            },
+            "confirmed": {
+                "title": "Your appointment is booked",
+                "description": "Keep this link: it is how you change or cancel the appointment.",
+                "reference": "Reference {{code}}",
+                "manage": "Change or cancel",
+                "backToPage": "Back to {{name}}"
+            },
+            "summary": {
+                "title": "Your booking",
+                "service": "Service",
+                "staff": "With",
+                "when": "When",
+                "duration": "Duration",
+                "price": "Price",
+                "moment": "{{day}} at {{time}}"
+            },
+            "business": {
+                "title": "You are booking with",
+                "viewPage": "View the page"
+            },
+            "empty": {
+                "services": "This business has nothing to book right now.",
+                "staff": "Nobody can deliver this service right now.",
+                "slots": "No free times left this month. Try the next one."
+            },
+            "errors": {
+                "availability": "We could not load the free times.",
+                "booking": "We could not confirm your booking. Try again.",
+                "tooMany": "Too many tries. Wait a minute and send it again."
+            }
+        },
+        "manage": {
+            "cancel": {
+                "action": "Cancel the appointment",
+                "title": "Cancel this appointment?",
+                "body": "The time goes back on offer and we cannot hold it for you.",
+                "confirm": "Cancel the appointment",
+                "keep": "Keep the appointment",
+                "success": "Appointment cancelled"
+            },
+            "cancelledAt": "Cancelled on {{moment}}",
+            "closed": "The business is closed right now, so you cannot change the time. Cancelling is still available.",
+            "errors": {
+                "reschedule": "We could not move your appointment. Try again.",
+                "cancel": "We could not cancel your appointment. Try again.",
+                "tooMany": "Too many tries. Wait a minute and try again."
+            },
+            "invalid": {
+                "title": "This link no longer works.",
+                "body": "Check the link in your confirmation, or ask the business for a new one."
+            },
+            "locked": "This appointment can no longer be changed here. Call the business.",
+            "reference": "Reference {{code}}",
+            "reschedule": {
+                "action": "Change the time",
+                "title": "Pick a new time",
+                "submit": "Move the appointment",
+                "keep": "Keep the current time",
+                "success": "Appointment moved"
+            },
+            "status": {
+                "booked": "Confirmed",
+                "cancelled": "Cancelled"
+            },
+            "title": "Your appointment",
+            "window_one": "You can change or cancel it up to {{count}} minute before it starts.",
+            "window_other": "You can change or cancel it up to {{count}} minutes before it starts."
         }
     }
 }
