@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use App\Domains\Businesses\Application\Dtos\LocationInput;
 use App\Domains\Businesses\Exceptions\InvalidBusinessCoordinates;
-use App\Domains\Businesses\Exceptions\InvalidBusinessCurrency;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
+use App\Shared\ValueObjects\InvalidCurrencyCode;
 use Tests\Support\Businesses\SettingsFixtures;
 
 it('accepts a location filled in as the form paints it', function () {
@@ -47,7 +47,7 @@ describe('the currency', function () {
 
     it('refuses anything that is not a three letter code', function (string $code) {
         expect(fn () => SettingsFixtures::location(currencyCode: $code)->validate())
-            ->toThrow(InvalidBusinessCurrency::class);
+            ->toThrow(InvalidCurrencyCode::class);
     })->with([
         'empty' => '',
         'whitespace only' => '   ',
@@ -162,7 +162,7 @@ it('names the currency first when everything is wrong at once', function () {
         latitude: 'north',
         currencyCode: 'nope',
         timezone: 'Mars/Olympus_Mons',
-    )->validate())->toThrow(InvalidBusinessCurrency::class);
+    )->validate())->toThrow(InvalidCurrencyCode::class);
 });
 
 it('refuses with a failure the responder can classify', function () {

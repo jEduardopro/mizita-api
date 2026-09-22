@@ -7,8 +7,8 @@ use App\Domains\Businesses\Infrastructure\Eloquent\Mappers\BusinessMapper;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Industries\Infrastructure\Eloquent\Models\IndustryModel;
+use App\Shared\ValueObjects\CurrencyCode;
 use Tests\Support\Businesses\OnboardingFixtures;
 
 const BUSINESS_MAPPER_INDUSTRY_KEY = 13;

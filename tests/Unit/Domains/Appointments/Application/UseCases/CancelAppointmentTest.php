@@ -7,6 +7,7 @@ use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\CancelAppointment;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
+use App\Domains\Appointments\ValueObjects\AppointmentPaymentStatus;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -14,6 +15,7 @@ use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
 use Tests\Support\Appointments\FakeCustomerDirectory;
+use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -30,9 +32,11 @@ beforeEach(function () {
     $this->staff = (new FakeStaffDirectory($this->journal))
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
+    $this->payments = new FakePaymentLedger($this->journal);
+
     $this->build = fn (string $now = AppointmentFixtures::NOW): CancelAppointment => new CancelAppointment(
         $this->appointments,
-        new AppointmentPresenter($this->services, $this->customers, $this->staff),
+        new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         new FakeBusinessContext,
         new FakeClock(AppointmentFixtures::instant($now)),
     );
@@ -122,6 +126,48 @@ describe('the window the business is not held to', function () {
 
         expect($response->succeeded())->toBeTrue()
             ->and($response->value()->cancelledBy)->toBe(Canceller::Business);
+    });
+});
+
+describe('the payment a cancellation is not held back by', function () {
+    beforeEach(function () {
+        $this->appointments->store(AppointmentFixtures::appointment());
+        $this->payments->add(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(),
+        );
+    });
+
+    it('cancels an appointment that has been paid in full, which deleting it would refuse', function () {
+        $response = ($this->cancel)();
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value()->status)->toBe(AppointmentStatus::Cancelled);
+    });
+
+    it('cancels whatever the payment has settled so far', function (AppointmentPaymentStatus $status) {
+        $this->payments->add(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(status: $status),
+        );
+
+        expect(($this->cancel)()->succeeded())->toBeTrue();
+    })->with([
+        'pending' => AppointmentPaymentStatus::Pending,
+        'partially paid' => AppointmentPaymentStatus::PartiallyPaid,
+        'paid' => AppointmentPaymentStatus::Paid,
+    ]);
+
+    it('hands the payment status back on the cancelled appointment', function () {
+        expect(($this->cancel)()->value()->paymentStatus)->toBe(AppointmentPaymentStatus::Paid);
+    });
+
+    it('never asks the ledger whether deletion would be allowed', function () {
+        ($this->cancel)();
+
+        expect($this->journal->entries)->not->toContain('payments.hasPaymentFor');
     });
 });
 

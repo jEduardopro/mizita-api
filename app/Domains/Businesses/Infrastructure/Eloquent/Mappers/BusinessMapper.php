@@ -8,9 +8,9 @@ use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
+use App\Shared\ValueObjects\CurrencyCode;
 use DateTimeImmutable;
 
 final class BusinessMapper

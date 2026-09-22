@@ -13,12 +13,16 @@ import { AppointmentDetailsPopover } from '@/domains/appointments/components/App
 import { CalendarToolbar } from '@/domains/appointments/components/CalendarToolbar';
 import { DeleteAppointmentDialog } from '@/domains/appointments/components/DeleteAppointmentDialog';
 import { NewAppointmentDialog } from '@/domains/appointments/components/NewAppointmentDialog';
-import { useAppointments } from '@/domains/appointments/queries';
+import { useAppointments, useRefreshAppointments } from '@/domains/appointments/queries';
 import type { Appointment, AppointmentRange } from '@/domains/appointments/types';
+import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
 import { useBusinessSettings } from '@/domains/businesses/queries';
 import type { ScheduleRule } from '@/domains/businesses/types';
+import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
+import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { centsFromDecimalString } from '@/lib/money';
 import { todayAsIsoDate } from '@/lib/time';
 
 const EMPTY_APPOINTMENTS: Appointment[] = [];
@@ -76,12 +80,15 @@ export default function Calendar() {
     const [detailsAppointment, setDetailsAppointment] = useState<Appointment | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+    const [appointmentToCharge, setAppointmentToCharge] = useState<Appointment | null>(null);
 
     const { data: businessSettings, isPending: isSettingsPending } = useBusinessSettings();
     const timezone = businessSettings?.timezone ?? browserTimezone();
+    const currencyCode = businessSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
     const schedule = businessSettings?.schedule ?? EMPTY_SCHEDULE;
 
     const { data: appointments, isError, refetch } = useAppointments(range);
+    const refreshAppointments = useRefreshAppointments();
 
     const handleRangeChange = useCallback((next: AppointmentRange) => setRange(next), []);
 
@@ -95,6 +102,19 @@ export default function Calendar() {
         setDetailsAppointment(appointment);
         setDetailsOpen(true);
     }, []);
+
+    const renderPaymentPanel = useCallback(
+        (appointment: Appointment) => (
+            <AppointmentPaymentPanel
+                appointmentId={appointment.id}
+                customerName={appointment.customer.name}
+                currencyCode={currencyCode}
+                timezone={timezone}
+                onChanged={refreshAppointments}
+            />
+        ),
+        [currencyCode, timezone, refreshAppointments],
+    );
 
     const monthYearLabel = new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(
         dateFromIso(selectedDate) ?? new Date(),
@@ -192,6 +212,11 @@ export default function Calendar() {
                     setDetailsOpen(false);
                     setAppointmentToDelete(appointment);
                 }}
+                onCharge={(appointment) => {
+                    setDetailsOpen(false);
+                    setAppointmentToCharge(appointment);
+                }}
+                renderPaymentPanel={renderPaymentPanel}
             />
 
             {appointmentToDelete !== null ? (
@@ -202,6 +227,25 @@ export default function Calendar() {
                         if (! open) {
                             setAppointmentToDelete(null);
                         }
+                    }}
+                />
+            ) : null}
+
+            {appointmentToCharge !== null ? (
+                <AppointmentChargeLauncher
+                    appointmentId={appointmentToCharge.id}
+                    customerName={appointmentToCharge.customer.name}
+                    serviceLine={{
+                        name: appointmentToCharge.service.name,
+                        color: appointmentToCharge.service.color,
+                        priceCents: centsFromDecimalString(appointmentToCharge.service.price),
+                    }}
+                    currencyCode={currencyCode}
+                    hasPayment={appointmentToCharge.payment_status !== null}
+                    onClose={() => setAppointmentToCharge(null)}
+                    onPaid={() => {
+                        setAppointmentToCharge(null);
+                        refreshAppointments();
                     }}
                 />
             ) : null}

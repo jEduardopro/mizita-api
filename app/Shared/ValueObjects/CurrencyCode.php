@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Businesses\ValueObjects;
-
-use App\Domains\Businesses\Exceptions\InvalidBusinessCurrency;
+namespace App\Shared\ValueObjects;
 
 final readonly class CurrencyCode
 {
@@ -17,14 +15,14 @@ final readonly class CurrencyCode
     ) {}
 
     /**
-     * @throws InvalidBusinessCurrency
+     * @throws InvalidCurrencyCode
      */
     public static function fromString(string $value): self
     {
         $code = mb_strtoupper(trim($value));
 
         if (preg_match(self::SHAPE, $code) !== 1) {
-            throw InvalidBusinessCurrency::forValue($value);
+            throw InvalidCurrencyCode::forValue($value);
         }
 
         return new self($code);

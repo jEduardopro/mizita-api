@@ -6,9 +6,9 @@ use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
+use App\Shared\ValueObjects\CurrencyCode;
 use Tests\Support\Businesses\OnboardingFixtures;
 
 const BUSINESS_OTHER_INDUSTRY_ID = '01930000-0000-7000-8000-0000000000f2';

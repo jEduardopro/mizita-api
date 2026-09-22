@@ -49,7 +49,15 @@
                 "save": "Save",
                 "launch": "Book appointment",
                 "cancel": "Cancel appointment",
-                "delete": "Delete permanently"
+                "delete": "Delete permanently",
+                "charge": "Charge"
+            },
+            "tabs": {
+                "details": "Details",
+                "payments": "Payment(s)"
+            },
+            "paid": {
+                "badge": "Paid"
             },
             "form": {
                 "service": {
@@ -153,6 +161,90 @@
         },
         "errors": {
             "load": "We could not load the calendar. Check your connection and try again."
+        }
+    },
+    "payments": {
+        "title": "Payment details",
+        "back": "Back to the previous step",
+        "partial": {
+            "label": "Partial payment",
+            "hint": "Collect part of the total now and leave the rest pending.",
+            "remaining": "Remaining balance"
+        },
+        "items": {
+            "add": "Add more",
+            "namePlaceholder": "Enter the add-on name",
+            "amountLabel": "Amount for {{item}}",
+            "newAmountLabel": "Add-on amount",
+            "remove": "Remove {{item}}",
+            "subtotal": "Subtotal",
+            "balance": "Balance due"
+        },
+        "discount": {
+            "add": "Add a discount",
+            "label": "Discount",
+            "percentLabel": "Discount as a percentage",
+            "amountLabel": "Discount as an amount",
+            "remove": "Remove the discount"
+        },
+        "method": {
+            "title": "Choose a payment method",
+            "total": "Total to pay",
+            "unavailable": "Not available",
+            "required": "Choose a payment method.",
+            "names": {
+                "cash": "Cash",
+                "bank_transfer": "Bank transfer",
+                "card": "Card details"
+            }
+        },
+        "actions": {
+            "continue": "Continue",
+            "pay": "Pay"
+        },
+        "panel": {
+            "purchases": "Purchases",
+            "subtotal": "Subtotal",
+            "discount": "Discount",
+            "total": "Total",
+            "transactions": "Transactions",
+            "totalPaid": "Total paid",
+            "empty": {
+                "title": "No payments yet",
+                "body": "Once you charge this appointment, the breakdown shows up here."
+            }
+        },
+        "status": {
+            "pending": "Pending",
+            "partiallyPaid": "Partly paid",
+            "paid": "Paid"
+        },
+        "transaction": {
+            "completed": "Paid",
+            "voided": "Voided",
+            "method": "Payment method",
+            "reference": "Transaction ID",
+            "toggle": "Show the transaction detail",
+            "void": "Void transaction"
+        },
+        "void": {
+            "title": "Void this transaction?",
+            "description": "The amount returns to the balance due and the transaction stays on record as voided.",
+            "confirm": "Void transaction"
+        },
+        "toasts": {
+            "charged": "Payment recorded",
+            "voided": "Transaction voided"
+        },
+        "errors": {
+            "chargeFailed": "We could not record the payment. Try again.",
+            "voidFailed": "We could not void the transaction. Try again.",
+            "load": "We could not load the payment.",
+            "methodsLoad": "We could not load the payment methods.",
+            "itemName": "The add-on needs a name.",
+            "itemAmount": "That amount is not valid.",
+            "emptyTotal": "The total has to be greater than zero.",
+            "amountAboveBalance": "That amount is larger than the outstanding balance."
         }
     },
     "services": {

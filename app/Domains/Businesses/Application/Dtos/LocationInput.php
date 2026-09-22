@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Application\Dtos;
 
 use App\Domains\Businesses\Exceptions\InvalidBusinessCoordinates;
-use App\Domains\Businesses\Exceptions\InvalidBusinessCurrency;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Businesses\ValueObjects\Timezone;
+use App\Shared\ValueObjects\CurrencyCode;
+use App\Shared\ValueObjects\InvalidCurrencyCode;
 
 final readonly class LocationInput
 {
@@ -33,7 +33,7 @@ final readonly class LocationInput
     ) {}
 
     /**
-     * @throws InvalidBusinessCurrency
+     * @throws InvalidCurrencyCode
      * @throws InvalidBusinessTimezone
      * @throws InvalidBusinessCoordinates
      */

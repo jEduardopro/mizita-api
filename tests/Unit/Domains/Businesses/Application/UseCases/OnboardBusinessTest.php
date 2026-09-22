@@ -9,6 +9,7 @@ use App\Domains\Businesses\Application\UseCases\OnboardBusiness;
 use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
+use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Entities\Business;
@@ -40,6 +41,7 @@ beforeEach(function () {
     $this->businesses = Mockery::mock(BusinessRepository::class);
     $this->industries = Mockery::mock(IndustryCatalog::class);
     $this->roles = Mockery::mock(RoleProvisioner::class);
+    $this->paymentMethods = Mockery::mock(PaymentMethodProvisioner::class);
     $this->owners = Mockery::mock(OwnerRegistrar::class);
     $this->phones = Mockery::mock(PhoneBook::class);
     $this->events = Mockery::mock(Dispatcher::class);
@@ -55,6 +57,7 @@ beforeEach(function () {
             $this->businesses,
             $this->industries,
             $this->roles,
+            $this->paymentMethods,
             $this->owners,
             $this->phones,
             new SlugAllocator,
@@ -85,6 +88,7 @@ beforeEach(function () {
     };
 
     $this->roles->shouldReceive('provisionFor')->byDefault();
+    $this->paymentMethods->shouldReceive('provisionFor')->byDefault();
 
     $this->ownerEvents = [new stdClass, new stdClass];
 
@@ -266,6 +270,94 @@ describe('the roles the business starts life with', function () {
 
         expect(($this->refuse)(OnboardingFixtures::input(timezone: 'europe/madrid'))->code)
             ->toBe('invalid_timezone');
+    });
+});
+
+describe('the payment methods the business starts life with', function () {
+    it('provisions them for the business it has just created, exactly once', function () {
+        ($this->arrangeReads)();
+
+        $this->paymentMethods->shouldReceive('provisionFor')->once()
+            ->with(OnboardingFixtures::GENERATED_BUSINESS_ID);
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->onboard)(OnboardingFixtures::input());
+    });
+
+    it('provisions them after the roles and before the owner is registered', function () {
+        ($this->arrangeReads)();
+
+        $order = [];
+        $record = function (string $step) use (&$order): bool {
+            $order[] = $step;
+
+            return true;
+        };
+
+        $this->businesses->shouldReceive('save')->once()
+            ->with(Mockery::on(fn (): bool => $record('save')));
+        $this->roles->shouldReceive('provisionFor')->once()
+            ->with(Mockery::on(fn (): bool => $record('roles')));
+        $this->paymentMethods->shouldReceive('provisionFor')->once()
+            ->with(Mockery::on(fn (): bool => $record('payment methods')));
+        $this->owners->shouldReceive('registerOwner')->once()
+            ->with(Mockery::on(fn (): bool => $record('owner')), Mockery::any())
+            ->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->onboard)(OnboardingFixtures::input());
+
+        expect($order)->toBe(['save', 'roles', 'payment methods', 'owner']);
+    });
+
+    it('provisions them inside the transaction that writes the business', function () {
+        ($this->arrangeReads)();
+
+        $this->paymentMethods->shouldReceive('provisionFor')->once()
+            ->with(Mockery::on($this->recordTransactionState));
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->onboard)(OnboardingFixtures::input());
+
+        expect($this->insideTransaction)->toBe([true]);
+    });
+
+    it('provisions nothing when the industry guard refuses the signup', function () {
+        $this->paymentMethods->shouldNotReceive('provisionFor');
+        $this->industries->shouldReceive('exists')->andReturn(false);
+        $this->businesses->shouldNotReceive('save');
+        $this->owners->shouldNotReceive('registerOwner');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(($this->refuse)(OnboardingFixtures::input())->code)->toBe('unknown_industry');
+    });
+
+    it('provisions nothing when the time zone guard refuses the signup', function () {
+        ($this->arrangeReads)();
+
+        $this->paymentMethods->shouldNotReceive('provisionFor');
+        $this->businesses->shouldNotReceive('save');
+        $this->owners->shouldNotReceive('registerOwner');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(($this->refuse)(OnboardingFixtures::input(timezone: 'europe/madrid'))->code)
+            ->toBe('invalid_timezone');
+    });
+
+    it('provisions nothing when the name is already taken', function () {
+        $this->industries->shouldReceive('exists')->andReturn(true);
+        $this->businesses->shouldReceive('existsByName')->andReturn(true);
+
+        $this->paymentMethods->shouldNotReceive('provisionFor');
+        $this->roles->shouldNotReceive('provisionFor');
+        $this->businesses->shouldNotReceive('save');
+        $this->events->shouldNotReceive('dispatch');
+
+        expect(($this->refuse)(OnboardingFixtures::input())->code)->toBe('business_name_taken');
     });
 });
 
@@ -770,6 +862,7 @@ describe('what it deliberately does not depend on', function () {
             BusinessRepository::class,
             IndustryCatalog::class,
             RoleProvisioner::class,
+            PaymentMethodProvisioner::class,
             OwnerRegistrar::class,
             PhoneBook::class,
             SlugAllocator::class,
@@ -792,6 +885,7 @@ describe('what it deliberately does not depend on', function () {
         'the business repository' => BusinessRepository::class,
         'the industry catalog' => IndustryCatalog::class,
         'the role provisioner' => RoleProvisioner::class,
+        'the payment method provisioner' => PaymentMethodProvisioner::class,
         'the owner registrar' => OwnerRegistrar::class,
         'the phone book' => PhoneBook::class,
     ]);

@@ -9,6 +9,7 @@ use App\Domains\Appointments\Contracts\BookableSlots;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ManageTokenFactory;
+use App\Domains\Appointments\Contracts\PaymentLedger;
 use App\Domains\Appointments\Contracts\ReferenceCodeGenerator;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
@@ -16,6 +17,7 @@ use App\Domains\Appointments\Infrastructure\Eloquent\EloquentAppointmentReposito
 use App\Domains\Appointments\Infrastructure\Gateways\AvailabilityBookableSlots;
 use App\Domains\Appointments\Infrastructure\Gateways\BookingPoliciesCancellationPolicy;
 use App\Domains\Appointments\Infrastructure\Gateways\CustomersCustomerDirectory;
+use App\Domains\Appointments\Infrastructure\Gateways\PaymentsPaymentLedger;
 use App\Domains\Appointments\Infrastructure\Gateways\ServicesServiceCatalog;
 use App\Domains\Appointments\Infrastructure\Gateways\StaffStaffDirectory;
 use App\Domains\Appointments\Infrastructure\RandomManageTokenFactory;
@@ -35,6 +37,7 @@ final class AppointmentsServiceProvider extends ServiceProvider
         $this->app->bind(CancellationPolicy::class, BookingPoliciesCancellationPolicy::class);
         $this->app->bind(ReferenceCodeGenerator::class, RandomReferenceCodeGenerator::class);
         $this->app->bind(ManageTokenFactory::class, RandomManageTokenFactory::class);
+        $this->app->bind(PaymentLedger::class, PaymentsPaymentLedger::class);
     }
 
     public function boot(): void

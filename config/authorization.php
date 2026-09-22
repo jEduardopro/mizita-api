@@ -89,6 +89,21 @@ return [
             'module' => 'appointments',
         ],
 
+        'view_payments' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'payments',
+        ],
+
+        'create_payment' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'payments',
+        ],
+
+        'void_payment_transaction' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'payments',
+        ],
+
     ],
 
     'roles' => [

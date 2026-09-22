@@ -193,6 +193,31 @@ return [
         'invalid_cancellation_window' => 'Ese plazo de cancelación no es válido.',
         'invalid_policy_message' => 'Ese mensaje de la política no es válido.',
 
+        // Payments. Nothing here repeats an amount the caller already sent, and
+        // nothing confirms that a payment exists in another business.
+        'payment_not_found' => 'No hemos encontrado ese cobro.',
+        'payment_appointment_not_found' => 'No hemos encontrado esa cita.',
+        'payment_service_not_found' => 'No hemos encontrado el servicio de esa cita.',
+        'payment_business_not_found' => 'No hemos encontrado ese negocio.',
+        'appointment_already_has_payment' => 'Esa cita ya tiene un cobro registrado.',
+        'appointment_has_payment' => 'Esa cita tiene un cobro registrado, así que no se puede eliminar. Cancélala en su lugar.',
+        'too_many_payment_items' => 'Ese cobro tiene demasiados conceptos.',
+        'invalid_payment_item_name' => 'Ese concepto necesita un nombre.',
+        'invalid_payment_item_amount' => 'Ese importe no es válido.',
+        'invalid_payment_discount' => 'Ese descuento no es válido.',
+        'discount_exceeds_subtotal' => 'El descuento no puede ser mayor que el total.',
+        'payment_already_started' => 'Ese cobro ya tiene pagos registrados, así que sus conceptos ya no se pueden cambiar.',
+        'payment_already_settled' => 'Esa cita ya está pagada por completo.',
+        'payment_overpaid' => 'Ese importe es mayor que el saldo pendiente.',
+        'invalid_transaction_amount' => 'Ese importe no es válido.',
+        'payment_transaction_not_found' => 'No hemos encontrado esa transacción.',
+        'payment_transaction_already_voided' => 'Esa transacción ya está anulada.',
+        'payment_method_not_found' => 'No hemos encontrado esa forma de pago.',
+        'payment_method_not_enabled' => 'Esa forma de pago no es una de las que aceptas.',
+        'invalid_void_actor' => 'No hemos podido identificar quién anula esta transacción.',
+        'invalid_money_amount' => 'Ese importe no es válido.',
+        'currency_mismatch' => 'Esos importes están en monedas distintas.',
+
     ],
 
     /*

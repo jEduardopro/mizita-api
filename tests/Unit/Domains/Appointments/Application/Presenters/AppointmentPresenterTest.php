@@ -9,11 +9,13 @@ use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
+use App\Domains\Appointments\ValueObjects\AppointmentPaymentStatus;
 use App\Shared\ValueObjects\Paginated;
 use App\Shared\ValueObjects\Pagination;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeCustomerDirectory;
+use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -30,7 +32,9 @@ beforeEach(function () {
     $this->staff = (new FakeStaffDirectory($this->journal))
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
-    $this->presenter = new AppointmentPresenter($this->services, $this->customers, $this->staff);
+    $this->payments = new FakePaymentLedger($this->journal);
+
+    $this->presenter = new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments);
 
     $this->pageOf = fn (array $appointments, int $total, Pagination $pagination): Paginated => $this->presenter
         ->describePage(FakeBusinessContext::BUSINESS_ID, Paginated::of($appointments, $total, $pagination));
@@ -66,6 +70,51 @@ describe('describing one appointment', function () {
         );
 
         expect($data->customer->phone)->toBeNull();
+    });
+});
+
+describe('the payment badge an appointment carries', function () {
+    it('carries no payment status for an appointment nobody has charged', function () {
+        $data = $this->presenter->describe(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::appointment());
+
+        expect($data->paymentStatus)->toBeNull();
+    });
+
+    it('carries the status the ledger recorded', function (AppointmentPaymentStatus $status) {
+        $this->payments->add(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(status: $status),
+        );
+
+        $data = $this->presenter->describe(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::appointment());
+
+        expect($data->paymentStatus)->toBe($status);
+    })->with([
+        'pending' => AppointmentPaymentStatus::Pending,
+        'partially paid' => AppointmentPaymentStatus::PartiallyPaid,
+        'paid' => AppointmentPaymentStatus::Paid,
+    ]);
+
+    it('asks the ledger about the appointment of the business it was given', function () {
+        $this->presenter->describe(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::appointment());
+
+        expect($this->payments->reads)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'appointmentId' => AppointmentFixtures::APPOINTMENT_ID,
+        ]]);
+    });
+
+    it('carries no payment status for a payment filed under another business', function () {
+        $this->payments->add(
+            AppointmentFixtures::OTHER_BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(),
+        );
+
+        $data = $this->presenter->describe(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::appointment());
+
+        expect($data->paymentStatus)->toBeNull();
     });
 });
 
@@ -166,5 +215,81 @@ describe('describing a page', function () {
             1,
             Pagination::of(1, 20),
         ))->toThrow(AppointmentCustomerNotFound::class);
+    });
+});
+
+describe('the payment badge each row of a page carries', function () {
+    beforeEach(function () {
+        $this->charged = AppointmentFixtures::appointment();
+        $this->uncharged = AppointmentFixtures::appointment(
+            id: AppointmentFixtures::SECOND_APPOINTMENT_ID,
+            startsAt: '2026-04-10T09:00:00+00:00',
+            endsAt: '2026-04-10T10:00:00+00:00',
+        );
+
+        $this->payments->add(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(),
+        );
+
+        $this->statusesOf = fn (array $appointments): array => array_map(
+            static fn (AppointmentData $data): ?AppointmentPaymentStatus => $data->paymentStatus,
+            $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, $appointments),
+        );
+    });
+
+    it('badges the charged row and leaves the uncharged one bare', function () {
+        expect(($this->statusesOf)([$this->charged, $this->uncharged]))
+            ->toBe([AppointmentPaymentStatus::Paid, null]);
+    });
+
+    it('keeps the badge on its own row whatever order the page arrives in', function () {
+        expect(($this->statusesOf)([$this->uncharged, $this->charged]))
+            ->toBe([null, AppointmentPaymentStatus::Paid]);
+    });
+
+    it('looks the payment up by the appointment uuid, never by the payment uuid', function () {
+        $statuses = ($this->statusesOf)([
+            $this->charged,
+            AppointmentFixtures::appointment(id: AppointmentFixtures::PAYMENT_ID),
+        ]);
+
+        expect($statuses)->toBe([AppointmentPaymentStatus::Paid, null]);
+    });
+
+    it('asks the ledger for the appointment uuids of the page, deduplicated', function () {
+        ($this->statusesOf)([$this->charged, $this->uncharged, $this->charged]);
+
+        expect($this->payments->batchReads)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'appointmentIds' => [
+                AppointmentFixtures::APPOINTMENT_ID,
+                AppointmentFixtures::SECOND_APPOINTMENT_ID,
+            ],
+        ]]);
+    });
+
+    it('asks the ledger once for a page of many appointments, never once per row', function () {
+        $appointments = array_map(
+            static fn (int $index) => AppointmentFixtures::appointment(
+                id: sprintf('01930000-0000-7000-8000-0000000%05d', $index),
+            ),
+            range(1, 25),
+        );
+
+        ($this->statusesOf)($appointments);
+
+        expect($this->payments->batchReads)->toHaveCount(1)
+            ->and($this->payments->batchReads[0]['appointmentIds'])->toHaveCount(25)
+            ->and($this->payments->reads)->toBe([])
+            ->and(array_keys($this->journal->entries, 'payments.describeMany', true))->toHaveCount(1)
+            ->and($this->journal->entries)->not->toContain('payments.describe');
+    });
+
+    it('asks the ledger nothing at all for an empty page', function () {
+        expect($this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, []))->toBe([])
+            ->and($this->payments->batchReads)->toBe([])
+            ->and($this->journal->entries)->toBe([]);
     });
 });

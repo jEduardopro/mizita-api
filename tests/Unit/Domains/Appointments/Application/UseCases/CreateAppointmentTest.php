@@ -15,6 +15,7 @@ use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
 use Tests\Support\Appointments\FakeCustomerDirectory;
+use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -46,6 +47,8 @@ beforeEach(function () {
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot())
         ->add(AppointmentFixtures::OTHER_BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
+    $this->payments = new FakePaymentLedger($this->journal);
+
     $this->dispatched = [];
     $this->events = Mockery::mock(Dispatcher::class);
     $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
@@ -60,7 +63,7 @@ beforeEach(function () {
         $this->services,
         $this->customers,
         $this->staff,
-        new AppointmentPresenter($this->services, $this->customers, $this->staff),
+        new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         new FixedIdGenerator(AppointmentFixtures::GENERATED_APPOINTMENT_ID),
         new FakeClock(AppointmentFixtures::now()),
         $business ?? new FakeBusinessContext,
@@ -215,6 +218,7 @@ describe('announcing the booking', function () {
             'customers.describe',
             'services.describe',
             'staff.describe',
+            'payments.describe',
             'events.dispatch',
         ]);
     });

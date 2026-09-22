@@ -70,7 +70,7 @@ export function useAppointment(id: string) {
     });
 }
 
-function useAppointmentsInvalidation() {
+export function useRefreshAppointments() {
     const queryClient = useQueryClient();
 
     return useCallback(() => {
@@ -81,7 +81,7 @@ function useAppointmentsInvalidation() {
 function useAppointmentMutation<TVariables, TData>(
     mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
-    const invalidateAppointments = useAppointmentsInvalidation();
+    const invalidateAppointments = useRefreshAppointments();
 
     return useMutation({ mutationFn, onSuccess: invalidateAppointments });
 }
@@ -97,7 +97,7 @@ export function useUpdateAppointment() {
 }
 
 export function useCancelAppointment() {
-    const invalidateAppointments = useAppointmentsInvalidation();
+    const invalidateAppointments = useRefreshAppointments();
 
     return useMutation({
         mutationFn: (id: string) => cancelAppointment(id),

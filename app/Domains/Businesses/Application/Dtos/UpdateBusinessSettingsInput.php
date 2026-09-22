@@ -7,7 +7,6 @@ namespace App\Domains\Businesses\Application\Dtos;
 use App\Domains\Businesses\Exceptions\IncompleteBookingPolicy;
 use App\Domains\Businesses\Exceptions\InvalidBusinessAbout;
 use App\Domains\Businesses\Exceptions\InvalidBusinessContactEmail;
-use App\Domains\Businesses\Exceptions\InvalidBusinessCurrency;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
@@ -15,6 +14,7 @@ use App\Domains\Businesses\Exceptions\UnknownIndustry;
 use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
+use App\Shared\ValueObjects\InvalidCurrencyCode;
 
 final readonly class UpdateBusinessSettingsInput
 {
@@ -51,7 +51,7 @@ final readonly class UpdateBusinessSettingsInput
      * @throws InvalidBusinessAbout
      * @throws InvalidBusinessContactEmail
      * @throws UnsupportedPhoneNumber
-     * @throws InvalidBusinessCurrency
+     * @throws InvalidCurrencyCode
      * @throws InvalidBusinessTimezone
      * @throws IncompleteBookingPolicy
      */

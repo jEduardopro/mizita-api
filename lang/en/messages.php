@@ -193,6 +193,31 @@ return [
         'invalid_cancellation_window' => 'That cancellation window is not valid.',
         'invalid_policy_message' => 'That policy message is not valid.',
 
+        // Payments. Nothing here repeats an amount the caller already sent, and
+        // nothing confirms that a payment exists in another business.
+        'payment_not_found' => 'We could not find that payment.',
+        'payment_appointment_not_found' => 'We could not find that appointment.',
+        'payment_service_not_found' => 'We could not find the service for that appointment.',
+        'payment_business_not_found' => 'We could not find that business.',
+        'appointment_already_has_payment' => 'That appointment has already been charged.',
+        'appointment_has_payment' => 'That appointment has been charged, so it cannot be deleted. Cancel it instead.',
+        'too_many_payment_items' => 'That charge has too many lines.',
+        'invalid_payment_item_name' => 'That line needs a name.',
+        'invalid_payment_item_amount' => 'That amount is not valid.',
+        'invalid_payment_discount' => 'That discount is not valid.',
+        'discount_exceeds_subtotal' => 'The discount cannot be larger than the total.',
+        'payment_already_started' => 'That charge has already been collected, so its lines can no longer be changed.',
+        'payment_already_settled' => 'That appointment is already paid in full.',
+        'payment_overpaid' => 'That amount is larger than the outstanding balance.',
+        'invalid_transaction_amount' => 'That amount is not valid.',
+        'payment_transaction_not_found' => 'We could not find that transaction.',
+        'payment_transaction_already_voided' => 'That transaction has already been voided.',
+        'payment_method_not_found' => 'We could not find that payment method.',
+        'payment_method_not_enabled' => 'That payment method is not one you accept.',
+        'invalid_void_actor' => 'We could not identify who is voiding this transaction.',
+        'invalid_money_amount' => 'That amount is not valid.',
+        'currency_mismatch' => 'Those amounts are in different currencies.',
+
     ],
 
     /*

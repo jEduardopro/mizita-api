@@ -1,5 +1,5 @@
 import { CalendarClock, LoaderCircle } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTableError } from '@/components/shared/data-table/DataTableError';
 import { dataTableStatus } from '@/components/shared/data-table/status';
@@ -15,6 +15,8 @@ import type { Appointment } from '../types';
 type Props = {
     customerId: string;
     timezone: string;
+    onCharge?: (appointment: Appointment) => void;
+    renderPaymentPanel?: (appointment: Appointment) => ReactNode;
 };
 
 function AppointmentsEmptyState() {
@@ -33,7 +35,12 @@ function AppointmentsEmptyState() {
     );
 }
 
-export function CustomerAppointmentsTimeline({ customerId, timezone }: Props) {
+export function CustomerAppointmentsTimeline({
+    customerId,
+    timezone,
+    onCharge,
+    renderPaymentPanel,
+}: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
 
@@ -107,6 +114,8 @@ export function CustomerAppointmentsTimeline({ customerId, timezone }: Props) {
                 appointment={selectedAppointment}
                 timezone={timezone}
                 onClose={() => setSelectedAppointment(null)}
+                onCharge={onCharge}
+                renderPaymentPanel={renderPaymentPanel}
             />
         </section>
     );

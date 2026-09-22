@@ -10,6 +10,7 @@ use App\Domains\Businesses\BusinessesServiceProvider;
 use App\Domains\Customers\CustomersServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
 use App\Domains\Links\LinksServiceProvider;
+use App\Domains\Payments\PaymentsServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use App\Domains\Services\ServicesServiceProvider;
@@ -36,4 +37,5 @@ return [
     PublicCatalogServiceProvider::class,
     CustomersServiceProvider::class,
     AppointmentsServiceProvider::class,
+    PaymentsServiceProvider::class,
 ];

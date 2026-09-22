@@ -1,9 +1,11 @@
 import type { CalendarEvent } from '@schedule-x/calendar';
 import { cn } from 'cn';
+import { Check } from 'lucide-react';
 import 'temporal-polyfill/global';
 import { useTranslation } from 'react-i18next';
 import { formatTimeOfDay } from '@/lib/time';
 import { appointmentPalette, isAppointmentCalendarEvent } from './appointment-events';
+import { isPaid } from './appointment-payment-status';
 import { isCancelled } from './appointment-status';
 
 type Props = {
@@ -28,6 +30,7 @@ export function TimeGridEventContent({ calendarEvent }: Props) {
     }
 
     const cancelled = isCancelled(appointment);
+    const paid = isPaid(appointment);
     const palette = appointmentPalette(appointment);
 
     return (
@@ -46,6 +49,16 @@ export function TimeGridEventContent({ calendarEvent }: Props) {
                     {cancelled ? (
                         <span className="shrink-0 text-[0.85em] font-semibold uppercase tracking-wide [@container_(max-height:40px)]:sr-only">
                             {t('calendar.appointment.cancelled.badge')}
+                        </span>
+                    ) : null}
+
+                    {paid ? (
+                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[0.85em] font-semibold uppercase tracking-wide">
+                            <Check aria-hidden="true" className="size-[1.1em]" />
+
+                            <span className="[@container_(max-height:40px)]:sr-only">
+                                {t('calendar.appointment.paid.badge')}
+                            </span>
                         </span>
                     ) : null}
                 </span>

@@ -1,17 +1,16 @@
-import 'temporal-polyfill/global';
-import { useState } from 'react';
+import { CreditCard } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
+import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { formatPhoneNumber } from '@/lib/phone';
-import { formatServiceSummary } from '@/lib/service-format';
-import { formatTimeOfDay } from '@/lib/time';
+import { isPaid } from './appointment-payment-status';
 import { isCancelled } from './appointment-status';
 import { AppointmentDetailsActions } from './AppointmentDetailsActions';
-import { AppointmentReferenceCode } from './AppointmentReferenceCode';
+import { AppointmentDetailsBody } from './AppointmentDetailsBody';
+import { AppointmentDetailsTabs } from './AppointmentDetailsTabs';
+import { AppointmentPaidBadge } from './AppointmentPaidBadge';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
-import { CancelledAppointmentNotice } from './CancelledAppointmentNotice';
-import type { Appointment, AppointmentCustomer } from '../types';
+import type { Appointment } from '../types';
 
 type Props = {
     appointment: Appointment | null;
@@ -20,43 +19,70 @@ type Props = {
     timezone: string;
     onEdit: (appointment: Appointment) => void;
     onDelete: (appointment: Appointment) => void;
+    onCharge?: (appointment: Appointment) => void;
+    renderPaymentPanel?: (appointment: Appointment) => ReactNode;
 };
 
-function timeOfDay(instant: string, timezone: string): string {
-    return Temporal.Instant.from(instant)
-        .toZonedDateTimeISO(timezone)
-        .toPlainTime()
-        .toString({ smallestUnit: 'minute' });
-}
-
-function dayLabel(instant: string, timezone: string, locale: string): string {
-    const date = new Date(Temporal.Instant.from(instant).epochMilliseconds);
-
-    return new Intl.DateTimeFormat(locale, {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        timeZone: timezone,
-    }).format(date);
-}
-
-type ContactLineProps = {
-    customer: Pick<AppointmentCustomer, 'email' | 'phone'>;
+type ChargeActionProps = {
+    appointment: Appointment;
+    onCharge: (appointment: Appointment) => void;
 };
 
-function CustomerContactLine({ customer }: ContactLineProps) {
-    const phone = customer.phone === null ? null : formatPhoneNumber(customer.phone);
-    const details = [customer.email, phone].filter((detail): detail is string => detail !== null);
+function AppointmentChargeAction({ appointment, onCharge }: ChargeActionProps) {
+    const { t } = useTranslation('admin');
 
-    if (details.length === 0) {
+    if (isCancelled(appointment) || isPaid(appointment)) {
         return null;
     }
 
-    return <p className="break-words text-muted-foreground">{details.join(' · ')}</p>;
+    return (
+        <Button
+            type="button"
+            variant="brand"
+            onClick={() => onCharge(appointment)}
+            className="ms-auto h-11 px-4 md:h-9"
+        >
+            <CreditCard aria-hidden="true" />
+            {t('calendar.appointment.actions.charge')}
+        </Button>
+    );
 }
 
-export function AppointmentDetailsPopover({ appointment, open, onOpenChange, timezone, onEdit, onDelete }: Props) {
-    const { t, i18n } = useTranslation('admin');
+type SheetBodyProps = {
+    appointment: Appointment;
+    timezone: string;
+    renderPaymentPanel?: (appointment: Appointment) => ReactNode;
+};
+
+function AppointmentDetailsSheetBody({ appointment, timezone, renderPaymentPanel }: SheetBodyProps) {
+    const details = <AppointmentDetailsBody appointment={appointment} timezone={timezone} />;
+
+    if (renderPaymentPanel === undefined) {
+        return (
+            <div className="overflow-y-auto overscroll-contain px-4 pb-4">{details}</div>
+        );
+    }
+
+    return (
+        <AppointmentDetailsTabs
+            key={appointment.id}
+            details={details}
+            payments={renderPaymentPanel(appointment)}
+        />
+    );
+}
+
+export function AppointmentDetailsPopover({
+    appointment,
+    open,
+    onOpenChange,
+    timezone,
+    onEdit,
+    onDelete,
+    onCharge,
+    renderPaymentPanel,
+}: Props) {
+    const { t } = useTranslation('admin');
     const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
 
     const cancelled = appointment !== null && isCancelled(appointment);
@@ -69,73 +95,33 @@ export function AppointmentDetailsPopover({ appointment, open, onOpenChange, tim
     return (
         <>
             <Sheet open={open} onOpenChange={onOpenChange}>
-                <SheetContent side="bottom" className="max-h-[85svh] pb-[env(safe-area-inset-bottom)]">
-                    <SheetHeader>
-                        <SheetTitle>{t('calendar.appointment.details.title')}</SheetTitle>
+                <SheetContent
+                    side="bottom"
+                    className="flex max-h-[85svh] flex-col pb-[env(safe-area-inset-bottom)]"
+                >
+                    <SheetHeader className="shrink-0 pr-14">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <SheetTitle>{t('calendar.appointment.details.title')}</SheetTitle>
+
+                            {appointment !== null ? (
+                                <AppointmentPaidBadge appointment={appointment} />
+                            ) : null}
+
+                            {appointment !== null && onCharge !== undefined ? (
+                                <AppointmentChargeAction
+                                    appointment={appointment}
+                                    onCharge={onCharge}
+                                />
+                            ) : null}
+                        </div>
                     </SheetHeader>
 
                     {appointment !== null ? (
-                        <div className="grid gap-4 overflow-y-auto overscroll-contain px-4 pb-4">
-                            {cancelled ? (
-                                <CancelledAppointmentNotice
-                                    cancelledAt={appointment.cancelled_at}
-                                    cancelledBy={appointment.cancelled_by}
-                                    timezone={timezone}
-                                />
-                            ) : null}
-
-                            <div className="flex items-center gap-3">
-                                <ServiceColorTile
-                                    color={appointment.service.color}
-                                    imageUrl={null}
-                                    className="size-10 rounded-lg"
-                                />
-
-                                <div className="grid min-w-0 gap-0.5">
-                                    <p className="truncate font-medium">{appointment.service.name}</p>
-
-                                    <p className="text-sm text-muted-foreground">
-                                        {formatServiceSummary(appointment.service, i18n.language, t)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-1 text-sm">
-                                <p className="font-medium capitalize">
-                                    {dayLabel(appointment.starts_at, timezone, i18n.language)}
-                                </p>
-
-                                <p className="text-muted-foreground">
-                                    {formatTimeOfDay(timeOfDay(appointment.starts_at, timezone))}
-                                    {' – '}
-                                    {formatTimeOfDay(timeOfDay(appointment.ends_at, timezone))}
-                                </p>
-                            </div>
-
-                            <div className="grid gap-3 border-t border-border pt-4 text-sm">
-                                <div className="grid gap-0.5">
-                                    <p className="text-muted-foreground">{t('calendar.appointment.details.customer')}</p>
-                                    <p className="font-medium">{appointment.customer.name}</p>
-                                    <CustomerContactLine customer={appointment.customer} />
-                                </div>
-
-                                <div className="grid gap-0.5">
-                                    <p className="text-muted-foreground">{t('calendar.appointment.details.staff')}</p>
-                                    <p className="font-medium">{appointment.staff_member.name}</p>
-                                </div>
-
-                                <div className="grid gap-0.5">
-                                    <p className="text-muted-foreground">{t('calendar.appointment.details.notes')}</p>
-                                    <p className="text-pretty">
-                                        {appointment.notes ?? t('calendar.appointment.details.empty')}
-                                    </p>
-                                </div>
-
-                                {appointment.reference_code !== null ? (
-                                    <AppointmentReferenceCode code={appointment.reference_code} />
-                                ) : null}
-                            </div>
-                        </div>
+                        <AppointmentDetailsSheetBody
+                            appointment={appointment}
+                            timezone={timezone}
+                            renderPaymentPanel={renderPaymentPanel}
+                        />
                     ) : null}
 
                     {cancelled ? (

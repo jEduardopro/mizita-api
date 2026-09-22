@@ -36,6 +36,7 @@ final class AppointmentResource extends JsonResource
             'cancelled_at' => $this->resource->cancelledAt?->format(DATE_ATOM),
             'cancelled_by' => $this->resource->cancelledBy?->value,
             'reference_code' => $this->resource->referenceCode,
+            'payment_status' => $this->resource->paymentStatus?->value,
         ];
     }
 

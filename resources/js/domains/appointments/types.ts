@@ -28,6 +28,8 @@ export type AppointmentStaffMember = {
 
 export type AppointmentStatus = 'booked' | 'cancelled';
 
+export type AppointmentPaymentStatus = 'pending' | 'partially_paid' | 'paid';
+
 export type AppointmentCanceller = 'customer' | 'business';
 
 export type Appointment = {
@@ -44,6 +46,7 @@ export type Appointment = {
     cancelled_at: string | null;
     cancelled_by: AppointmentCanceller | null;
     reference_code: string | null;
+    payment_status: AppointmentPaymentStatus | null;
 };
 
 export type AppointmentRange = {

@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Businesses\Exceptions;
+namespace App\Shared\ValueObjects;
 
 use App\Shared\Contracts\DomainFailure;
-use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 
-final class InvalidBusinessCurrency extends DomainException implements DomainFailure
+final class InvalidCurrencyCode extends DomainException implements DomainFailure
 {
     public static function forValue(string $value): self
     {

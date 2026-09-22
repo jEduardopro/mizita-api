@@ -6,6 +6,7 @@ namespace App\Domains\Appointments\Application\Presenters;
 
 use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
+use App\Domains\Appointments\Contracts\PaymentLedger;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
 use App\Domains\Appointments\Entities\Appointment;
@@ -23,6 +24,7 @@ final class AppointmentPresenter
         private readonly ServiceCatalog $services,
         private readonly CustomerDirectory $customers,
         private readonly StaffDirectory $staff,
+        private readonly PaymentLedger $payments,
     ) {}
 
     public function describe(string $businessId, Appointment $appointment): AppointmentData
@@ -32,6 +34,7 @@ final class AppointmentPresenter
             $this->customers->describe($businessId, $appointment->customerId()),
             $this->services->describe($businessId, $appointment->serviceId()),
             $this->staff->describe($businessId, $appointment->staffMemberId()),
+            $this->payments->describe($businessId, $appointment->id),
         );
     }
 
@@ -48,6 +51,7 @@ final class AppointmentPresenter
         $customers = $this->customers->describeMany($businessId, self::customerIdsOf($appointments));
         $services = $this->services->describeMany($businessId, self::serviceIdsOf($appointments));
         $members = $this->staff->describeMany($businessId, self::staffMemberIdsOf($appointments));
+        $payments = $this->payments->describeMany($businessId, self::appointmentIdsOf($appointments));
 
         return array_map(
             fn (Appointment $appointment): AppointmentData => AppointmentData::fromEntity(
@@ -55,6 +59,7 @@ final class AppointmentPresenter
                 self::customerOf($appointment, $customers),
                 self::serviceOf($appointment, $services),
                 self::staffMemberOf($appointment, $members),
+                $payments[$appointment->id] ?? null,
             ),
             $appointments,
         );
@@ -69,6 +74,18 @@ final class AppointmentPresenter
         $described = $this->describeMany($businessId, $page->items);
 
         return Paginated::of($described, $page->total, $page->pagination);
+    }
+
+    /**
+     * @param  list<Appointment>  $appointments
+     * @return list<string>
+     */
+    private static function appointmentIdsOf(array $appointments): array
+    {
+        return array_values(array_unique(array_map(
+            static fn (Appointment $appointment): string => $appointment->id,
+            $appointments,
+        )));
     }
 
     /**

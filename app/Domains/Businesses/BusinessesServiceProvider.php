@@ -13,6 +13,7 @@ use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Contracts\BusinessSchedule;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
+use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Infrastructure\Eloquent\EloquentBusinessRepository;
@@ -24,6 +25,7 @@ use App\Domains\Businesses\Infrastructure\Gateways\BookingPoliciesBookingPolicyS
 use App\Domains\Businesses\Infrastructure\Gateways\EloquentBusinessTeamKey;
 use App\Domains\Businesses\Infrastructure\Gateways\IndustriesIndustryCatalog;
 use App\Domains\Businesses\Infrastructure\Gateways\LinksBusinessLinkList;
+use App\Domains\Businesses\Infrastructure\Gateways\PaymentsPaymentMethodProvisioner;
 use App\Domains\Businesses\Infrastructure\Gateways\PhonesPhoneBook;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffOwnerRegistrar;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffRoleProvisioner;
@@ -50,6 +52,7 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(IndustryCatalog::class, IndustriesIndustryCatalog::class);
         $this->app->bind(OwnerRegistrar::class, StaffOwnerRegistrar::class);
         $this->app->bind(RoleProvisioner::class, StaffRoleProvisioner::class);
+        $this->app->bind(PaymentMethodProvisioner::class, PaymentsPaymentMethodProvisioner::class);
         $this->app->bind(PhoneBook::class, PhonesPhoneBook::class);
         $this->app->bind(BusinessTeamKey::class, EloquentBusinessTeamKey::class);
         $this->app->bind(BusinessLogo::class, SpatieBusinessLogo::class);

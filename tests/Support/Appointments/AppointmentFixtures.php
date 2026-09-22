@@ -19,6 +19,8 @@ use App\Domains\Appointments\Application\Dtos\ShowGuestBookingInput;
 use App\Domains\Appointments\Application\Dtos\UpdateAppointmentInput;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\ValueObjects\AppointmentNotes;
+use App\Domains\Appointments\ValueObjects\AppointmentPaymentSnapshot;
+use App\Domains\Appointments\ValueObjects\AppointmentPaymentStatus;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
 use App\Domains\Appointments\ValueObjects\BookingSource;
 use App\Domains\Appointments\ValueObjects\Canceller;
@@ -123,6 +125,14 @@ final class AppointmentFixtures
 
     public const GUEST_EMAIL = 'ada@example.com';
 
+    public const PAYMENT_ID = '01930000-0000-7000-8000-0000000000f1';
+
+    public const SECOND_PAYMENT_ID = '01930000-0000-7000-8000-0000000000f2';
+
+    public const PAYMENT_CURRENCY = 'MXN';
+
+    public const PAYMENT_TOTAL_CENTS = 35000;
+
     public static function now(): DateTimeImmutable
     {
         return self::instant(self::NOW);
@@ -175,6 +185,34 @@ final class AppointmentFixtures
             price: $price,
             active: $active,
         );
+    }
+
+    public static function paymentSnapshot(
+        string $id = self::PAYMENT_ID,
+        AppointmentPaymentStatus $status = AppointmentPaymentStatus::Paid,
+        int $totalCents = self::PAYMENT_TOTAL_CENTS,
+        ?int $paidCents = null,
+        string $currencyCode = self::PAYMENT_CURRENCY,
+    ): AppointmentPaymentSnapshot {
+        $paid = $paidCents ?? self::paidCentsFor($status, $totalCents);
+
+        return new AppointmentPaymentSnapshot(
+            id: $id,
+            status: $status,
+            totalCents: $totalCents,
+            paidCents: $paid,
+            balanceCents: $totalCents - $paid,
+            currencyCode: $currencyCode,
+        );
+    }
+
+    private static function paidCentsFor(AppointmentPaymentStatus $status, int $totalCents): int
+    {
+        return match ($status) {
+            AppointmentPaymentStatus::Pending => 0,
+            AppointmentPaymentStatus::PartiallyPaid => intdiv($totalCents, 2),
+            AppointmentPaymentStatus::Paid => $totalCents,
+        };
     }
 
     public static function staffSnapshot(

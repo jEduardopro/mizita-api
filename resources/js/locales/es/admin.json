@@ -49,7 +49,15 @@
                 "save": "Guardar",
                 "launch": "Registrar cita",
                 "cancel": "Cancelar la cita",
-                "delete": "Eliminar definitivamente"
+                "delete": "Eliminar definitivamente",
+                "charge": "Cobrar"
+            },
+            "tabs": {
+                "details": "Detalles",
+                "payments": "Pago(s)"
+            },
+            "paid": {
+                "badge": "Pagado"
             },
             "form": {
                 "service": {
@@ -153,6 +161,90 @@
         },
         "errors": {
             "load": "No hemos podido cargar el calendario. Revisa tu conexión e inténtalo otra vez."
+        }
+    },
+    "payments": {
+        "title": "Datos de pago",
+        "back": "Volver al paso anterior",
+        "partial": {
+            "label": "Pago parcial",
+            "hint": "Cobra una parte del total ahora y deja el resto pendiente.",
+            "remaining": "Saldo restante"
+        },
+        "items": {
+            "add": "Añadir más",
+            "namePlaceholder": "Introduzca el nombre del complemento",
+            "amountLabel": "Importe de {{item}}",
+            "newAmountLabel": "Importe del complemento",
+            "remove": "Quitar {{item}}",
+            "subtotal": "Total parcial",
+            "balance": "Saldo pendiente"
+        },
+        "discount": {
+            "add": "Añadir descuento",
+            "label": "Descuento",
+            "percentLabel": "Descuento en porcentaje",
+            "amountLabel": "Descuento en importe",
+            "remove": "Quitar el descuento"
+        },
+        "method": {
+            "title": "Seleccione una forma de pago",
+            "total": "Importe total a pagar",
+            "unavailable": "No disponible",
+            "required": "Elige una forma de pago.",
+            "names": {
+                "cash": "En efectivo",
+                "bank_transfer": "Transferencia bancaria",
+                "card": "Datos de la tarjeta"
+            }
+        },
+        "actions": {
+            "continue": "Continuar",
+            "pay": "Pagar"
+        },
+        "panel": {
+            "purchases": "Compras",
+            "subtotal": "Total parcial",
+            "discount": "Descuento",
+            "total": "Total",
+            "transactions": "Transacciones",
+            "totalPaid": "Total pagado",
+            "empty": {
+                "title": "Sin pagos",
+                "body": "Cuando cobres esta cita, el detalle aparecerá aquí."
+            }
+        },
+        "status": {
+            "pending": "Pendiente",
+            "partiallyPaid": "Pago parcial",
+            "paid": "Pagado"
+        },
+        "transaction": {
+            "completed": "Pagado",
+            "voided": "Anulada",
+            "method": "Forma de pago",
+            "reference": "ID de transacción",
+            "toggle": "Ver el detalle de la transacción",
+            "void": "Anular transacción"
+        },
+        "void": {
+            "title": "¿Anular esta transacción?",
+            "description": "El importe vuelve al saldo pendiente y la transacción queda registrada como anulada.",
+            "confirm": "Anular transacción"
+        },
+        "toasts": {
+            "charged": "Cobro registrado",
+            "voided": "Transacción anulada"
+        },
+        "errors": {
+            "chargeFailed": "No pudimos registrar el cobro. Inténtalo de nuevo.",
+            "voidFailed": "No pudimos anular la transacción. Inténtalo de nuevo.",
+            "load": "No pudimos cargar el pago.",
+            "methodsLoad": "No pudimos cargar las formas de pago.",
+            "itemName": "El complemento necesita un nombre.",
+            "itemAmount": "Ese importe no es válido.",
+            "emptyTotal": "El total tiene que ser mayor que cero.",
+            "amountAboveBalance": "Ese importe es mayor que el saldo pendiente."
         }
     },
     "services": {

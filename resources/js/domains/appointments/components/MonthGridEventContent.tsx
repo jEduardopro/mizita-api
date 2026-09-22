@@ -1,10 +1,12 @@
 import type { CalendarEvent } from '@schedule-x/calendar';
 import { cn } from 'cn';
+import { Check } from 'lucide-react';
 import 'temporal-polyfill/global';
 import { useTranslation } from 'react-i18next';
 import { formatTimeOfDay } from '@/lib/time';
 import { serviceColorClasses } from '@/lib/service-color';
 import { isAppointmentCalendarEvent } from './appointment-events';
+import { isPaid } from './appointment-payment-status';
 import { isCancelled } from './appointment-status';
 
 type Props = {
@@ -20,6 +22,7 @@ export function MonthGridEventContent({ calendarEvent }: Props) {
 
     const { appointment, start } = calendarEvent;
     const cancelled = isCancelled(appointment);
+    const paid = isPaid(appointment);
     const time = formatTimeOfDay(start.toPlainTime().toString({ smallestUnit: 'minute' }));
 
     return (
@@ -46,6 +49,13 @@ export function MonthGridEventContent({ calendarEvent }: Props) {
             >
                 {appointment.customer.name}
             </span>
+
+            {paid ? (
+                <>
+                    <Check aria-hidden="true" className="size-3 shrink-0 text-success" />
+                    <span className="sr-only">{t('calendar.appointment.paid.badge')}</span>
+                </>
+            ) : null}
         </div>
     );
 }

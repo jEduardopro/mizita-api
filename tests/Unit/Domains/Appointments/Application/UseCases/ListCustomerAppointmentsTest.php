@@ -14,6 +14,7 @@ use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
 use Tests\Support\Appointments\FakeCustomerDirectory;
+use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -31,10 +32,12 @@ beforeEach(function () {
     $this->staff = (new FakeStaffDirectory($this->journal))
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
+    $this->payments = new FakePaymentLedger($this->journal);
+
     $this->build = fn (?FakeBusinessContext $business = null): ListCustomerAppointments => new ListCustomerAppointments(
         $this->appointments,
         $this->customers,
-        new AppointmentPresenter($this->services, $this->customers, $this->staff),
+        new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         $business ?? new FakeBusinessContext,
     );
 

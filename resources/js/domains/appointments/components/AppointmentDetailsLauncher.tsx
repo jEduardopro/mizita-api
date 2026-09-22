@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AppointmentDetailsPopover } from './AppointmentDetailsPopover';
 import { DeleteAppointmentDialog } from './DeleteAppointmentDialog';
 import { NewAppointmentDialog } from './NewAppointmentDialog';
@@ -8,11 +8,27 @@ type Props = {
     appointment: Appointment | null;
     timezone: string;
     onClose: () => void;
+    onCharge?: (appointment: Appointment) => void;
+    renderPaymentPanel?: (appointment: Appointment) => ReactNode;
 };
 
-export function AppointmentDetailsLauncher({ appointment, timezone, onClose }: Props) {
+export function AppointmentDetailsLauncher({
+    appointment,
+    timezone,
+    onClose,
+    onCharge,
+    renderPaymentPanel,
+}: Props) {
     const [appointmentToEdit, setAppointmentToEdit] = useState<Appointment | null>(null);
     const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+
+    const requestCharge =
+        onCharge === undefined
+            ? undefined
+            : (target: Appointment) => {
+                  onClose();
+                  onCharge(target);
+              };
 
     return (
         <>
@@ -33,6 +49,8 @@ export function AppointmentDetailsLauncher({ appointment, timezone, onClose }: P
                     onClose();
                     setAppointmentToDelete(target);
                 }}
+                onCharge={requestCharge}
+                renderPaymentPanel={renderPaymentPanel}
             />
 
             <NewAppointmentDialog

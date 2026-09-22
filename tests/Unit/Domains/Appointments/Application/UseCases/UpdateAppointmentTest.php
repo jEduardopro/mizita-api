@@ -13,6 +13,7 @@ use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
 use Tests\Support\Appointments\FakeCustomerDirectory;
+use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
 use Tests\Support\Appointments\FakeStaffDirectory;
 use Tests\Support\FakeBusinessContext;
@@ -54,12 +55,14 @@ beforeEach(function () {
             ),
         );
 
+    $this->payments = new FakePaymentLedger($this->journal);
+
     $this->build = fn (string $now = AppointmentFixtures::NOW): UpdateAppointment => new UpdateAppointment(
         $this->appointments,
         $this->services,
         $this->customers,
         $this->staff,
-        new AppointmentPresenter($this->services, $this->customers, $this->staff),
+        new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         new FakeBusinessContext,
         new FakeClock(AppointmentFixtures::instant($now)),
     );

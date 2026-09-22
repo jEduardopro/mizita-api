@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { formatInstantTimeOfDay } from '@/lib/time';
+import { AppointmentPaidBadge } from './AppointmentPaidBadge';
 import { AppointmentStaffBadge } from './AppointmentStaffBadge';
 import { ServiceColorDot } from './ServiceColorDot';
 import type { Appointment } from '../types';
@@ -41,6 +42,8 @@ export function AppointmentTimelineRow({ appointment, timezone, onSelect }: Prop
                     <span className="min-w-0 truncate text-sm text-muted-foreground">
                         {appointment.service.name}
                     </span>
+
+                    <AppointmentPaidBadge appointment={appointment} />
                 </span>
 
                 <AppointmentStaffBadge name={appointment.staff_member.name} />

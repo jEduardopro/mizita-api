@@ -100,4 +100,19 @@ return [
         'description' => 'Quitar una cita de la agenda.',
     ],
 
+    'view_payments' => [
+        'label' => 'Ver los cobros',
+        'description' => 'Consultar qué se cobró en una cita, cómo se pagó y cuánto queda pendiente.',
+    ],
+
+    'create_payment' => [
+        'label' => 'Cobrar citas',
+        'description' => 'Registrar lo que un cliente pagó por una cita, con sus complementos y descuentos.',
+    ],
+
+    'void_payment_transaction' => [
+        'label' => 'Anular transacciones',
+        'description' => 'Deshacer un cobro registrado por error. La transacción queda registrada como anulada.',
+    ],
+
 ];

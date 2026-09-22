@@ -11,6 +11,7 @@ use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
+use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Entities\Business;
@@ -41,6 +42,7 @@ final class OnboardBusiness
         private readonly BusinessRepository $businesses,
         private readonly IndustryCatalog $industries,
         private readonly RoleProvisioner $roles,
+        private readonly PaymentMethodProvisioner $paymentMethods,
         private readonly OwnerRegistrar $owners,
         private readonly PhoneBook $phones,
         private readonly SlugAllocator $slugs,
@@ -121,6 +123,8 @@ final class OnboardBusiness
         $this->businesses->save($business);
 
         $this->roles->provisionFor($business->id);
+
+        $this->paymentMethods->provisionFor($business->id);
 
         $ownerEvents = $this->owners->registerOwner($business->id, $input->ownerAccountId);
 

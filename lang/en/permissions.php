@@ -104,4 +104,19 @@ return [
         'description' => 'Remove an appointment from the calendar.',
     ],
 
+    'view_payments' => [
+        'label' => 'View payments',
+        'description' => 'See what an appointment was charged, how it was collected and what is still owed.',
+    ],
+
+    'create_payment' => [
+        'label' => 'Charge appointments',
+        'description' => 'Record what a customer paid for an appointment, including add-ons and discounts.',
+    ],
+
+    'void_payment_transaction' => [
+        'label' => 'Void transactions',
+        'description' => 'Undo a payment that was recorded by mistake. The transaction stays on record as voided.',
+    ],
+
 ];

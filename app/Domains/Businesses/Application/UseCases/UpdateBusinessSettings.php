@@ -34,7 +34,6 @@ use App\Domains\Businesses\ValueObjects\BookingPageStyle;
 use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use App\Shared\Application\UseCaseResponse;
@@ -43,6 +42,7 @@ use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\PhoneNumberParser;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\ValueObjects\CountryCode;
+use App\Shared\ValueObjects\CurrencyCode;
 use App\Shared\ValueObjects\PhoneNumber;
 
 final class UpdateBusinessSettings

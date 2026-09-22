@@ -7,9 +7,9 @@ namespace App\Domains\Businesses\Entities;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
+use App\Shared\ValueObjects\CurrencyCode;
 use DateTimeImmutable;
 
 final class Business

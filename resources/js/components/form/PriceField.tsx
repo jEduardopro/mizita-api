@@ -1,10 +1,9 @@
 import { cn } from 'cn';
 import type { ComponentProps } from 'react';
+import { normalizeAmountInput, padAmountInput } from '@/components/form/amount-input';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-const MAXIMUM_DECIMALS = 2;
 
 type Props = Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'inputMode'> & {
     id: string;
@@ -15,27 +14,6 @@ type Props = Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'inpu
     error?: string;
     hint?: string;
 };
-
-function normalized(raw: string): string {
-    const cleaned = raw.replace(',', '.').replace(/[^\d.]/g, '');
-    const [whole, ...decimals] = cleaned.split('.');
-
-    if (decimals.length === 0) {
-        return whole;
-    }
-
-    return `${whole}.${decimals.join('').slice(0, MAXIMUM_DECIMALS)}`;
-}
-
-function padded(value: string): string {
-    const [whole, decimals = ''] = value.split('.');
-
-    if (whole === '') {
-        return '';
-    }
-
-    return `${whole}.${decimals.padEnd(MAXIMUM_DECIMALS, '0')}`;
-}
 
 export function PriceField({
     id,
@@ -71,8 +49,8 @@ export function PriceField({
                     aria-describedby={message?.id}
                     {...props}
                     value={value}
-                    onChange={(event) => onChange(normalized(event.target.value))}
-                    onBlur={() => onChange(padded(value))}
+                    onChange={(event) => onChange(normalizeAmountInput(event.target.value))}
+                    onBlur={() => onChange(padAmountInput(value))}
                     className={cn('h-11 pl-7 text-base md:text-base', className)}
                 />
             </div>

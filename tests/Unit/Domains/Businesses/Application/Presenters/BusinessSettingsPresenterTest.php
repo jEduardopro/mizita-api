@@ -8,7 +8,7 @@ use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
+use App\Shared\ValueObjects\CurrencyCode;
 use Tests\Support\Businesses\FakeBookingPageSettings;
 use Tests\Support\Businesses\FakeBookingPolicySettings;
 use Tests\Support\Businesses\FakeBusinessAddressBook;

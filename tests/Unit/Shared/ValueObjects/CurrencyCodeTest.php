@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Domains\Businesses\Exceptions\InvalidBusinessCurrency;
-use App\Domains\Businesses\ValueObjects\CurrencyCode;
+use App\Shared\ValueObjects\CurrencyCode;
+use App\Shared\ValueObjects\InvalidCurrencyCode;
 
 describe('accepting a code', function () {
     it('accepts a three letter code and stores it upper case', function (string $code) {
@@ -45,7 +45,7 @@ describe('folding the case', function () {
 describe('refusing a code', function () {
     it('refuses anything that is not three letters', function (string $value) {
         expect(fn () => CurrencyCode::fromString($value))
-            ->toThrow(InvalidBusinessCurrency::class, "[{$value}] is not a three letter ISO 4217 currency code.");
+            ->toThrow(InvalidCurrencyCode::class, "[{$value}] is not a three letter ISO 4217 currency code.");
     })->with([
         'two letters' => 'MX',
         'four letters' => 'MXNN',
@@ -60,7 +60,7 @@ describe('refusing a code', function () {
 
     it('names the value the caller sent, not the folded one, so the message matches what they typed', function () {
         expect(fn () => CurrencyCode::fromString('  mx  '))
-            ->toThrow(InvalidBusinessCurrency::class, '[  mx  ] is not a three letter ISO 4217 currency code.');
+            ->toThrow(InvalidCurrencyCode::class, '[  mx  ] is not a three letter ISO 4217 currency code.');
     });
 });
 

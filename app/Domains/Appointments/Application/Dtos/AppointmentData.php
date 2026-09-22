@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domains\Appointments\Application\Dtos;
 
 use App\Domains\Appointments\Entities\Appointment;
+use App\Domains\Appointments\ValueObjects\AppointmentPaymentSnapshot;
+use App\Domains\Appointments\ValueObjects\AppointmentPaymentStatus;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
@@ -28,6 +30,7 @@ final readonly class AppointmentData
         public ?DateTimeImmutable $cancelledAt,
         public ?Canceller $cancelledBy,
         public ?string $referenceCode,
+        public ?AppointmentPaymentStatus $paymentStatus,
     ) {}
 
     public static function fromEntity(
@@ -35,6 +38,7 @@ final readonly class AppointmentData
         CustomerSnapshot $customer,
         ServiceSnapshot $service,
         StaffMemberSnapshot $staffMember,
+        ?AppointmentPaymentSnapshot $payment,
     ): self {
         return new self(
             id: $appointment->id,
@@ -50,6 +54,7 @@ final readonly class AppointmentData
             cancelledAt: $appointment->cancelledAt(),
             cancelledBy: $appointment->cancelledBy(),
             referenceCode: $appointment->referenceCode()?->value,
+            paymentStatus: $payment?->status,
         );
     }
 
