@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { withReturnTo } from '@/lib/return-to';
 import type { Customer } from '../types';
 import { customerEditUrl } from './customer-urls';
 import { DeleteCustomerDialog } from './DeleteCustomerDialog';
@@ -24,6 +25,7 @@ export function CustomerRowActions({ customer }: Props) {
     const { t: tCommon } = useTranslation('common');
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const { can } = useAuthorization();
+    const { url } = usePage();
 
     const canEdit = can('edit_customer');
     const canDelete = can('delete_customer');
@@ -50,7 +52,7 @@ export function CustomerRowActions({ customer }: Props) {
                 <DropdownMenuContent align="end" className="w-48">
                     {canEdit ? (
                         <DropdownMenuItem asChild className="min-h-11 md:min-h-8">
-                            <Link href={customerEditUrl(customer.id)}>
+                            <Link href={withReturnTo(customerEditUrl(customer.id), url)}>
                                 <Pencil aria-hidden="true" />
                                 {tCommon('actions.edit')}
                             </Link>

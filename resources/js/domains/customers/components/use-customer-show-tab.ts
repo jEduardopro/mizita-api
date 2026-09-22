@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 
-export const CUSTOMER_SHOW_TABS = ['about', 'notes', 'appointments'] as const;
+export const CUSTOMER_SHOW_TABS = ['about', 'appointments', 'notes'] as const;
 
 export type CustomerShowTab = (typeof CUSTOMER_SHOW_TABS)[number];
 

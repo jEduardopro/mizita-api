@@ -1,7 +1,7 @@
 import { Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 
 type Props = {
     code: string;
@@ -10,20 +10,12 @@ type Props = {
 export function BookingReferenceCopy({ code }: Props) {
     const { t } = useTranslation('public');
 
-    async function copyCode() {
-        try {
-            await navigator.clipboard.writeText(code);
-            raiseSuccessToast(
-                t('booking.flow.confirmed.copied', { defaultValue: 'Reference copied' }),
-            );
-        } catch {
-            raiseErrorToast(
-                t('booking.flow.confirmed.copyFailed', {
-                    defaultValue: 'We could not copy the reference. Write it down.',
-                }),
-            );
-        }
-    }
+    const copy = useCopyToClipboard({
+        copied: t('booking.flow.confirmed.copied', { defaultValue: 'Reference copied' }),
+        failed: t('booking.flow.confirmed.copyFailed', {
+            defaultValue: 'We could not copy the reference. Write it down.',
+        }),
+    });
 
     return (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-border bg-muted/40 py-1 pr-1 pl-3">
@@ -34,7 +26,7 @@ export function BookingReferenceCopy({ code }: Props) {
             <Button
                 type="button"
                 variant="ghost"
-                onClick={() => void copyCode()}
+                onClick={() => copy(code)}
                 className="size-11 shrink-0 p-0"
             >
                 <Copy aria-hidden="true" />

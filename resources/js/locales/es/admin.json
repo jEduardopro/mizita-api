@@ -115,7 +115,10 @@
                 "staff": "Atiende",
                 "notes": "Notas",
                 "empty": "Sin notas",
-                "reference": "Código de reserva"
+                "reference": "Código de reserva",
+                "copyReference": "Copiar el código de reserva",
+                "referenceCopied": "Código de reserva copiado",
+                "referenceCopyFailed": "No hemos podido copiar el código de reserva"
             },
             "cancelled": {
                 "badge": "Cancelada",

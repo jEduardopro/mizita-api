@@ -115,7 +115,10 @@
                 "staff": "Attended by",
                 "notes": "Notes",
                 "empty": "No notes",
-                "reference": "Booking code"
+                "reference": "Booking code",
+                "copyReference": "Copy the booking code",
+                "referenceCopied": "Booking code copied",
+                "referenceCopyFailed": "We could not copy the booking code"
             },
             "cancelled": {
                 "badge": "Cancelled",

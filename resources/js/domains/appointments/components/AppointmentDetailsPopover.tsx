@@ -8,6 +8,7 @@ import { formatServiceSummary } from '@/lib/service-format';
 import { formatTimeOfDay } from '@/lib/time';
 import { isCancelled } from './appointment-status';
 import { AppointmentDetailsActions } from './AppointmentDetailsActions';
+import { AppointmentReferenceCode } from './AppointmentReferenceCode';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { CancelledAppointmentNotice } from './CancelledAppointmentNotice';
 import type { Appointment, AppointmentCustomer } from '../types';
@@ -131,14 +132,7 @@ export function AppointmentDetailsPopover({ appointment, open, onOpenChange, tim
                                 </div>
 
                                 {appointment.reference_code !== null ? (
-                                    <div className="grid gap-0.5">
-                                        <p className="text-muted-foreground">
-                                            {t('calendar.appointment.details.reference')}
-                                        </p>
-                                        <p className="font-mono text-base font-medium tracking-[0.15em]">
-                                            {appointment.reference_code}
-                                        </p>
-                                    </div>
+                                    <AppointmentReferenceCode code={appointment.reference_code} />
                                 ) : null}
                             </div>
                         </div>

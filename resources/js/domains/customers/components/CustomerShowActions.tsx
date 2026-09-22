@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { CalendarPlus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { withReturnTo } from '@/lib/return-to';
 import type { Customer } from '../types';
 import { customerEditUrl } from './customer-urls';
 import { DeleteCustomerDialog } from './DeleteCustomerDialog';
@@ -25,6 +26,7 @@ export function CustomerShowActions({ customer, onBook, onDeleted }: Props) {
     const { t: tCommon } = useTranslation('common');
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const { can } = useAuthorization();
+    const { url } = usePage();
 
     const canBook = can('create_appointment');
     const canEdit = can('edit_customer');
@@ -51,7 +53,7 @@ export function CustomerShowActions({ customer, onBook, onDeleted }: Props) {
             {canEdit ? (
                 <Button asChild variant="outline" size="icon" className="size-11 md:size-9">
                     <Link
-                        href={customerEditUrl(customer.id)}
+                        href={withReturnTo(customerEditUrl(customer.id), url)}
                         aria-label={t('customers.actions.edit', { name: customer.name })}
                     >
                         <Pencil aria-hidden="true" />

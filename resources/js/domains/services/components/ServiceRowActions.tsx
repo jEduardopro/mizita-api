@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { formMessageFrom } from '@/lib/http';
 import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
 import { useDuplicateService } from '../queries';
@@ -29,19 +30,15 @@ export function ServiceRowActions({ service }: Props) {
     const duplicateService = useDuplicateService();
     const { can } = useAuthorization();
 
+    const copy = useCopyToClipboard({
+        copied: t('services.toasts.linkCopied'),
+        failed: t('services.errors.copyFailed'),
+    });
+
     const canEdit = can('edit_service');
     const canDuplicate = can('create_service');
     const canDelete = can('delete_service');
     const hasMenuItems = canEdit || canDuplicate || canDelete;
-
-    async function copyLink() {
-        try {
-            await navigator.clipboard.writeText(service.booking_url);
-            raiseSuccessToast(t('services.toasts.linkCopied'));
-        } catch {
-            raiseErrorToast(t('services.errors.copyFailed'));
-        }
-    }
 
     async function duplicate() {
         try {
@@ -62,7 +59,7 @@ export function ServiceRowActions({ service }: Props) {
             <Button
                 type="button"
                 variant="ghost"
-                onClick={() => void copyLink()}
+                onClick={() => copy(service.booking_url)}
                 className="size-11 md:h-9 md:w-auto md:gap-1.5 md:px-3"
             >
                 <Link2 aria-hidden="true" />

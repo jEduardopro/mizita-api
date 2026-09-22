@@ -17,7 +17,7 @@ export default function CreateCustomer() {
                 { label: t('customers.title'), href: CUSTOMERS_URL },
                 { label: t('customers.create.title') },
             ]}
-            actions={<CustomerFormActions mode="create" form={form} />}
+            actions={<CustomerFormActions mode="create" form={form} returnTo={CUSTOMERS_URL} />}
         >
             <CustomerForm form={form} focusNameField />
         </AdminLayout>

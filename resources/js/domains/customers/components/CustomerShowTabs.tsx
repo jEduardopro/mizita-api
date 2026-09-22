@@ -5,22 +5,22 @@ import { CUSTOMER_SHOW_TABS, customerShowTabFrom, type CustomerShowTab } from '.
 
 const TAB_LABEL_KEYS = {
     about: 'customers.show.tabs.about',
-    notes: 'customers.show.tabs.notes',
     appointments: 'customers.show.tabs.appointments',
+    notes: 'customers.show.tabs.notes',
 } as const satisfies Record<CustomerShowTab, string>;
 
 type Props = {
     value: CustomerShowTab;
     onValueChange: (tab: CustomerShowTab) => void;
     about: ReactNode;
-    notes: ReactNode;
     appointments: ReactNode;
+    notes: ReactNode;
 };
 
-export function CustomerShowTabs({ value, onValueChange, about, notes, appointments }: Props) {
+export function CustomerShowTabs({ value, onValueChange, about, appointments, notes }: Props) {
     const { t } = useTranslation('admin');
 
-    const panels: Record<CustomerShowTab, ReactNode> = { about, notes, appointments };
+    const panels: Record<CustomerShowTab, ReactNode> = { about, appointments, notes };
 
     return (
         <Tabs

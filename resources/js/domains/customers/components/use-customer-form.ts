@@ -43,6 +43,7 @@ type Params = {
     mode: CustomerFormMode;
     customer: Customer | null;
     initialName?: string;
+    returnTo?: string;
     onSaved?: (customer: Customer) => void;
 };
 
@@ -60,6 +61,7 @@ export function useCustomerForm({
     mode,
     customer,
     initialName,
+    returnTo = CUSTOMERS_URL,
     onSaved,
 }: Params): CustomerFormController {
     const { t } = useTranslation('admin');
@@ -186,7 +188,7 @@ export function useCustomerForm({
             return;
         }
 
-        navigateTo(CUSTOMERS_URL);
+        navigateTo(returnTo);
     }
 
     return {
