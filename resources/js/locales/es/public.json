@@ -207,7 +207,6 @@
                 "description": "Escoge a la persona con la que quieres la cita."
             },
             "time": {
-                "description": "Las horas se muestran en {{timezone}}.",
                 "nextMonth": "Mes siguiente",
                 "previousMonth": "Mes anterior",
                 "title": "Elige un día y una hora"
@@ -301,8 +300,12 @@
                 "cancelled": "Cancelada"
             },
             "title": "Tu cita",
-            "window_one": "Puedes cambiarla o cancelarla hasta {{count}} minuto antes de que empiece.",
-            "window_other": "Puedes cambiarla o cancelarla hasta {{count}} minutos antes de que empiece."
+            "window": "Puedes cambiarla o cancelarla hasta {{window}} antes de que empiece.",
+            "windowHours_one": "{{count}} hora",
+            "windowHours_other": "{{count}} horas",
+            "windowMinutes_one": "{{count}} minuto",
+            "windowMinutes_other": "{{count}} minutos",
+            "windowParts": "{{hours}} y {{minutes}}"
         }
     }
 }

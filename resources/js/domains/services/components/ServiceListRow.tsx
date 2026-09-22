@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { Badge } from '@/components/ui/badge';
 import { serviceColorClasses } from '@/lib/service-color';
-import { formatBuffer, formatDuration, formatPrice } from '@/lib/service-format';
+import { formatServiceSummary } from '@/lib/service-format';
 import type { Service } from '../types';
 import { ServiceRowActions } from './ServiceRowActions';
 import { serviceEditUrl } from './service-urls';
@@ -17,16 +17,7 @@ type Props = {
 export function ServiceListRow({ service }: Props) {
     const { t, i18n } = useTranslation('admin');
 
-    const duration = formatDuration(service.duration_minutes, t);
-    const price = formatPrice(service.price, i18n.language, t);
-    const summary =
-        service.buffer_minutes > 0
-            ? t('services.summaryWithBuffer', {
-                  duration,
-                  buffer: formatBuffer(service.buffer_minutes, t),
-                  price,
-              })
-            : t('services.summary', { duration, price });
+    const summary = formatServiceSummary(service, i18n.language, t);
 
     return (
         <article className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card py-2.5 pr-2.5 pl-4">

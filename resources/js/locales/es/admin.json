@@ -111,7 +111,6 @@
             },
             "details": {
                 "title": "Cita",
-                "duration": "Duración: {{minutes}} minutos",
                 "customer": "Cliente",
                 "staff": "Atiende",
                 "notes": "Notas",
@@ -327,6 +326,7 @@
         },
         "actions": {
             "create": "Nuevo cliente",
+            "edit": "Editar a {{name}}",
             "more": "Más acciones para {{name}}"
         },
         "empty": {
@@ -354,6 +354,29 @@
         "create": {
             "title": "Nuevo cliente",
             "description": "Solo el nombre es obligatorio. Lo demás puede esperar."
+        },
+        "show": {
+            "title": "Cliente",
+            "actions": {
+                "book": "Reservar una cita"
+            },
+            "tabs": {
+                "about": "Acerca de",
+                "notes": "Notas",
+                "appointments": "Citas"
+            },
+            "notes": {
+                "empty": "Todavía no hay notas"
+            },
+            "appointments": {
+                "caption": "Historial de citas",
+                "today": "Hoy no hay citas",
+                "open": "Abrir {{service}} de las {{time}}",
+                "empty": {
+                    "title": "Todavía no hay citas",
+                    "body": "Reserva una y aparecerá aquí."
+                }
+            }
         },
         "edit": {
             "title": "Editar cliente",

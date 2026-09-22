@@ -111,7 +111,6 @@
             },
             "details": {
                 "title": "Appointment",
-                "duration": "Duration: {{minutes}} minutes",
                 "customer": "Customer",
                 "staff": "Attended by",
                 "notes": "Notes",
@@ -327,6 +326,7 @@
         },
         "actions": {
             "create": "New customer",
+            "edit": "Edit {{name}}",
             "more": "More actions for {{name}}"
         },
         "empty": {
@@ -354,6 +354,29 @@
         "create": {
             "title": "New customer",
             "description": "Only the name is required. Everything else can wait."
+        },
+        "show": {
+            "title": "Customer",
+            "actions": {
+                "book": "Book an appointment"
+            },
+            "tabs": {
+                "about": "About",
+                "notes": "Notes",
+                "appointments": "Appointments"
+            },
+            "notes": {
+                "empty": "No notes yet"
+            },
+            "appointments": {
+                "caption": "Appointment history",
+                "today": "No appointments today",
+                "open": "Open {{service}} at {{time}}",
+                "empty": {
+                    "title": "No appointments yet",
+                    "body": "Book one and it will show up here."
+                }
+            }
         },
         "edit": {
             "title": "Edit customer",

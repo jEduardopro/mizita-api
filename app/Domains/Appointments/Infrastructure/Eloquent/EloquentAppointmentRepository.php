@@ -15,7 +15,9 @@ use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\Infrastructure\Eloquent\Mappers\AppointmentMapper;
 use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Appointments\ValueObjects\CalendarRange;
+use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
 use App\Shared\Contracts\BusinessTeamKey;
+use App\Shared\ValueObjects\Paginated;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\QueryException;
@@ -66,6 +68,40 @@ final class EloquentAppointmentRepository implements AppointmentRepository
         return array_map(
             fn (AppointmentModel $model): Appointment => $this->mapper->toEntity($model, $businessId),
             $models->all(),
+        );
+    }
+
+    /**
+     * @return Paginated<Appointment>
+     */
+    public function bookedForCustomer(string $businessId, CustomerAppointmentQuery $query): Paginated
+    {
+        $matching = $this->ofBusiness($businessId)
+            ->whereIn(
+                'customer_id',
+                static fn (QueryBuilder $customers) => $customers
+                    ->select('id')
+                    ->from(self::CUSTOMERS_TABLE)
+                    ->where('uuid', $query->customerId),
+            )
+            ->whereNull('cancelled_at');
+
+        $total = $matching->count();
+
+        $models = $matching->with(self::PARTICIPANT_RELATIONS)
+            ->orderByDesc('starts_at')
+            ->orderByDesc(self::TIEBREAKER_COLUMN)
+            ->offset($query->pagination->offset())
+            ->limit($query->pagination->perPage)
+            ->get();
+
+        return Paginated::of(
+            array_map(
+                fn (AppointmentModel $model): Appointment => $this->mapper->toEntity($model, $businessId),
+                $models->all(),
+            ),
+            $total,
+            $query->pagination,
         );
     }
 

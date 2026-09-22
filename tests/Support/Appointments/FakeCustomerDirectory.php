@@ -6,6 +6,7 @@ namespace Tests\Support\Appointments;
 
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
+use App\Domains\Appointments\ValueObjects\CustomerPhoneSnapshot;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
 use App\Domains\Appointments\ValueObjects\GuestContact;
 use Throwable;
@@ -87,9 +88,13 @@ final class FakeCustomerDirectory implements CustomerDirectory
         }
 
         return $this->guestSnapshot ?? new CustomerSnapshot(
-            AppointmentFixtures::CUSTOMER_ID,
-            $guest->name,
-            $guest->email,
+            id: AppointmentFixtures::CUSTOMER_ID,
+            name: $guest->name,
+            email: $guest->email,
+            phone: $guest->phone === null ? null : new CustomerPhoneSnapshot(
+                countryCode: $guest->phone->countryCode,
+                nationalNumber: $guest->phone->nationalNumber,
+            ),
         );
     }
 

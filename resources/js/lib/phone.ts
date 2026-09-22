@@ -4,3 +4,15 @@ export const SUPPORTED_PHONE_COUNTRIES = [
 ] as const;
 
 export type PhoneCountryCode = (typeof SUPPORTED_PHONE_COUNTRIES)[number]['code'];
+
+export function formatPhoneNumber(phone: { country_code: string; national_number: string }): string {
+    const country = SUPPORTED_PHONE_COUNTRIES.find(
+        (supported) => supported.code === phone.country_code,
+    );
+
+    if (country === undefined) {
+        return phone.national_number;
+    }
+
+    return `${country.dialCode} ${phone.national_number}`;
+}

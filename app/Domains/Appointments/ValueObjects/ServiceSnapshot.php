@@ -11,6 +11,8 @@ final readonly class ServiceSnapshot
         public string $name,
         public string $color,
         public int $durationMinutes,
+        public int $bufferMinutes,
+        public string $price,
         public bool $active,
     ) {}
 }

@@ -28,6 +28,12 @@ interface CustomerRepository
      */
     public function findIncludingArchived(string $businessId, string $id): Customer;
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<Customer>
+     */
+    public function findManyIncludingArchived(string $businessId, array $ids): array;
+
     public function existsByEmail(string $businessId, CustomerEmail $email, ?string $exceptId = null): bool;
 
     /**

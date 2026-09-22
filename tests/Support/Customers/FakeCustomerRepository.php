@@ -71,6 +71,11 @@ final class FakeCustomerRepository implements CustomerRepository
      */
     public array $membershipLookups = [];
 
+    /**
+     * @var list<array{businessId: string, ids: list<string>}>
+     */
+    public array $batchLookups = [];
+
     public function __construct(
         public readonly CustomerJournal $journal = new CustomerJournal,
     ) {}
@@ -131,6 +136,30 @@ final class FakeCustomerRepository implements CustomerRepository
         return $this->customers[$key]
             ?? $this->archived[$key]
             ?? throw CustomerNotFound::withId($id);
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<Customer>
+     */
+    public function findManyIncludingArchived(string $businessId, array $ids): array
+    {
+        $this->journal->record('customers.findManyIncludingArchived');
+        $this->businessIdsSeen[] = $businessId;
+        $this->batchLookups[] = ['businessId' => $businessId, 'ids' => array_values($ids)];
+
+        $found = [];
+
+        foreach ($ids as $id) {
+            $key = $this->keyFor($businessId, $id);
+            $customer = $this->customers[$key] ?? $this->archived[$key] ?? null;
+
+            if ($customer !== null) {
+                $found[] = $customer;
+            }
+        }
+
+        return $found;
     }
 
     public function existsByEmail(string $businessId, CustomerEmail $email, ?string $exceptId = null): bool

@@ -67,11 +67,7 @@ export default function BookingTimeStep({ slug }: Props) {
     const { page } = flow;
 
     return (
-        <BookingFlowLayout
-            flow={flow}
-            title={t('booking.flow.time.title')}
-            description={t('booking.flow.time.description', { timezone: flow.timezone })}
-        >
+        <BookingFlowLayout flow={flow} title={t('booking.flow.time.title')}>
             {availability.isError ? (
                 <div className="grid justify-items-center gap-4 rounded-xl border border-dashed border-border px-5 py-12 text-center">
                     <p className="max-w-sm text-sm text-pretty text-muted-foreground">

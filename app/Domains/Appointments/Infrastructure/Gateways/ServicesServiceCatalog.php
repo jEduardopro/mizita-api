@@ -72,6 +72,8 @@ final class ServicesServiceCatalog implements ServiceCatalog
             name: $service->name(),
             color: $service->color()->value,
             durationMinutes: $service->durationMinutes(),
+            bufferMinutes: $service->bufferMinutes(),
+            price: $service->price(),
             active: $service->isActive(),
         );
     }

@@ -15,6 +15,7 @@ import {
     type AppointmentField,
     type AppointmentFormValues,
     type RequiredAppointmentField,
+    type SelectedCustomer,
 } from './appointment-form-values';
 import { useCreateAppointment, useUpdateAppointment } from '../queries';
 import type { Appointment, AppointmentService } from '../types';
@@ -49,6 +50,7 @@ export type AppointmentFormParams = {
     appointment: Appointment | null;
     timezone: string;
     prefillStartsAt: string | null;
+    initialCustomer: SelectedCustomer | null;
     onSaved: (appointment: Appointment) => void;
 };
 
@@ -57,11 +59,12 @@ export function useAppointmentForm({
     appointment,
     timezone,
     prefillStartsAt,
+    initialCustomer,
     onSaved,
 }: AppointmentFormParams): AppointmentFormController {
     const { t } = useTranslation('admin');
     const [values, setValues] = useState(() =>
-        initialAppointmentValues(appointment, timezone, prefillStartsAt),
+        initialAppointmentValues({ appointment, timezone, prefillStartsAt, initialCustomer }),
     );
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [requiredErrors, setRequiredErrors] = useState<RequiredErrors>({});

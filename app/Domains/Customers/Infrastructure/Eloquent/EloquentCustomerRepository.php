@@ -71,6 +71,27 @@ final class EloquentCustomerRepository implements CustomerRepository
         return $this->firstMatchingUuid($this->ofBusiness($businessId)->withTrashed(), $businessId, $id);
     }
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<Customer>
+     */
+    public function findManyIncludingArchived(string $businessId, array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $models = $this->ofBusiness($businessId)
+            ->withTrashed()
+            ->whereIn('uuid', $ids)
+            ->get();
+
+        return array_map(
+            fn (CustomerModel $model): Customer => $this->mapper->toEntity($model, $businessId),
+            $models->all(),
+        );
+    }
+
     public function existsByEmail(string $businessId, CustomerEmail $email, ?string $exceptId = null): bool
     {
         return $this->excluding($this->ofBusiness($businessId), $exceptId)

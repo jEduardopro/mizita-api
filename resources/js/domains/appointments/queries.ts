@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    keepPreviousData,
+    useInfiniteQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
 import { useCallback } from 'react';
 import {
     cancelAppointment,
@@ -8,6 +14,7 @@ import {
     listAppointments,
     listBookableServices,
     listBookableStaffMembers,
+    listCustomerAppointments,
     searchBookableCustomers,
     updateAppointment,
 } from './api';
@@ -15,10 +22,15 @@ import type { AppointmentPayload, AppointmentRange } from './types';
 
 const STAFF_DIRECTORY_LIFETIME_MS = 5 * 60 * 1000;
 
+const CUSTOMER_HISTORY_PAGE_SIZE = 20;
+
+const FIRST_PAGE = 1;
+
 export const appointmentKeys = {
     all: ['appointments'] as const,
     range: (range: AppointmentRange) => [...appointmentKeys.all, 'range', range] as const,
     detail: (id: string) => [...appointmentKeys.all, 'detail', id] as const,
+    forCustomer: (customerId: string) => [...appointmentKeys.all, 'customer', customerId] as const,
     bookableServices: () => [...appointmentKeys.all, 'bookable-services'] as const,
     bookableStaff: () => [...appointmentKeys.all, 'bookable-staff'] as const,
     bookableCustomers: () => [...appointmentKeys.all, 'bookable-customers'] as const,
@@ -31,6 +43,23 @@ export function useAppointments(range: AppointmentRange) {
         queryKey: appointmentKeys.range(range),
         queryFn: ({ signal }) => listAppointments(range, signal),
         placeholderData: keepPreviousData,
+    });
+}
+
+export function useInfiniteCustomerAppointments(customerId: string) {
+    return useInfiniteQuery({
+        queryKey: appointmentKeys.forCustomer(customerId),
+        queryFn: ({ pageParam, signal }) =>
+            listCustomerAppointments(
+                customerId,
+                { page: pageParam, per_page: CUSTOMER_HISTORY_PAGE_SIZE },
+                signal,
+            ),
+        initialPageParam: FIRST_PAGE,
+        getNextPageParam: (lastPage) =>
+            lastPage.meta.current_page < lastPage.meta.last_page
+                ? lastPage.meta.current_page + 1
+                : undefined,
     });
 }
 

@@ -74,11 +74,19 @@ function toInstant(date: string, time: string, timezone: string): string {
         .toString();
 }
 
-export function initialAppointmentValues(
-    appointment: Appointment | null,
-    timezone: string,
-    prefillStartsAt: string | null,
-): AppointmentFormValues {
+export type InitialAppointmentParams = {
+    appointment: Appointment | null;
+    timezone: string;
+    prefillStartsAt: string | null;
+    initialCustomer: SelectedCustomer | null;
+};
+
+export function initialAppointmentValues({
+    appointment,
+    timezone,
+    prefillStartsAt,
+    initialCustomer,
+}: InitialAppointmentParams): AppointmentFormValues {
     if (appointment !== null) {
         const starts = toLocalDateAndTime(appointment.starts_at, timezone);
         const ends = toLocalDateAndTime(appointment.ends_at, timezone);
@@ -100,7 +108,7 @@ export function initialAppointmentValues(
 
         return {
             service: null,
-            customer: null,
+            customer: initialCustomer,
             staffMemberId: '',
             date: starts.date,
             startsAt: starts.time,
@@ -112,7 +120,7 @@ export function initialAppointmentValues(
 
     return {
         service: null,
-        customer: null,
+        customer: initialCustomer,
         staffMemberId: '',
         date: todayAsIsoDate(),
         startsAt: '',

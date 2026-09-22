@@ -6,6 +6,7 @@ import { brandColorClasses, BUTTON_SHAPE_CLASSES } from '@/lib/booking-brand';
 import type { PublicBooking, PublicBookingCredentials, PublicBusinessPage } from '../../types';
 import { BookingCancelDialog } from './BookingCancelDialog';
 import { BookingRescheduleForm } from './BookingRescheduleForm';
+import { cancellationWindowNote } from './cancellation-window';
 
 type Props = {
     page: PublicBusinessPage;
@@ -58,7 +59,7 @@ export function BookingManageActions({ page, booking, credentials }: Props) {
     const windowNote =
         booking.cancellation_window_minutes === null
             ? null
-            : t('booking.manage.window', { count: booking.cancellation_window_minutes });
+            : cancellationWindowNote(booking.cancellation_window_minutes, t);
 
     const note = canReschedule ? windowNote : t('booking.manage.locked');
 

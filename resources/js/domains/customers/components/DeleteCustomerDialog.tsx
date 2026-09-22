@@ -20,9 +20,10 @@ type Props = {
     customer: Customer;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onDeleted?: () => void;
 };
 
-export function DeleteCustomerDialog({ customer, open, onOpenChange }: Props) {
+export function DeleteCustomerDialog({ customer, open, onOpenChange, onDeleted }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
     const deleteCustomer = useDeleteCustomer();
@@ -32,6 +33,7 @@ export function DeleteCustomerDialog({ customer, open, onOpenChange }: Props) {
             await deleteCustomer.mutateAsync(customer.id);
             raiseSuccessToast(t('customers.toasts.deleted'));
             onOpenChange(false);
+            onDeleted?.();
         } catch (error) {
             raiseErrorToast(formMessageFrom(error, t('customers.errors.deleteFailed')));
         }

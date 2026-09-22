@@ -12,6 +12,7 @@ use App\Domains\Appointments\Application\Dtos\DeleteAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\GuestBookingCredentials;
 use App\Domains\Appointments\Application\Dtos\GuestDetailsInput;
 use App\Domains\Appointments\Application\Dtos\ListAppointmentsInput;
+use App\Domains\Appointments\Application\Dtos\ListCustomerAppointmentsInput;
 use App\Domains\Appointments\Application\Dtos\RescheduleGuestBookingInput;
 use App\Domains\Appointments\Application\Dtos\ShowAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\ShowGuestBookingInput;
@@ -21,6 +22,7 @@ use App\Domains\Appointments\ValueObjects\AppointmentNotes;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
 use App\Domains\Appointments\ValueObjects\BookingSource;
 use App\Domains\Appointments\ValueObjects\Canceller;
+use App\Domains\Appointments\ValueObjects\CustomerPhoneSnapshot;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
 use App\Domains\Appointments\ValueObjects\ManageToken;
 use App\Domains\Appointments\ValueObjects\ReferenceCode;
@@ -36,6 +38,8 @@ final class AppointmentFixtures
     public const APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a1';
 
     public const SECOND_APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a2';
+
+    public const THIRD_APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a3';
 
     public const GENERATED_APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a9';
 
@@ -63,17 +67,29 @@ final class AppointmentFixtures
 
     public const SECOND_CUSTOMER_NAME = 'Grace Hopper';
 
+    public const CUSTOMER_PHONE_COUNTRY_CODE = 'MX';
+
+    public const CUSTOMER_PHONE_NATIONAL_NUMBER = '5512345678';
+
     public const SERVICE_NAME = 'Corte de pelo';
 
     public const SERVICE_COLOR = '#0EA5A4';
 
     public const SERVICE_DURATION_MINUTES = 45;
 
+    public const SERVICE_BUFFER_MINUTES = 10;
+
+    public const SERVICE_PRICE = '350.00';
+
     public const SECOND_SERVICE_NAME = 'Barba';
 
     public const SECOND_SERVICE_COLOR = '#F97316';
 
     public const SECOND_SERVICE_DURATION_MINUTES = 30;
+
+    public const SECOND_SERVICE_BUFFER_MINUTES = 5;
+
+    public const SECOND_SERVICE_PRICE = '150.50';
 
     public const STAFF_NAME = 'Katherine Johnson';
 
@@ -121,8 +137,24 @@ final class AppointmentFixtures
         string $id = self::CUSTOMER_ID,
         string $name = self::CUSTOMER_NAME,
         ?string $email = self::CUSTOMER_EMAIL,
+        ?CustomerPhoneSnapshot $phone = null,
     ): CustomerSnapshot {
-        return new CustomerSnapshot($id, $name, $email);
+        return new CustomerSnapshot(
+            id: $id,
+            name: $name,
+            email: $email,
+            phone: $phone,
+        );
+    }
+
+    public static function customerPhoneSnapshot(
+        string $countryCode = self::CUSTOMER_PHONE_COUNTRY_CODE,
+        string $nationalNumber = self::CUSTOMER_PHONE_NATIONAL_NUMBER,
+    ): CustomerPhoneSnapshot {
+        return new CustomerPhoneSnapshot(
+            countryCode: $countryCode,
+            nationalNumber: $nationalNumber,
+        );
     }
 
     public static function serviceSnapshot(
@@ -130,9 +162,19 @@ final class AppointmentFixtures
         string $name = self::SERVICE_NAME,
         string $color = self::SERVICE_COLOR,
         int $durationMinutes = self::SERVICE_DURATION_MINUTES,
+        int $bufferMinutes = self::SERVICE_BUFFER_MINUTES,
+        string $price = self::SERVICE_PRICE,
         bool $active = true,
     ): ServiceSnapshot {
-        return new ServiceSnapshot($id, $name, $color, $durationMinutes, $active);
+        return new ServiceSnapshot(
+            id: $id,
+            name: $name,
+            color: $color,
+            durationMinutes: $durationMinutes,
+            bufferMinutes: $bufferMinutes,
+            price: $price,
+            active: $active,
+        );
     }
 
     public static function staffSnapshot(
@@ -262,6 +304,18 @@ final class AppointmentFixtures
         string $to = self::RANGE_TO,
     ): ListAppointmentsInput {
         return new ListAppointmentsInput(from: $from, to: $to);
+    }
+
+    public static function listCustomerInput(
+        string $customerId = self::CUSTOMER_ID,
+        ?int $page = null,
+        ?int $perPage = null,
+    ): ListCustomerAppointmentsInput {
+        return new ListCustomerAppointmentsInput(
+            customerId: $customerId,
+            page: $page,
+            perPage: $perPage,
+        );
     }
 
     public static function showInput(string $appointmentId = self::APPOINTMENT_ID): ShowAppointmentInput

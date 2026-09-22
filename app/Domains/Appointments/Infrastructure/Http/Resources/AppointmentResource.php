@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentCustomerData;
 use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\AppointmentServiceData;
 use App\Domains\Appointments\Application\Dtos\AppointmentStaffData;
+use App\Domains\Appointments\ValueObjects\CustomerPhoneSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -39,7 +40,7 @@ final class AppointmentResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, name: string, email: string|null}
+     * @return array{id: string, name: string, email: string|null, phone: array{country_code: string, national_number: string}|null}
      */
     private static function describeCustomer(AppointmentCustomerData $customer): array
     {
@@ -47,11 +48,27 @@ final class AppointmentResource extends JsonResource
             'id' => $customer->id,
             'name' => $customer->name,
             'email' => $customer->email,
+            'phone' => self::describePhone($customer->phone),
         ];
     }
 
     /**
-     * @return array{id: string, name: string, color: string, duration_minutes: int}
+     * @return array{country_code: string, national_number: string}|null
+     */
+    private static function describePhone(?CustomerPhoneSnapshot $phone): ?array
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        return [
+            'country_code' => $phone->countryCode,
+            'national_number' => $phone->nationalNumber,
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string, color: string, duration_minutes: int, buffer_minutes: int, price: string}
      */
     private static function describeService(AppointmentServiceData $service): array
     {
@@ -60,6 +77,8 @@ final class AppointmentResource extends JsonResource
             'name' => $service->name,
             'color' => $service->color,
             'duration_minutes' => $service->durationMinutes,
+            'buffer_minutes' => $service->bufferMinutes,
+            'price' => $service->price,
         ];
     }
 

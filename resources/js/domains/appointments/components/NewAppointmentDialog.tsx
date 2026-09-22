@@ -15,6 +15,7 @@ type Props = {
     appointment: Appointment | null;
     timezone: string;
     prefillStartsAt?: string | null;
+    initialCustomer?: { id: string; name: string } | null;
     onSaved?: (appointment: Appointment) => void;
 };
 
@@ -25,6 +26,7 @@ export function NewAppointmentDialog({
     appointment,
     timezone,
     prefillStartsAt = null,
+    initialCustomer = null,
     onSaved,
 }: Props) {
     const { t } = useTranslation('admin');
@@ -35,6 +37,7 @@ export function NewAppointmentDialog({
         appointment,
         timezone,
         prefillStartsAt,
+        initialCustomer,
         title:
             mode === 'edit'
                 ? t('calendar.appointment.edit.title')

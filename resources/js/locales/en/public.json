@@ -207,7 +207,6 @@
                 "description": "Pick the person you would like to see."
             },
             "time": {
-                "description": "Times are shown in {{timezone}}.",
                 "nextMonth": "Next month",
                 "previousMonth": "Previous month",
                 "title": "Choose a day and a time"
@@ -301,8 +300,12 @@
                 "cancelled": "Cancelled"
             },
             "title": "Your appointment",
-            "window_one": "You can change or cancel it up to {{count}} minute before it starts.",
-            "window_other": "You can change or cancel it up to {{count}} minutes before it starts."
+            "window": "You can change or cancel it up to {{window}} before it starts.",
+            "windowHours_one": "{{count}} hour",
+            "windowHours_other": "{{count}} hours",
+            "windowMinutes_one": "{{count}} minute",
+            "windowMinutes_other": "{{count}} minutes",
+            "windowParts": "{{hours}} and {{minutes}}"
         }
     }
 }

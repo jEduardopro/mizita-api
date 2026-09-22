@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import type { Customer } from '../types';
 import { CustomerAvatar } from './CustomerAvatar';
-import { customerEditUrl } from './customer-urls';
+import { customerShowUrl } from './customer-urls';
 import { contactSummary } from './customer-format';
 import { CustomerRowActions } from './CustomerRowActions';
 
@@ -23,7 +23,7 @@ export function CustomerListRow({ customer }: Props) {
 
             <div className="grid min-w-0 flex-1 gap-0.5">
                 <Link
-                    href={customerEditUrl(customer.id)}
+                    href={customerShowUrl(customer.id)}
                     className="truncate text-sm font-medium outline-none hover:underline focus-visible:underline"
                 >
                     {customer.name}

@@ -67,10 +67,6 @@ export function BookingConfirmationCard({ booking, timezone, children }: Props) 
                     {formatInstantTimeOfDay(booking.starts_at, timezone)}
                 </p>
 
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                    {t('booking.flow.time.description', { timezone })}
-                </p>
-
                 {booking.cancelled_at === null ? null : (
                     <p className="text-xs leading-relaxed text-destructive">
                         {t('booking.manage.cancelledAt', {

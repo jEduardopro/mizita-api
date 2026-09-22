@@ -13,6 +13,8 @@ final readonly class AppointmentServiceData
         public string $name,
         public string $color,
         public int $durationMinutes,
+        public int $bufferMinutes,
+        public string $price,
     ) {}
 
     public static function fromSnapshot(ServiceSnapshot $service): self
@@ -22,6 +24,8 @@ final readonly class AppointmentServiceData
             name: $service->name,
             color: $service->color,
             durationMinutes: $service->durationMinutes,
+            bufferMinutes: $service->bufferMinutes,
+            price: $service->price,
         );
     }
 }

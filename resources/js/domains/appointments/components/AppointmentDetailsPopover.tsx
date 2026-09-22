@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { formatPhoneNumber } from '@/lib/phone';
+import { formatServiceSummary } from '@/lib/service-format';
 import { formatTimeOfDay } from '@/lib/time';
 import { isCancelled } from './appointment-status';
 import { AppointmentDetailsActions } from './AppointmentDetailsActions';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { CancelledAppointmentNotice } from './CancelledAppointmentNotice';
-import type { Appointment } from '../types';
+import type { Appointment, AppointmentCustomer } from '../types';
 
 type Props = {
     appointment: Appointment | null;
@@ -35,6 +37,21 @@ function dayLabel(instant: string, timezone: string, locale: string): string {
         month: 'long',
         timeZone: timezone,
     }).format(date);
+}
+
+type ContactLineProps = {
+    customer: Pick<AppointmentCustomer, 'email' | 'phone'>;
+};
+
+function CustomerContactLine({ customer }: ContactLineProps) {
+    const phone = customer.phone === null ? null : formatPhoneNumber(customer.phone);
+    const details = [customer.email, phone].filter((detail): detail is string => detail !== null);
+
+    if (details.length === 0) {
+        return null;
+    }
+
+    return <p className="break-words text-muted-foreground">{details.join(' · ')}</p>;
 }
 
 export function AppointmentDetailsPopover({ appointment, open, onOpenChange, timezone, onEdit, onDelete }: Props) {
@@ -77,9 +94,7 @@ export function AppointmentDetailsPopover({ appointment, open, onOpenChange, tim
                                     <p className="truncate font-medium">{appointment.service.name}</p>
 
                                     <p className="text-sm text-muted-foreground">
-                                        {t('calendar.appointment.details.duration', {
-                                            minutes: appointment.duration_minutes,
-                                        })}
+                                        {formatServiceSummary(appointment.service, i18n.language, t)}
                                     </p>
                                 </div>
                             </div>
@@ -100,6 +115,7 @@ export function AppointmentDetailsPopover({ appointment, open, onOpenChange, tim
                                 <div className="grid gap-0.5">
                                     <p className="text-muted-foreground">{t('calendar.appointment.details.customer')}</p>
                                     <p className="font-medium">{appointment.customer.name}</p>
+                                    <CustomerContactLine customer={appointment.customer} />
                                 </div>
 
                                 <div className="grid gap-0.5">

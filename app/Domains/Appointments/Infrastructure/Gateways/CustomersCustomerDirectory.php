@@ -10,34 +10,34 @@ use App\Domains\Appointments\Exceptions\InvalidGuestEmail;
 use App\Domains\Appointments\Exceptions\InvalidGuestName;
 use App\Domains\Appointments\Exceptions\InvalidGuestPhone;
 use App\Domains\Appointments\Exceptions\MissingGuestContactChannel;
+use App\Domains\Appointments\ValueObjects\CustomerPhoneSnapshot;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
 use App\Domains\Appointments\ValueObjects\GuestContact;
 use App\Domains\Customers\Application\Dtos\CustomerData;
 use App\Domains\Customers\Application\Dtos\CustomerPhoneInput;
 use App\Domains\Customers\Application\Dtos\GuestContactInput;
 use App\Domains\Customers\Application\Services\GuestCustomerRegistrar;
+use App\Domains\Customers\Contracts\CustomerPhoneBook;
 use App\Domains\Customers\Contracts\CustomerRepository;
 use App\Domains\Customers\Entities\Customer;
-use App\Domains\Customers\Exceptions\CustomerNotFound;
 use App\Domains\Customers\Exceptions\InvalidCustomerEmail;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use App\Domains\Customers\Exceptions\InvalidCustomerPhone;
 use App\Domains\Customers\Exceptions\InvalidGuestContact;
+use App\Shared\ValueObjects\PhoneNumber;
 
 final class CustomersCustomerDirectory implements CustomerDirectory
 {
     public function __construct(
         private readonly CustomerRepository $customers,
         private readonly GuestCustomerRegistrar $guests,
+        private readonly CustomerPhoneBook $phones,
     ) {}
 
     public function describe(string $businessId, string $customerId): CustomerSnapshot
     {
-        try {
-            return self::snapshotOf($this->customers->findIncludingArchived($businessId, $customerId));
-        } catch (CustomerNotFound $missing) {
-            throw AppointmentCustomerNotFound::withId($customerId, $missing);
-        }
+        return $this->describeMany($businessId, [$customerId])[$customerId]
+            ?? throw AppointmentCustomerNotFound::withId($customerId);
     }
 
     /**
@@ -46,10 +46,21 @@ final class CustomersCustomerDirectory implements CustomerDirectory
      */
     public function describeMany(string $businessId, array $customerIds): array
     {
+        $selected = $this->customers->findManyIncludingArchived(
+            $businessId,
+            array_values(array_unique($customerIds)),
+        );
+
+        if ($selected === []) {
+            return [];
+        }
+
+        $numbers = $this->numbersByCustomerId($selected);
+
         $snapshots = [];
 
-        foreach (array_unique($customerIds) as $customerId) {
-            $snapshots[$customerId] = $this->describe($businessId, $customerId);
+        foreach ($selected as $customer) {
+            $snapshots[$customer->id] = self::snapshotOf($customer, $numbers[$customer->id] ?? null);
         }
 
         return $snapshots;
@@ -81,6 +92,18 @@ final class CustomersCustomerDirectory implements CustomerDirectory
         }
     }
 
+    /**
+     * @param  list<Customer>  $customers
+     * @return array<string, PhoneNumber>
+     */
+    private function numbersByCustomerId(array $customers): array
+    {
+        return $this->phones->forCustomers(array_map(
+            static fn (Customer $customer): string => $customer->id,
+            $customers,
+        ));
+    }
+
     private static function contactFrom(GuestContact $guest): GuestContactInput
     {
         $phone = $guest->phone;
@@ -95,12 +118,13 @@ final class CustomersCustomerDirectory implements CustomerDirectory
         );
     }
 
-    private static function snapshotOf(Customer $customer): CustomerSnapshot
+    private static function snapshotOf(Customer $customer, ?PhoneNumber $phone): CustomerSnapshot
     {
         return new CustomerSnapshot(
             id: $customer->id,
             name: $customer->name(),
             email: $customer->email()?->value,
+            phone: self::phoneSnapshotOf($phone),
         );
     }
 
@@ -110,6 +134,19 @@ final class CustomersCustomerDirectory implements CustomerDirectory
             id: $customer->id,
             name: $customer->name,
             email: $customer->email,
+            phone: self::phoneSnapshotOf($customer->phone),
+        );
+    }
+
+    private static function phoneSnapshotOf(?PhoneNumber $phone): ?CustomerPhoneSnapshot
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        return new CustomerPhoneSnapshot(
+            countryCode: $phone->country()->value,
+            nationalNumber: $phone->nationalNumber(),
         );
     }
 }

@@ -56,6 +56,19 @@ export async function deleteAppointment(id: string): Promise<void> {
     await api.delete(`/appointments/${id}`);
 }
 
+export async function listCustomerAppointments(
+    customerId: string,
+    params: { page: number; per_page: number },
+    signal?: AbortSignal,
+): Promise<Paginated<Appointment>> {
+    const { data } = await api.get<Paginated<Appointment>>(
+        `/customers/${customerId}/appointments`,
+        { params, signal },
+    );
+
+    return data;
+}
+
 export async function listBookableServices(signal?: AbortSignal): Promise<BookableService[]> {
     const { data } = await api.get<Paginated<BookableService>>('/services', {
         params: BOOKABLE_LOOKUP_PARAMS,

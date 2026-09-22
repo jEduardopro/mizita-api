@@ -1,9 +1,15 @@
 import type { ServiceColor } from '@/lib/service-color';
 
+export type AppointmentCustomerPhone = {
+    country_code: string;
+    national_number: string;
+};
+
 export type AppointmentCustomer = {
     id: string;
     name: string;
     email: string | null;
+    phone: AppointmentCustomerPhone | null;
 };
 
 export type AppointmentService = {
@@ -11,6 +17,8 @@ export type AppointmentService = {
     name: string;
     color: ServiceColor;
     duration_minutes: number;
+    buffer_minutes: number;
+    price: string;
 };
 
 export type AppointmentStaffMember = {

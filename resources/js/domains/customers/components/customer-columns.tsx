@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
 import type { Customer } from '../types';
 import { CustomerAvatar } from './CustomerAvatar';
-import { customerEditUrl } from './customer-urls';
+import { customerShowUrl } from './customer-urls';
 import { formatPhone } from './customer-format';
 import { CustomerRowActions } from './CustomerRowActions';
 
@@ -33,7 +33,7 @@ export function customerColumns({ t }: Params): ColumnDef<Customer>[] {
                     <CustomerAvatar name={row.original.name} photoUrl={row.original.photo_url} />
 
                     <Link
-                        href={customerEditUrl(row.original.id)}
+                        href={customerShowUrl(row.original.id)}
                         className="font-medium outline-none hover:underline focus-visible:underline"
                     >
                         {row.original.name}

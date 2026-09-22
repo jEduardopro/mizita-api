@@ -1,4 +1,4 @@
-import { SUPPORTED_PHONE_COUNTRIES } from '@/lib/phone';
+import { formatPhoneNumber } from '@/lib/phone';
 import type { CustomerPhone } from '../types';
 
 export function formatPhone(phone: CustomerPhone | null): string | null {
@@ -6,13 +6,7 @@ export function formatPhone(phone: CustomerPhone | null): string | null {
         return null;
     }
 
-    const country = SUPPORTED_PHONE_COUNTRIES.find(
-        (supported) => supported.code === phone.country_code,
-    );
-
-    return country === undefined
-        ? phone.national_number
-        : `${country.dialCode} ${phone.national_number}`;
+    return formatPhoneNumber(phone);
 }
 
 export function contactSummary(customer: { email: string | null; phone: CustomerPhone | null }): string[] {

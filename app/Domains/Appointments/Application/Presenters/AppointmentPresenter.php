@@ -15,6 +15,7 @@ use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
 use App\Domains\Appointments\ValueObjects\ServiceSnapshot;
 use App\Domains\Appointments\ValueObjects\StaffMemberSnapshot;
+use App\Shared\ValueObjects\Paginated;
 
 final class AppointmentPresenter
 {
@@ -57,6 +58,17 @@ final class AppointmentPresenter
             ),
             $appointments,
         );
+    }
+
+    /**
+     * @param  Paginated<Appointment>  $page
+     * @return Paginated<AppointmentData>
+     */
+    public function describePage(string $businessId, Paginated $page): Paginated
+    {
+        $described = $this->describeMany($businessId, $page->items);
+
+        return Paginated::of($described, $page->total, $page->pagination);
     }
 
     /**

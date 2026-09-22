@@ -10,5 +10,6 @@ final readonly class CustomerSnapshot
         public string $id,
         public string $name,
         public ?string $email,
+        public ?CustomerPhoneSnapshot $phone,
     ) {}
 }

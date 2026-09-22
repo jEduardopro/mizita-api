@@ -8,6 +8,8 @@ use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Exceptions\AppointmentNotFound;
 use App\Domains\Appointments\ValueObjects\CalendarRange;
+use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
+use App\Shared\ValueObjects\Paginated;
 use Throwable;
 
 final class FakeAppointmentRepository implements AppointmentRepository
@@ -43,6 +45,11 @@ final class FakeAppointmentRepository implements AppointmentRepository
      * @var list<array{businessId: string, referenceCode: string}>
      */
     public array $referenceCodeLookups = [];
+
+    /**
+     * @var list<CustomerAppointmentQuery>
+     */
+    public array $customerQueries = [];
 
     public function __construct(
         public readonly AppointmentJournal $journal = new AppointmentJournal,
@@ -88,6 +95,43 @@ final class FakeAppointmentRepository implements AppointmentRepository
 
                 return $startsAt >= $range->from->getTimestamp() && $startsAt < $range->to->getTimestamp();
             },
+        ));
+    }
+
+    /**
+     * @return Paginated<Appointment>
+     */
+    public function bookedForCustomer(string $businessId, CustomerAppointmentQuery $query): Paginated
+    {
+        $this->journal->record('appointments.bookedForCustomer');
+        $this->businessIdsSeen[] = $businessId;
+        $this->customerQueries[] = $query;
+
+        $booked = $this->bookedOf($businessId, $query->customerId);
+
+        usort(
+            $booked,
+            static fn (Appointment $left, Appointment $right): int => $right->slot()->startsAt->getTimestamp()
+                <=> $left->slot()->startsAt->getTimestamp(),
+        );
+
+        return Paginated::of(
+            array_slice($booked, $query->pagination->offset(), $query->pagination->perPage),
+            count($booked),
+            $query->pagination,
+        );
+    }
+
+    /**
+     * @return list<Appointment>
+     */
+    private function bookedOf(string $businessId, string $customerId): array
+    {
+        return array_values(array_filter(
+            $this->appointments,
+            static fn (Appointment $appointment): bool => $appointment->businessId === $businessId
+                && $appointment->customerId() === $customerId
+                && ! $appointment->isCancelled(),
         ));
     }
 
