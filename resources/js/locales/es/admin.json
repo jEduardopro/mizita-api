@@ -59,6 +59,9 @@
             "paid": {
                 "badge": "Pagado"
             },
+            "partiallyPaid": {
+                "badge": "Parcial"
+            },
             "form": {
                 "service": {
                     "label": "Servicio",

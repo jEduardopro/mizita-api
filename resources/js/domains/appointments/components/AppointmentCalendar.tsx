@@ -30,6 +30,12 @@ const SCHEDULE_X_LOCALES: Record<string, string> = {
 
 const DEFAULT_SCHEDULE_X_LOCALE = 'en-US';
 
+const MINUTES_PER_DAY = 24 * 60;
+
+const SLOT_PIXEL_HEIGHT = 30;
+
+const GRID_PIXEL_HEIGHT = (MINUTES_PER_DAY / SLOT_MINUTES) * SLOT_PIXEL_HEIGHT;
+
 function scheduleXLocale(locale: string): string {
     return SCHEDULE_X_LOCALES[locale] ?? DEFAULT_SCHEDULE_X_LOCALE;
 }
@@ -117,7 +123,7 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
                 locale: scheduleXLocale(locale),
                 theme: 'shadcn',
                 isDark: resolvedAppearance === 'dark',
-                weekOptions: { gridStep: SLOT_MINUTES },
+                weekOptions: { gridStep: SLOT_MINUTES, gridHeight: GRID_PIXEL_HEIGHT },
                 calendars: APPOINTMENT_CALENDARS,
                 backgroundEvents,
                 callbacks: {

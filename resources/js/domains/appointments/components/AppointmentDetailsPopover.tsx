@@ -40,7 +40,7 @@ function AppointmentChargeAction({ appointment, onCharge }: ChargeActionProps) {
             type="button"
             variant="brand"
             onClick={() => onCharge(appointment)}
-            className="ms-auto h-11 px-4 md:h-9"
+            className="h-11 px-4 md:h-9"
         >
             <CreditCard aria-hidden="true" />
             {t('calendar.appointment.actions.charge')}
@@ -51,11 +51,27 @@ function AppointmentChargeAction({ appointment, onCharge }: ChargeActionProps) {
 type SheetBodyProps = {
     appointment: Appointment;
     timezone: string;
+    onCharge?: (appointment: Appointment) => void;
     renderPaymentPanel?: (appointment: Appointment) => ReactNode;
 };
 
-function AppointmentDetailsSheetBody({ appointment, timezone, renderPaymentPanel }: SheetBodyProps) {
-    const details = <AppointmentDetailsBody appointment={appointment} timezone={timezone} />;
+function AppointmentDetailsSheetBody({
+    appointment,
+    timezone,
+    onCharge,
+    renderPaymentPanel,
+}: SheetBodyProps) {
+    const details = (
+        <AppointmentDetailsBody
+            appointment={appointment}
+            timezone={timezone}
+            chargeAction={
+                onCharge === undefined ? null : (
+                    <AppointmentChargeAction appointment={appointment} onCharge={onCharge} />
+                )
+            }
+        />
+    );
 
     if (renderPaymentPanel === undefined) {
         return (
@@ -108,13 +124,6 @@ export function AppointmentDetailsPopover({
                             {appointment !== null ? (
                                 <AppointmentPaidBadge appointment={appointment} />
                             ) : null}
-
-                            {appointment !== null && onCharge !== undefined ? (
-                                <AppointmentChargeAction
-                                    appointment={appointment}
-                                    onCharge={onCharge}
-                                />
-                            ) : null}
                         </div>
                     </SheetHeader>
 
@@ -122,6 +131,7 @@ export function AppointmentDetailsPopover({
                         <AppointmentDetailsSheetBody
                             appointment={appointment}
                             timezone={timezone}
+                            onCharge={onCharge}
                             renderPaymentPanel={renderPaymentPanel}
                         />
                     ) : null}

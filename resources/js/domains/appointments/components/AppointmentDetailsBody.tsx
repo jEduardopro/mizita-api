@@ -1,4 +1,5 @@
 import 'temporal-polyfill/global';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { formatPhoneNumber } from '@/lib/phone';
@@ -12,6 +13,7 @@ import type { Appointment, AppointmentCustomer } from '../types';
 type Props = {
     appointment: Appointment;
     timezone: string;
+    chargeAction?: ReactNode;
 };
 
 function timeOfDay(instant: string, timezone: string): string {
@@ -47,7 +49,7 @@ function CustomerContactLine({ customer }: ContactLineProps) {
     return <p className="break-words text-muted-foreground">{details.join(' · ')}</p>;
 }
 
-export function AppointmentDetailsBody({ appointment, timezone }: Props) {
+export function AppointmentDetailsBody({ appointment, timezone, chargeAction }: Props) {
     const { t, i18n } = useTranslation('admin');
 
     return (
@@ -60,11 +62,11 @@ export function AppointmentDetailsBody({ appointment, timezone }: Props) {
                 />
             ) : null}
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <ServiceColorTile
                     color={appointment.service.color}
                     imageUrl={null}
-                    className="size-10 rounded-lg"
+                    className="size-10 shrink-0 rounded-lg"
                 />
 
                 <div className="grid min-w-0 gap-0.5">
@@ -74,6 +76,8 @@ export function AppointmentDetailsBody({ appointment, timezone }: Props) {
                         {formatServiceSummary(appointment.service, i18n.language, t)}
                     </p>
                 </div>
+
+                <div className="ms-3 shrink-0 empty:hidden">{chargeAction}</div>
             </div>
 
             <div className="grid gap-1 text-sm">

@@ -1,12 +1,11 @@
 import type { CalendarEvent } from '@schedule-x/calendar';
 import { cn } from 'cn';
-import { Check } from 'lucide-react';
 import 'temporal-polyfill/global';
 import { useTranslation } from 'react-i18next';
 import { formatTimeOfDay } from '@/lib/time';
 import { appointmentPalette, isAppointmentCalendarEvent } from './appointment-events';
-import { isPaid } from './appointment-payment-status';
 import { isCancelled } from './appointment-status';
+import { TimeGridPaymentTag } from './TimeGridPaymentTag';
 
 type Props = {
     calendarEvent: CalendarEvent;
@@ -30,7 +29,6 @@ export function TimeGridEventContent({ calendarEvent }: Props) {
     }
 
     const cancelled = isCancelled(appointment);
-    const paid = isPaid(appointment);
     const palette = appointmentPalette(appointment);
 
     return (
@@ -42,25 +40,23 @@ export function TimeGridEventContent({ calendarEvent }: Props) {
                 color: palette.onContainer,
             }}
         >
-            <div className="flex h-full min-w-0 flex-col gap-x-1.5 gap-y-px px-1.5 py-1 [@container_(max-height:40px)]:flex-row [@container_(max-height:40px)]:items-baseline">
+            <div className="flex h-full min-w-0 items-center gap-x-1.5 px-1.5 py-1 leading-tight [@container_(min-height:56px)]:flex-col [@container_(min-height:56px)]:items-stretch [@container_(min-height:56px)]:gap-y-px">
                 <span className="flex min-w-0 items-baseline gap-1">
                     <span className="truncate font-semibold">{appointment.customer.name}</span>
 
                     {cancelled ? (
-                        <span className="shrink-0 text-[0.85em] font-semibold uppercase tracking-wide [@container_(max-height:40px)]:sr-only">
+                        <span className="shrink-0 text-[0.85em] font-semibold uppercase tracking-wide">
                             {t('calendar.appointment.cancelled.badge')}
                         </span>
                     ) : null}
+                </span>
 
-                    {paid ? (
-                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[0.85em] font-semibold uppercase tracking-wide">
-                            <Check aria-hidden="true" className="size-[1.1em]" />
+                <span className="flex min-w-0 shrink-0 items-center justify-between gap-1.5">
+                    <span className="hidden truncate [@container_(min-height:56px)]:inline">
+                        {appointment.service.name}
+                    </span>
 
-                            <span className="[@container_(max-height:40px)]:sr-only">
-                                {t('calendar.appointment.paid.badge')}
-                            </span>
-                        </span>
-                    ) : null}
+                    <TimeGridPaymentTag appointment={appointment} />
                 </span>
 
                 <span className={cn('shrink-0 truncate tabular-nums', cancelled && 'line-through')}>
