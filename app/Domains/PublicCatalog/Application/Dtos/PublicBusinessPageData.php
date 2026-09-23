@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\PublicCatalog\Application\Dtos;
 
+use App\Domains\PublicCatalog\ValueObjects\GuestFormFields;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingPolicy;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
@@ -32,5 +33,6 @@ final readonly class PublicBusinessPageData
         public ?PublicLocation $location,
         public PublicContact $contact,
         public ?PublicBookingPolicy $bookingPolicy,
+        public GuestFormFields $contactFields,
     ) {}
 }

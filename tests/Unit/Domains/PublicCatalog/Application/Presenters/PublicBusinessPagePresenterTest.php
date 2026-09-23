@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Application\Presenters\PublicBusinessPagePresenter;
+use App\Domains\PublicCatalog\Contracts\GuestContactFields;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
@@ -15,6 +16,8 @@ use App\Domains\PublicCatalog\Contracts\PublishedSchedule;
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
 use App\Domains\PublicCatalog\Exceptions\BusinessPageNotFound;
+use App\Domains\PublicCatalog\ValueObjects\GuestFieldRequirement;
+use App\Domains\PublicCatalog\ValueObjects\GuestFormFields;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
@@ -33,6 +36,7 @@ beforeEach(function () {
     $this->location = Mockery::mock(PublishedLocation::class);
     $this->contact = Mockery::mock(PublishedContact::class);
     $this->bookingPolicy = Mockery::mock(PublishedBookingPolicy::class);
+    $this->contactFields = Mockery::mock(GuestContactFields::class);
 
     $this->presenter = new PublicBusinessPagePresenter(
         $this->businesses,
@@ -45,6 +49,7 @@ beforeEach(function () {
         $this->location,
         $this->contact,
         $this->bookingPolicy,
+        $this->contactFields,
     );
 
     $this->publish = function (?PublicBusinessProfile $profile = null): void {
@@ -62,6 +67,8 @@ beforeEach(function () {
         $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
         $this->bookingPolicy->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::bookingPolicy());
+        $this->contactFields->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::contactFields());
     };
 
     $this->describe = fn (string $slug = PublicCatalogFixtures::SLUG): PublicBusinessPageData => $this->presenter
@@ -128,15 +135,22 @@ describe('assembling the page a visitor reads', function () {
             ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::contact());
         $this->bookingPolicy->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturnNull();
+        $this->contactFields->shouldReceive('forBusiness')->once()
+            ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::contactFields());
 
         ($this->describe)();
 
-        expect($asked)->toBe(array_fill(0, 9, PublicCatalogFixtures::BUSINESS_ID));
+        expect($asked)->toBe(array_fill(0, 10, PublicCatalogFixtures::BUSINESS_ID));
     });
 
     it('carries the section each port answered with, without rewriting it', function () {
         $brand = PublicCatalogFixtures::brand(accentColor: 'amber', theme: 'light');
         $contact = PublicCatalogFixtures::contact(phone: '+34600123456');
+        $contactFields = PublicCatalogFixtures::contactFields(
+            phone: GuestFieldRequirement::Hidden,
+            email: GuestFieldRequirement::Required,
+            address: GuestFieldRequirement::Optional,
+        );
 
         $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
         $this->brand->shouldReceive('forBusiness')->once()->andReturn($brand);
@@ -149,11 +163,13 @@ describe('assembling the page a visitor reads', function () {
         $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contact->shouldReceive('forBusiness')->once()->andReturn($contact);
         $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+        $this->contactFields->shouldReceive('forBusiness')->once()->andReturn($contactFields);
 
         $page = ($this->describe)();
 
         expect($page->brand)->toBe($brand)
-            ->and($page->contact)->toBe($contact);
+            ->and($page->contact)->toBe($contact)
+            ->and($page->contactFields)->toBe($contactFields);
     });
 
     it('answers with a page whose sections are empty when the business filled none', function () {
@@ -171,6 +187,8 @@ describe('assembling the page a visitor reads', function () {
         $this->contact->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::contact(phone: null, links: []));
         $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+        $this->contactFields->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::contactFields());
 
         $page = ($this->describe)();
 
@@ -212,6 +230,8 @@ describe('the staff a service may be booked with', function () {
             $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
             $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
             $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+            $this->contactFields->shouldReceive('forBusiness')->once()
+                ->andReturn(PublicCatalogFixtures::contactFields());
         };
     });
 
@@ -306,6 +326,8 @@ describe('whether the doors are open right now', function () {
         $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
         $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+        $this->contactFields->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::contactFields());
 
         $page = ($this->describe)();
 
@@ -319,6 +341,27 @@ describe('whether the doors are open right now', function () {
         ($this->publish)();
 
         expect(($this->describe)()->lastBookableDate)->toBe(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
+    });
+});
+
+describe('the contact fields a visitor is asked for', function () {
+    it('carries the form settings of the business the slug answers to', function () {
+        ($this->publish)();
+
+        $fields = ($this->describe)()->contactFields;
+
+        expect($fields)->toBeInstanceOf(GuestFormFields::class)
+            ->and($fields->phone)->toBe(GuestFieldRequirement::Required)
+            ->and($fields->email)->toBe(GuestFieldRequirement::Optional)
+            ->and($fields->address)->toBe(GuestFieldRequirement::Hidden);
+    });
+
+    it('asks nothing about the form of a business the slug does not answer to', function () {
+        $this->businesses->shouldReceive('findBySlug')->once()
+            ->andThrow(BusinessPageNotFound::withSlug(PublicCatalogFixtures::UNKNOWN_SLUG));
+        $this->contactFields->shouldNotReceive('forBusiness');
+
+        expect(fn () => ($this->describe)(PublicCatalogFixtures::UNKNOWN_SLUG))->toThrow(BusinessPageNotFound::class);
     });
 });
 
@@ -359,6 +402,7 @@ describe('the ports it is built from', function () {
             PublishedLocation::class,
             PublishedContact::class,
             PublishedBookingPolicy::class,
+            GuestContactFields::class,
         ])->and(array_filter($types, static fn (string $type): bool => ! interface_exists($type)))->toBe([]);
     });
 

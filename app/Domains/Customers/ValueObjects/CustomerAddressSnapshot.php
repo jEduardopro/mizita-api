@@ -12,5 +12,6 @@ final readonly class CustomerAddressSnapshot
         public ?string $stateId,
         public ?string $postalCode,
         public string $countryCode,
+        public ?string $stateName = null,
     ) {}
 }

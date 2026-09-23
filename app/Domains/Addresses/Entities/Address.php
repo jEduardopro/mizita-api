@@ -7,6 +7,7 @@ namespace App\Domains\Addresses\Entities;
 use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
 use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressCity;
+use App\Domains\Addresses\Exceptions\InvalidAddressStateName;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Addresses\ValueObjects\AddressOwnerType;
 use App\Domains\Addresses\ValueObjects\Coordinates;
@@ -20,6 +21,8 @@ final class Address
 
     public const MAXIMUM_CITY_LENGTH = 120;
 
+    public const MAXIMUM_STATE_NAME_LENGTH = 120;
+
     private function __construct(
         public readonly string $id,
         public readonly AddressOwnerType $ownerType,
@@ -27,6 +30,7 @@ final class Address
         private string $street,
         private ?string $city,
         private ?string $stateId,
+        private ?string $stateName,
         private ?PostalCode $postalCode,
         private CountryCode $country,
         private ?Coordinates $coordinates,
@@ -36,6 +40,7 @@ final class Address
     /**
      * @throws InvalidAddressStreet
      * @throws InvalidAddressCity
+     * @throws InvalidAddressStateName
      */
     public static function create(
         string $id,
@@ -48,6 +53,7 @@ final class Address
         CountryCode $country,
         ?Coordinates $coordinates,
         DateTimeImmutable $now,
+        ?string $stateName = null,
     ): self {
         return new self(
             id: $id,
@@ -56,6 +62,7 @@ final class Address
             street: self::acceptableStreet($street),
             city: self::acceptableCity($city),
             stateId: $stateId,
+            stateName: self::acceptableStateName($stateName),
             postalCode: $postalCode,
             country: $country,
             coordinates: $coordinates,
@@ -74,6 +81,7 @@ final class Address
         CountryCode $country,
         ?Coordinates $coordinates,
         DateTimeImmutable $createdAt,
+        ?string $stateName = null,
     ): self {
         return new self(
             id: $id,
@@ -82,6 +90,7 @@ final class Address
             street: $street,
             city: $city,
             stateId: $stateId,
+            stateName: $stateName,
             postalCode: $postalCode,
             country: $country,
             coordinates: $coordinates,
@@ -92,6 +101,7 @@ final class Address
     /**
      * @throws InvalidAddressStreet
      * @throws InvalidAddressCity
+     * @throws InvalidAddressStateName
      * @throws AddressCityCannotBeCleared
      * @throws AddressPostalCodeCannotBeCleared
      */
@@ -101,14 +111,17 @@ final class Address
         ?string $stateId,
         ?PostalCode $postalCode,
         CountryCode $country,
+        ?string $stateName = null,
     ): void {
         $acceptableStreet = self::acceptableStreet($street);
         $acceptableCity = $this->cityAfterMove($city);
+        $acceptableStateName = self::acceptableStateName($stateName);
         $acceptablePostalCode = $this->postalCodeAfterMove($postalCode);
 
         $this->street = $acceptableStreet;
         $this->city = $acceptableCity;
         $this->stateId = $stateId;
+        $this->stateName = $acceptableStateName;
         $this->postalCode = $acceptablePostalCode;
         $this->country = $country;
     }
@@ -136,6 +149,11 @@ final class Address
     public function stateId(): ?string
     {
         return $this->stateId;
+    }
+
+    public function stateName(): ?string
+    {
+        return $this->stateName;
     }
 
     public function postalCode(): ?PostalCode
@@ -187,6 +205,24 @@ final class Address
         }
 
         return $city;
+    }
+
+    /**
+     * @throws InvalidAddressStateName
+     */
+    private static function acceptableStateName(?string $stateName): ?string
+    {
+        $stateName = trim($stateName ?? '');
+
+        if ($stateName === '') {
+            return null;
+        }
+
+        if (mb_strlen($stateName) > self::MAXIMUM_STATE_NAME_LENGTH) {
+            throw InvalidAddressStateName::tooLong();
+        }
+
+        return $stateName;
     }
 
     /**

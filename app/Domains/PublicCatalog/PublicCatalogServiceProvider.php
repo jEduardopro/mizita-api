@@ -6,6 +6,7 @@ namespace App\Domains\PublicCatalog;
 
 use App\Domains\PublicCatalog\Contracts\GuestBookingDesk;
 use App\Domains\PublicCatalog\Contracts\GuestBookings;
+use App\Domains\PublicCatalog\Contracts\GuestContactFields;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
@@ -25,6 +26,7 @@ use App\Domains\PublicCatalog\Infrastructure\Gateways\AvailabilityPublishedOpenS
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AvailabilityPublishedSchedule;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AvailabilityPublishedSlots;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPagesPublishedBrand;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesGuestContactFields;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesPublishedBookingPolicy;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BusinessesPublishedBusinesses;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\PhonesLinksPublishedContact;
@@ -77,6 +79,7 @@ final class PublicCatalogServiceProvider extends ServiceProvider
         $this->app->bind(PublishedContact::class, PhonesLinksPublishedContact::class);
         $this->app->bind(GuestBookings::class, AppointmentsGuestBookings::class);
         $this->app->bind(GuestBookingDesk::class, AppointmentsGuestBookingDesk::class);
+        $this->app->bind(GuestContactFields::class, BookingPoliciesGuestContactFields::class);
     }
 
     public function boot(): void

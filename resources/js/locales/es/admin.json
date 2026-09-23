@@ -3,7 +3,9 @@
         "calendar": "Calendario",
         "services": "Servicios",
         "customers": "Clientes",
-        "settings": "Configuración"
+        "settings": "Configuración",
+        "brand": "Tu marca",
+        "bookingPreferences": "Preferencias de reserva"
     },
     "shell": {
         "toggleSidebar": "Mostrar u ocultar el menú",
@@ -632,7 +634,7 @@
         }
     },
     "businessSettings": {
-        "title": "Configuración del negocio",
+        "title": "Tu marca",
         "description": "Tu marca, tus datos de contacto y el aspecto de tu página de reservas.",
         "preview": {
             "title": "Vista previa",
@@ -747,7 +749,6 @@
             "contact": "Contacto",
             "location": "Ubicación",
             "hours": "Horario",
-            "policy": "Políticas de reserva",
             "links": "Enlaces"
         },
         "brand": {
@@ -846,6 +847,42 @@
                 "USD": "Dólar estadounidense (USD)"
             }
         },
+        "links": {
+            "title": "Enlaces",
+            "description": "Conecta tus redes para que tus clientes te encuentren.",
+            "platforms": {
+                "website": "Sitio web",
+                "instagram": "Instagram",
+                "facebook": "Facebook",
+                "tiktok": "TikTok",
+                "x": "X",
+                "linkedin": "LinkedIn",
+                "youtube": "YouTube",
+                "whatsapp": "WhatsApp"
+            }
+        },
+        "toasts": {
+            "saved": "Cambios guardados"
+        },
+        "errors": {
+            "unexpected": "No hemos podido guardar los cambios. Inténtalo otra vez."
+        },
+        "failed": {
+            "title": "No hemos podido cargar tu configuración",
+            "body": "Revisa tu conexión y vuelve a intentarlo."
+        },
+        "submit": {
+            "save": "Guardar",
+            "saving": "Guardando…"
+        }
+    },
+    "bookingPreferences": {
+        "title": "Preferencias de reserva",
+        "description": "Cuándo pueden reservar tus clientes y qué datos te dan al hacerlo.",
+        "sections": {
+            "policy": "Políticas de reserva",
+            "contactFields": "Campos de contacto"
+        },
         "policy": {
             "title": "Políticas de reserva",
             "description": "Cuándo pueden reservar sus clientes y hasta cuándo pueden cambiar una cita.",
@@ -898,33 +935,28 @@
                 "months": "Meses"
             }
         },
-        "links": {
-            "title": "Enlaces",
-            "description": "Conecta tus redes para que tus clientes te encuentren.",
-            "platforms": {
-                "website": "Sitio web",
-                "instagram": "Instagram",
-                "facebook": "Facebook",
-                "tiktok": "TikTok",
-                "x": "X",
-                "linkedin": "LinkedIn",
-                "youtube": "YouTube",
-                "whatsapp": "WhatsApp"
-            }
+        "contactFields": {
+            "title": "Campos de contacto",
+            "description": "¿Qué campos del formulario se mostrarán cuando los clientes reserven online?",
+            "fields": {
+                "name": "Nombre",
+                "phone": "Teléfono",
+                "email": "Correo electrónico",
+                "address": "Dirección"
+            },
+            "required": "Requerido",
+            "requiredFor": "Requerido: {{field}}",
+            "alwaysRequired": "Siempre requerido"
+        },
+        "submit": {
+            "save": "Guardar",
+            "saving": "Guardando…"
         },
         "toasts": {
             "saved": "Cambios guardados"
         },
         "errors": {
             "unexpected": "No hemos podido guardar los cambios. Inténtalo otra vez."
-        },
-        "failed": {
-            "title": "No hemos podido cargar tu configuración",
-            "body": "Revisa tu conexión y vuelve a intentarlo."
-        },
-        "submit": {
-            "save": "Guardar",
-            "saving": "Guardando…"
         }
     }
 }

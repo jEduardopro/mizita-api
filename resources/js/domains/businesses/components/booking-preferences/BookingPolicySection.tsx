@@ -17,10 +17,13 @@ import {
     LEAD_TIME_UNITS,
     SLOT_SIZE_UNITS,
 } from './booking-policy-options';
-import { BUSINESS_SETTINGS_SECTION_IDS } from './business-settings-values';
-import { SettingsFieldRow, settingsFieldLabelId } from './SettingsFieldRow';
-import { SettingsSection } from './SettingsSection';
-import type { BusinessSettingsFormController } from './use-business-settings-form';
+import {
+    SettingsFieldRow,
+    settingsFieldLabelId,
+} from '@/domains/businesses/components/settings/SettingsFieldRow';
+import { SettingsSection } from '@/domains/businesses/components/settings/SettingsSection';
+import { BOOKING_PREFERENCES_SECTION_IDS } from './booking-preferences-values';
+import type { BookingPreferencesFormController } from './use-booking-preferences-form';
 
 const LEAD_TIME_ID = 'business-lead-time';
 
@@ -87,7 +90,7 @@ function DurationPolicyRow({
 }
 
 type Props = {
-    form: BusinessSettingsFormController;
+    form: BookingPreferencesFormController;
 };
 
 export function BookingPolicySection({ form }: Props) {
@@ -128,15 +131,15 @@ export function BookingPolicySection({ form }: Props) {
 
     return (
         <SettingsSection
-            id={BUSINESS_SETTINGS_SECTION_IDS.policy}
-            title={t('businessSettings.policy.title')}
-            description={t('businessSettings.policy.description')}
+            id={BOOKING_PREFERENCES_SECTION_IDS.policy}
+            title={t('bookingPreferences.policy.title')}
+            description={t('bookingPreferences.policy.description')}
         >
             <DurationPolicyRow
                 id={LEAD_TIME_ID}
-                label={t('businessSettings.policy.leadTime.label')}
-                helper={t('businessSettings.policy.leadTime.helper')}
-                unitLabel={t('businessSettings.policy.leadTime.unit')}
+                label={t('bookingPreferences.policy.leadTime.label')}
+                helper={t('bookingPreferences.policy.leadTime.helper')}
+                unitLabel={t('bookingPreferences.policy.leadTime.unit')}
                 units={unitOptions(LEAD_TIME_UNITS)}
                 value={form.values.leadTime}
                 onChange={(value) => form.update('leadTime', value)}
@@ -145,32 +148,32 @@ export function BookingPolicySection({ form }: Props) {
 
             <DurationPolicyRow
                 id={BOOKING_WINDOW_ID}
-                label={t('businessSettings.policy.bookingWindow.label')}
-                helper={t('businessSettings.policy.bookingWindow.helper')}
-                unitLabel={t('businessSettings.policy.bookingWindow.unit')}
+                label={t('bookingPreferences.policy.bookingWindow.label')}
+                helper={t('bookingPreferences.policy.bookingWindow.helper')}
+                unitLabel={t('bookingPreferences.policy.bookingWindow.unit')}
                 units={unitOptions(BOOKING_WINDOW_UNITS)}
                 value={form.values.bookingWindow}
                 onChange={(value) => form.update('bookingWindow', value)}
-                hint={t('businessSettings.policy.bookingWindow.hint')}
+                hint={t('bookingPreferences.policy.bookingWindow.hint')}
                 error={form.errorFor('bookingWindow')}
             />
 
             <DurationPolicyRow
                 id={SLOT_SIZE_ID}
-                label={t('businessSettings.policy.slotSize.label')}
-                helper={t('businessSettings.policy.slotSize.helper')}
-                unitLabel={t('businessSettings.policy.slotSize.unit')}
+                label={t('bookingPreferences.policy.slotSize.label')}
+                helper={t('bookingPreferences.policy.slotSize.helper')}
+                unitLabel={t('bookingPreferences.policy.slotSize.unit')}
                 units={unitOptions(SLOT_SIZE_UNITS)}
                 value={form.values.slotSize}
                 onChange={(value) => form.update('slotSize', value)}
-                hint={t('businessSettings.policy.slotSize.hint')}
+                hint={t('bookingPreferences.policy.slotSize.hint')}
                 error={form.errorFor('slotSize')}
                 labelAdornment={
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
                                 type="button"
-                                aria-label={t('businessSettings.policy.slotSize.help')}
+                                aria-label={t('bookingPreferences.policy.slotSize.help')}
                                 className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                             >
                                 <Info aria-hidden="true" className="size-4" />
@@ -178,7 +181,7 @@ export function BookingPolicySection({ form }: Props) {
                         </TooltipTrigger>
 
                         <TooltipContent>
-                            {t('businessSettings.policy.slotSize.tooltip')}
+                            {t('bookingPreferences.policy.slotSize.tooltip')}
                         </TooltipContent>
                     </Tooltip>
                 }
@@ -186,8 +189,8 @@ export function BookingPolicySection({ form }: Props) {
 
             <SettingsFieldRow
                 htmlFor={CANCELLATION_ID}
-                label={t('businessSettings.policy.cancellation.label')}
-                helper={t('businessSettings.policy.cancellation.helper')}
+                label={t('bookingPreferences.policy.cancellation.label')}
+                helper={t('bookingPreferences.policy.cancellation.helper')}
                 message={cancellationMessage}
             >
                 <SelectControl
@@ -202,14 +205,14 @@ export function BookingPolicySection({ form }: Props) {
 
             <SettingsFieldRow
                 htmlFor={POLICY_MESSAGE_ID}
-                label={t('businessSettings.policy.message.label')}
-                helper={t('businessSettings.policy.message.helper')}
+                label={t('bookingPreferences.policy.message.label')}
+                helper={t('bookingPreferences.policy.message.helper')}
                 message={policyMessageState}
             >
                 <Textarea
                     id={POLICY_MESSAGE_ID}
                     rows={4}
-                    placeholder={t('businessSettings.policy.message.placeholder')}
+                    placeholder={t('bookingPreferences.policy.message.placeholder')}
                     value={form.values.policyMessage}
                     onChange={(event) => form.update('policyMessage', event.target.value)}
                     aria-invalid={form.errorFor('policyMessage') !== undefined}
@@ -220,8 +223,8 @@ export function BookingPolicySection({ form }: Props) {
 
             <SettingsFieldRow
                 htmlFor={POLICY_DISPLAY_ID}
-                label={t('businessSettings.policy.display.label')}
-                helper={t('businessSettings.policy.display.helper')}
+                label={t('bookingPreferences.policy.display.label')}
+                helper={t('bookingPreferences.policy.display.helper')}
                 message={displayMessage}
             >
                 <div className="flex min-h-11 items-center md:min-h-9">

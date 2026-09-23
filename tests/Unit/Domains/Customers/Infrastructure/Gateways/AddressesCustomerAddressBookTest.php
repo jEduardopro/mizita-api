@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use App\Domains\Addresses\Application\UseCases\ReplaceAddress;
 use App\Domains\Addresses\Contracts\AddressRepository;
+use App\Domains\Addresses\Contracts\StateCatalog;
 use App\Domains\Addresses\Entities\Address;
 use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
 use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressCity;
 use App\Domains\Addresses\Exceptions\InvalidAddressPostalCode;
+use App\Domains\Addresses\Exceptions\InvalidAddressStateName;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Addresses\Exceptions\UnknownState;
 use App\Domains\Addresses\Exceptions\UnsupportedCountry;
@@ -33,6 +35,7 @@ function filedCustomerAddress(
     ?string $stateId = AddressFixtures::STATE_ID,
     ?string $postalCode = AddressFixtures::POSTAL_CODE,
     string $countryCode = 'MX',
+    ?string $stateName = null,
 ): CustomerAddressSnapshot {
     return new CustomerAddressSnapshot(
         street: $street,
@@ -40,6 +43,7 @@ function filedCustomerAddress(
         stateId: $stateId,
         postalCode: $postalCode,
         countryCode: $countryCode,
+        stateName: $stateName,
     );
 }
 
@@ -55,11 +59,13 @@ function customerAddressOnFile(?string $city = AddressFixtures::CITY, ?string $p
 
 beforeEach(function () {
     $this->addresses = Mockery::mock(AddressRepository::class);
+    $this->states = Mockery::mock(StateCatalog::class);
 
     $this->addressBook = new AddressesCustomerAddressBook(
         $this->addresses,
         new ReplaceAddress(
             $this->addresses,
+            $this->states,
             new FixedIdGenerator(AddressFixtures::GENERATED_ADDRESS_ID),
             new FakeClock(AddressFixtures::now()),
         ),
@@ -138,6 +144,26 @@ describe('reading the address a customer filed', function () {
         ));
 
         expect(($this->read)()->stateId)->toBe(AddressFixtures::SECOND_STATE_ID);
+    });
+
+    it('carries the typed state name across the port', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(AddressFixtures::address(
+            ownerType: AddressOwnerType::Customer,
+            ownerId: CUSTOMER_ADDRESS_BOOK_CUSTOMER_ID,
+            stateId: null,
+            stateName: 'Nuevo León',
+        ));
+
+        $snapshot = ($this->read)();
+
+        expect($snapshot->stateName)->toBe('Nuevo León')
+            ->and($snapshot->stateId)->toBeNull();
+    });
+
+    it('hands back no state name when the address has a catalogue state only', function () {
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturn(customerAddressOnFile());
+
+        expect(($this->read)()->stateName)->toBeNull();
     });
 
     it('drops the coordinates, because a customer address is a postal fact and not a pin', function () {
@@ -242,6 +268,34 @@ describe('filing the address a customer submitted', function () {
         ($this->replace)(filedCustomerAddress(stateId: null));
 
         expect($saved->stateId())->toBeNull();
+    });
+
+    it('files a typed state name and links the catalogue state it matches', function () {
+        $this->states->shouldReceive('findActiveByNameOrCode')->once()
+            ->with(CountryCode::Mx, 'Ciudad de Mexico')
+            ->andReturn(AddressFixtures::state());
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+
+        $saved = null;
+        $this->addresses->shouldReceive('save')->once()->with(Mockery::capture($saved));
+
+        ($this->replace)(filedCustomerAddress(stateId: null, stateName: 'Ciudad de Mexico'));
+
+        expect($saved->stateId())->toBe(AddressFixtures::STATE_ID)
+            ->and($saved->stateName())->toBe('Ciudad de Mexico');
+    });
+
+    it('files a typed state name the catalogue does not know, with no state linked', function () {
+        $this->states->shouldReceive('findActiveByNameOrCode')->once()->andReturnNull();
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+
+        $saved = null;
+        $this->addresses->shouldReceive('save')->once()->with(Mockery::capture($saved));
+
+        ($this->replace)(filedCustomerAddress(stateId: null, stateName: 'Atlantis'));
+
+        expect($saved->stateId())->toBeNull()
+            ->and($saved->stateName())->toBe('Atlantis');
     });
 
     it('keeps the accents the street and the city were written with', function () {
@@ -425,6 +479,15 @@ describe('refusing an address the neighbour will not take', function () {
         expect($refusal)->toBeInstanceOf(UnknownState::class)
             ->and($refusal->errorCode())->toBe('unknown_state')
             ->and($refusal->kind())->toBe(DomainFailureKind::Invalid);
+    });
+
+    it('refuses a typed state name longer than the column', function () {
+        $this->states->shouldReceive('findActiveByNameOrCode')->andReturnNull();
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+        $this->addresses->shouldNotReceive('save');
+
+        expect(fn () => ($this->replace)(filedCustomerAddress(stateId: null, stateName: str_repeat('a', 121))))
+            ->toThrow(InvalidAddressStateName::class);
     });
 
     it('leaves the address on file untouched when it refuses the one submitted', function () {

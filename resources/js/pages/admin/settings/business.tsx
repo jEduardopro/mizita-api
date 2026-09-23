@@ -1,13 +1,12 @@
-import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SettingsSubnav } from '@/components/admin/settings/SettingsSubnav';
 import { SubmitButton } from '@/components/form/SubmitButton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BRAND_SETTINGS_URL } from '@/domains/businesses/components/settings-urls';
 import { BookingPagePreview } from '@/domains/businesses/components/settings/BookingPagePreview';
 import { BUSINESS_SETTINGS_SECTIONS } from '@/domains/businesses/components/settings/business-settings-values';
 import { BusinessSettingsForm } from '@/domains/businesses/components/settings/BusinessSettingsForm';
+import { SettingsLoadError } from '@/domains/businesses/components/settings/SettingsLoadError';
 import {
     BUSINESS_SETTINGS_FORM_ID,
     useBusinessSettingsForm,
@@ -35,36 +34,6 @@ function BusinessSettingsSkeleton() {
     );
 }
 
-type LoadErrorProps = {
-    onRetry: () => void;
-};
-
-function BusinessSettingsLoadError({ onRetry }: LoadErrorProps) {
-    const { t } = useTranslation('admin');
-    const { t: tCommon } = useTranslation('common');
-
-    return (
-        <Alert className="grid max-w-lg gap-3 p-4">
-            <TriangleAlert aria-hidden="true" />
-
-            <AlertTitle>{t('businessSettings.failed.title')}</AlertTitle>
-
-            <AlertDescription>{t('businessSettings.failed.body')}</AlertDescription>
-
-            <div className="col-start-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onRetry}
-                    className="h-11 px-4 md:h-9"
-                >
-                    {tCommon('actions.tryAgain')}
-                </Button>
-            </div>
-        </Alert>
-    );
-}
-
 export default function BusinessSettings() {
     const { t } = useTranslation('admin');
     const form = useBusinessSettingsForm();
@@ -80,7 +49,10 @@ export default function BusinessSettings() {
         <AdminLayout
             title={t('businessSettings.title')}
             description={t('businessSettings.description')}
-            breadcrumbs={[{ label: t('nav.settings') }]}
+            breadcrumbs={[
+                { label: t('nav.settings'), href: BRAND_SETTINGS_URL },
+                { label: t('nav.brand') },
+            ]}
             actions={
                 isReady ? (
                     <SubmitButton
@@ -96,7 +68,7 @@ export default function BusinessSettings() {
         >
             {form.isLoading ? <BusinessSettingsSkeleton /> : null}
 
-            {form.isLoadError ? <BusinessSettingsLoadError onRetry={form.retry} /> : null}
+            {form.isLoadError ? <SettingsLoadError onRetry={form.retry} /> : null}
 
             {isReady ? (
                 <div className={COLUMNS}>
@@ -110,6 +82,7 @@ export default function BusinessSettings() {
                             logoUrl={form.logo.shownUrl}
                             bannerUrl={form.banner.shownUrl}
                             savedSlug={form.savedSlug}
+                            policyNotice={form.policyNotice}
                         />
                     </div>
                 </div>

@@ -6,6 +6,7 @@ use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Application\Dtos\ShowPublicBusinessPageInput;
 use App\Domains\PublicCatalog\Application\Presenters\PublicBusinessPagePresenter;
 use App\Domains\PublicCatalog\Application\UseCases\ShowPublicBusinessPage;
+use App\Domains\PublicCatalog\Contracts\GuestContactFields;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
@@ -17,6 +18,7 @@ use App\Domains\PublicCatalog\Contracts\PublishedSchedule;
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
 use App\Domains\PublicCatalog\Exceptions\BusinessPageNotFound;
+use App\Domains\PublicCatalog\ValueObjects\GuestFieldRequirement;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -60,6 +62,7 @@ beforeEach(function () {
     $this->location = Mockery::mock(PublishedLocation::class);
     $this->contact = Mockery::mock(PublishedContact::class);
     $this->bookingPolicy = Mockery::mock(PublishedBookingPolicy::class);
+    $this->contactFields = Mockery::mock(GuestContactFields::class);
 
     $this->useCase = new ShowPublicBusinessPage(new PublicBusinessPagePresenter(
         $this->businesses,
@@ -72,6 +75,7 @@ beforeEach(function () {
         $this->location,
         $this->contact,
         $this->bookingPolicy,
+        $this->contactFields,
     ));
 
     $this->sectionPorts = fn (): array => [
@@ -83,6 +87,7 @@ beforeEach(function () {
         $this->location,
         $this->contact,
         $this->bookingPolicy,
+        $this->contactFields,
     ];
 
     $this->publish = function (): void {
@@ -98,6 +103,8 @@ beforeEach(function () {
         $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
         $this->bookingPolicy->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::bookingPolicy());
+        $this->contactFields->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::contactFields());
     };
 
     $this->show = fn (string $slug = PublicCatalogFixtures::SLUG): UseCaseResponse => $this->useCase
@@ -127,7 +134,10 @@ describe('showing the page a visitor opened', function () {
             ->and($page->services[0]->slug)->toBe('corte-de-pelo')
             ->and($page->team[0]->name)->toBe('Ada Lovelace')
             ->and($page->location->countryCode)->toBe('MX')
-            ->and($page->contact->phone)->toBe('+525512345678');
+            ->and($page->contact->phone)->toBe('+525512345678')
+            ->and($page->contactFields->phone)->toBe(GuestFieldRequirement::Required)
+            ->and($page->contactFields->email)->toBe(GuestFieldRequirement::Optional)
+            ->and($page->contactFields->address)->toBe(GuestFieldRequirement::Hidden);
     });
 
     it('sends every id on the page as a uuid, never an internal key', function () {

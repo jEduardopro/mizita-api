@@ -31,6 +31,7 @@ export type CustomerAddress = {
     street: string;
     city: string | null;
     state_id: string | null;
+    state_name: string | null;
     postal_code: string | null;
     country_code: string;
 };

@@ -9,6 +9,7 @@ use App\Domains\Appointments\Application\Dtos\CancelAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\CancelGuestBookingInput;
 use App\Domains\Appointments\Application\Dtos\CreateAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\DeleteAppointmentInput;
+use App\Domains\Appointments\Application\Dtos\GuestAddressInput;
 use App\Domains\Appointments\Application\Dtos\GuestBookingCredentials;
 use App\Domains\Appointments\Application\Dtos\GuestDetailsInput;
 use App\Domains\Appointments\Application\Dtos\ListAppointmentsInput;
@@ -124,6 +125,16 @@ final class AppointmentFixtures
     public const GUEST_NAME = 'Ada Lovelace';
 
     public const GUEST_EMAIL = 'ada@example.com';
+
+    public const GUEST_STREET = 'Av. Reforma 123';
+
+    public const GUEST_CITY = 'Monterrey';
+
+    public const GUEST_STATE_NAME = 'Nuevo León';
+
+    public const GUEST_POSTAL_CODE = '64000';
+
+    public const GUEST_COUNTRY_CODE = 'MX';
 
     public const PAYMENT_ID = '01930000-0000-7000-8000-0000000000f1';
 
@@ -376,12 +387,30 @@ final class AppointmentFixtures
         ?string $email = self::GUEST_EMAIL,
         ?string $phoneCountryCode = null,
         ?string $phoneNationalNumber = null,
+        ?GuestAddressInput $address = null,
     ): GuestDetailsInput {
         return new GuestDetailsInput(
             name: $name,
             email: $email,
             phoneCountryCode: $phoneCountryCode,
             phoneNationalNumber: $phoneNationalNumber,
+            address: $address,
+        );
+    }
+
+    public static function guestAddress(
+        string $street = self::GUEST_STREET,
+        ?string $city = self::GUEST_CITY,
+        ?string $stateName = self::GUEST_STATE_NAME,
+        ?string $postalCode = self::GUEST_POSTAL_CODE,
+        string $countryCode = self::GUEST_COUNTRY_CODE,
+    ): GuestAddressInput {
+        return new GuestAddressInput(
+            street: $street,
+            city: $city,
+            stateName: $stateName,
+            postalCode: $postalCode,
+            countryCode: $countryCode,
         );
     }
 

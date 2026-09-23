@@ -51,6 +51,7 @@ final class BusinessSettingsPresenter
             links: $this->links->forBusiness($businessId),
             bookingPage: $this->bookingPages->forBusiness($businessId),
             bookingPolicy: $this->bookingPolicies->forBusiness($businessId),
+            contactFields: $this->bookingPolicies->contactFieldsFor($businessId),
         );
     }
 }

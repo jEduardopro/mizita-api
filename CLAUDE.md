@@ -78,7 +78,7 @@ English, everywhere — class names, columns, routes, comments. The non-obvious 
 | **Lead time** | How soon from now a customer may book |
 | **Horizon** | How far ahead a customer may book |
 | **Granularity** | The step between offered slots — 15 min, 30 min |
-| **Guest booking** | A booking with no account, identified by name plus email or phone |
+| **Guest booking** | A booking with no account. Name is always collected; phone, email and address are hidden, optional or required per the business's booking policy (`contact_fields`) — a name-only guest is valid when nothing else is required |
 | **Manage token** | The secret in a guest's booking link. A bearer credential — treat it as one |
 | **Published** | A business visible in the public catalog |
 | **Account** vs **Customer** | One person has one *Account* and one *Customer* record **per business**. The same human booking at two businesses is two Customers joined by one Account |

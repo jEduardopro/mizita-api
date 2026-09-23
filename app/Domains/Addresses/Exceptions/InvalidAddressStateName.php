@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Customers\Exceptions;
+namespace App\Domains\Addresses\Exceptions;
 
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 
-final class InvalidGuestContact extends DomainException implements DomainFailure
+final class InvalidAddressStateName extends DomainException implements DomainFailure
 {
-    public static function withoutEmailOrPhone(): self
+    public static function tooLong(): self
     {
-        return new self('A guest must provide an email address or a phone number.');
+        return new self('The state name offered is longer than an address state name may be.');
     }
 
     public function errorCode(): string
     {
-        return 'invalid_guest_contact';
+        return 'invalid_address_state_name';
     }
 
     public function kind(): DomainFailureKind

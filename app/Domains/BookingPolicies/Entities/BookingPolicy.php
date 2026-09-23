@@ -6,6 +6,7 @@ namespace App\Domains\BookingPolicies\Entities;
 
 use App\Domains\BookingPolicies\ValueObjects\BookingWindow;
 use App\Domains\BookingPolicies\ValueObjects\CancellationWindow;
+use App\Domains\BookingPolicies\ValueObjects\ContactFields;
 use App\Domains\BookingPolicies\ValueObjects\LeadTime;
 use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\BookingPolicies\ValueObjects\SlotGranularity;
@@ -32,6 +33,7 @@ final class BookingPolicy
         private CancellationWindow $cancellationWindow,
         private PolicyMessage $policyMessage,
         private bool $displayedOnBookingPage,
+        private ContactFields $contactFields,
         public readonly DateTimeImmutable $createdAt,
     ) {}
 
@@ -44,6 +46,7 @@ final class BookingPolicy
         CancellationWindow $cancellationWindow,
         PolicyMessage $policyMessage,
         bool $displayedOnBookingPage,
+        ContactFields $contactFields,
         DateTimeImmutable $now,
     ): self {
         return new self(
@@ -55,6 +58,7 @@ final class BookingPolicy
             cancellationWindow: $cancellationWindow,
             policyMessage: $policyMessage,
             displayedOnBookingPage: $displayedOnBookingPage,
+            contactFields: $contactFields,
             createdAt: $now,
         );
     }
@@ -70,6 +74,7 @@ final class BookingPolicy
             cancellationWindow: CancellationWindow::restore(self::DEFAULT_CANCELLATION_WINDOW_MINUTES),
             policyMessage: PolicyMessage::none(),
             displayedOnBookingPage: self::DEFAULT_DISPLAY_ON_BOOKING_PAGE,
+            contactFields: ContactFields::defaults(),
             now: $now,
         );
     }
@@ -83,6 +88,7 @@ final class BookingPolicy
         CancellationWindow $cancellationWindow,
         PolicyMessage $policyMessage,
         bool $displayedOnBookingPage,
+        ContactFields $contactFields,
         DateTimeImmutable $createdAt,
     ): self {
         return new self(
@@ -94,6 +100,7 @@ final class BookingPolicy
             cancellationWindow: $cancellationWindow,
             policyMessage: $policyMessage,
             displayedOnBookingPage: $displayedOnBookingPage,
+            contactFields: $contactFields,
             createdAt: $createdAt,
         );
     }
@@ -110,6 +117,11 @@ final class BookingPolicy
         $this->slotGranularity = $slotGranularity;
         $this->cancellationWindow = $cancellationWindow;
         $this->policyMessage = $policyMessage;
+    }
+
+    public function reviseContactFields(ContactFields $contactFields): void
+    {
+        $this->contactFields = $contactFields;
     }
 
     public function displayOnBookingPage(): void
@@ -150,5 +162,10 @@ final class BookingPolicy
     public function policyMessage(): PolicyMessage
     {
         return $this->policyMessage;
+    }
+
+    public function contactFields(): ContactFields
+    {
+        return $this->contactFields;
     }
 }

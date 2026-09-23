@@ -8,10 +8,10 @@ use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\Exceptions\InvalidAppointmentNotes;
 use App\Domains\Appointments\Exceptions\InvalidAppointmentSchedule;
+use App\Domains\Appointments\Exceptions\InvalidGuestAddress;
 use App\Domains\Appointments\Exceptions\InvalidGuestEmail;
 use App\Domains\Appointments\Exceptions\InvalidGuestName;
 use App\Domains\Appointments\Exceptions\InvalidGuestPhone;
-use App\Domains\Appointments\Exceptions\MissingGuestContactChannel;
 use App\Domains\Appointments\ValueObjects\AppointmentNotes;
 use App\Domains\Appointments\ValueObjects\Identifier;
 use App\Domains\Appointments\ValueObjects\ScheduleInstant;
@@ -51,7 +51,7 @@ final readonly class BookAppointmentAsGuestInput
      * @throws InvalidGuestName
      * @throws InvalidGuestEmail
      * @throws InvalidGuestPhone
-     * @throws MissingGuestContactChannel
+     * @throws InvalidGuestAddress
      */
     public function validate(): void
     {

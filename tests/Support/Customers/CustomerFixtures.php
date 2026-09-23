@@ -6,6 +6,7 @@ namespace Tests\Support\Customers;
 
 use App\Domains\Customers\Application\Dtos\CreateCustomerInput;
 use App\Domains\Customers\Application\Dtos\CustomerPhoneInput;
+use App\Domains\Customers\Application\Dtos\GuestAddressInput;
 use App\Domains\Customers\Application\Dtos\GuestContactInput;
 use App\Domains\Customers\Application\Dtos\UpdateCustomerInput;
 use App\Domains\Customers\Entities\Customer;
@@ -45,6 +46,8 @@ final class CustomerFixtures
     public const STREET = 'Av. Reforma 123';
 
     public const CITY = 'Ciudad de México';
+
+    public const STATE_NAME = 'Nuevo León';
 
     public const POSTAL_CODE = '06600';
 
@@ -145,12 +148,30 @@ final class CustomerFixtures
         ?string $email = self::EMAIL,
         ?CustomerPhoneInput $phone = new CustomerPhoneInput(self::COUNTRY_CODE, PhoneNumbers::MX_NATIONAL_NUMBER),
         ?string $notes = null,
+        ?GuestAddressInput $address = null,
     ): GuestContactInput {
         return new GuestContactInput(
             name: $name,
             email: $email,
             phone: $phone,
             notes: $notes,
+            address: $address,
+        );
+    }
+
+    public static function guestAddress(
+        string $street = self::STREET,
+        ?string $city = self::CITY,
+        ?string $stateName = self::STATE_NAME,
+        ?string $postalCode = self::POSTAL_CODE,
+        string $countryCode = self::COUNTRY_CODE,
+    ): GuestAddressInput {
+        return new GuestAddressInput(
+            street: $street,
+            city: $city,
+            stateName: $stateName,
+            postalCode: $postalCode,
+            countryCode: $countryCode,
         );
     }
 

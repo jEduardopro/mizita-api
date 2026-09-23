@@ -74,3 +74,29 @@ it('holds what it was handed without normalising it, because the address that ow
         ->and($snapshot->postalCode)->toBe('  03940  ')
         ->and($snapshot->countryCode)->toBe('  mx  ');
 });
+
+it('carries no typed state name unless one is handed over', function () {
+    $snapshot = new CustomerAddressSnapshot(
+        street: 'Avenida Insurgentes Sur 1602',
+        city: null,
+        stateId: '01930000-0000-7000-8000-0000000000e1',
+        postalCode: null,
+        countryCode: 'MX',
+    );
+
+    expect($snapshot->stateName)->toBeNull();
+});
+
+it('carries a typed state name next to the catalogue state', function () {
+    $snapshot = new CustomerAddressSnapshot(
+        street: 'Avenida Insurgentes Sur 1602',
+        city: null,
+        stateId: null,
+        postalCode: null,
+        countryCode: 'MX',
+        stateName: 'Nuevo León',
+    );
+
+    expect($snapshot->stateName)->toBe('Nuevo León')
+        ->and($snapshot->stateId)->toBeNull();
+});

@@ -12,6 +12,7 @@ final readonly class CustomerAddressData
         public string $street,
         public ?string $city,
         public ?string $stateId,
+        public ?string $stateName,
         public ?string $postalCode,
         public string $countryCode,
     ) {}
@@ -22,6 +23,7 @@ final readonly class CustomerAddressData
             street: $snapshot->street,
             city: $snapshot->city,
             stateId: $snapshot->stateId,
+            stateName: $snapshot->stateName,
             postalCode: $snapshot->postalCode,
             countryCode: $snapshot->countryCode,
         );

@@ -20,5 +20,6 @@ final readonly class ReplaceAddressInput
         public ?PostalCode $postalCode,
         public CountryCode $country,
         public ?Coordinates $coordinates,
+        public ?string $stateName = null,
     ) {}
 }

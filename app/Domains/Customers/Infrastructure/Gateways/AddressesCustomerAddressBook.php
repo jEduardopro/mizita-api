@@ -35,6 +35,7 @@ final class AddressesCustomerAddressBook implements CustomerAddressBook
             stateId: $address->stateId(),
             postalCode: $address->postalCode()?->value,
             countryCode: $address->country()->value,
+            stateName: $address->stateName(),
         );
     }
 
@@ -49,6 +50,7 @@ final class AddressesCustomerAddressBook implements CustomerAddressBook
             postalCode: PostalCode::fromNullable($address->postalCode),
             country: self::country($address->countryCode),
             coordinates: null,
+            stateName: $address->stateName,
         ))->value();
     }
 

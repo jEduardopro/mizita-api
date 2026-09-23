@@ -11,7 +11,11 @@ use App\Domains\PublicCatalog\ValueObjects\PublicGuestBookingConfirmation;
 
 interface GuestBookingDesk
 {
-    public function book(string $businessId, PublicBookingRequest $request): PublicGuestBookingConfirmation;
+    public function book(
+        string $businessId,
+        PublicBookingRequest $request,
+        string $addressCountryCode,
+    ): PublicGuestBookingConfirmation;
 
     public function reschedule(
         string $businessId,

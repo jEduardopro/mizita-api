@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'street',
     'city',
     'state_id',
+    'state_name',
     'postal_code',
     'country_code',
     'latitude',

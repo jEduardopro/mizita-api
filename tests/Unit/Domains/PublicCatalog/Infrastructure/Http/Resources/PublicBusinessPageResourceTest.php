@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Infrastructure\Http\Resources\PublicBusinessPageResource;
+use App\Domains\PublicCatalog\ValueObjects\GuestFieldRequirement;
 use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 use Tests\TestCase;
@@ -18,6 +19,17 @@ function serializedPublicBusinessPage(?PublicBusinessPageData $page = null): arr
     return (array) PublicBusinessPageResource::make($page ?? PublicCatalogFixtures::page())
         ->response()
         ->getData(true)['data'];
+}
+
+/**
+ * @param  array<string, mixed>  $payload
+ * @return array<string, mixed>
+ */
+function publicPageWithoutContactFields(array $payload): array
+{
+    unset($payload['contact_fields']);
+
+    return $payload;
 }
 
 /**
@@ -78,13 +90,15 @@ dataset('keys a visitor may never see', [
 ]);
 
 describe('what a visitor is allowed to see', function () {
-    it('carries no key the business keeps to itself, at any depth', function (string $forbidden) {
-        expect(publicPageKeysAtEveryDepth(serializedPublicBusinessPage()))->not->toContain($forbidden);
+    it('carries no key the business keeps to itself, at any depth outside the form settings', function (string $forbidden) {
+        expect(publicPageKeysAtEveryDepth(publicPageWithoutContactFields(serializedPublicBusinessPage())))
+            ->not->toContain($forbidden);
     })->with('keys a visitor may never see');
 
     it('carries none of them for an empty business either, where a null would still leak the field', function (string $forbidden) {
-        expect(publicPageKeysAtEveryDepth(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())))
-            ->not->toContain($forbidden);
+        expect(publicPageKeysAtEveryDepth(publicPageWithoutContactFields(
+            serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage()),
+        )))->not->toContain($forbidden);
     })->with('keys a visitor may never see');
 
     it('declares the whole key set at every depth, so a new field has to be added deliberately', function () {
@@ -132,6 +146,9 @@ describe('what a visitor is allowed to see', function () {
             'phone',
             'links',
             'platform',
+            'contact_fields',
+            'email',
+            'address',
             'booking_policy',
             'policy_message',
         ]);
@@ -163,6 +180,7 @@ describe('the client contract', function () {
             'team',
             'location',
             'contact',
+            'contact_fields',
             'booking_policy',
         ]);
     });
@@ -178,6 +196,7 @@ describe('the client contract', function () {
         'brand' => ['brand', ['accent_color', 'button_shape', 'theme', 'banner_url', 'gallery']],
         'location' => ['location', ['street', 'city', 'state', 'postal_code', 'country_code', 'latitude', 'longitude']],
         'contact' => ['contact', ['phone', 'links']],
+        'contact_fields' => ['contact_fields', ['phone', 'email', 'address']],
     ]);
 
     it('declares the keys of every row in a collection section', function () {
@@ -249,7 +268,49 @@ describe('the client contract', function () {
                     ['platform' => 'instagram', 'url' => PublicCatalogFixtures::INSTAGRAM_URL],
                 ],
             ],
+            'contact_fields' => [
+                'phone' => 'required',
+                'email' => 'optional',
+                'address' => 'hidden',
+            ],
             'booking_policy' => ['policy_message' => PublicCatalogFixtures::POLICY_MESSAGE],
+        ]);
+    });
+});
+
+describe('the contact fields a visitor is asked for', function () {
+    it('names each field the booking form asks for with its requirement', function (
+        GuestFieldRequirement $phone,
+        GuestFieldRequirement $email,
+        GuestFieldRequirement $address,
+    ) {
+        expect(serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            contactFields: PublicCatalogFixtures::contactFields($phone, $email, $address),
+        ))['contact_fields'])->toBe([
+            'phone' => $phone->value,
+            'email' => $email->value,
+            'address' => $address->value,
+        ]);
+    })->with([
+        'the defaults' => [GuestFieldRequirement::Required, GuestFieldRequirement::Optional, GuestFieldRequirement::Hidden],
+        'a name alone' => [GuestFieldRequirement::Hidden, GuestFieldRequirement::Hidden, GuestFieldRequirement::Hidden],
+        'everything required' => [GuestFieldRequirement::Required, GuestFieldRequirement::Required, GuestFieldRequirement::Required],
+        'everything optional' => [GuestFieldRequirement::Optional, GuestFieldRequirement::Optional, GuestFieldRequirement::Optional],
+    ]);
+
+    it('sends nothing under it but a requirement, so no contact detail of the business can ride along', function () {
+        $fields = serializedPublicBusinessPage()['contact_fields'];
+
+        expect(array_keys($fields))->toBe(['phone', 'email', 'address'])
+            ->and(array_diff(array_values($fields), ['hidden', 'optional', 'required']))->toBe([])
+            ->and(array_filter($fields, is_array(...)))->toBe([]);
+    });
+
+    it('is always present, even for a business that filled nothing in', function () {
+        expect(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())['contact_fields'])->toBe([
+            'phone' => 'required',
+            'email' => 'optional',
+            'address' => 'hidden',
         ]);
     });
 });

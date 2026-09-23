@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\PublicCatalog\Infrastructure\Http\Resources;
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
+use App\Domains\PublicCatalog\ValueObjects\GuestFormFields;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingPolicy;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
@@ -46,6 +47,7 @@ final class PublicBusinessPageResource extends JsonResource
             'team' => array_map(self::describeTeamMember(...), $this->resource->team),
             'location' => self::describeLocation($this->resource->location),
             'contact' => self::describeContact($this->resource->contact),
+            'contact_fields' => self::describeContactFields($this->resource->contactFields),
             ...self::describeBookingPolicy($this->resource->bookingPolicy),
         ];
     }
@@ -170,6 +172,18 @@ final class PublicBusinessPageResource extends JsonResource
         return [
             'phone' => $contact->phone,
             'links' => array_map(self::describeLink(...), $contact->links),
+        ];
+    }
+
+    /**
+     * @return array{phone: string, email: string, address: string}
+     */
+    private static function describeContactFields(GuestFormFields $fields): array
+    {
+        return [
+            'phone' => $fields->phone->value,
+            'email' => $fields->email->value,
+            'address' => $fields->address->value,
         ];
     }
 

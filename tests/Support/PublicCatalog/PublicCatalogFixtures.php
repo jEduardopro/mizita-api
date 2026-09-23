@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Support\PublicCatalog;
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
+use App\Domains\PublicCatalog\ValueObjects\GuestFieldRequirement;
+use App\Domains\PublicCatalog\ValueObjects\GuestFormFields;
 use App\Domains\PublicCatalog\ValueObjects\PublicAvailableDay;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingCredentials;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingPolicy;
@@ -14,6 +16,7 @@ use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
 use App\Domains\PublicCatalog\ValueObjects\PublicGalleryImage;
+use App\Domains\PublicCatalog\ValueObjects\PublicGuestAddress;
 use App\Domains\PublicCatalog\ValueObjects\PublicGuestBooking;
 use App\Domains\PublicCatalog\ValueObjects\PublicGuestBookingConfirmation;
 use App\Domains\PublicCatalog\ValueObjects\PublicGuestDetails;
@@ -78,6 +81,18 @@ final class PublicCatalogFixtures
 
     public const GUEST_EMAIL = 'ada@example.com';
 
+    public const GUEST_PHONE_COUNTRY_CODE = 'MX';
+
+    public const GUEST_PHONE_NATIONAL_NUMBER = '5512345678';
+
+    public const GUEST_STREET = 'Av. Reforma 123';
+
+    public const GUEST_CITY = 'Monterrey';
+
+    public const GUEST_STATE = 'Nuevo León';
+
+    public const GUEST_POSTAL_CODE = '64000';
+
     public const CLOSES_AT = '18:00';
 
     public const OPENS_AT = '09:00';
@@ -109,15 +124,34 @@ final class PublicCatalogFixtures
     public static function guestDetails(
         string $name = self::GUEST_NAME,
         ?string $email = self::GUEST_EMAIL,
-        ?string $phoneCountryCode = null,
-        ?string $phoneNationalNumber = null,
+        ?string $phoneCountryCode = self::GUEST_PHONE_COUNTRY_CODE,
+        ?string $phoneNationalNumber = self::GUEST_PHONE_NATIONAL_NUMBER,
+        ?PublicGuestAddress $address = null,
     ): PublicGuestDetails {
         return new PublicGuestDetails(
             name: $name,
             email: $email,
             phoneCountryCode: $phoneCountryCode,
             phoneNationalNumber: $phoneNationalNumber,
+            address: $address,
         );
+    }
+
+    public static function guestAddress(
+        ?string $street = self::GUEST_STREET,
+        ?string $city = self::GUEST_CITY,
+        ?string $state = self::GUEST_STATE,
+        ?string $postalCode = self::GUEST_POSTAL_CODE,
+    ): PublicGuestAddress {
+        return new PublicGuestAddress(street: $street, city: $city, state: $state, postalCode: $postalCode);
+    }
+
+    public static function contactFields(
+        GuestFieldRequirement $phone = GuestFieldRequirement::Required,
+        GuestFieldRequirement $email = GuestFieldRequirement::Optional,
+        GuestFieldRequirement $address = GuestFieldRequirement::Hidden,
+    ): GuestFormFields {
+        return new GuestFormFields(phone: $phone, email: $email, address: $address);
     }
 
     public static function bookingRequest(
@@ -328,6 +362,7 @@ final class PublicCatalogFixtures
         ?PublicLocation $location = null,
         ?PublicContact $contact = null,
         ?PublicBookingPolicy $bookingPolicy = new PublicBookingPolicy(self::POLICY_MESSAGE),
+        ?GuestFormFields $contactFields = null,
     ): PublicBusinessPageData {
         return new PublicBusinessPageData(
             profile: $profile ?? self::profile(),
@@ -340,6 +375,7 @@ final class PublicCatalogFixtures
             location: $location ?? self::location(),
             contact: $contact ?? self::contact(),
             bookingPolicy: $bookingPolicy,
+            contactFields: $contactFields ?? self::contactFields(),
         );
     }
 
@@ -356,6 +392,7 @@ final class PublicCatalogFixtures
             location: null,
             contact: self::contact(phone: null, links: []),
             bookingPolicy: null,
+            contactFields: self::contactFields(),
         );
     }
 }

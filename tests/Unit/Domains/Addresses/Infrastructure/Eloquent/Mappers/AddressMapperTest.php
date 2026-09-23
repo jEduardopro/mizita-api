@@ -42,6 +42,7 @@ function addressRow(array $overrides = [], bool $withState = true): AddressModel
         'street' => AddressFixtures::STREET,
         'city' => AddressFixtures::CITY,
         'state_id' => AddressFixtures::STATE_KEY,
+        'state_name' => null,
         'postal_code' => AddressFixtures::POSTAL_CODE,
         'country_code' => 'MX',
         'latitude' => '19.3627888',
@@ -60,7 +61,7 @@ beforeEach(function () {
 });
 
 describe('entity to row', function () {
-    it('spreads the address across its ten columns', function () {
+    it('spreads the address across its eleven columns', function () {
         $address = AddressFixtures::address(coordinates: AddressFixtures::coordinates());
 
         expect($this->mapper->toAttributes($address, AddressFixtures::OWNER_KEY, AddressFixtures::STATE_KEY))
@@ -71,6 +72,7 @@ describe('entity to row', function () {
                 'street' => AddressFixtures::STREET,
                 'city' => AddressFixtures::CITY,
                 'state_id' => AddressFixtures::STATE_KEY,
+                'state_name' => null,
                 'postal_code' => AddressFixtures::POSTAL_CODE,
                 'country_code' => 'MX',
                 'latitude' => AddressFixtures::LATITUDE,
@@ -128,6 +130,17 @@ describe('entity to row', function () {
             ->and($attributes['street'])->toBe(AddressFixtures::STREET);
     });
 
+    it('writes the typed state name into its own column', function () {
+        $attributes = $this->mapper->toAttributes(
+            AddressFixtures::address(stateId: null, stateName: 'Nuevo León'),
+            AddressFixtures::OWNER_KEY,
+            null,
+        );
+
+        expect($attributes['state_name'])->toBe('Nuevo León')
+            ->and($attributes['state_id'])->toBeNull();
+    });
+
     it('never writes the internal primary key', function () {
         expect($this->mapper->toAttributes(AddressFixtures::address(), AddressFixtures::OWNER_KEY, null))
             ->not->toHaveKey('id');
@@ -161,6 +174,20 @@ describe('row to entity', function () {
         );
 
         expect($address->stateId())->toBeNull();
+    });
+
+    it('reads the typed state name back off its column', function () {
+        $address = $this->mapper->toEntity(
+            addressRow(['state_id' => null, 'state_name' => 'Nuevo León'], withState: false),
+            FakeBusinessContext::BUSINESS_ID,
+        );
+
+        expect($address->stateName())->toBe('Nuevo León')
+            ->and($address->stateId())->toBeNull();
+    });
+
+    it('reads a row with no typed state name as an address with none', function () {
+        expect($this->mapper->toEntity(addressRow(), FakeBusinessContext::BUSINESS_ID)->stateName())->toBeNull();
     });
 
     it('reads the owner kind back from the alias', function (string $alias, AddressOwnerType $ownerType) {
@@ -247,6 +274,20 @@ it('survives a full round trip without losing a fact', function () {
         ->and($restored->coordinates()?->latitude)->toBe(-33.4488897)
         ->and($restored->coordinates()?->longitude)->toBe(-70.6692655)
         ->and($restored->createdAt)->toEqual($address->createdAt);
+});
+
+it('survives a full round trip carrying a typed state name instead of a catalogue state', function () {
+    $address = AddressFixtures::address(stateId: null, stateName: 'Querétaro');
+
+    $attributes = $this->mapper->toAttributes($address, AddressFixtures::OWNER_KEY, null);
+
+    $restored = $this->mapper->toEntity(
+        addressRow([...$attributes, 'created_at' => AddressFixtures::now()], withState: false),
+        FakeBusinessContext::BUSINESS_ID,
+    );
+
+    expect($restored->stateName())->toBe('Querétaro')
+        ->and($restored->stateId())->toBeNull();
 });
 
 it('survives a full round trip when all it knows is the street', function () {

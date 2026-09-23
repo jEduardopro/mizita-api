@@ -10,12 +10,16 @@ use App\Domains\BookingPolicies\Contracts\CurrentBookingPolicy;
 use App\Domains\BookingPolicies\Entities\BookingPolicy;
 use App\Domains\BookingPolicies\ValueObjects\BookingWindow;
 use App\Domains\BookingPolicies\ValueObjects\CancellationWindow;
+use App\Domains\BookingPolicies\ValueObjects\ContactFieldRequirement;
+use App\Domains\BookingPolicies\ValueObjects\ContactFields;
 use App\Domains\BookingPolicies\ValueObjects\LeadTime;
 use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\BookingPolicies\ValueObjects\SlotGranularity;
 use App\Domains\Businesses\Contracts\BookingPolicySettings;
 use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 
 final class BookingPoliciesBookingPolicySettings implements BookingPolicySettings
 {
@@ -54,6 +58,35 @@ final class BookingPoliciesBookingPolicySettings implements BookingPolicySetting
         self::applyVisibility($policy, $preferences->displayOnBookingPage);
 
         $this->repository->save($policy);
+    }
+
+    public function contactFieldsFor(string $businessId): ContactFieldPreferences
+    {
+        $policy = $this->presenter->describe($this->policies->forBusiness($businessId));
+
+        return new ContactFieldPreferences(
+            phone: ContactFieldPreference::from($policy->phoneField),
+            email: ContactFieldPreference::from($policy->emailField),
+            address: ContactFieldPreference::from($policy->addressField),
+        );
+    }
+
+    public function applyContactFieldsTo(string $businessId, ContactFieldPreferences $preferences): void
+    {
+        $policy = $this->policies->forBusiness($businessId);
+
+        $policy->reviseContactFields(new ContactFields(
+            phone: self::requirementOf($preferences->phone),
+            email: self::requirementOf($preferences->email),
+            address: self::requirementOf($preferences->address),
+        ));
+
+        $this->repository->save($policy);
+    }
+
+    private static function requirementOf(ContactFieldPreference $preference): ContactFieldRequirement
+    {
+        return ContactFieldRequirement::from($preference->value);
     }
 
     private static function bookingWindowOf(?int $minutes): BookingWindow

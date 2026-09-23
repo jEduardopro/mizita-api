@@ -8,6 +8,7 @@ use App\Domains\Businesses\Application\Dtos\AppearanceInput;
 use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\BusinessSettingsData;
+use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
@@ -34,6 +35,8 @@ use App\Domains\Businesses\ValueObjects\BookingPageStyle;
 use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use App\Shared\Application\UseCaseResponse;
@@ -103,6 +106,7 @@ final class UpdateBusinessSettings
 
         $this->applyAppearance($input->appearance, $businessId);
         $this->applyBookingPolicy($input->bookingPolicy, $businessId);
+        $this->applyContactFields($input->contactFields, $businessId);
         $this->applySchedule($input->schedule, $businessId);
         $this->applyLinks($input->links, $businessId);
     }
@@ -244,6 +248,19 @@ final class UpdateBusinessSettings
             cancellationWindowMinutes: $bookingPolicy->cancellationWindowMinutes,
             policyMessage: $bookingPolicy->policyMessage,
             displayOnBookingPage: $bookingPolicy->displayOnBookingPage,
+        ));
+    }
+
+    private function applyContactFields(?ContactFieldsInput $contactFields, string $businessId): void
+    {
+        if ($contactFields === null) {
+            return;
+        }
+
+        $this->bookingPolicies->applyContactFieldsTo($businessId, new ContactFieldPreferences(
+            phone: ContactFieldPreference::from($contactFields->phone),
+            email: ContactFieldPreference::from($contactFields->email),
+            address: ContactFieldPreference::from($contactFields->address),
         ));
     }
 

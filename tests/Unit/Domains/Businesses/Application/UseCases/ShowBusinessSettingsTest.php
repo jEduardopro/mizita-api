@@ -79,6 +79,7 @@ it('writes nothing while it reads', function () {
         ->and($this->schedule->replacements)->toBe([])
         ->and($this->bookingPages->applications)->toBe([])
         ->and($this->bookingPolicies->applications)->toBe([])
+        ->and($this->bookingPolicies->contactFieldApplications)->toBe([])
         ->and($this->phones->replacements)->toBe([]);
 });
 

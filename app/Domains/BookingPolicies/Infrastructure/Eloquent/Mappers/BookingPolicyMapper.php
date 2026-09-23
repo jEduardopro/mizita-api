@@ -8,6 +8,7 @@ use App\Domains\BookingPolicies\Entities\BookingPolicy;
 use App\Domains\BookingPolicies\Infrastructure\Eloquent\Models\BookingPolicyModel;
 use App\Domains\BookingPolicies\ValueObjects\BookingWindow;
 use App\Domains\BookingPolicies\ValueObjects\CancellationWindow;
+use App\Domains\BookingPolicies\ValueObjects\ContactFields;
 use App\Domains\BookingPolicies\ValueObjects\LeadTime;
 use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\BookingPolicies\ValueObjects\SlotGranularity;
@@ -26,6 +27,11 @@ final class BookingPolicyMapper
             cancellationWindow: CancellationWindow::restore($model->cancellation_window_minutes),
             policyMessage: PolicyMessage::restore($model->policy_message),
             displayedOnBookingPage: $model->display_on_booking_page,
+            contactFields: new ContactFields(
+                phone: $model->phone_field,
+                email: $model->email_field,
+                address: $model->address_field,
+            ),
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
         );
     }
@@ -44,6 +50,9 @@ final class BookingPolicyMapper
             'cancellation_window_minutes' => $policy->cancellationWindow()->minutes,
             'policy_message' => $policy->policyMessage()->toString(),
             'display_on_booking_page' => $policy->isDisplayedOnBookingPage(),
+            'phone_field' => $policy->contactFields()->phone,
+            'email_field' => $policy->contactFields()->email,
+            'address_field' => $policy->contactFields()->address,
         ];
     }
 }

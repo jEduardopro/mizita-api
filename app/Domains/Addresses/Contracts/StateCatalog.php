@@ -13,4 +13,6 @@ interface StateCatalog
      * @return list<State>
      */
     public function allActiveFor(CountryCode $country): array;
+
+    public function findActiveByNameOrCode(CountryCode $country, string $nameOrCode): ?State;
 }

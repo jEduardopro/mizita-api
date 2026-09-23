@@ -9,6 +9,7 @@ use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Shared\ValueObjects\PhoneNumber;
 
 final readonly class BusinessSettingsData
@@ -33,5 +34,6 @@ final readonly class BusinessSettingsData
         public array $links,
         public BookingPageSnapshot $bookingPage,
         public BookingPolicySnapshot $bookingPolicy,
+        public ContactFieldPreferences $contactFields,
     ) {}
 }

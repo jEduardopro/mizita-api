@@ -1,4 +1,5 @@
 import { cn } from 'cn';
+import type { ReactNode } from 'react';
 import { DialCodePicker, type DialCodeOption } from '@/components/form/DialCodePicker';
 import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 
 type Props = {
     id: string;
-    label: string;
+    label: ReactNode;
     countryLabel: string;
     numberLabel: string;
     countries: readonly DialCodeOption[];
@@ -16,6 +17,7 @@ type Props = {
     onNumberChange: (value: string) => void;
     error?: string;
     hint?: string;
+    required?: boolean;
 };
 
 export function PhoneField({
@@ -30,6 +32,7 @@ export function PhoneField({
     onNumberChange,
     error,
     hint,
+    required,
 }: Props) {
     const labelId = `${id}-label`;
     const message = fieldMessage({ id, error, hint });
@@ -56,6 +59,7 @@ export function PhoneField({
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel-national"
+                    required={required}
                     aria-label={numberLabel}
                     aria-invalid={!! error}
                     aria-describedby={message?.id}

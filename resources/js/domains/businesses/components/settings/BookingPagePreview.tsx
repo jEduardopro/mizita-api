@@ -29,8 +29,6 @@ export type BookingPagePreviewValues = {
     street: string;
     city: string;
     postalCode: string;
-    policyMessage: string;
-    displayPolicyOnBookingPage: boolean;
     links: Partial<Record<LinkPlatform, string>>;
 };
 
@@ -39,9 +37,16 @@ type Props = {
     logoUrl: string | null;
     bannerUrl: string | null;
     savedSlug: string;
+    policyNotice: string | null;
 };
 
-export function BookingPagePreview({ values, logoUrl, bannerUrl, savedSlug }: Props) {
+export function BookingPagePreview({
+    values,
+    logoUrl,
+    bannerUrl,
+    savedSlug,
+    policyNotice,
+}: Props) {
     const { t } = useTranslation('admin');
 
     const accent = brandColorClasses[values.accentColor];
@@ -76,12 +81,12 @@ export function BookingPagePreview({ values, logoUrl, bannerUrl, savedSlug }: Pr
                     THEME_SCOPES[values.theme],
                 )}
             >
-                {values.displayPolicyOnBookingPage ? (
+                {policyNotice === null ? null : (
                     <BookingPagePreviewPolicy
-                        message={values.policyMessage}
+                        message={policyNotice}
                         surfaceClassName={accent.surface}
                     />
-                ) : null}
+                )}
 
                 <div className={cn('relative aspect-video', accent.surface)}>
                     {bannerUrl === null ? (

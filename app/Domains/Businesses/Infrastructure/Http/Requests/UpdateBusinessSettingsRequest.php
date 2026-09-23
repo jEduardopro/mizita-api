@@ -7,9 +7,11 @@ namespace App\Domains\Businesses\Infrastructure\Http\Requests;
 use App\Domains\Addresses\ValueObjects\PostalCode;
 use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
+use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class UpdateBusinessSettingsRequest extends FormRequest
@@ -33,6 +35,7 @@ final class UpdateBusinessSettingsRequest extends FormRequest
             ...$this->brandRules(),
             ...$this->appearanceRules(),
             ...$this->bookingPolicyRules(),
+            ...$this->contactFieldRules(),
             ...$this->contactRules(),
             ...$this->locationRules(),
             ...$this->scheduleRules(),
@@ -90,6 +93,25 @@ final class UpdateBusinessSettingsRequest extends FormRequest
                 'max:'.PolicyMessage::MAXIMUM_LENGTH,
             ],
             'booking_policy.display_on_booking_page' => ['required_with:booking_policy', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function contactFieldRules(): array
+    {
+        $preferenceRules = [
+            'required_with:contact_fields',
+            'string',
+            'in:'.implode(',', ContactFieldPreference::values()),
+        ];
+
+        return [
+            'contact_fields' => ['sometimes', 'array'],
+            'contact_fields.'.ContactFieldsInput::PHONE_KEY => $preferenceRules,
+            'contact_fields.'.ContactFieldsInput::EMAIL_KEY => $preferenceRules,
+            'contact_fields.'.ContactFieldsInput::ADDRESS_KEY => $preferenceRules,
         ];
     }
 

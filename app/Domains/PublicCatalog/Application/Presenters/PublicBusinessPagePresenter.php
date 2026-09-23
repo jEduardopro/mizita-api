@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\PublicCatalog\Application\Presenters;
 
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
+use App\Domains\PublicCatalog\Contracts\GuestContactFields;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
@@ -32,6 +33,7 @@ final class PublicBusinessPagePresenter
         private readonly PublishedLocation $location,
         private readonly PublishedContact $contact,
         private readonly PublishedBookingPolicy $bookingPolicy,
+        private readonly GuestContactFields $contactFields,
     ) {}
 
     /**
@@ -53,6 +55,7 @@ final class PublicBusinessPagePresenter
             location: $this->location->forBusiness($profile->id),
             contact: $this->contact->forBusiness($profile->id),
             bookingPolicy: $this->bookingPolicy->forBusiness($profile->id),
+            contactFields: $this->contactFields->forBusiness($profile->id),
         );
     }
 

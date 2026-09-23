@@ -10,5 +10,6 @@ final readonly class GuestContact
         public string $name,
         public ?string $email,
         public ?GuestPhone $phone,
+        public ?GuestAddress $address = null,
     ) {}
 }

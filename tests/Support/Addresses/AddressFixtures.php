@@ -57,6 +57,7 @@ final class AddressFixtures
         CountryCode $country = CountryCode::Mx,
         ?Coordinates $coordinates = null,
         ?DateTimeImmutable $createdAt = null,
+        ?string $stateName = null,
     ): Address {
         return Address::restore(
             id: $id,
@@ -69,6 +70,7 @@ final class AddressFixtures
             country: $country,
             coordinates: $coordinates,
             createdAt: $createdAt ?? self::now(),
+            stateName: $stateName,
         );
     }
 

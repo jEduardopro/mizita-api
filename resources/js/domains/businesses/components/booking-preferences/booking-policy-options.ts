@@ -15,10 +15,10 @@ export const DEFAULT_SLOT_SIZE_UNIT: DurationUnit = 'minutes';
 export const DEFAULT_SLOT_SIZE_MINUTES = 30;
 
 export const DURATION_UNIT_LABEL_KEYS = {
-    minutes: 'businessSettings.policy.units.minutes',
-    hours: 'businessSettings.policy.units.hours',
-    days: 'businessSettings.policy.units.days',
-    months: 'businessSettings.policy.units.months',
+    minutes: 'bookingPreferences.policy.units.minutes',
+    hours: 'bookingPreferences.policy.units.hours',
+    days: 'bookingPreferences.policy.units.days',
+    months: 'bookingPreferences.policy.units.months',
 } as const satisfies Record<DurationUnit, string>;
 
 export const CANCELLATION_WINDOWS = [
@@ -48,14 +48,14 @@ const CANCELLATION_WINDOW_MINUTES = {
 } as const satisfies Record<CancellationWindow, number | null>;
 
 export const CANCELLATION_WINDOW_LABEL_KEYS = {
-    none: 'businessSettings.policy.cancellation.options.none',
-    h1: 'businessSettings.policy.cancellation.options.h1',
-    h2: 'businessSettings.policy.cancellation.options.h2',
-    h4: 'businessSettings.policy.cancellation.options.h4',
-    h12: 'businessSettings.policy.cancellation.options.h12',
-    h24: 'businessSettings.policy.cancellation.options.h24',
-    h48: 'businessSettings.policy.cancellation.options.h48',
-    never: 'businessSettings.policy.cancellation.options.never',
+    none: 'bookingPreferences.policy.cancellation.options.none',
+    h1: 'bookingPreferences.policy.cancellation.options.h1',
+    h2: 'bookingPreferences.policy.cancellation.options.h2',
+    h4: 'bookingPreferences.policy.cancellation.options.h4',
+    h12: 'bookingPreferences.policy.cancellation.options.h12',
+    h24: 'bookingPreferences.policy.cancellation.options.h24',
+    h48: 'bookingPreferences.policy.cancellation.options.h48',
+    never: 'bookingPreferences.policy.cancellation.options.never',
 } as const satisfies Record<CancellationWindow, string>;
 
 export function cancellationWindowMinutesFrom(choice: CancellationWindow): number | null {

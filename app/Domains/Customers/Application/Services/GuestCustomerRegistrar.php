@@ -5,17 +5,19 @@ declare(strict_types=1);
 namespace App\Domains\Customers\Application\Services;
 
 use App\Domains\Customers\Application\Dtos\CustomerData;
+use App\Domains\Customers\Application\Dtos\GuestAddressInput;
 use App\Domains\Customers\Application\Dtos\GuestContactInput;
 use App\Domains\Customers\Application\Presenters\CustomerPresenter;
+use App\Domains\Customers\Contracts\CustomerAddressBook;
 use App\Domains\Customers\Contracts\CustomerPhoneBook;
 use App\Domains\Customers\Contracts\CustomerRepository;
 use App\Domains\Customers\Entities\Customer;
 use App\Domains\Customers\Exceptions\CustomerEmailAlreadyTaken;
+use App\Domains\Customers\Exceptions\InvalidCustomerAddress;
 use App\Domains\Customers\Exceptions\InvalidCustomerEmail;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use App\Domains\Customers\Exceptions\InvalidCustomerNotes;
 use App\Domains\Customers\Exceptions\InvalidCustomerPhone;
-use App\Domains\Customers\Exceptions\InvalidGuestContact;
 use App\Domains\Customers\ValueObjects\CustomerEmail;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\IdGenerator;
@@ -27,6 +29,7 @@ final class GuestCustomerRegistrar
     public function __construct(
         private readonly CustomerRepository $customers,
         private readonly CustomerPhoneBook $phones,
+        private readonly CustomerAddressBook $addresses,
         private readonly CustomerPresenter $presenter,
         private readonly SubmittedPhoneNumber $submittedPhone,
         private readonly IdGenerator $ids,
@@ -35,11 +38,11 @@ final class GuestCustomerRegistrar
     ) {}
 
     /**
-     * @throws InvalidGuestContact
      * @throws InvalidCustomerName
      * @throws InvalidCustomerEmail
      * @throws InvalidCustomerPhone
      * @throws InvalidCustomerNotes
+     * @throws InvalidCustomerAddress
      * @throws CustomerEmailAlreadyTaken
      */
     public function register(string $businessId, GuestContactInput $contact): CustomerData
@@ -52,6 +55,8 @@ final class GuestCustomerRegistrar
         $known = $this->knownCustomer($businessId, $email, $phone);
 
         if ($known !== null) {
+            $this->fillMissingAddress($known->id, $contact->address);
+
             return $this->presenter->describe($known);
         }
 
@@ -117,7 +122,26 @@ final class GuestCustomerRegistrar
 
         $this->customers->save($customer);
         $this->phones->replaceForCustomer($customer->id, $phone);
+        $this->recordAddress($customer->id, $contact->address);
 
         return $customer;
+    }
+
+    private function fillMissingAddress(string $customerId, ?GuestAddressInput $address): void
+    {
+        if ($address === null || $this->addresses->forCustomer($customerId) !== null) {
+            return;
+        }
+
+        $this->addresses->replaceForCustomer($customerId, $address->toSnapshot());
+    }
+
+    private function recordAddress(string $customerId, ?GuestAddressInput $address): void
+    {
+        if ($address === null) {
+            return;
+        }
+
+        $this->addresses->replaceForCustomer($customerId, $address->toSnapshot());
     }
 }

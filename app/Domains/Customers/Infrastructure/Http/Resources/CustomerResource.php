@@ -50,7 +50,7 @@ final class CustomerResource extends JsonResource
     }
 
     /**
-     * @return array{street: string, city: string|null, state_id: string|null, postal_code: string|null, country_code: string}|null
+     * @return array{street: string, city: string|null, state_id: string|null, state_name: string|null, postal_code: string|null, country_code: string}|null
      */
     private static function describeAddress(?CustomerAddressData $address): ?array
     {
@@ -62,6 +62,7 @@ final class CustomerResource extends JsonResource
             'street' => $address->street,
             'city' => $address->city,
             'state_id' => $address->stateId,
+            'state_name' => $address->stateName,
             'postal_code' => $address->postalCode,
             'country_code' => $address->countryCode,
         ];

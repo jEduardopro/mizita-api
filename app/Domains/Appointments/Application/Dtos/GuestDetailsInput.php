@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domains\Appointments\Application\Dtos;
 
+use App\Domains\Appointments\Exceptions\InvalidGuestAddress;
 use App\Domains\Appointments\Exceptions\InvalidGuestEmail;
 use App\Domains\Appointments\Exceptions\InvalidGuestName;
 use App\Domains\Appointments\Exceptions\InvalidGuestPhone;
-use App\Domains\Appointments\Exceptions\MissingGuestContactChannel;
 use App\Domains\Appointments\ValueObjects\GuestContact;
 use App\Domains\Appointments\ValueObjects\GuestPhone;
 
@@ -26,6 +26,7 @@ final readonly class GuestDetailsInput
         public ?string $email,
         public ?string $phoneCountryCode,
         public ?string $phoneNationalNumber,
+        public ?GuestAddressInput $address = null,
     ) {}
 
     public static function fromPayload(mixed $payload): self
@@ -38,6 +39,7 @@ final readonly class GuestDetailsInput
             email: self::textOrNull($details['email'] ?? null),
             phoneCountryCode: self::textOrNull($phone['country_code'] ?? null),
             phoneNationalNumber: self::textOrNull($phone['national_number'] ?? null),
+            address: GuestAddressInput::fromPayload($details['address'] ?? null),
         );
     }
 
@@ -45,14 +47,14 @@ final readonly class GuestDetailsInput
      * @throws InvalidGuestName
      * @throws InvalidGuestEmail
      * @throws InvalidGuestPhone
-     * @throws MissingGuestContactChannel
+     * @throws InvalidGuestAddress
      */
     public function validate(): void
     {
         $this->validateName();
         $this->validateEmail();
         $this->validatePhone();
-        $this->validateContactChannel();
+        $this->address?->validate();
     }
 
     public function toContact(): GuestContact
@@ -61,6 +63,7 @@ final readonly class GuestDetailsInput
             name: trim($this->name),
             email: $this->email,
             phone: $this->toPhone(),
+            address: $this->address?->toAddress(),
         );
     }
 
@@ -132,13 +135,6 @@ final readonly class GuestDetailsInput
 
         if (mb_strlen(trim($this->phoneNationalNumber)) > self::MAXIMUM_NATIONAL_NUMBER_LENGTH) {
             throw InvalidGuestPhone::malformed();
-        }
-    }
-
-    private function validateContactChannel(): void
-    {
-        if ($this->email === null && $this->toPhone() === null) {
-            throw MissingGuestContactChannel::forGuest();
         }
     }
 }

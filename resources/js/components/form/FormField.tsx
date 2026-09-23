@@ -1,5 +1,5 @@
 import { cn } from 'cn';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { fieldMessage, FieldMessage, type HintTone } from '@/components/form/FieldMessage';
 import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 
 type Props = ComponentProps<'input'> & {
     id: string;
-    label: string;
+    label: ReactNode;
     error?: string;
     hint?: string;
     hintTone?: HintTone;

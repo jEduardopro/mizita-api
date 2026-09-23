@@ -6,6 +6,7 @@ use App\Domains\Addresses\Entities\Address;
 use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
 use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressCity;
+use App\Domains\Addresses\Exceptions\InvalidAddressStateName;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Addresses\ValueObjects\AddressOwnerType;
 use App\Domains\Addresses\ValueObjects\Coordinates;
@@ -23,6 +24,7 @@ function createAddress(
     ?Coordinates $coordinates = null,
     AddressOwnerType $ownerType = AddressOwnerType::Business,
     string $ownerId = FakeBusinessContext::BUSINESS_ID,
+    ?string $stateName = null,
 ): Address {
     return Address::create(
         id: AddressFixtures::ADDRESS_ID,
@@ -35,6 +37,7 @@ function createAddress(
         country: $country,
         coordinates: $coordinates,
         now: AddressFixtures::now(),
+        stateName: $stateName,
     );
 }
 
@@ -373,6 +376,126 @@ describe('relocating an address', function () {
 
         expect($address->stateId())->toBeNull()
             ->and($address->coordinates())->toBeNull();
+    });
+});
+
+describe('the typed state name', function () {
+    it('keeps a state name typed by hand, trimmed', function () {
+        expect(createAddress(stateId: null, stateName: '  Nuevo León  ')->stateName())->toBe('Nuevo León');
+    });
+
+    it('carries no state name when none was typed', function () {
+        expect(createAddress()->stateName())->toBeNull();
+    });
+
+    it('files a state name that carries nothing as one it does not have', function (string $stateName) {
+        expect(createAddress(stateName: $stateName)->stateName())->toBeNull();
+    })->with([
+        'empty' => '',
+        'spaces' => '   ',
+        'tab' => "\t",
+        'newline' => "\n",
+    ]);
+
+    it('accepts a state name exactly as long as the column allows', function () {
+        $stateName = str_repeat('ñ', Address::MAXIMUM_STATE_NAME_LENGTH);
+
+        expect(createAddress(stateName: $stateName)->stateName())->toBe($stateName);
+    });
+
+    it('measures the state name after trimming it', function () {
+        $stateName = '  '.str_repeat('a', Address::MAXIMUM_STATE_NAME_LENGTH).'  ';
+
+        expect(createAddress(stateName: $stateName)->stateName())
+            ->toHaveLength(Address::MAXIMUM_STATE_NAME_LENGTH);
+    });
+
+    it('rejects a state name one past the maximum the column allows', function () {
+        expect(fn () => createAddress(stateName: str_repeat('a', Address::MAXIMUM_STATE_NAME_LENGTH + 1)))
+            ->toThrow(InvalidAddressStateName::class);
+    });
+
+    it('holds a state name next to a catalogue state when both are handed over', function () {
+        $address = createAddress(stateId: AddressFixtures::STATE_ID, stateName: 'CDMX');
+
+        expect($address->stateId())->toBe(AddressFixtures::STATE_ID)
+            ->and($address->stateName())->toBe('CDMX');
+    });
+
+    it('restores a stored state name exactly as the column holds it', function () {
+        expect(AddressFixtures::address(stateName: '  Jalisco  ')->stateName())->toBe('  Jalisco  ');
+    });
+
+    it('restores a stored state name past the maximum without judging it', function () {
+        $stateName = str_repeat('a', Address::MAXIMUM_STATE_NAME_LENGTH + 1);
+
+        expect(AddressFixtures::address(stateName: $stateName)->stateName())->toBe($stateName);
+    });
+
+    it('replaces the state name when the address moves', function () {
+        $address = createAddress(stateId: null, stateName: 'Jalisco');
+
+        $address->relocateTo(
+            street: 'Calle Madero 12',
+            city: 'Mérida',
+            stateId: null,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+            stateName: '  Yucatán ',
+        );
+
+        expect($address->stateName())->toBe('Yucatán');
+    });
+
+    it('lets the state name go when the move carries none', function (?string $stateName) {
+        $address = createAddress(stateId: null, stateName: 'Jalisco');
+
+        $address->relocateTo(
+            street: 'Calle Madero 12',
+            city: 'Mérida',
+            stateId: AddressFixtures::SECOND_STATE_ID,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+            stateName: $stateName,
+        );
+
+        expect($address->stateName())->toBeNull()
+            ->and($address->stateId())->toBe(AddressFixtures::SECOND_STATE_ID);
+    })->with([
+        'nothing at all' => null,
+        'empty' => '',
+        'spaces' => '   ',
+    ]);
+
+    it('refuses to relocate to a state name one past the maximum', function () {
+        expect(fn () => createAddress()->relocateTo(
+            street: 'Calle Madero 12',
+            city: 'Mérida',
+            stateId: null,
+            postalCode: PostalCode::restore('97000'),
+            country: CountryCode::Mx,
+            stateName: str_repeat('a', Address::MAXIMUM_STATE_NAME_LENGTH + 1),
+        ))->toThrow(InvalidAddressStateName::class);
+    });
+
+    it('leaves the old address untouched when the state name is refused', function () {
+        $address = createAddress(stateId: null, stateName: 'Jalisco');
+
+        try {
+            $address->relocateTo(
+                street: 'Paseo de la Reforma 222',
+                city: 'Mérida',
+                stateId: AddressFixtures::SECOND_STATE_ID,
+                postalCode: PostalCode::restore('97000'),
+                country: CountryCode::Mx,
+                stateName: str_repeat('a', Address::MAXIMUM_STATE_NAME_LENGTH + 1),
+            );
+        } catch (InvalidAddressStateName) {
+        }
+
+        expect($address->street())->toBe(AddressFixtures::STREET)
+            ->and($address->stateId())->toBeNull()
+            ->and($address->stateName())->toBe('Jalisco');
     });
 });
 

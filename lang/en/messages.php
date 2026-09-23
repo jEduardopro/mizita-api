@@ -119,15 +119,17 @@ return [
         'customer_phone_taken' => 'You already have a customer with that phone number.',
         'invalid_customer_name' => 'That customer name is not valid.',
         'invalid_customer_email' => 'That email address is not valid.',
+        'invalid_customer_address' => 'That address is not valid.',
+        'invalid_guest_address' => 'That address is not valid.',
         'invalid_customer_phone' => 'That is not a valid phone number for the selected country.',
         'invalid_customer_birth_date' => 'That date of birth is not valid.',
         'invalid_customer_notes' => 'Those notes are too long.',
         'invalid_customer_search' => 'That search is too long.',
-        'invalid_guest_contact' => 'Please leave an email address or a phone number so we can confirm the booking.',
         'customer_photo_too_large' => 'That photo is too large. Please use one under 2 MB.',
         'unsupported_customer_photo' => 'That file is not a photo we support. Please use a JPG, PNG or WebP.',
 
         'invalid_address_street' => 'That street is not valid.',
+        'invalid_address_state_name' => 'That state is not valid.',
         'invalid_address_city' => 'That city is not valid.',
         'invalid_address_postal_code' => 'That postal code is not valid.',
         'address_city_cannot_be_cleared' => 'The city of a saved address cannot be removed, only changed.',
@@ -178,7 +180,9 @@ return [
         'invalid_guest_name' => 'Please enter the name of the person attending.',
         'invalid_guest_email' => 'That email address is not valid.',
         'invalid_guest_phone' => 'That phone number is not valid.',
-        'missing_guest_contact_channel' => 'Please provide an email address or a phone number.',
+        'missing_guest_phone' => 'Please enter your phone number.',
+        'missing_guest_email' => 'Please enter your email address.',
+        'missing_guest_address' => 'Please enter your full address.',
 
         'invalid_reference_code' => 'That reservation code is not valid.',
         'invalid_manage_token' => 'That management link is not valid.',
@@ -192,6 +196,8 @@ return [
         'invalid_slot_granularity' => 'That slot interval is not valid.',
         'invalid_cancellation_window' => 'That cancellation window is not valid.',
         'invalid_policy_message' => 'That policy message is not valid.',
+        'incomplete_contact_fields' => 'The booking form fields must be saved with phone, email and address all set.',
+        'invalid_contact_field_requirement' => 'Each booking form field must be hidden, optional or required.',
 
         // Payments. Nothing here repeats an amount the caller already sent, and
         // nothing confirms that a payment exists in another business.

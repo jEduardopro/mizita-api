@@ -10,6 +10,8 @@ use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Shared\ValueObjects\PhoneNumber;
 use Tests\Support\PhoneNumbers;
 use Tests\TestCase;
@@ -58,6 +60,14 @@ function businessSettingsBookingPolicy(
     );
 }
 
+function businessSettingsContactFields(
+    ContactFieldPreference $phone = ContactFieldPreference::Hidden,
+    ContactFieldPreference $email = ContactFieldPreference::Required,
+    ContactFieldPreference $address = ContactFieldPreference::Optional,
+): ContactFieldPreferences {
+    return new ContactFieldPreferences(phone: $phone, email: $email, address: $address);
+}
+
 function businessSettingsAddress(
     ?string $stateId = SETTINGS_STATE_ID,
     ?string $latitude = '19.3627888',
@@ -92,6 +102,7 @@ function businessSettingsData(
     ?array $links = null,
     ?BookingPageSnapshot $bookingPage = null,
     ?BookingPolicySnapshot $bookingPolicy = null,
+    ?ContactFieldPreferences $contactFields = null,
 ): BusinessSettingsData {
     return new BusinessSettingsData(
         id: $id,
@@ -109,6 +120,7 @@ function businessSettingsData(
         links: $links ?? [new BusinessLinkSnapshot(platform: 'instagram', url: 'https://instagram.com/ada.salon', position: 0)],
         bookingPage: $bookingPage ?? businessSettingsBookingPage(),
         bookingPolicy: $bookingPolicy ?? businessSettingsBookingPolicy(),
+        contactFields: $contactFields ?? businessSettingsContactFields(),
     );
 }
 
@@ -136,6 +148,11 @@ function businessSettingsNothingFiled(): BusinessSettingsData
             cancellationWindowMinutes: null,
             policyMessage: null,
             displayOnBookingPage: false,
+        ),
+        contactFields: businessSettingsContactFields(
+            phone: ContactFieldPreference::Required,
+            email: ContactFieldPreference::Optional,
+            address: ContactFieldPreference::Hidden,
         ),
     );
 }
@@ -168,6 +185,7 @@ describe('the client contract', function () {
             'links',
             'booking_page',
             'booking_policy',
+            'contact_fields',
         ]);
     });
 
@@ -224,6 +242,11 @@ describe('the client contract', function () {
                 'policy_message' => 'Cancela con cuatro horas de antelación.',
                 'display_on_booking_page' => true,
             ],
+            'contact_fields' => [
+                'phone' => 'hidden',
+                'email' => 'required',
+                'address' => 'optional',
+            ],
         ]);
     });
 
@@ -241,6 +264,7 @@ describe('the client contract', function () {
             'policy_message',
             'display_on_booking_page',
         ]],
+        'contact fields' => ['contact_fields', ['phone', 'email', 'address']],
     ]);
 
     it('declares the keys of every row in a collection section', function () {
@@ -312,6 +336,14 @@ describe('what an empty business serializes as', function () {
             ->and($serialized['booking_policy']['display_on_booking_page'])->toBeFalse();
     });
 
+    it('still sends the contact fields, which are provisioned with the booking policy', function () {
+        expect(serializedBusinessSettings(businessSettingsNothingFiled())['contact_fields'])->toBe([
+            'phone' => 'required',
+            'email' => 'optional',
+            'address' => 'hidden',
+        ]);
+    });
+
     it('sends an unlimited window and a cancellation nobody may use as null, never as zero', function () {
         $serialized = serializedBusinessSettings(businessSettingsNothingFiled());
 
@@ -353,6 +385,45 @@ describe('what an empty business serializes as', function () {
 
         expect(json_encode($serialized['schedule'], JSON_THROW_ON_ERROR))
             ->toBe('[{"weekday":2,"starts_at":"09:00","ends_at":"14:00"}]');
+    });
+});
+
+describe('the contact fields', function () {
+    it('sends each requirement as the string the form request accepts back', function (ContactFieldPreference $preference) {
+        $serialized = serializedBusinessSettings(businessSettingsData(
+            contactFields: businessSettingsContactFields($preference, $preference, $preference),
+        ))['contact_fields'];
+
+        expect($serialized)->toBe([
+            'phone' => $preference->value,
+            'email' => $preference->value,
+            'address' => $preference->value,
+        ]);
+    })->with(ContactFieldPreference::cases());
+
+    it('keeps each requirement under the field it belongs to', function () {
+        $serialized = serializedBusinessSettings(businessSettingsData(contactFields: businessSettingsContactFields(
+            phone: ContactFieldPreference::Optional,
+            email: ContactFieldPreference::Hidden,
+            address: ContactFieldPreference::Required,
+        )))['contact_fields'];
+
+        expect($serialized['phone'])->toBe('optional')
+            ->and($serialized['email'])->toBe('hidden')
+            ->and($serialized['address'])->toBe('required');
+    });
+
+    it('sits beside the booking policy rather than inside it', function () {
+        $serialized = serializedBusinessSettings();
+
+        expect($serialized)->toHaveKey('contact_fields')
+            ->and($serialized['booking_policy'])->not->toHaveKey('contact_fields')
+            ->and($serialized['booking_policy'])->not->toHaveKeys(['phone_field', 'email_field', 'address_field']);
+    });
+
+    it('encodes the section as a json object the client can index by field', function () {
+        expect(json_encode(serializedBusinessSettings()['contact_fields'], JSON_THROW_ON_ERROR))
+            ->toBe('{"phone":"hidden","email":"required","address":"optional"}');
     });
 });
 

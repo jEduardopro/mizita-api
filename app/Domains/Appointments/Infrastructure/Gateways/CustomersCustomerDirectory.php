@@ -6,24 +6,27 @@ namespace App\Domains\Appointments\Infrastructure\Gateways;
 
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
+use App\Domains\Appointments\Exceptions\InvalidGuestAddress;
 use App\Domains\Appointments\Exceptions\InvalidGuestEmail;
 use App\Domains\Appointments\Exceptions\InvalidGuestName;
 use App\Domains\Appointments\Exceptions\InvalidGuestPhone;
-use App\Domains\Appointments\Exceptions\MissingGuestContactChannel;
 use App\Domains\Appointments\ValueObjects\CustomerPhoneSnapshot;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
+use App\Domains\Appointments\ValueObjects\GuestAddress;
 use App\Domains\Appointments\ValueObjects\GuestContact;
+use App\Domains\Appointments\ValueObjects\GuestPhone;
 use App\Domains\Customers\Application\Dtos\CustomerData;
 use App\Domains\Customers\Application\Dtos\CustomerPhoneInput;
+use App\Domains\Customers\Application\Dtos\GuestAddressInput;
 use App\Domains\Customers\Application\Dtos\GuestContactInput;
 use App\Domains\Customers\Application\Services\GuestCustomerRegistrar;
 use App\Domains\Customers\Contracts\CustomerPhoneBook;
 use App\Domains\Customers\Contracts\CustomerRepository;
 use App\Domains\Customers\Entities\Customer;
+use App\Domains\Customers\Exceptions\InvalidCustomerAddress;
 use App\Domains\Customers\Exceptions\InvalidCustomerEmail;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use App\Domains\Customers\Exceptions\InvalidCustomerPhone;
-use App\Domains\Customers\Exceptions\InvalidGuestContact;
 use App\Shared\ValueObjects\PhoneNumber;
 
 final class CustomersCustomerDirectory implements CustomerDirectory
@@ -75,7 +78,7 @@ final class CustomersCustomerDirectory implements CustomerDirectory
      * @throws InvalidGuestName
      * @throws InvalidGuestEmail
      * @throws InvalidGuestPhone
-     * @throws MissingGuestContactChannel
+     * @throws InvalidGuestAddress
      */
     private function registered(string $businessId, GuestContact $guest): CustomerData
     {
@@ -87,8 +90,8 @@ final class CustomersCustomerDirectory implements CustomerDirectory
             throw InvalidGuestEmail::rejected($rejected);
         } catch (InvalidCustomerPhone $rejected) {
             throw InvalidGuestPhone::rejected($rejected);
-        } catch (InvalidGuestContact $rejected) {
-            throw MissingGuestContactChannel::forGuest($rejected);
+        } catch (InvalidCustomerAddress $rejected) {
+            throw InvalidGuestAddress::rejected($rejected);
         }
     }
 
@@ -106,15 +109,36 @@ final class CustomersCustomerDirectory implements CustomerDirectory
 
     private static function contactFrom(GuestContact $guest): GuestContactInput
     {
-        $phone = $guest->phone;
-
         return new GuestContactInput(
             name: $guest->name,
             email: $guest->email,
-            phone: $phone === null
-                ? null
-                : new CustomerPhoneInput($phone->countryCode, $phone->nationalNumber),
+            phone: self::phoneInputFrom($guest->phone),
             notes: null,
+            address: self::addressInputFrom($guest->address),
+        );
+    }
+
+    private static function phoneInputFrom(?GuestPhone $phone): ?CustomerPhoneInput
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        return new CustomerPhoneInput($phone->countryCode, $phone->nationalNumber);
+    }
+
+    private static function addressInputFrom(?GuestAddress $address): ?GuestAddressInput
+    {
+        if ($address === null) {
+            return null;
+        }
+
+        return new GuestAddressInput(
+            street: $address->street,
+            city: $address->city,
+            stateName: $address->stateName,
+            postalCode: $address->postalCode,
+            countryCode: $address->countryCode,
         );
     }
 

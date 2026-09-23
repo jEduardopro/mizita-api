@@ -82,6 +82,7 @@ export default function BookingDetailsStep({ slug }: Props) {
             <BookingDetailsForm
                 accentColor={page.brand.accent_color}
                 buttonShape={page.brand.button_shape}
+                contactFields={page.contact_fields}
                 isSubmitting={createBooking.isPending}
                 onSubmit={submitBooking}
             />

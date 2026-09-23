@@ -4,9 +4,11 @@ import { useBusinessSettings, useUpdateBusinessSettings } from '@/domains/busine
 import { useAddressClearingGuard } from '@/hooks/use-address-clearing-guard';
 import { useServerErrors } from '@/hooks/use-server-errors';
 import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
+import { matchesServerField } from '@/domains/businesses/components/server-field-path';
 import {
     businessSettingsPayloadFrom,
     initialBusinessSettingsValues,
+    policyNoticeFrom,
     serverFields,
     type BusinessSettingsField,
     type BusinessSettingsFormValues,
@@ -20,6 +22,7 @@ export const BUSINESS_SETTINGS_FORM_ID = 'business-settings-form';
 export type BusinessSettingsFormController = {
     values: BusinessSettingsFormValues;
     savedSlug: string;
+    policyNotice: string | null;
     update: <TKey extends BusinessSettingsField>(
         key: TKey,
         value: BusinessSettingsFormValues[TKey],
@@ -35,10 +38,6 @@ export type BusinessSettingsFormController = {
     banner: ImageDraft;
     gallery: GalleryDraft;
 };
-
-function matchesServerField(key: string, serverField: string): boolean {
-    return key === serverField || key.startsWith(`${serverField}.`);
-}
 
 export function useBusinessSettingsForm(): BusinessSettingsFormController {
     const { t } = useTranslation('admin');
@@ -123,6 +122,7 @@ export function useBusinessSettingsForm(): BusinessSettingsFormController {
     return {
         values,
         savedSlug: settings?.slug ?? '',
+        policyNotice: policyNoticeFrom(settings),
         update,
         errorFor,
         isRequired: addressGuard.isRequired,

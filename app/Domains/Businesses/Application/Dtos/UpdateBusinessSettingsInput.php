@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Application\Dtos;
 
 use App\Domains\Businesses\Exceptions\IncompleteBookingPolicy;
+use App\Domains\Businesses\Exceptions\IncompleteContactFields;
 use App\Domains\Businesses\Exceptions\InvalidBusinessAbout;
 use App\Domains\Businesses\Exceptions\InvalidBusinessContactEmail;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
+use App\Domains\Businesses\Exceptions\InvalidContactFieldRequirement;
 use App\Domains\Businesses\Exceptions\UnknownIndustry;
 use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
@@ -26,6 +28,7 @@ final readonly class UpdateBusinessSettingsInput
         public ?ScheduleInput $schedule = null,
         public ?LinksInput $links = null,
         public ?BookingPolicyInput $bookingPolicy = null,
+        public ?ContactFieldsInput $contactFields = null,
     ) {}
 
     /**
@@ -41,6 +44,7 @@ final readonly class UpdateBusinessSettingsInput
             schedule: self::submittedSchedule($payload['schedule'] ?? null),
             links: self::submittedLinks($payload['links'] ?? null),
             bookingPolicy: BookingPolicyInput::fromPayload($payload['booking_policy'] ?? null),
+            contactFields: ContactFieldsInput::fromPayload($payload['contact_fields'] ?? null),
         );
     }
 
@@ -54,6 +58,8 @@ final readonly class UpdateBusinessSettingsInput
      * @throws InvalidCurrencyCode
      * @throws InvalidBusinessTimezone
      * @throws IncompleteBookingPolicy
+     * @throws IncompleteContactFields
+     * @throws InvalidContactFieldRequirement
      */
     public function validate(): void
     {
@@ -61,6 +67,7 @@ final readonly class UpdateBusinessSettingsInput
         $this->contact?->validate();
         $this->location?->validate();
         $this->bookingPolicy?->validate();
+        $this->contactFields?->validate();
     }
 
     public function changesBusinessRecord(): bool

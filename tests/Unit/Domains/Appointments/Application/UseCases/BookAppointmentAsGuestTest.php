@@ -15,10 +15,11 @@ use App\Domains\Appointments\Contracts\ManageTokenFactory;
 use App\Domains\Appointments\Contracts\ReferenceCodeGenerator;
 use App\Domains\Appointments\Events\AppointmentBooked;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
-use App\Domains\Appointments\Exceptions\MissingGuestContactChannel;
+use App\Domains\Appointments\Exceptions\InvalidGuestAddress;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\BookingSource;
 use App\Domains\Appointments\ValueObjects\CancellationRule;
+use App\Domains\Appointments\ValueObjects\GuestAddress;
 use App\Domains\Appointments\ValueObjects\ManageToken;
 use App\Domains\Appointments\ValueObjects\ManageTokenExpiry;
 use App\Domains\Appointments\ValueObjects\ReferenceCode;
@@ -341,15 +342,62 @@ describe('a slot the visitor may not take', function () {
     });
 });
 
-describe('a guest the business cannot reach', function () {
-    it('refuses a visitor who left both email and phone empty', function () {
-        $this->slots->shouldReceive('isBookable')->never();
+describe('the details a guest left', function () {
+    it('books a visitor who left nothing but a name', function () {
+        ($this->allowBooking)();
 
         $response = ($this->book)(guest: AppointmentFixtures::guestDetails(email: null));
 
+        $guest = $this->customers->guestRegistrations[0]['guest'] ?? null;
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value()->booking->customerName)->toBe(AppointmentFixtures::GUEST_NAME)
+            ->and($guest?->name)->toBe(AppointmentFixtures::GUEST_NAME)
+            ->and($guest?->email)->toBeNull()
+            ->and($guest?->phone)->toBeNull()
+            ->and($guest?->address)->toBeNull()
+            ->and($this->appointments->saved)->toHaveCount(1)
+            ->and($this->dispatched)->toHaveCount(1);
+    });
+
+    it('registers the name-only guest at the business the booking was made at', function () {
+        ($this->allowBooking)();
+
+        ($this->book)(guest: AppointmentFixtures::guestDetails(email: null));
+
+        expect($this->customers->guestRegistrations)->toHaveCount(1)
+            ->and($this->customers->guestRegistrations[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('hands the address the visitor typed to the customer directory, tidied', function () {
+        ($this->allowBooking)();
+
+        ($this->book)(guest: AppointmentFixtures::guestDetails(
+            email: null,
+            address: AppointmentFixtures::guestAddress(street: '  Av. Reforma 123 ', stateName: ' Nuevo León ', countryCode: 'mx'),
+        ));
+
+        $address = $this->customers->guestRegistrations[0]['guest']->address ?? null;
+
+        expect($address)->toBeInstanceOf(GuestAddress::class)
+            ->and($address?->street)->toBe('Av. Reforma 123')
+            ->and($address?->city)->toBe(AppointmentFixtures::GUEST_CITY)
+            ->and($address?->stateName)->toBe('Nuevo León')
+            ->and($address?->postalCode)->toBe(AppointmentFixtures::GUEST_POSTAL_CODE)
+            ->and($address?->countryCode)->toBe('MX');
+    });
+
+    it('refuses an address with no street before it asks any port', function () {
+        $response = ($this->book)(guest: AppointmentFixtures::guestDetails(
+            address: AppointmentFixtures::guestAddress(street: '   '),
+        ));
+
         expect($response->failed())->toBeTrue()
-            ->and($response->error()->code)->toBe('missing_guest_contact_channel')
-            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid);
+            ->and($response->error()->code)->toBe('invalid_guest_address')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+            ->and($this->journal->entries)->toBe([])
+            ->and($this->appointments->saved)->toBe([])
+            ->and($this->dispatched)->toBe([]);
     });
 
     it('refuses a visitor who left their name blank', function (string $name) {
@@ -392,12 +440,12 @@ describe('a guest the business cannot reach', function () {
 
     it('lets a rejection from the customer directory out as a refusal', function () {
         ($this->allowBooking)();
-        $this->customers->rejectingGuestWith(MissingGuestContactChannel::forGuest());
+        $this->customers->rejectingGuestWith(InvalidGuestAddress::withoutStreet());
 
         $response = ($this->book)();
 
         expect($response->failed())->toBeTrue()
-            ->and($response->error()->code)->toBe('missing_guest_contact_channel')
+            ->and($response->error()->code)->toBe('invalid_guest_address')
             ->and($this->appointments->saved)->toBe([])
             ->and($this->dispatched)->toBe([]);
     });

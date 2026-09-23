@@ -3,12 +3,18 @@
 declare(strict_types=1);
 
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
+use App\Domains\Appointments\Exceptions\InvalidGuestAddress;
+use App\Domains\Appointments\Exceptions\InvalidGuestName;
 use App\Domains\Appointments\Infrastructure\Gateways\CustomersCustomerDirectory;
 use App\Domains\Appointments\ValueObjects\CustomerPhoneSnapshot;
 use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
+use App\Domains\Appointments\ValueObjects\GuestAddress;
+use App\Domains\Appointments\ValueObjects\GuestContact;
+use App\Domains\Appointments\ValueObjects\GuestPhone;
 use App\Domains\Customers\Application\Presenters\CustomerPresenter;
 use App\Domains\Customers\Application\Services\GuestCustomerRegistrar;
 use App\Domains\Customers\Application\Services\SubmittedPhoneNumber;
+use App\Domains\Customers\Exceptions\InvalidCustomerAddress;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Customers\CustomerFixtures;
 use Tests\Support\Customers\CustomerJournal;
@@ -36,6 +42,7 @@ beforeEach(function () {
         new GuestCustomerRegistrar(
             $this->customers,
             $this->phones,
+            $this->addresses,
             new CustomerPresenter($this->phones, $this->addresses, $this->photos),
             new SubmittedPhoneNumber(FakePhoneNumberParser::accepting(PhoneNumbers::mexican())),
             new FixedIdGenerator(CustomerFixtures::GENERATED_CUSTOMER_ID),
@@ -208,5 +215,95 @@ describe('describing one customer', function () {
         expect($failure?->errorCode())->toBe('appointment_customer_not_found')
             ->and($failure?->kind())->toBe(DomainFailureKind::NotFound)
             ->and($failure?->getPrevious())->toBeNull();
+    });
+});
+
+describe('finding or creating a guest', function () {
+    beforeEach(function () {
+        $this->guestAddress = new GuestAddress(
+            street: CustomerFixtures::STREET,
+            city: CustomerFixtures::CITY,
+            stateName: CustomerFixtures::STATE_NAME,
+            postalCode: CustomerFixtures::POSTAL_CODE,
+            countryCode: CustomerFixtures::COUNTRY_CODE,
+        );
+
+        $this->findOrCreate = fn (GuestContact $guest): CustomerSnapshot => $this->directory->findOrCreateGuest(
+            FakeBusinessContext::BUSINESS_ID,
+            $guest,
+        );
+    });
+
+    it('enrols a guest who left nothing but a name', function () {
+        $snapshot = ($this->findOrCreate)(new GuestContact(name: CustomerFixtures::NAME, email: null, phone: null));
+
+        expect($snapshot->id)->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID)
+            ->and($snapshot->name)->toBe(CustomerFixtures::NAME)
+            ->and($snapshot->email)->toBeNull()
+            ->and($snapshot->phone)->toBeNull()
+            ->and($this->customers->saved[0]->businessId)->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('hands the typed address across to the customer it enrols, field by field', function () {
+        ($this->findOrCreate)(new GuestContact(
+            name: CustomerFixtures::NAME,
+            email: null,
+            phone: null,
+            address: $this->guestAddress,
+        ));
+
+        $filed = $this->addresses->replacements[0]['address'] ?? null;
+
+        expect($this->addresses->replacements)->toHaveCount(1)
+            ->and($this->addresses->replacements[0]['customerId'])->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID)
+            ->and($filed?->street)->toBe(CustomerFixtures::STREET)
+            ->and($filed?->city)->toBe(CustomerFixtures::CITY)
+            ->and($filed?->stateId)->toBeNull()
+            ->and($filed?->stateName)->toBe(CustomerFixtures::STATE_NAME)
+            ->and($filed?->postalCode)->toBe(CustomerFixtures::POSTAL_CODE)
+            ->and($filed?->countryCode)->toBe(CustomerFixtures::COUNTRY_CODE);
+    });
+
+    it('files no address when the guest typed none', function () {
+        ($this->findOrCreate)(new GuestContact(name: CustomerFixtures::NAME, email: CustomerFixtures::EMAIL, phone: null));
+
+        expect($this->addresses->calls)->toBe([]);
+    });
+
+    it('hands the phone across as the pair the customers domain parses', function () {
+        $snapshot = ($this->findOrCreate)(new GuestContact(
+            name: CustomerFixtures::NAME,
+            email: null,
+            phone: new GuestPhone('MX', PhoneNumbers::MX_NATIONAL_NUMBER),
+        ));
+
+        expect($snapshot->phone?->countryCode)->toBe('MX')
+            ->and($snapshot->phone?->nationalNumber)->toBe(PhoneNumbers::MX_NATIONAL_NUMBER);
+    });
+
+    it('translates an address the customers domain refused into its own failure', function () {
+        $failure = null;
+
+        try {
+            ($this->findOrCreate)(new GuestContact(
+                name: CustomerFixtures::NAME,
+                email: null,
+                phone: null,
+                address: new GuestAddress(street: '   ', city: null, stateName: null, postalCode: null, countryCode: 'MX'),
+            ));
+        } catch (InvalidGuestAddress $refused) {
+            $failure = $refused;
+        }
+
+        expect($failure)->toBeInstanceOf(InvalidGuestAddress::class)
+            ->and($failure?->errorCode())->toBe('invalid_guest_address')
+            ->and($failure?->kind())->toBe(DomainFailureKind::Invalid)
+            ->and($failure?->getPrevious())->toBeInstanceOf(InvalidCustomerAddress::class)
+            ->and($this->customers->saved)->toBe([]);
+    });
+
+    it('translates a name the customers domain refused into its own failure', function () {
+        expect(fn () => ($this->findOrCreate)(new GuestContact(name: '   ', email: null, phone: null)))
+            ->toThrow(InvalidGuestName::class);
     });
 });

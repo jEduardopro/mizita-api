@@ -8,6 +8,7 @@ use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
 use App\Shared\ValueObjects\CurrencyCode;
 use Tests\Support\Businesses\FakeBookingPageSettings;
 use Tests\Support\Businesses\FakeBookingPolicySettings;
@@ -70,6 +71,11 @@ it('assembles the whole settings screen out of the business and its neighbours',
     $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
         leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
     ));
+    $this->bookingPolicies->storeContactFields(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::contactFields(
+        phone: ContactFieldPreference::Hidden,
+        email: ContactFieldPreference::Required,
+        address: ContactFieldPreference::Optional,
+    ));
 
     $data = ($this->describe)();
 
@@ -90,7 +96,10 @@ it('assembles the whole settings screen out of the business and its neighbours',
         ->and($data->links)->toHaveCount(1)
         ->and($data->links[0]->platform)->toBe('instagram')
         ->and($data->bookingPage->bannerUrl)->toBe(SettingsFixtures::BANNER_URL)
-        ->and($data->bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES);
+        ->and($data->bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES)
+        ->and($data->contactFields->phone)->toBe(ContactFieldPreference::Hidden)
+        ->and($data->contactFields->email)->toBe(ContactFieldPreference::Required)
+        ->and($data->contactFields->address)->toBe(ContactFieldPreference::Optional);
 });
 
 it('always describes a booking policy, because one is provisioned on first use', function () {
@@ -184,6 +193,7 @@ it('asks every neighbour about the business it was given and about no other', fu
         ->and($this->links->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
         ->and($this->bookingPages->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
         ->and($this->bookingPolicies->reads)->toBe([FakeBusinessContext::BUSINESS_ID])
+        ->and($this->bookingPolicies->contactFieldReads)->toBe([FakeBusinessContext::BUSINESS_ID])
         ->and($this->businesses->idsRead)->toBe([FakeBusinessContext::BUSINESS_ID]);
 });
 
@@ -198,6 +208,10 @@ it('never reaches another business settings, even when that business has filled 
     $this->phones->store(SettingsFixtures::OTHER_BUSINESS_ID, PhoneNumbers::american());
     $this->addresses->store(SettingsFixtures::OTHER_BUSINESS_ID, SettingsFixtures::address(street: 'Calle Ajena 1'));
     $this->links->store(SettingsFixtures::OTHER_BUSINESS_ID, SettingsFixtures::link(platform: 'facebook'));
+    $this->bookingPolicies->storeContactFields(SettingsFixtures::OTHER_BUSINESS_ID, SettingsFixtures::contactFields(
+        phone: ContactFieldPreference::Hidden,
+        address: ContactFieldPreference::Required,
+    ));
 
     $data = ($this->describe)();
 
@@ -205,7 +219,9 @@ it('never reaches another business settings, even when that business has filled 
         ->and($data->logoUrl)->toBeNull()
         ->and($data->phone)->toBeNull()
         ->and($data->address)->toBeNull()
-        ->and($data->links)->toBe([]);
+        ->and($data->links)->toBe([])
+        ->and($data->contactFields->phone)->toBe(ContactFieldPreference::Required)
+        ->and($data->contactFields->address)->toBe(ContactFieldPreference::Hidden);
 });
 
 it('refuses to describe a business that is not on record', function () {
@@ -222,5 +238,6 @@ it('asks no neighbour about a business it could not find', function () {
     expect($this->logo->reads)->toBe([])
         ->and($this->phones->reads)->toBe([])
         ->and($this->addresses->reads)->toBe([])
-        ->and($this->bookingPolicies->reads)->toBe([]);
+        ->and($this->bookingPolicies->reads)->toBe([])
+        ->and($this->bookingPolicies->contactFieldReads)->toBe([]);
 });

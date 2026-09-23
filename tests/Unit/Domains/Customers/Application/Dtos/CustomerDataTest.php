@@ -142,3 +142,21 @@ it('carries an address that names a street and nothing around it', function () {
         ->and($address->postalCode)->toBeNull()
         ->and($address->countryCode)->toBe('MX');
 });
+
+it('carries the state name a guest typed', function () {
+    $address = CustomerAddressData::fromSnapshot(new CustomerAddressSnapshot(
+        street: 'Avenida Insurgentes Sur 1602',
+        city: null,
+        stateId: null,
+        postalCode: null,
+        countryCode: 'MX',
+        stateName: 'Nuevo León',
+    ));
+
+    expect($address->stateName)->toBe('Nuevo León')
+        ->and($address->stateId)->toBeNull();
+});
+
+it('carries no state name when the snapshot had none', function () {
+    expect(CustomerAddressData::fromSnapshot(customerAddressSnapshot())->stateName)->toBeNull();
+});

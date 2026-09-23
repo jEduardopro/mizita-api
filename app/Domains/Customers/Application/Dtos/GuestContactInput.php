@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Domains\Customers\Application\Dtos;
 
 use App\Domains\Customers\Entities\Customer;
+use App\Domains\Customers\Exceptions\InvalidCustomerAddress;
 use App\Domains\Customers\Exceptions\InvalidCustomerEmail;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use App\Domains\Customers\Exceptions\InvalidCustomerNotes;
 use App\Domains\Customers\Exceptions\InvalidCustomerPhone;
-use App\Domains\Customers\Exceptions\InvalidGuestContact;
 use App\Domains\Customers\ValueObjects\CustomerEmail;
 
 final readonly class GuestContactInput
@@ -19,6 +19,7 @@ final readonly class GuestContactInput
         public ?string $email,
         public ?CustomerPhoneInput $phone,
         public ?string $notes,
+        public ?GuestAddressInput $address = null,
     ) {}
 
     /**
@@ -31,6 +32,7 @@ final readonly class GuestContactInput
             email: self::textOrNull($payload['email'] ?? null),
             phone: CustomerPhoneInput::fromPayload($payload['phone'] ?? null),
             notes: self::textOrNull($payload['notes'] ?? null),
+            address: GuestAddressInput::fromPayload($payload['address'] ?? null),
         );
     }
 
@@ -39,7 +41,7 @@ final readonly class GuestContactInput
      * @throws InvalidCustomerEmail
      * @throws InvalidCustomerPhone
      * @throws InvalidCustomerNotes
-     * @throws InvalidGuestContact
+     * @throws InvalidCustomerAddress
      */
     public function validate(): void
     {
@@ -47,7 +49,7 @@ final readonly class GuestContactInput
         $this->validateEmail();
         $this->phone?->validate();
         $this->validateNotes();
-        $this->validateContactChannel();
+        $this->address?->validate();
     }
 
     private static function textOrEmpty(mixed $value): string
@@ -82,13 +84,6 @@ final readonly class GuestContactInput
     {
         if ($this->notes !== null && mb_strlen(trim($this->notes)) > Customer::MAXIMUM_NOTES_LENGTH) {
             throw InvalidCustomerNotes::tooLong(Customer::MAXIMUM_NOTES_LENGTH);
-        }
-    }
-
-    private function validateContactChannel(): void
-    {
-        if ($this->email === null && $this->phone === null) {
-            throw InvalidGuestContact::withoutEmailOrPhone();
         }
     }
 }

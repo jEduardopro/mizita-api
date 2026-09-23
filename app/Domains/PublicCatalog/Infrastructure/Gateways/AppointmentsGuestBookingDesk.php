@@ -6,6 +6,7 @@ namespace App\Domains\PublicCatalog\Infrastructure\Gateways;
 
 use App\Domains\Appointments\Application\Dtos\BookAppointmentAsGuestInput;
 use App\Domains\Appointments\Application\Dtos\CancelGuestBookingInput;
+use App\Domains\Appointments\Application\Dtos\GuestAddressInput;
 use App\Domains\Appointments\Application\Dtos\GuestBookingCredentials;
 use App\Domains\Appointments\Application\Dtos\GuestDetailsInput;
 use App\Domains\Appointments\Application\Dtos\RescheduleGuestBookingInput;
@@ -16,6 +17,7 @@ use App\Domains\PublicCatalog\Contracts\GuestBookingDesk;
 use App\Domains\PublicCatalog\Infrastructure\Mappers\GuestBookingMapper;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingCredentials;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingRequest;
+use App\Domains\PublicCatalog\ValueObjects\PublicGuestAddress;
 use App\Domains\PublicCatalog\ValueObjects\PublicGuestBooking;
 use App\Domains\PublicCatalog\ValueObjects\PublicGuestBookingConfirmation;
 
@@ -28,8 +30,11 @@ final class AppointmentsGuestBookingDesk implements GuestBookingDesk
         private readonly GuestBookingMapper $mapper,
     ) {}
 
-    public function book(string $businessId, PublicBookingRequest $request): PublicGuestBookingConfirmation
-    {
+    public function book(
+        string $businessId,
+        PublicBookingRequest $request,
+        string $addressCountryCode,
+    ): PublicGuestBookingConfirmation {
         $response = $this->bookAppointmentAsGuest->handle(new BookAppointmentAsGuestInput(
             businessId: $businessId,
             serviceId: $request->serviceId,
@@ -40,6 +45,7 @@ final class AppointmentsGuestBookingDesk implements GuestBookingDesk
                 email: $request->guest->email,
                 phoneCountryCode: $request->guest->phoneCountryCode,
                 phoneNationalNumber: $request->guest->phoneNationalNumber,
+                address: self::addressFor($request->guest->address, $addressCountryCode),
             ),
             notes: $request->notes,
         ));
@@ -74,6 +80,21 @@ final class AppointmentsGuestBookingDesk implements GuestBookingDesk
         ));
 
         return $this->mapper->toPublicBooking($response->value());
+    }
+
+    private static function addressFor(?PublicGuestAddress $address, string $countryCode): ?GuestAddressInput
+    {
+        if ($address === null) {
+            return null;
+        }
+
+        return new GuestAddressInput(
+            street: $address->street ?? '',
+            city: $address->city,
+            stateName: $address->state,
+            postalCode: $address->postalCode,
+            countryCode: $countryCode,
+        );
     }
 
     private function credentialsFor(PublicBookingCredentials $credentials): GuestBookingCredentials

@@ -1,144 +1,124 @@
 import { cn } from 'cn';
-import { useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField } from '@/components/form/FormField';
 import { PhoneField } from '@/components/form/PhoneField';
 import { SubmitButton } from '@/components/form/SubmitButton';
 import { TextareaField } from '@/components/form/TextareaField';
-import { useServerErrors } from '@/hooks/use-server-errors';
 import {
     brandColorClasses,
     BUTTON_SHAPE_CLASSES,
     type BrandColor,
     type ButtonShape,
 } from '@/lib/booking-brand';
-import { isRateLimitedError } from '@/lib/http';
-import type { PublicGuestPayload } from '../../types';
+import type { PublicContactFields, PublicGuestPayload } from '../../types';
+import { BookingAddressFields } from './BookingAddressFields';
 import {
-    BOOKING_DETAILS_SERVER_FIELDS,
-    EMPTY_BOOKING_DETAILS,
-    guestFrom,
-    hasContactDetails,
-    notesFrom,
-    phoneCountryOptions,
-    supportedPhoneCountry,
-    type BookingDetailsField,
-    type BookingDetailsValues,
-} from './booking-details-values';
+    isContactFieldOptional,
+    isContactFieldRequired,
+    isContactFieldShown,
+    type ShownContactFieldLevel,
+} from './contact-field-levels';
+import { ContactFieldLabel } from './ContactFieldLabel';
+import { useBookingDetailsForm } from './use-booking-details-form';
 
 type Props = {
     accentColor: BrandColor;
     buttonShape: ButtonShape;
+    contactFields: PublicContactFields;
     isSubmitting: boolean;
     onSubmit(guest: PublicGuestPayload, notes: string | null): Promise<void>;
 };
 
-export function BookingDetailsForm({ accentColor, buttonShape, isSubmitting, onSubmit }: Props) {
-    const { t, i18n } = useTranslation('public');
-    const [values, setValues] = useState<BookingDetailsValues>(EMPTY_BOOKING_DETAILS);
-    const [attempted, setAttempted] = useState(false);
-    const serverErrors = useServerErrors();
-
-    const countries = useMemo(() => phoneCountryOptions(i18n.language), [i18n.language]);
+export function BookingDetailsForm({
+    accentColor,
+    buttonShape,
+    contactFields,
+    isSubmitting,
+    onSubmit,
+}: Props) {
+    const { t } = useTranslation('public');
+    const form = useBookingDetailsForm({ contactFields, onSubmit });
     const accent = brandColorClasses[accentColor];
-    const contactMissing = attempted && ! hasContactDetails(values);
+    const { phone, email, address } = contactFields;
 
-    function update<Field extends BookingDetailsField>(
-        field: Field,
-        value: BookingDetailsValues[Field],
-    ): void {
-        setValues((current) => ({ ...current, [field]: value }));
-        serverErrors.clearField(BOOKING_DETAILS_SERVER_FIELDS[field]);
-    }
-
-    function selectPhoneCountry(code: string): void {
-        const country = supportedPhoneCountry(code);
-
-        if (country !== null) {
-            update('phoneCountry', country);
-        }
-    }
-
-    function errorFor(field: BookingDetailsField): string | undefined {
-        return serverErrors.fieldErrors[BOOKING_DETAILS_SERVER_FIELDS[field]];
-    }
-
-    function fallbackMessage(error: unknown): string {
-        return isRateLimitedError(error)
-            ? t('booking.flow.errors.tooMany')
-            : t('booking.flow.errors.booking');
-    }
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-        event.preventDefault();
-        setAttempted(true);
-
-        if (! hasContactDetails(values)) {
-            return;
-        }
-
-        serverErrors.reset();
-
-        try {
-            await onSubmit(guestFrom(values), notesFrom(values));
-        } catch (error) {
-            serverErrors.capture(error, fallbackMessage(error));
-        }
+    function hintFor(level: ShownContactFieldLevel, hint: string): string {
+        return isContactFieldOptional(level) ? t('booking.flow.details.optionalHint', { hint }) : hint;
     }
 
     return (
-        <form onSubmit={handleSubmit} className="grid gap-6">
+        <form onSubmit={form.handleSubmit} className="grid gap-6">
             <div className="grid gap-5 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm sm:p-6">
                 <FormField
                     id="booking-guest-name"
-                    label={t('booking.flow.details.name.label')}
+                    label={<ContactFieldLabel text={t('booking.flow.details.name.label')} required />}
                     placeholder={t('booking.flow.details.name.placeholder')}
                     autoComplete="name"
                     required
-                    value={values.name}
-                    onChange={(event) => update('name', event.target.value)}
-                    error={errorFor('name')}
+                    value={form.values.name}
+                    onChange={(event) => form.update('name', event.target.value)}
+                    error={form.errorFor('name')}
                 />
 
-                <PhoneField
-                    id="booking-guest-phone"
-                    label={t('booking.flow.details.phone.label')}
-                    countryLabel={t('booking.flow.details.phone.label')}
-                    numberLabel={t('booking.flow.details.phone.label')}
-                    countries={countries}
-                    country={values.phoneCountry}
-                    onCountryChange={selectPhoneCountry}
-                    number={values.phoneNumber}
-                    onNumberChange={(value) => update('phoneNumber', value)}
-                    hint={t('booking.flow.details.phone.hint')}
-                    error={
-                        contactMissing
-                            ? t('booking.flow.details.contactHint')
-                            : errorFor('phoneNumber')
-                    }
-                />
+                {isContactFieldShown(phone) ? (
+                    <PhoneField
+                        id="booking-guest-phone"
+                        label={
+                            <ContactFieldLabel
+                                text={t('booking.flow.details.phone.label')}
+                                required={isContactFieldRequired(phone)}
+                            />
+                        }
+                        countryLabel={t('booking.flow.details.phone.country')}
+                        numberLabel={t('booking.flow.details.phone.number')}
+                        countries={form.countries}
+                        country={form.values.phoneCountry}
+                        onCountryChange={form.selectPhoneCountry}
+                        number={form.values.phoneNumber}
+                        onNumberChange={(value) => form.update('phoneNumber', value)}
+                        required={isContactFieldRequired(phone)}
+                        hint={hintFor(phone, t('booking.flow.details.phone.hint'))}
+                        error={form.errorFor('phoneNumber')}
+                    />
+                ) : null}
 
-                <FormField
-                    id="booking-guest-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    label={t('booking.flow.details.email.label')}
-                    hint={t('booking.flow.details.email.hint')}
-                    value={values.email}
-                    onChange={(event) => update('email', event.target.value)}
-                    error={errorFor('email')}
-                />
+                {isContactFieldShown(email) ? (
+                    <FormField
+                        id="booking-guest-email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        label={
+                            <ContactFieldLabel
+                                text={t('booking.flow.details.email.label')}
+                                required={isContactFieldRequired(email)}
+                            />
+                        }
+                        required={isContactFieldRequired(email)}
+                        hint={hintFor(email, t('booking.flow.details.email.hint'))}
+                        value={form.values.email}
+                        onChange={(event) => form.update('email', event.target.value)}
+                        error={form.errorFor('email')}
+                    />
+                ) : null}
+
+                {isContactFieldShown(address) ? (
+                    <BookingAddressFields
+                        level={address}
+                        values={form.values}
+                        onChange={form.update}
+                        errorFor={form.errorFor}
+                    />
+                ) : null}
 
                 <TextareaField
                     id="booking-notes"
                     label={t('booking.flow.details.notes.label')}
                     hint={t('booking.flow.details.notes.hint')}
-                    value={values.notes}
-                    onChange={(event) => update('notes', event.target.value)}
-                    error={errorFor('notes')}
+                    value={form.values.notes}
+                    onChange={(event) => form.update('notes', event.target.value)}
+                    error={form.errorFor('notes')}
                 />
             </div>
 

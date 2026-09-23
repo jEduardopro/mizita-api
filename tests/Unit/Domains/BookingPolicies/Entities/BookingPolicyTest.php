@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domains\BookingPolicies\Entities\BookingPolicy;
 use App\Domains\BookingPolicies\ValueObjects\BookingWindow;
 use App\Domains\BookingPolicies\ValueObjects\CancellationWindow;
+use App\Domains\BookingPolicies\ValueObjects\ContactFieldRequirement;
+use App\Domains\BookingPolicies\ValueObjects\ContactFields;
 use App\Domains\BookingPolicies\ValueObjects\LeadTime;
 use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\BookingPolicies\ValueObjects\SlotGranularity;
@@ -41,6 +43,13 @@ describe('the policy a business starts with', function () {
     it('publishes no policy message and keeps the policy off the booking page', function () {
         expect($this->policy->policyMessage()->toString())->toBeNull()
             ->and($this->policy->isDisplayedOnBookingPage())->toBeFalse();
+    });
+
+    it('asks the booking form for a required phone, an optional email and no address', function () {
+        expect($this->policy->contactFields()->phone)->toBe(ContactFieldRequirement::Required)
+            ->and($this->policy->contactFields()->email)->toBe(ContactFieldRequirement::Optional)
+            ->and($this->policy->contactFields()->address)->toBe(ContactFieldRequirement::Hidden)
+            ->and($this->policy->contactFields())->toEqual(ContactFields::defaults());
     });
 
     it('carries the identity and the business it was created for', function () {
@@ -113,6 +122,12 @@ describe('revising the policy', function () {
             ->and($this->policy->createdAt)->toEqual(BookingPolicyFixtures::now());
     });
 
+    it('leaves the contact fields exactly as they were', function () {
+        ($this->revise)();
+
+        expect($this->policy->contactFields())->toEqual(BookingPolicyFixtures::contactFields());
+    });
+
     it('leaves the booking page toggle exactly where it was', function (bool $displayed) {
         $policy = BookingPolicyFixtures::policy(displayedOnBookingPage: $displayed);
 
@@ -129,6 +144,50 @@ describe('revising the policy', function () {
         'shown' => true,
         'hidden' => false,
     ]);
+});
+
+describe('revising the contact fields', function () {
+    beforeEach(function () {
+        $this->policy = BookingPolicyFixtures::policy();
+
+        $this->policy->reviseContactFields(new ContactFields(
+            phone: ContactFieldRequirement::Optional,
+            email: ContactFieldRequirement::Hidden,
+            address: ContactFieldRequirement::Required,
+        ));
+    });
+
+    it('replaces the requirement of every field the booking form collects', function () {
+        expect($this->policy->contactFields()->phone)->toBe(ContactFieldRequirement::Optional)
+            ->and($this->policy->contactFields()->email)->toBe(ContactFieldRequirement::Hidden)
+            ->and($this->policy->contactFields()->address)->toBe(ContactFieldRequirement::Required);
+    });
+
+    it('touches none of the booking rules', function () {
+        expect($this->policy->leadTime()->minutes)->toBe(60)
+            ->and($this->policy->bookingWindow()->minutes())->toBe(43200)
+            ->and($this->policy->slotGranularity()->minutes)->toBe(30)
+            ->and($this->policy->cancellationWindow()->minutes)->toBe(240)
+            ->and($this->policy->policyMessage()->toString())->toBe(BookingPolicyFixtures::POLICY_MESSAGE);
+    });
+
+    it('leaves the booking page toggle where it was', function () {
+        expect($this->policy->isDisplayedOnBookingPage())->toBeTrue();
+    });
+
+    it('touches neither the identity nor the business nor the creation instant', function () {
+        expect($this->policy->id)->toBe(BookingPolicyFixtures::POLICY_ID)
+            ->and($this->policy->businessId)->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->policy->createdAt)->toEqual(BookingPolicyFixtures::now());
+    });
+
+    it('accepts the very requirements it already holds', function () {
+        $policy = BookingPolicyFixtures::policy();
+
+        $policy->reviseContactFields(BookingPolicyFixtures::contactFields());
+
+        expect($policy->contactFields())->toEqual(BookingPolicyFixtures::contactFields());
+    });
 });
 
 describe('showing the policy on the booking page', function () {
@@ -177,6 +236,11 @@ it('restores a policy from persistence exactly as the row held it', function () 
         cancellationWindowMinutes: null,
         policyMessage: null,
         displayedOnBookingPage: false,
+        contactFields: BookingPolicyFixtures::contactFields(
+            phone: ContactFieldRequirement::Optional,
+            email: ContactFieldRequirement::Optional,
+            address: ContactFieldRequirement::Required,
+        ),
     );
 
     expect($policy->leadTime()->minutes)->toBe(7)
@@ -184,7 +248,10 @@ it('restores a policy from persistence exactly as the row held it', function () 
         ->and($policy->slotGranularity()->minutes)->toBe(7)
         ->and($policy->cancellationWindow()->isAllowed())->toBeFalse()
         ->and($policy->policyMessage()->toString())->toBeNull()
-        ->and($policy->isDisplayedOnBookingPage())->toBeFalse();
+        ->and($policy->isDisplayedOnBookingPage())->toBeFalse()
+        ->and($policy->contactFields()->phone)->toBe(ContactFieldRequirement::Optional)
+        ->and($policy->contactFields()->email)->toBe(ContactFieldRequirement::Optional)
+        ->and($policy->contactFields()->address)->toBe(ContactFieldRequirement::Required);
 });
 
 it('belongs to the business it was created for, never to another', function () {

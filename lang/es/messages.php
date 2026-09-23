@@ -119,15 +119,17 @@ return [
         'customer_phone_taken' => 'Ya tienes un cliente con ese número de teléfono.',
         'invalid_customer_name' => 'Ese nombre de cliente no es válido.',
         'invalid_customer_email' => 'Ese correo electrónico no es válido.',
+        'invalid_customer_address' => 'Esa dirección no es válida.',
+        'invalid_guest_address' => 'Esa dirección no es válida.',
         'invalid_customer_phone' => 'Ese no es un número de teléfono válido para el país seleccionado.',
         'invalid_customer_birth_date' => 'Esa fecha de nacimiento no es válida.',
         'invalid_customer_notes' => 'Esas notas son demasiado largas.',
         'invalid_customer_search' => 'Esa búsqueda es demasiado larga.',
-        'invalid_guest_contact' => 'Deja un correo electrónico o un número de teléfono para poder confirmar la reserva.',
         'customer_photo_too_large' => 'Esa foto es demasiado grande. Usa una de menos de 2 MB.',
         'unsupported_customer_photo' => 'Ese archivo no es una foto compatible. Usa un JPG, PNG o WebP.',
 
         'invalid_address_street' => 'Esa calle no es válida.',
+        'invalid_address_state_name' => 'Ese estado no es válido.',
         'invalid_address_city' => 'Esa ciudad no es válida.',
         'invalid_address_postal_code' => 'Ese código postal no es válido.',
         'address_city_cannot_be_cleared' => 'La ciudad de una dirección guardada no se puede quitar, solo cambiar.',
@@ -178,7 +180,9 @@ return [
         'invalid_guest_name' => 'Ingresa el nombre de la persona que asistirá.',
         'invalid_guest_email' => 'Ese correo electrónico no es válido.',
         'invalid_guest_phone' => 'Ese número de teléfono no es válido.',
-        'missing_guest_contact_channel' => 'Proporciona un correo electrónico o un número de teléfono.',
+        'missing_guest_phone' => 'Ingresa tu número de teléfono.',
+        'missing_guest_email' => 'Ingresa tu correo electrónico.',
+        'missing_guest_address' => 'Ingresa tu dirección completa.',
 
         'invalid_reference_code' => 'Ese código de reserva no es válido.',
         'invalid_manage_token' => 'Ese enlace de gestión no es válido.',
@@ -192,6 +196,8 @@ return [
         'invalid_slot_granularity' => 'Ese intervalo entre horarios no es válido.',
         'invalid_cancellation_window' => 'Ese plazo de cancelación no es válido.',
         'invalid_policy_message' => 'Ese mensaje de la política no es válido.',
+        'incomplete_contact_fields' => 'Los campos del formulario de reserva deben guardarse con teléfono, correo electrónico y dirección definidos.',
+        'invalid_contact_field_requirement' => 'Cada campo del formulario de reserva debe estar oculto, ser opcional u obligatorio.',
 
         // Payments. Nothing here repeats an amount the caller already sent, and
         // nothing confirms that a payment exists in another business.

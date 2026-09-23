@@ -3,7 +3,9 @@
         "calendar": "Calendar",
         "services": "Services",
         "customers": "Customers",
-        "settings": "Settings"
+        "settings": "Settings",
+        "brand": "Your brand",
+        "bookingPreferences": "Booking preferences"
     },
     "shell": {
         "toggleSidebar": "Show or hide the menu",
@@ -632,7 +634,7 @@
         }
     },
     "businessSettings": {
-        "title": "Business settings",
+        "title": "Your brand",
         "description": "Your brand, your contact details and how your booking page looks.",
         "preview": {
             "title": "Preview",
@@ -747,7 +749,6 @@
             "contact": "Contact",
             "location": "Location",
             "hours": "Hours",
-            "policy": "Booking policy",
             "links": "Links"
         },
         "brand": {
@@ -846,6 +847,42 @@
                 "USD": "US dollar (USD)"
             }
         },
+        "links": {
+            "title": "Links",
+            "description": "Connect your profiles so customers can find you.",
+            "platforms": {
+                "website": "Website",
+                "instagram": "Instagram",
+                "facebook": "Facebook",
+                "tiktok": "TikTok",
+                "x": "X",
+                "linkedin": "LinkedIn",
+                "youtube": "YouTube",
+                "whatsapp": "WhatsApp"
+            }
+        },
+        "toasts": {
+            "saved": "Changes saved"
+        },
+        "errors": {
+            "unexpected": "We could not save your changes. Try again."
+        },
+        "failed": {
+            "title": "We could not load your settings",
+            "body": "Check your connection and try again."
+        },
+        "submit": {
+            "save": "Save",
+            "saving": "Saving…"
+        }
+    },
+    "bookingPreferences": {
+        "title": "Booking preferences",
+        "description": "When your customers can book, and what they tell you when they do.",
+        "sections": {
+            "policy": "Booking policy",
+            "contactFields": "Contact fields"
+        },
         "policy": {
             "title": "Booking policy",
             "description": "When customers can book, and how late they can change an appointment.",
@@ -898,33 +935,28 @@
                 "months": "Months"
             }
         },
-        "links": {
-            "title": "Links",
-            "description": "Connect your profiles so customers can find you.",
-            "platforms": {
-                "website": "Website",
-                "instagram": "Instagram",
-                "facebook": "Facebook",
-                "tiktok": "TikTok",
-                "x": "X",
-                "linkedin": "LinkedIn",
-                "youtube": "YouTube",
-                "whatsapp": "WhatsApp"
-            }
+        "contactFields": {
+            "title": "Contact fields",
+            "description": "Which form fields do customers see when they book online?",
+            "fields": {
+                "name": "Name",
+                "phone": "Phone",
+                "email": "Email",
+                "address": "Address"
+            },
+            "required": "Required",
+            "requiredFor": "Required: {{field}}",
+            "alwaysRequired": "Always required"
+        },
+        "submit": {
+            "save": "Save",
+            "saving": "Saving…"
         },
         "toasts": {
             "saved": "Changes saved"
         },
         "errors": {
             "unexpected": "We could not save your changes. Try again."
-        },
-        "failed": {
-            "title": "We could not load your settings",
-            "body": "Check your connection and try again."
-        },
-        "submit": {
-            "save": "Save",
-            "saving": "Saving…"
         }
     }
 }

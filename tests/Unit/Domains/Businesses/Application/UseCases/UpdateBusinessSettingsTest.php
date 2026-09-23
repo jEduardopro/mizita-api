@@ -6,7 +6,9 @@ use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
 use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
 use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Availability\Exceptions\OverlappingScheduleIntervals;
+use App\Domains\BookingPolicies\Exceptions\BookingPolicyNotFound;
 use App\Domains\BookingPolicies\Exceptions\InvalidLeadTime;
+use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
 use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
@@ -17,6 +19,8 @@ use App\Domains\Businesses\Application\UseCases\UpdateBusinessSettings;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Domains\Links\Exceptions\InvalidLinkPlatform;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\ValueObjects\CountryCode;
@@ -87,6 +91,7 @@ beforeEach(function () {
         ->and($this->addresses->wasWritten())->toBeFalse()
         ->and($this->bookingPages->applications)->toBe([])
         ->and($this->bookingPolicies->applications)->toBe([])
+        ->and($this->bookingPolicies->contactFieldApplications)->toBe([])
         ->and($this->schedule->replacements)->toBe([])
         ->and($this->links->replacements)->toBe([]);
 });
@@ -105,7 +110,10 @@ describe('updating every section at once', function () {
             ->and($data->schedule)->toHaveCount(1)
             ->and($data->links)->toHaveCount(1)
             ->and($data->bookingPage->accentColor)->toBe('teal')
-            ->and($data->bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES);
+            ->and($data->bookingPolicy->leadTimeMinutes)->toBe(SettingsFixtures::LEAD_TIME_MINUTES)
+            ->and($data->contactFields->phone)->toBe(ContactFieldPreference::Hidden)
+            ->and($data->contactFields->email)->toBe(ContactFieldPreference::Required)
+            ->and($data->contactFields->address)->toBe(ContactFieldPreference::Optional);
     });
 
     it('hands the whole update to the transaction manager as one unit of work', function () {
@@ -485,6 +493,133 @@ describe('the booking policy', function () {
     });
 });
 
+describe('the contact fields', function () {
+    it('hands the submitted requirements to the port that owns them, exactly once', function () {
+        ($this->update)(new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()));
+
+        expect($this->bookingPolicies->contactFieldApplications)->toHaveCount(1)
+            ->and($this->bookingPolicies->contactFieldApplications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('translates each submitted string into the preference of the field it was sent for', function () {
+        ($this->update)(new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput(
+            phone: 'hidden',
+            email: 'required',
+            address: 'optional',
+        )));
+
+        $preferences = $this->bookingPolicies->contactFieldApplications[0]['preferences'];
+
+        expect($preferences)->toBeInstanceOf(ContactFieldPreferences::class)
+            ->and($preferences->phone)->toBe(ContactFieldPreference::Hidden)
+            ->and($preferences->email)->toBe(ContactFieldPreference::Required)
+            ->and($preferences->address)->toBe(ContactFieldPreference::Optional);
+    });
+
+    it('leaves the contact fields untouched when the patch carried no contact fields section', function (UpdateBusinessSettingsInput $input) {
+        ($this->update)($input);
+
+        expect($this->bookingPolicies->contactFieldApplications)->toBe([]);
+    })->with([
+        'nothing at all' => fn () => new UpdateBusinessSettingsInput,
+        'booking policy only' => fn () => new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()),
+        'brand only' => fn () => new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()),
+        'appearance only' => fn () => new UpdateBusinessSettingsInput(appearance: SettingsFixtures::appearance()),
+    ]);
+
+    it('leaves the booking rules untouched when only the contact fields were sent', function () {
+        ($this->update)(new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()));
+
+        expect($this->bookingPolicies->applications)->toBe([])
+            ->and($this->businesses->saved)->toBe([])
+            ->and($this->bookingPages->applications)->toBe([])
+            ->and($this->schedule->replacements)->toBe([])
+            ->and($this->links->replacements)->toBe([]);
+    });
+
+    it('answers with the contact fields as they now stand', function () {
+        $contactFields = ($this->update)(new UpdateBusinessSettingsInput(
+            contactFields: SettingsFixtures::contactFieldsInput(phone: 'optional', email: 'hidden', address: 'required'),
+        ))->value()->contactFields;
+
+        expect($contactFields->phone)->toBe(ContactFieldPreference::Optional)
+            ->and($contactFields->email)->toBe(ContactFieldPreference::Hidden)
+            ->and($contactFields->address)->toBe(ContactFieldPreference::Required);
+    });
+
+    it('answers with the contact fields the business already had when the patch left them out', function () {
+        $contactFields = ($this->update)(new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()))
+            ->value()
+            ->contactFields;
+
+        expect($contactFields->phone)->toBe(ContactFieldPreference::Required)
+            ->and($contactFields->email)->toBe(ContactFieldPreference::Optional)
+            ->and($contactFields->address)->toBe(ContactFieldPreference::Hidden);
+    });
+
+    it('writes the contact fields inside the unit of work, never outside it', function () {
+        $transactions = Mockery::mock(TransactionManager::class);
+        $transactions->shouldReceive('run')->once()->andReturnNull();
+
+        ($this->useCaseWith)($transactions)->handle(new UpdateBusinessSettingsInput(
+            contactFields: SettingsFixtures::contactFieldsInput(),
+        ));
+
+        expect($this->bookingPolicies->contactFieldApplications)->toBe([]);
+    });
+
+    it('never reaches the contact fields when the booking policy port refused', function () {
+        $this->bookingPolicies->failingOnApply(InvalidLeadTime::negative(-1));
+
+        ($this->update)(SettingsFixtures::everything());
+
+        expect($this->bookingPolicies->contactFieldApplications)->toBe([]);
+    });
+
+    it('applies the booking policy before the contact fields', function () {
+        $this->bookingPolicies->failingOnApplyContactFields(BookingPolicyNotFound::withId(FakeBusinessContext::BUSINESS_ID));
+
+        ($this->update)(SettingsFixtures::everything());
+
+        expect($this->bookingPolicies->applications)->toHaveCount(1);
+    });
+
+    it('carries a refusal the contact fields port raised back to the caller', function () {
+        $this->bookingPolicies->failingOnApplyContactFields(BookingPolicyNotFound::withId(FakeBusinessContext::BUSINESS_ID));
+
+        $response = ($this->update)(new UpdateBusinessSettingsInput(
+            contactFields: SettingsFixtures::contactFieldsInput(),
+        ));
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('booking_policy_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('never reaches the schedule or the links once the contact fields port refused', function () {
+        $this->bookingPolicies->failingOnApplyContactFields(BookingPolicyNotFound::withId(FakeBusinessContext::BUSINESS_ID));
+
+        ($this->update)(SettingsFixtures::everything());
+
+        expect($this->schedule->replacements)->toBe([])
+            ->and($this->links->replacements)->toBe([]);
+    });
+
+    it('leaves another business contact fields alone', function () {
+        $this->bookingPolicies->storeContactFields(
+            SettingsFixtures::OTHER_BUSINESS_ID,
+            SettingsFixtures::contactFields(address: ContactFieldPreference::Required),
+        );
+
+        ($this->update)(new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()));
+
+        expect($this->bookingPolicies->contactFieldsFor(SettingsFixtures::OTHER_BUSINESS_ID)->address)
+            ->toBe(ContactFieldPreference::Required)
+            ->and(array_column($this->bookingPolicies->contactFieldApplications, 'businessId'))
+            ->not->toContain(SettingsFixtures::OTHER_BUSINESS_ID);
+    });
+});
+
 describe('patching one section at a time', function () {
     it('never calls the port of a section the client left out', function () {
         ($this->update)(new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()));
@@ -493,6 +628,7 @@ describe('patching one section at a time', function () {
             ->and($this->addresses->wasWritten())->toBeFalse()
             ->and($this->bookingPages->applications)->toBe([])
             ->and($this->bookingPolicies->applications)->toBe([])
+            ->and($this->bookingPolicies->contactFieldApplications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     });
@@ -552,6 +688,7 @@ describe('patching one section at a time', function () {
             ->and($this->addresses->wasWritten())->toBeFalse()
             ->and($this->bookingPages->applications)->toBe([])
             ->and($this->bookingPolicies->applications)->toBe([])
+            ->and($this->bookingPolicies->contactFieldApplications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     });
@@ -573,6 +710,9 @@ describe('leaving the business row alone', function () {
         'an empty link list only' => fn () => new UpdateBusinessSettingsInput(links: new LinksInput([])),
         'booking policy only' => fn () => new UpdateBusinessSettingsInput(
             bookingPolicy: SettingsFixtures::bookingPolicyInput(),
+        ),
+        'contact fields only' => fn () => new UpdateBusinessSettingsInput(
+            contactFields: SettingsFixtures::contactFieldsInput(),
         ),
         'appearance, schedule and links together' => fn () => new UpdateBusinessSettingsInput(
             appearance: SettingsFixtures::appearance(),
@@ -652,6 +792,14 @@ describe('refusing an update', function () {
             new UpdateBusinessSettingsInput(location: SettingsFixtures::location(timezone: '+02:00')),
             'invalid_timezone',
         ],
+        'contact fields missing a field' => [
+            new UpdateBusinessSettingsInput(contactFields: ContactFieldsInput::fromPayload(['phone' => 'required'])),
+            'incomplete_contact_fields',
+        ],
+        'a contact field requirement nobody declared' => [
+            new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput(address: 'mandatory')),
+            'invalid_contact_field_requirement',
+        ],
     ]);
 
     it('answers with a failure when the business in context is not on record', function () {
@@ -717,6 +865,7 @@ describe('refusing an update', function () {
             ->and($this->businesses->saved)->toBe([])
             ->and($this->bookingPages->applications)->toBe([])
             ->and($this->bookingPolicies->applications)->toBe([])
+            ->and($this->bookingPolicies->contactFieldApplications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     })->with([
@@ -755,6 +904,7 @@ describe('refusing an update', function () {
             ->and($this->businesses->saved)->toBe([])
             ->and($this->bookingPages->applications)->toBe([])
             ->and($this->bookingPolicies->applications)->toBe([])
+            ->and($this->bookingPolicies->contactFieldApplications)->toBe([])
             ->and($this->schedule->replacements)->toBe([])
             ->and($this->links->replacements)->toBe([]);
     });
@@ -807,6 +957,7 @@ describe('the business it belongs to', function () {
             ->and($this->addresses->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->bookingPages->applications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->bookingPolicies->applications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->bookingPolicies->contactFieldApplications[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->schedule->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($this->links->replacements[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID);
     });

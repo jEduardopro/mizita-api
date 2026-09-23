@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Addresses\Application\UseCases\ReplaceAddress;
 use App\Domains\Addresses\Contracts\AddressRepository;
+use App\Domains\Addresses\Contracts\StateCatalog;
 use App\Domains\Addresses\Entities\Address;
 use App\Domains\Addresses\Exceptions\AddressCityCannotBeCleared;
 use App\Domains\Addresses\Exceptions\AddressPostalCodeCannotBeCleared;
@@ -63,11 +64,13 @@ function businessStreetOnlyAddress(): Address
 
 beforeEach(function () {
     $this->addresses = Mockery::mock(AddressRepository::class);
+    $this->states = Mockery::mock(StateCatalog::class);
 
     $this->addressBook = new AddressesBusinessAddressBook(
         $this->addresses,
         new ReplaceAddress(
             $this->addresses,
+            $this->states,
             new FixedIdGenerator(AddressFixtures::GENERATED_ADDRESS_ID),
             new FakeClock(AddressFixtures::now()),
         ),
@@ -303,6 +306,18 @@ describe('filing the address a business submitted', function () {
         ($this->replace)(businessAddressSnapshot(stateId: null));
 
         expect($saved->stateId())->toBeNull();
+    });
+
+    it('never guesses a state from the catalogue, because a business picks its state from the list', function () {
+        $this->states->shouldNotReceive('findActiveByNameOrCode');
+        $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
+
+        $saved = null;
+        $this->addresses->shouldReceive('save')->once()->with(Mockery::capture($saved));
+
+        ($this->replace)(businessAddressSnapshot(stateId: null));
+
+        expect($saved->stateName())->toBeNull();
     });
 
     it('keeps the accents the street and the city were written with', function () {

@@ -27,6 +27,7 @@ final class AddressMapper
             country: CountryCode::from($model->country_code),
             coordinates: self::coordinatesOf($model),
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
+            stateName: $model->state_name,
         );
     }
 
@@ -44,6 +45,7 @@ final class AddressMapper
             'street' => $address->street(),
             'city' => $address->city(),
             'state_id' => $stateKey,
+            'state_name' => $address->stateName(),
             'postal_code' => $address->postalCode()?->value,
             'country_code' => $address->country()->value,
             'latitude' => $coordinates?->latitude,

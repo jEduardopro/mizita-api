@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use App\Domains\Customers\Application\Dtos\CustomerPhoneInput;
+use App\Domains\Customers\Application\Dtos\GuestAddressInput;
 use App\Domains\Customers\Application\Dtos\GuestContactInput;
 use App\Domains\Customers\Entities\Customer;
+use App\Domains\Customers\Exceptions\InvalidCustomerAddress;
 use App\Domains\Customers\Exceptions\InvalidCustomerEmail;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use App\Domains\Customers\Exceptions\InvalidCustomerNotes;
 use App\Domains\Customers\Exceptions\InvalidCustomerPhone;
-use App\Domains\Customers\Exceptions\InvalidGuestContact;
-use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Customers\CustomerFixtures;
 use Tests\Support\PhoneNumbers;
 
@@ -41,7 +41,25 @@ describe('reading a payload', function () {
             ->and($contact->phone)->toBeInstanceOf(CustomerPhoneInput::class)
             ->and($contact->phone?->countryCode)->toBe(CustomerFixtures::COUNTRY_CODE)
             ->and($contact->phone?->nationalNumber)->toBe(PhoneNumbers::MX_NATIONAL_NUMBER)
-            ->and($contact->notes)->toBe(CustomerFixtures::NOTES);
+            ->and($contact->notes)->toBe(CustomerFixtures::NOTES)
+            ->and($contact->address)->toBeNull();
+    });
+
+    it('assembles the address the visitor typed as its own child', function () {
+        $contact = GuestContactInput::fromRequest(guestPayload(['address' => [
+            'street' => CustomerFixtures::STREET,
+            'city' => CustomerFixtures::CITY,
+            'state' => CustomerFixtures::STATE_NAME,
+            'postal_code' => CustomerFixtures::POSTAL_CODE,
+            'country_code' => CustomerFixtures::COUNTRY_CODE,
+        ]]));
+
+        expect($contact->address)->toBeInstanceOf(GuestAddressInput::class)
+            ->and($contact->address?->street)->toBe(CustomerFixtures::STREET)
+            ->and($contact->address?->city)->toBe(CustomerFixtures::CITY)
+            ->and($contact->address?->stateName)->toBe(CustomerFixtures::STATE_NAME)
+            ->and($contact->address?->postalCode)->toBe(CustomerFixtures::POSTAL_CODE)
+            ->and($contact->address?->countryCode)->toBe(CustomerFixtures::COUNTRY_CODE);
     });
 
     it('survives a payload with every key missing', function () {
@@ -50,7 +68,8 @@ describe('reading a payload', function () {
         expect($contact->name)->toBe('')
             ->and($contact->email)->toBeNull()
             ->and($contact->phone)->toBeNull()
-            ->and($contact->notes)->toBeNull();
+            ->and($contact->notes)->toBeNull()
+            ->and($contact->address)->toBeNull();
     });
 
     it('turns a value of the wrong type into the empty one, rather than a php error', function () {
@@ -59,12 +78,14 @@ describe('reading a payload', function () {
             'email' => 7,
             'phone' => 'nonsense',
             'notes' => false,
+            'address' => 'Somewhere',
         ]);
 
         expect($contact->name)->toBe('')
             ->and($contact->email)->toBeNull()
             ->and($contact->phone)->toBeNull()
-            ->and($contact->notes)->toBeNull();
+            ->and($contact->notes)->toBeNull()
+            ->and($contact->address)->toBeNull();
     });
 
     it('reads a blank optional as nothing at all', function (mixed $blank) {
@@ -85,6 +106,14 @@ describe('reading a payload', function () {
         'an empty array' => [[]],
         'a string' => 'nonsense',
     ]);
+
+    it('reads a guest who typed no address', function (mixed $address) {
+        expect(GuestContactInput::fromRequest(guestPayload(['address' => $address]))->address)->toBeNull();
+    })->with([
+        'no key at all' => null,
+        'an empty array' => [[]],
+        'a string' => 'nonsense',
+    ]);
 });
 
 describe('validating', function () {
@@ -100,21 +129,19 @@ describe('validating', function () {
         expect(fn () => CustomerFixtures::guestContact(email: null)->validate())->not->toThrow(Throwable::class);
     });
 
-    it('refuses a contact with neither an email nor a phone, because nobody could be reached', function () {
+    it('accepts a contact carrying nothing but a name', function () {
         expect(fn () => CustomerFixtures::guestContact(email: null, phone: null)->validate())
-            ->toThrow(InvalidGuestContact::class);
+            ->not->toThrow(Throwable::class);
     });
 
-    it('refuses the unreachable contact as a domain failure the responder can classify', function () {
-        try {
-            CustomerFixtures::guestContact(email: null, phone: null)->validate();
-            $thrown = null;
-        } catch (InvalidGuestContact $refusal) {
-            $thrown = $refusal;
-        }
+    it('accepts a name-only payload read straight off the wire', function () {
+        expect(fn () => GuestContactInput::fromRequest(['name' => CustomerFixtures::NAME])->validate())
+            ->not->toThrow(Throwable::class);
+    });
 
-        expect($thrown?->errorCode())->toBe('invalid_guest_contact')
-            ->and($thrown?->kind())->toBe(DomainFailureKind::Invalid);
+    it('accepts a contact carrying a well formed address', function () {
+        expect(fn () => CustomerFixtures::guestContact(address: CustomerFixtures::guestAddress())->validate())
+            ->not->toThrow(Throwable::class);
     });
 
     it('refuses a payload the form request would have rejected', function (array $payload, string $exception) {
@@ -139,6 +166,14 @@ describe('validating', function () {
             ['notes' => str_repeat('a', Customer::MAXIMUM_NOTES_LENGTH + 1)],
             InvalidCustomerNotes::class,
         ],
+        'an address with no street' => [
+            ['address' => ['city' => CustomerFixtures::CITY, 'country_code' => 'MX']],
+            InvalidCustomerAddress::class,
+        ],
+        'an address with a malformed country' => [
+            ['address' => ['street' => CustomerFixtures::STREET, 'country_code' => 'MEX']],
+            InvalidCustomerAddress::class,
+        ],
     ]);
 
     it('names the name first, then the email, then the phone, then the notes', function () {
@@ -155,8 +190,10 @@ describe('validating', function () {
         ]))->validate())->toThrow(InvalidCustomerEmail::class);
     });
 
-    it('checks the contact channel only once every field is readable', function () {
-        expect(fn () => GuestContactInput::fromRequest(['name' => '', 'email' => null, 'phone' => null])->validate())
-            ->toThrow(InvalidCustomerName::class);
+    it('checks the address only once every other field is readable', function () {
+        expect(fn () => GuestContactInput::fromRequest([
+            'name' => '',
+            'address' => ['street' => '', 'country_code' => ''],
+        ])->validate())->toThrow(InvalidCustomerName::class);
     });
 });

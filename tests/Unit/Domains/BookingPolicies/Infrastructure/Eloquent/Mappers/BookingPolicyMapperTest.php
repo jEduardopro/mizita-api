@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\BookingPolicies\Entities\BookingPolicy;
 use App\Domains\BookingPolicies\Infrastructure\Eloquent\Mappers\BookingPolicyMapper;
 use App\Domains\BookingPolicies\Infrastructure\Eloquent\Models\BookingPolicyModel;
+use App\Domains\BookingPolicies\ValueObjects\ContactFieldRequirement;
 use Tests\Support\BookingPolicies\BookingPolicyFixtures;
 use Tests\Support\FakeBusinessContext;
 
@@ -27,6 +28,9 @@ function bookingPolicyRow(array $overrides = []): BookingPolicyModel
         'cancellation_window_minutes' => 240,
         'policy_message' => BookingPolicyFixtures::POLICY_MESSAGE,
         'display_on_booking_page' => true,
+        'phone_field' => 'hidden',
+        'email_field' => 'required',
+        'address_field' => 'optional',
         'created_at' => BookingPolicyFixtures::now(),
         ...$overrides,
     ], true);
@@ -51,6 +55,9 @@ describe('reading a row', function () {
             ->and($policy->cancellationWindow()->minutes)->toBe(240)
             ->and($policy->policyMessage()->toString())->toBe(BookingPolicyFixtures::POLICY_MESSAGE)
             ->and($policy->isDisplayedOnBookingPage())->toBeTrue()
+            ->and($policy->contactFields()->phone)->toBe(ContactFieldRequirement::Hidden)
+            ->and($policy->contactFields()->email)->toBe(ContactFieldRequirement::Required)
+            ->and($policy->contactFields()->address)->toBe(ContactFieldRequirement::Optional)
             ->and($policy->createdAt)->toEqual(BookingPolicyFixtures::now());
     });
 
@@ -80,6 +87,22 @@ describe('reading a row', function () {
             ->and($policy->businessId)->not->toBe((string) BOOKING_POLICY_BUSINESS_KEY);
     });
 
+    it('reads every stored requirement back as the case it names, on each of the three columns', function (string $stored, ContactFieldRequirement $expected) {
+        $fields = $this->mapper->toEntity(bookingPolicyRow([
+            'phone_field' => $stored,
+            'email_field' => $stored,
+            'address_field' => $stored,
+        ]), FakeBusinessContext::BUSINESS_ID)->contactFields();
+
+        expect($fields->phone)->toBe($expected)
+            ->and($fields->email)->toBe($expected)
+            ->and($fields->address)->toBe($expected);
+    })->with([
+        'hidden' => ['hidden', ContactFieldRequirement::Hidden],
+        'optional' => ['optional', ContactFieldRequirement::Optional],
+        'required' => ['required', ContactFieldRequirement::Required],
+    ]);
+
     it('reads the toggle back as a boolean, whatever the driver handed over', function (mixed $stored, bool $expected) {
         expect($this->mapper->toEntity(
             bookingPolicyRow(['display_on_booking_page' => $stored]),
@@ -94,7 +117,7 @@ describe('reading a row', function () {
 });
 
 describe('writing a row', function () {
-    it('spreads the policy across its eight columns', function () {
+    it('spreads the policy across its eleven columns', function () {
         expect($this->mapper->toAttributes(BookingPolicyFixtures::policy(), BOOKING_POLICY_BUSINESS_KEY))->toBe([
             'uuid' => BookingPolicyFixtures::POLICY_ID,
             'business_id' => BOOKING_POLICY_BUSINESS_KEY,
@@ -104,7 +127,20 @@ describe('writing a row', function () {
             'cancellation_window_minutes' => 240,
             'policy_message' => BookingPolicyFixtures::POLICY_MESSAGE,
             'display_on_booking_page' => true,
+            'phone_field' => ContactFieldRequirement::Hidden,
+            'email_field' => ContactFieldRequirement::Required,
+            'address_field' => ContactFieldRequirement::Optional,
         ]);
+    });
+
+    it('stores each requirement as the string the column check constraint allows', function () {
+        $stored = (new BookingPolicyModel)
+            ->fill($this->mapper->toAttributes(BookingPolicyFixtures::policy(), BOOKING_POLICY_BUSINESS_KEY))
+            ->getAttributes();
+
+        expect($stored['phone_field'])->toBe('hidden')
+            ->and($stored['email_field'])->toBe('required')
+            ->and($stored['address_field'])->toBe('optional');
     });
 
     it('writes null for an unlimited horizon and for a cancellation nobody may use', function () {
@@ -145,6 +181,11 @@ it('survives a full round trip without losing a rule', function () {
         cancellationWindowMinutes: 0,
         policyMessage: 'Avisa con antelación.',
         displayedOnBookingPage: false,
+        contactFields: BookingPolicyFixtures::contactFields(
+            phone: ContactFieldRequirement::Optional,
+            email: ContactFieldRequirement::Hidden,
+            address: ContactFieldRequirement::Required,
+        ),
     );
 
     $attributes = $this->mapper->toAttributes($policy, BOOKING_POLICY_BUSINESS_KEY);
@@ -162,6 +203,9 @@ it('survives a full round trip without losing a rule', function () {
         ->and($restored->cancellationWindow()->minutes)->toBe(0)
         ->and($restored->policyMessage()->toString())->toBe('Avisa con antelación.')
         ->and($restored->isDisplayedOnBookingPage())->toBeFalse()
+        ->and($restored->contactFields()->phone)->toBe(ContactFieldRequirement::Optional)
+        ->and($restored->contactFields()->email)->toBe(ContactFieldRequirement::Hidden)
+        ->and($restored->contactFields()->address)->toBe(ContactFieldRequirement::Required)
         ->and($restored->createdAt)->toEqual($policy->createdAt);
 });
 

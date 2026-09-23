@@ -16,5 +16,8 @@ final readonly class BookingPolicyData
         public bool $cancellationAllowed,
         public ?string $policyMessage,
         public bool $displayOnBookingPage,
+        public string $phoneField,
+        public string $emailField,
+        public string $addressField,
     ) {}
 }

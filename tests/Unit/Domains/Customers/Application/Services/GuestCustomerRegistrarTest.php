@@ -6,10 +6,10 @@ use App\Domains\Customers\Application\Dtos\CustomerData;
 use App\Domains\Customers\Application\Presenters\CustomerPresenter;
 use App\Domains\Customers\Application\Services\GuestCustomerRegistrar;
 use App\Domains\Customers\Application\Services\SubmittedPhoneNumber;
+use App\Domains\Customers\Exceptions\InvalidCustomerAddress;
 use App\Domains\Customers\Exceptions\InvalidCustomerEmail;
 use App\Domains\Customers\Exceptions\InvalidCustomerName;
 use App\Domains\Customers\Exceptions\InvalidCustomerPhone;
-use App\Domains\Customers\Exceptions\InvalidGuestContact;
 use Tests\Support\Customers\CustomerFixtures;
 use Tests\Support\Customers\CustomerJournal;
 use Tests\Support\Customers\FakeCustomerAddressBook;
@@ -35,6 +35,7 @@ beforeEach(function () {
     $this->registrar = new GuestCustomerRegistrar(
         $this->customers,
         $this->phones,
+        $this->addresses,
         new CustomerPresenter($this->phones, $this->addresses, $this->photos),
         new SubmittedPhoneNumber($this->parser),
         new FixedIdGenerator(CustomerFixtures::GENERATED_CUSTOMER_ID),
@@ -255,13 +256,6 @@ describe('the business the guest booked at', function () {
 });
 
 describe('refusing a contact', function () {
-    it('refuses a guest nobody could be reached at, before it looks anybody up', function () {
-        expect(fn () => ($this->register)(email: null, phone: null))->toThrow(InvalidGuestContact::class)
-            ->and($this->customers->saved)->toBe([])
-            ->and($this->customers->businessIdsSeen)->toBe([])
-            ->and($this->transactions->runs())->toBe(0);
-    });
-
     it('refuses what the contact itself refuses, writing nothing', function (array $overrides, string $exception) {
         expect(fn () => ($this->register)(...$overrides))->toThrow($exception)
             ->and($this->customers->saved)->toBe([])
@@ -272,6 +266,10 @@ describe('refusing a contact', function () {
         'a phone with no number' => [
             ['phone' => CustomerFixtures::phoneInput(nationalNumber: '   ')],
             InvalidCustomerPhone::class,
+        ],
+        'an address with no street' => [
+            ['address' => CustomerFixtures::guestAddress(street: '   ')],
+            InvalidCustomerAddress::class,
         ],
     ]);
 
@@ -290,5 +288,133 @@ describe('refusing a contact', function () {
             phone: CustomerFixtures::phoneInput(countryCode: 'FR', nationalNumber: '612345678'),
         ))->toThrow(InvalidCustomerPhone::class)
             ->and($this->customers->saved)->toBe([]);
+    });
+});
+
+describe('a guest who left nothing but a name', function () {
+    it('enrols the guest instead of refusing them', function () {
+        $data = ($this->register)(email: null, phone: null);
+
+        expect($data->id)->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID)
+            ->and($data->name)->toBe(CustomerFixtures::NAME)
+            ->and($data->email)->toBeNull()
+            ->and($data->phone)->toBeNull()
+            ->and($data->address)->toBeNull()
+            ->and($this->customers->saved)->toHaveCount(1)
+            ->and($this->customers->saved[0]->businessId)->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('looks nobody up, because a name alone identifies nobody', function () {
+        ($this->register)(email: null, phone: null);
+
+        expect($this->customers->businessIdsSeen)->toBe([])
+            ->and($this->phones->numberLookups)->toBe([]);
+    });
+
+    it('enrols a fresh record even when a customer with the same name is on file', function () {
+        $this->customers->store(CustomerFixtures::customer(email: null));
+
+        expect(($this->register)(email: null, phone: null)->id)->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID)
+            ->and($this->customers->saved)->toHaveCount(1);
+    });
+
+    it('files no phone for the guest', function () {
+        ($this->register)(email: null, phone: null);
+
+        expect($this->phones->replacements)->toHaveCount(1)
+            ->and($this->phones->replacements[0]['phone'])->toBeNull();
+    });
+});
+
+describe('the address a guest typed', function () {
+    it('files the address against a customer it just enrolled', function () {
+        $data = ($this->register)(address: CustomerFixtures::guestAddress(
+            street: '  Av. Reforma 123 ',
+            countryCode: 'mx',
+        ));
+
+        $filed = $this->addresses->replacements[0] ?? null;
+
+        expect($this->addresses->replacements)->toHaveCount(1)
+            ->and($filed['customerId'])->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID)
+            ->and($filed['address']->street)->toBe('Av. Reforma 123')
+            ->and($filed['address']->city)->toBe(CustomerFixtures::CITY)
+            ->and($filed['address']->stateId)->toBeNull()
+            ->and($filed['address']->stateName)->toBe(CustomerFixtures::STATE_NAME)
+            ->and($filed['address']->postalCode)->toBe(CustomerFixtures::POSTAL_CODE)
+            ->and($filed['address']->countryCode)->toBe('MX')
+            ->and($data->address?->street)->toBe('Av. Reforma 123')
+            ->and($data->address?->stateName)->toBe(CustomerFixtures::STATE_NAME);
+    });
+
+    it('files the address of a name-only guest', function () {
+        ($this->register)(email: null, phone: null, address: CustomerFixtures::guestAddress());
+
+        expect($this->addresses->replacements)->toHaveCount(1)
+            ->and($this->addresses->replacements[0]['customerId'])->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID);
+    });
+
+    it('files the address in the same unit of work as the record it belongs to', function () {
+        ($this->register)(address: CustomerFixtures::guestAddress());
+
+        expect($this->journal->entries)->toContain('addresses.replace')
+            ->and($this->journal->outsideTransaction)->not->toContain('addresses.replace')
+            ->and($this->transactions->runs())->toBe(1);
+    });
+
+    it('lets the address book refusal unwind the enrolment it was part of', function () {
+        $refusal = InvalidCustomerAddress::withoutStreet();
+        $this->addresses->failingOnReplace($refusal);
+
+        expect(fn () => ($this->register)(address: CustomerFixtures::guestAddress()))->toThrow($refusal)
+            ->and($this->journal->outsideTransaction)->not->toContain('addresses.replace');
+    });
+
+    it('files no address for a new guest who typed none', function () {
+        ($this->register)();
+
+        expect($this->addresses->calls)->toBe([]);
+    });
+
+    describe('for a customer already on file', function () {
+        beforeEach(function () {
+            $this->customers->store(CustomerFixtures::customer());
+        });
+
+        it('never overwrites the address the customer already has', function () {
+            $this->addresses->store(CustomerFixtures::CUSTOMER_ID, CustomerFixtures::address());
+
+            $data = ($this->register)(address: CustomerFixtures::guestAddress(street: 'Calle Falsa 742'));
+
+            expect($this->addresses->calls)->toBe([])
+                ->and($data->id)->toBe(CustomerFixtures::CUSTOMER_ID)
+                ->and($data->address?->street)->toBe(CustomerFixtures::STREET);
+        });
+
+        it('fills in the address a customer on file never had', function () {
+            $data = ($this->register)(address: CustomerFixtures::guestAddress(street: 'Calle Falsa 742'));
+
+            expect($this->addresses->replacements)->toHaveCount(1)
+                ->and($this->addresses->replacements[0]['customerId'])->toBe(CustomerFixtures::CUSTOMER_ID)
+                ->and($this->addresses->replacements[0]['address']->street)->toBe('Calle Falsa 742')
+                ->and($data->address?->street)->toBe('Calle Falsa 742')
+                ->and($this->customers->saved)->toBe([]);
+        });
+
+        it('fills in the address of a customer the phone matched', function () {
+            $this->customers->store(CustomerFixtures::customer(id: CustomerFixtures::SECOND_CUSTOMER_ID, email: null));
+            $this->phones->store(CustomerFixtures::SECOND_CUSTOMER_ID, PhoneNumbers::mexican());
+
+            ($this->register)(email: null, address: CustomerFixtures::guestAddress());
+
+            expect($this->addresses->replacements)->toHaveCount(1)
+                ->and($this->addresses->replacements[0]['customerId'])->toBe(CustomerFixtures::SECOND_CUSTOMER_ID);
+        });
+
+        it('touches no address when the guest typed none', function () {
+            ($this->register)();
+
+            expect($this->addresses->calls)->toBe([]);
+        });
     });
 });

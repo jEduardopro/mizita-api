@@ -99,6 +99,12 @@ export type BookingPolicySettings = {
     display_on_booking_page: boolean;
 };
 
+export type ContactFieldName = 'phone' | 'email' | 'address';
+
+export type ContactFieldLevel = 'hidden' | 'optional' | 'required';
+
+export type ContactFieldsSettings = Record<ContactFieldName, ContactFieldLevel>;
+
 export type BusinessSettings = {
     id: string;
     name: string;
@@ -115,6 +121,7 @@ export type BusinessSettings = {
     links: BusinessLink[];
     booking_page: BookingPageSettings;
     booking_policy: BookingPolicySettings;
+    contact_fields: ContactFieldsSettings;
 };
 
 export type BrandSectionPayload = {
@@ -170,6 +177,7 @@ export type UpdateBusinessSettingsPayload = {
     contact?: ContactSectionPayload;
     location?: LocationSectionPayload;
     booking_policy?: BookingPolicySectionPayload;
+    contact_fields?: ContactFieldsSettings;
     schedule?: ScheduleRule[];
     links?: LinkPayload[];
 };

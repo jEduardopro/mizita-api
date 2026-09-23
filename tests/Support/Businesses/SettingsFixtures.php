@@ -8,6 +8,7 @@ use App\Domains\Businesses\Application\Dtos\AppearanceInput;
 use App\Domains\Businesses\Application\Dtos\AttachBusinessLogoInput;
 use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
+use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
@@ -19,6 +20,8 @@ use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Shared\ValueObjects\CountryCode;
 use Tests\Support\PhoneNumbers;
 
@@ -57,6 +60,12 @@ final class SettingsFixtures
     public const CANCELLATION_WINDOW_MINUTES = 240;
 
     public const POLICY_MESSAGE = 'Cancela con cuatro horas de antelación.';
+
+    public const PHONE_FIELD = 'hidden';
+
+    public const EMAIL_FIELD = 'required';
+
+    public const ADDRESS_FIELD = 'optional';
 
     public const SOURCE_PATH = '/tmp/php-upload-logo';
 
@@ -194,6 +203,34 @@ final class SettingsFixtures
         ];
     }
 
+    public static function contactFieldsInput(
+        string $phone = self::PHONE_FIELD,
+        string $email = self::EMAIL_FIELD,
+        string $address = self::ADDRESS_FIELD,
+    ): ContactFieldsInput {
+        return new ContactFieldsInput($phone, $email, $address);
+    }
+
+    public static function contactFields(
+        ContactFieldPreference $phone = ContactFieldPreference::Required,
+        ContactFieldPreference $email = ContactFieldPreference::Optional,
+        ContactFieldPreference $address = ContactFieldPreference::Hidden,
+    ): ContactFieldPreferences {
+        return new ContactFieldPreferences($phone, $email, $address);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function contactFieldsSection(): array
+    {
+        return [
+            'phone' => self::PHONE_FIELD,
+            'email' => self::EMAIL_FIELD,
+            'address' => self::ADDRESS_FIELD,
+        ];
+    }
+
     public static function everything(): UpdateBusinessSettingsInput
     {
         return new UpdateBusinessSettingsInput(
@@ -204,6 +241,7 @@ final class SettingsFixtures
             schedule: self::schedule(),
             links: self::links(),
             bookingPolicy: self::bookingPolicyInput(),
+            contactFields: self::contactFieldsInput(),
         );
     }
 

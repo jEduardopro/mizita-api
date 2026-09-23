@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\BookingPolicies\Infrastructure\Eloquent\Models;
 
 use App\Domains\BookingPolicies\Infrastructure\Eloquent\Factories\BookingPolicyModelFactory;
+use App\Domains\BookingPolicies\ValueObjects\ContactFieldRequirement;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -22,6 +23,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'cancellation_window_minutes',
     'policy_message',
     'display_on_booking_page',
+    'phone_field',
+    'email_field',
+    'address_field',
 ])]
 class BookingPolicyModel extends Model
 {
@@ -63,6 +67,9 @@ class BookingPolicyModel extends Model
             'slot_granularity_minutes' => 'integer',
             'cancellation_window_minutes' => 'integer',
             'display_on_booking_page' => 'boolean',
+            'phone_field' => ContactFieldRequirement::class,
+            'email_field' => ContactFieldRequirement::class,
+            'address_field' => ContactFieldRequirement::class,
         ];
     }
 

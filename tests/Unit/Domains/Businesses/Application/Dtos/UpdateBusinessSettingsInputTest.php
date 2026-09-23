@@ -5,15 +5,18 @@ declare(strict_types=1);
 use App\Domains\Businesses\Application\Dtos\AppearanceInput;
 use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
+use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
 use App\Domains\Businesses\Application\Dtos\ScheduleInput;
 use App\Domains\Businesses\Application\Dtos\UpdateBusinessSettingsInput;
 use App\Domains\Businesses\Exceptions\IncompleteBookingPolicy;
+use App\Domains\Businesses\Exceptions\IncompleteContactFields;
 use App\Domains\Businesses\Exceptions\InvalidBusinessContactEmail;
 use App\Domains\Businesses\Exceptions\InvalidBusinessCoordinates;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
+use App\Domains\Businesses\Exceptions\InvalidContactFieldRequirement;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\OnboardingFixtures;
@@ -315,6 +318,59 @@ describe('the booking policy section', function () {
     });
 });
 
+describe('the contact fields section', function () {
+    it('reads the contact fields under the key the client sends', function () {
+        $contactFields = UpdateBusinessSettingsInput::fromRequest([
+            'contact_fields' => SettingsFixtures::contactFieldsSection(),
+        ])->contactFields;
+
+        expect($contactFields)->toBeInstanceOf(ContactFieldsInput::class)
+            ->and($contactFields?->phone)->toBe(SettingsFixtures::PHONE_FIELD)
+            ->and($contactFields?->email)->toBe(SettingsFixtures::EMAIL_FIELD)
+            ->and($contactFields?->address)->toBe(SettingsFixtures::ADDRESS_FIELD);
+    });
+
+    it('leaves the contact fields out when the client did not send them', function () {
+        expect(UpdateBusinessSettingsInput::fromRequest(SettingsFixtures::payload())->contactFields)->toBeNull();
+    });
+
+    it('treats contact fields it cannot read as ones the client never sent', function (mixed $section) {
+        expect(UpdateBusinessSettingsInput::fromRequest(['contact_fields' => $section])->contactFields)->toBeNull();
+    })->with([
+        'null' => null,
+        'a string' => 'required',
+        'a number' => 7,
+    ]);
+
+    it('accepts a submission that carries a complete contact fields section', function () {
+        $input = UpdateBusinessSettingsInput::fromRequest([
+            ...SettingsFixtures::payload(),
+            'contact_fields' => SettingsFixtures::contactFieldsSection(),
+        ]);
+
+        expect(fn () => $input->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('delegates to the contact fields, which own the rules about their own shape', function (array $section, string $exception) {
+        expect(fn () => UpdateBusinessSettingsInput::fromRequest(['contact_fields' => $section])->validate())
+            ->toThrow($exception);
+    })->with([
+        'an empty section' => [[], IncompleteContactFields::class],
+        'a section with no address' => [['phone' => 'required', 'email' => 'optional'], IncompleteContactFields::class],
+        'a requirement nobody declared' => [
+            ['phone' => 'required', 'email' => 'optional', 'address' => 'mandatory'],
+            InvalidContactFieldRequirement::class,
+        ],
+    ]);
+
+    it('refuses the booking policy before it looks at the contact fields', function () {
+        expect(fn () => UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => [],
+            'contact_fields' => [],
+        ])->validate())->toThrow(IncompleteBookingPolicy::class);
+    });
+});
+
 describe('patching one section at a time', function () {
     it('leaves out every section the client did not send', function () {
         $input = UpdateBusinessSettingsInput::fromRequest([
@@ -331,7 +387,8 @@ describe('patching one section at a time', function () {
             ->and($input->location)->toBeNull()
             ->and($input->schedule)->toBeNull()
             ->and($input->links)->toBeNull()
-            ->and($input->bookingPolicy)->toBeNull();
+            ->and($input->bookingPolicy)->toBeNull()
+            ->and($input->contactFields)->toBeNull();
     });
 
     it('builds an input that changes nothing out of an empty payload', function () {
@@ -344,6 +401,7 @@ describe('patching one section at a time', function () {
             ->and($input->schedule)->toBeNull()
             ->and($input->links)->toBeNull()
             ->and($input->bookingPolicy)->toBeNull()
+            ->and($input->contactFields)->toBeNull()
             ->and(fn () => $input->validate())->not->toThrow(Throwable::class);
     });
 

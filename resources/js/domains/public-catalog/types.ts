@@ -65,6 +65,14 @@ export type PublicOpenState =
           opens_at: string | null;
       };
 
+export const CONTACT_FIELD_NAMES = ['phone', 'email', 'address'] as const;
+
+export type ContactFieldName = (typeof CONTACT_FIELD_NAMES)[number];
+
+export type ContactFieldLevel = 'hidden' | 'optional' | 'required';
+
+export type PublicContactFields = Record<ContactFieldName, ContactFieldLevel>;
+
 export type PublicBookingPolicy = {
     policy_message: string;
 };
@@ -85,6 +93,7 @@ export type PublicBusinessPage = {
     team: PublicTeamMember[];
     location: PublicLocation | null;
     contact: PublicContact;
+    contact_fields: PublicContactFields;
     booking_policy?: PublicBookingPolicy;
 };
 
@@ -126,10 +135,18 @@ export type PublicGuestPhonePayload = {
     national_number: string;
 };
 
+export type PublicGuestAddressPayload = {
+    street: string;
+    city: string;
+    state: string;
+    postal_code: string;
+};
+
 export type PublicGuestPayload = {
     name: string;
-    email?: string | null;
-    phone?: PublicGuestPhonePayload | null;
+    email?: string;
+    phone?: PublicGuestPhonePayload;
+    address?: PublicGuestAddressPayload;
 };
 
 export type CreatePublicBookingPayload = {

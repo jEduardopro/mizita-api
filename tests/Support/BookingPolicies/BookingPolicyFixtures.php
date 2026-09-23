@@ -7,6 +7,8 @@ namespace Tests\Support\BookingPolicies;
 use App\Domains\BookingPolicies\Entities\BookingPolicy;
 use App\Domains\BookingPolicies\ValueObjects\BookingWindow;
 use App\Domains\BookingPolicies\ValueObjects\CancellationWindow;
+use App\Domains\BookingPolicies\ValueObjects\ContactFieldRequirement;
+use App\Domains\BookingPolicies\ValueObjects\ContactFields;
 use App\Domains\BookingPolicies\ValueObjects\LeadTime;
 use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\BookingPolicies\ValueObjects\SlotGranularity;
@@ -41,6 +43,7 @@ final class BookingPolicyFixtures
         ?int $cancellationWindowMinutes = 240,
         ?string $policyMessage = self::POLICY_MESSAGE,
         bool $displayedOnBookingPage = true,
+        ?ContactFields $contactFields = null,
         ?DateTimeImmutable $createdAt = null,
     ): BookingPolicy {
         return BookingPolicy::restore(
@@ -52,7 +55,16 @@ final class BookingPolicyFixtures
             cancellationWindow: CancellationWindow::restore($cancellationWindowMinutes),
             policyMessage: PolicyMessage::restore($policyMessage),
             displayedOnBookingPage: $displayedOnBookingPage,
+            contactFields: $contactFields ?? self::contactFields(),
             createdAt: $createdAt ?? self::now(),
         );
+    }
+
+    public static function contactFields(
+        ContactFieldRequirement $phone = ContactFieldRequirement::Hidden,
+        ContactFieldRequirement $email = ContactFieldRequirement::Required,
+        ContactFieldRequirement $address = ContactFieldRequirement::Optional,
+    ): ContactFields {
+        return new ContactFields($phone, $email, $address);
     }
 }

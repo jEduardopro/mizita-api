@@ -11,6 +11,7 @@ use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
 use App\Domains\Businesses\ValueObjects\BusinessScheduleEntry;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Shared\ValueObjects\PhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -41,6 +42,7 @@ final class BusinessSettingsResource extends JsonResource
             'links' => array_map(self::describeLink(...), $this->resource->links),
             'booking_page' => self::describeBookingPage($this->resource->bookingPage),
             'booking_policy' => self::describeBookingPolicy($this->resource->bookingPolicy),
+            'contact_fields' => self::describeContactFields($this->resource->contactFields),
         ];
     }
 
@@ -130,6 +132,18 @@ final class BusinessSettingsResource extends JsonResource
             'cancellation_window_minutes' => $bookingPolicy->cancellationWindowMinutes,
             'policy_message' => $bookingPolicy->policyMessage,
             'display_on_booking_page' => $bookingPolicy->displayOnBookingPage,
+        ];
+    }
+
+    /**
+     * @return array{phone: string, email: string, address: string}
+     */
+    private static function describeContactFields(ContactFieldPreferences $contactFields): array
+    {
+        return [
+            'phone' => $contactFields->phone->value,
+            'email' => $contactFields->email->value,
+            'address' => $contactFields->address->value,
         ];
     }
 

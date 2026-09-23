@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import type { Customer, CustomerAddress } from '../types';
+import type { Customer } from '../types';
+import { CustomerAddressLines } from './CustomerAddressLines';
 import { CustomerAvatar } from './CustomerAvatar';
 import { CustomerDetailRow } from './CustomerDetailRow';
 import { formatPhone } from './customer-format';
@@ -19,14 +20,6 @@ function formatBirthDate(birthDate: string, locale: string): string {
         : new Intl.DateTimeFormat(locale, BIRTH_DATE_FORMAT).format(civilDate);
 }
 
-function addressLines(address: CustomerAddress): string[] {
-    const locality = [address.city, address.postal_code]
-        .filter((part): part is string => part !== null && part !== '')
-        .join(' · ');
-
-    return [address.street, locality].filter((line) => line !== '');
-}
-
 type Props = {
     customer: Customer;
 };
@@ -35,7 +28,6 @@ export function CustomerAboutPanel({ customer }: Props) {
     const { t, i18n } = useTranslation('admin');
 
     const notProvided = <span className="text-muted-foreground">{t('customers.notProvided')}</span>;
-    const address = customer.address === null ? [] : addressLines(customer.address);
     const phone = formatPhone(customer.phone);
 
     return (
@@ -100,9 +92,11 @@ export function CustomerAboutPanel({ customer }: Props) {
                 <CustomerDetailRow
                     label={t('customers.form.address.title')}
                     value={
-                        address.length === 0
-                            ? notProvided
-                            : address.map((line) => <span key={line} className="block">{line}</span>)
+                        customer.address === null ? (
+                            notProvided
+                        ) : (
+                            <CustomerAddressLines address={customer.address} />
+                        )
                     }
                 />
             </dl>

@@ -228,7 +228,25 @@
                     "label": "Phone",
                     "number": "Phone number"
                 },
-                "contactHint": "Leave an email or a phone number so we can reach you.",
+                "optional": "Optional.",
+                "optionalHint": "Optional. {{hint}}",
+                "required": "Fill in this field.",
+                "address": {
+                    "label": "Address",
+                    "street": {
+                        "label": "Street",
+                        "placeholder": "Av. Juárez 123"
+                    },
+                    "city": {
+                        "label": "City"
+                    },
+                    "state": {
+                        "label": "State"
+                    },
+                    "postalCode": {
+                        "label": "Postal code"
+                    }
+                },
                 "notes": {
                     "label": "Anything we should know?",
                     "hint": "Optional."

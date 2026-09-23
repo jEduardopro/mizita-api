@@ -21,6 +21,9 @@ final class BookingPolicyPresenter
             cancellationAllowed: $policy->cancellationWindow()->isAllowed(),
             policyMessage: $policy->policyMessage()->toString(),
             displayOnBookingPage: $policy->isDisplayedOnBookingPage(),
+            phoneField: $policy->contactFields()->phone->value,
+            emailField: $policy->contactFields()->email->value,
+            addressField: $policy->contactFields()->address->value,
         );
     }
 }
