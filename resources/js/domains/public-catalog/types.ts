@@ -130,6 +130,12 @@ export type PublicBookingConfirmation = {
     manage_token: string;
 };
 
+export type PublicState = {
+    id: string;
+    code: string;
+    name: string;
+};
+
 export type PublicGuestPhonePayload = {
     country_code: string;
     national_number: string;

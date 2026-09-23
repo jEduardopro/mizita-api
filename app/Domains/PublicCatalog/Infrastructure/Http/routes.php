@@ -5,8 +5,12 @@ declare(strict_types=1);
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicAvailabilityController;
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicBookingController;
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicBusinessPageController;
+use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicStateController;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/public/states', [PublicStateController::class, 'index'])
+    ->name('public.states.index');
 
 Route::get('/public/businesses/{slug}', [PublicBusinessPageController::class, 'show'])
     ->where('slug', PublicCatalogServiceProvider::SLUG_PATTERN)

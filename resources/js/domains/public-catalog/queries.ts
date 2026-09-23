@@ -1,11 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import type { ComboboxOption } from '@/components/form/use-combobox';
 import {
     cancelPublicBooking,
     createPublicBooking,
     fetchPublicAvailability,
     fetchPublicBooking,
     fetchPublicBusinessPage,
+    fetchPublicStates,
     reschedulePublicBooking,
 } from './api';
 import type {
@@ -18,6 +20,8 @@ import type {
 
 const AVAILABILITY_LIFETIME_MS = 30 * 1000;
 
+const STATE_CATALOG_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
 const EMPTY_AVAILABILITY_QUERY: PublicAvailabilityQuery = {
     service_id: '',
     staff_id: '',
@@ -27,7 +31,8 @@ const EMPTY_AVAILABILITY_QUERY: PublicAvailabilityQuery = {
 
 export const publicCatalogKeys = {
     all: ['public-catalog'] as const,
-    businesses: () => [...publicCatalogKeys.all, 'businesses'] as const,
+    states: (country: string) => [...publicCatalogKeys.all, 'states', country] as const,
+    businesses:() => [...publicCatalogKeys.all, 'businesses'] as const,
     business: (slug: string) => [...publicCatalogKeys.businesses(), slug] as const,
     availabilities: (slug: string) => [...publicCatalogKeys.business(slug), 'availability'] as const,
     availability: (slug: string, query: PublicAvailabilityQuery) =>
@@ -42,6 +47,31 @@ export function usePublicBusinessPage(slug: string) {
         queryKey: publicCatalogKeys.business(slug),
         queryFn: ({ signal }) => fetchPublicBusinessPage(slug, signal),
     });
+}
+
+type PublicStateChoices = {
+    options: ComboboxOption[];
+    isPending: boolean;
+    isError: boolean;
+    refetch: () => void;
+};
+
+export function usePublicStateChoices(country: string): PublicStateChoices {
+    const { data, isPending, isError, refetch } = useQuery({
+        queryKey: publicCatalogKeys.states(country),
+        queryFn: ({ signal }) => fetchPublicStates(country, signal),
+        staleTime: STATE_CATALOG_LIFETIME_MS,
+        gcTime: STATE_CATALOG_LIFETIME_MS,
+    });
+
+    const options = useMemo(
+        () => (data ?? []).map((state) => ({ value: state.id, label: state.name })),
+        [data],
+    );
+
+    const retry = useCallback(() => void refetch(), [refetch]);
+
+    return { options, isPending, isError, refetch: retry };
 }
 
 export function usePublicAvailability(slug: string, query: PublicAvailabilityQuery | null) {

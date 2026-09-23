@@ -9,6 +9,7 @@ use App\Domains\Addresses\Application\Dtos\ReplaceAddressInput;
 use App\Domains\Addresses\Contracts\AddressRepository;
 use App\Domains\Addresses\Contracts\StateCatalog;
 use App\Domains\Addresses\Entities\Address;
+use App\Domains\Addresses\ValueObjects\AddressRegion;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
@@ -49,30 +50,34 @@ final class ReplaceAddress
 
     private function registered(ReplaceAddressInput $input): Address
     {
+        $region = $this->regionFor($input);
+
         return Address::create(
             id: $this->ids->next(),
             ownerType: $input->ownerType,
             ownerId: $input->ownerId,
             street: $input->street,
             city: $input->city,
-            stateId: $this->stateIdFor($input),
+            stateId: $region->stateId,
             postalCode: $input->postalCode,
-            country: $input->country,
+            country: $region->country,
             coordinates: $input->coordinates,
             now: $this->clock->now(),
-            stateName: self::stateNameFor($input),
+            stateName: $region->stateName,
         );
     }
 
     private function relocated(Address $address, ReplaceAddressInput $input): Address
     {
+        $region = $this->regionFor($input);
+
         $address->relocateTo(
             street: $input->street,
             city: $input->city,
-            stateId: $this->stateIdFor($input),
+            stateId: $region->stateId,
             postalCode: $input->postalCode,
-            country: $input->country,
-            stateName: self::stateNameFor($input),
+            country: $region->country,
+            stateName: $region->stateName,
         );
 
         $this->pin($address, $input);
@@ -91,26 +96,23 @@ final class ReplaceAddress
         $address->pinAt($input->coordinates);
     }
 
-    private function stateIdFor(ReplaceAddressInput $input): ?string
+    private function regionFor(ReplaceAddressInput $input): AddressRegion
     {
         if ($input->stateId !== null) {
-            return $input->stateId;
+            return AddressRegion::chosen($input->stateId, $input->country);
         }
 
         if ($input->stateName === null) {
-            return null;
+            return AddressRegion::typed(null, $input->country);
         }
 
-        return $this->states->findActiveByNameOrCode($input->country, $input->stateName)?->id;
-    }
+        $cataloguedState = $this->states->findActiveByNameOrCodePreferring($input->country, $input->stateName);
 
-    private static function stateNameFor(ReplaceAddressInput $input): ?string
-    {
-        if ($input->stateId !== null) {
-            return null;
+        if ($cataloguedState === null) {
+            return AddressRegion::typed($input->stateName, $input->country);
         }
 
-        return $input->stateName;
+        return AddressRegion::catalogued($cataloguedState);
     }
 
     private static function carriesNoStreet(ReplaceAddressInput $input): bool

@@ -241,7 +241,19 @@
                         "label": "City"
                     },
                     "state": {
-                        "label": "State"
+                        "label": "State",
+                        "placeholder": "Select a state",
+                        "empty": "No state matches. If yours isn't here, use “My state isn't listed”.",
+                        "error": "We could not load the states. Use “My state isn't listed” to type yours.",
+                        "loading": "Loading states…",
+                        "results_one": "{{count}} state available",
+                        "results_other": "{{count}} states available",
+                        "notListed": "My state isn't listed",
+                        "chooseFromList": "Choose from the list",
+                        "otherInput": {
+                            "label": "State name",
+                            "placeholder": "Texas"
+                        }
                     },
                     "postalCode": {
                         "label": "Postal code"

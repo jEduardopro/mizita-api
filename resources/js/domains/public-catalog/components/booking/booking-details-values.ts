@@ -7,6 +7,7 @@ import {
     type PublicContactFields,
     type PublicGuestPayload,
 } from '../../types';
+import { bookingStateName, EMPTY_BOOKING_STATE, type BookingStateValue } from './booking-state';
 import { isContactFieldRequired, isContactFieldShown } from './contact-field-levels';
 
 const DEFAULT_PHONE_COUNTRY: PhoneCountryCode = 'MX';
@@ -18,7 +19,7 @@ export type BookingDetailsValues = {
     phoneNumber: string;
     street: string;
     city: string;
-    state: string;
+    state: BookingStateValue;
     postalCode: string;
     notes: string;
 };
@@ -38,7 +39,7 @@ export const EMPTY_BOOKING_DETAILS: BookingDetailsValues = {
     phoneNumber: '',
     street: '',
     city: '',
-    state: '',
+    state: EMPTY_BOOKING_STATE,
     postalCode: '',
     notes: '',
 };
@@ -55,7 +56,9 @@ export const BOOKING_DETAILS_SERVER_FIELDS: Record<BookingDetailsField, string> 
     notes: 'notes',
 };
 
-const CONTACT_FIELD_INPUTS: Record<ContactFieldName, readonly BookingDetailsField[]> = {
+type ContactInputField = 'phoneNumber' | 'email' | BookingAddressField;
+
+const CONTACT_FIELD_INPUTS: Record<ContactFieldName, readonly ContactInputField[]> = {
     phone: ['phoneNumber'],
     email: ['email'],
     address: BOOKING_ADDRESS_FIELDS,
@@ -71,6 +74,10 @@ function trimmedOrNull(value: string): string | null {
 
 function isBlank(value: string): boolean {
     return trimmedOrNull(value) === null;
+}
+
+function contactInputText(values: BookingDetailsValues, field: ContactInputField): string {
+    return field === 'state' ? bookingStateName(values.state) : values[field];
 }
 
 export function phoneCountryOptions(locale: string): DialCodeOption[] {
@@ -93,7 +100,7 @@ export function missingRequiredFields(
 ): BookingDetailsField[] {
     return CONTACT_FIELD_NAMES.filter((name) => isContactFieldRequired(contactFields[name]))
         .flatMap((name) => CONTACT_FIELD_INPUTS[name])
-        .filter((field) => isBlank(values[field]));
+        .filter((field) => isBlank(contactInputText(values, field)));
 }
 
 function emailFrom(values: BookingDetailsValues, level: ContactFieldLevel): GuestContact {
@@ -117,7 +124,7 @@ function phoneFrom(values: BookingDetailsValues, level: ContactFieldLevel): Gues
 }
 
 function addressFrom(values: BookingDetailsValues, level: ContactFieldLevel): GuestContact {
-    const isEmpty = BOOKING_ADDRESS_FIELDS.every((field) => isBlank(values[field]));
+    const isEmpty = BOOKING_ADDRESS_FIELDS.every((field) => isBlank(contactInputText(values, field)));
 
     if (! isContactFieldShown(level) || isEmpty) {
         return {};
@@ -127,7 +134,7 @@ function addressFrom(values: BookingDetailsValues, level: ContactFieldLevel): Gu
         address: {
             street: values.street.trim(),
             city: values.city.trim(),
-            state: values.state.trim(),
+            state: bookingStateName(values.state).trim(),
             postal_code: values.postalCode.trim(),
         },
     };

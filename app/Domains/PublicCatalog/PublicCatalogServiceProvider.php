@@ -17,8 +17,10 @@ use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
 use App\Domains\PublicCatalog\Contracts\PublishedSchedule;
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\Contracts\PublishedSlots;
+use App\Domains\PublicCatalog\Contracts\PublishedStates;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedLocation;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedStates;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AppointmentsGuestBookingDesk;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AppointmentsGuestBookings;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AvailabilityPublishedBookingHorizon;
@@ -76,6 +78,7 @@ final class PublicCatalogServiceProvider extends ServiceProvider
         $this->app->bind(PublishedBrand::class, BookingPagesPublishedBrand::class);
         $this->app->bind(PublishedBookingPolicy::class, BookingPoliciesPublishedBookingPolicy::class);
         $this->app->bind(PublishedLocation::class, AddressesPublishedLocation::class);
+        $this->app->bind(PublishedStates::class, AddressesPublishedStates::class);
         $this->app->bind(PublishedContact::class, PhonesLinksPublishedContact::class);
         $this->app->bind(GuestBookings::class, AppointmentsGuestBookings::class);
         $this->app->bind(GuestBookingDesk::class, AppointmentsGuestBookingDesk::class);

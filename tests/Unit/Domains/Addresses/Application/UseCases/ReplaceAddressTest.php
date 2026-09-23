@@ -299,13 +299,22 @@ it('looks the address up by the owner it was handed, kind and uuid alike', funct
 });
 
 describe('resolving the state', function () {
+    beforeEach(function () {
+        $this->texas = AddressFixtures::state(
+            id: AddressFixtures::SECOND_STATE_ID,
+            country: CountryCode::Us,
+            code: 'TX',
+            name: 'Texas',
+        );
+    });
+
     describe('for an owner with no address yet', function () {
         beforeEach(function () {
             $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
         });
 
         it('keeps the catalogue state it was handed and drops the typed name', function () {
-            $this->states->shouldNotReceive('findActiveByNameOrCode');
+            $this->states->shouldNotReceive('findActiveByNameOrCodePreferring');
             $this->addresses->shouldReceive('save')->once()
                 ->with(Mockery::on(fn (Address $address): bool => $address->stateId() === AddressFixtures::STATE_ID
                     && $address->stateName() === null));
@@ -313,25 +322,68 @@ describe('resolving the state', function () {
             $data = $this->useCase->handle(replaceAddressInput(stateName: 'Jalisco'))->value();
 
             expect($data->stateId)->toBe(AddressFixtures::STATE_ID)
-                ->and($data->stateName)->toBeNull();
+                ->and($data->stateName)->toBeNull()
+                ->and($data->countryCode)->toBe('MX');
         });
 
-        it('links the catalogue state a typed name matches and keeps the name as typed', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->once()
-                ->with(CountryCode::Mx, 'ciudad de mexico')
-                ->andReturn(AddressFixtures::state(id: AddressFixtures::SECOND_STATE_ID));
+        it('files a chosen catalogue state under the country the caller sent, without asking the catalogue', function () {
+            $this->states->shouldNotReceive('findActiveByNameOrCodePreferring');
             $this->addresses->shouldReceive('save')->once()
-                ->with(Mockery::on(fn (Address $address): bool => $address->stateId() === AddressFixtures::SECOND_STATE_ID
-                    && $address->stateName() === 'ciudad de mexico'));
+                ->with(Mockery::on(fn (Address $address): bool => $address->country() === CountryCode::Us));
+
+            $data = $this->useCase->handle(replaceAddressInput(
+                stateId: AddressFixtures::SECOND_STATE_ID,
+                country: CountryCode::Us,
+                stateName: 'Texas',
+            ))->value();
+
+            expect($data->stateId)->toBe(AddressFixtures::SECOND_STATE_ID)
+                ->and($data->countryCode)->toBe('US');
+        });
+
+        it('links the catalogue state a typed name matches and stores no typed name', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+                ->with(CountryCode::Mx, 'ciudad de mexico')
+                ->andReturn(AddressFixtures::state());
+            $this->addresses->shouldReceive('save')->once()
+                ->with(Mockery::on(fn (Address $address): bool => $address->stateId() === AddressFixtures::STATE_ID
+                    && $address->stateName() === null));
 
             $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'ciudad de mexico'))->value();
 
-            expect($data->stateId)->toBe(AddressFixtures::SECOND_STATE_ID)
-                ->and($data->stateName)->toBe('ciudad de mexico');
+            expect($data->stateId)->toBe(AddressFixtures::STATE_ID)
+                ->and($data->stateName)->toBeNull();
         });
 
-        it('keeps a typed name the catalogue does not know, with no state linked', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->once()
+        it('keeps the country the caller sent when the match sits in that same country', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+                ->andReturn(AddressFixtures::state());
+            $this->addresses->shouldReceive('save')->once()
+                ->with(Mockery::on(fn (Address $address): bool => $address->country() === CountryCode::Mx));
+
+            $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'CMX'))->value();
+
+            expect($data->countryCode)->toBe('MX');
+        });
+
+        it('files the address under the country of a match found in another country', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+                ->with(CountryCode::Mx, 'Texas')
+                ->andReturn($this->texas);
+            $this->addresses->shouldReceive('save')->once()
+                ->with(Mockery::on(fn (Address $address): bool => $address->country() === CountryCode::Us
+                    && $address->stateId() === AddressFixtures::SECOND_STATE_ID
+                    && $address->stateName() === null));
+
+            $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'Texas'))->value();
+
+            expect($data->countryCode)->toBe('US')
+                ->and($data->stateId)->toBe(AddressFixtures::SECOND_STATE_ID)
+                ->and($data->stateName)->toBeNull();
+        });
+
+        it('keeps a typed name the catalogue does not know under the country the caller sent', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
                 ->with(CountryCode::Mx, 'Atlantis')
                 ->andReturnNull();
             $this->addresses->shouldReceive('save')->once();
@@ -339,11 +391,24 @@ describe('resolving the state', function () {
             $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'Atlantis'))->value();
 
             expect($data->stateId)->toBeNull()
-                ->and($data->stateName)->toBe('Atlantis');
+                ->and($data->stateName)->toBe('Atlantis')
+                ->and($data->countryCode)->toBe('MX');
         });
 
-        it('asks the catalogue about the country the address sits in', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->once()
+        it('stores an unknown typed name trimmed, accents intact', function (string $typed, string $stored) {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()->andReturnNull();
+            $this->addresses->shouldReceive('save')->once();
+
+            expect($this->useCase->handle(replaceAddressInput(stateId: null, stateName: $typed))->value()->stateName)
+                ->toBe($stored);
+        })->with([
+            'padded' => ['  Atlantis  ', 'Atlantis'],
+            'accented' => ['Nuevo León', 'Nuevo León'],
+            'padded and accented' => ["\tMichoacán de Ocampo ", 'Michoacán de Ocampo'],
+        ]);
+
+        it('asks the catalogue to prefer the country the address sits in', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
                 ->with(CountryCode::Us, 'Texas')
                 ->andReturnNull();
             $this->addresses->shouldReceive('save')->once();
@@ -352,17 +417,18 @@ describe('resolving the state', function () {
         });
 
         it('never consults the catalogue when neither a state nor a name was sent', function () {
-            $this->states->shouldNotReceive('findActiveByNameOrCode');
+            $this->states->shouldNotReceive('findActiveByNameOrCodePreferring');
             $this->addresses->shouldReceive('save')->once();
 
             $data = $this->useCase->handle(replaceAddressInput(stateId: null))->value();
 
             expect($data->stateId)->toBeNull()
-                ->and($data->stateName)->toBeNull();
+                ->and($data->stateName)->toBeNull()
+                ->and($data->countryCode)->toBe('MX');
         });
 
         it('never consults the catalogue when there is no street to file', function () {
-            $this->states->shouldNotReceive('findActiveByNameOrCode');
+            $this->states->shouldNotReceive('findActiveByNameOrCodePreferring');
             $this->addresses->shouldNotReceive('save');
 
             expect($this->useCase->handle(replaceAddressInput(street: '  ', stateId: null, stateName: 'Jalisco'))->value())
@@ -370,7 +436,7 @@ describe('resolving the state', function () {
         });
 
         it('saves nothing and refuses a typed name the entity will not take', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->andReturnNull();
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->andReturnNull();
             $this->addresses->shouldNotReceive('save');
 
             $response = $this->useCase->handle(replaceAddressInput(
@@ -391,8 +457,8 @@ describe('resolving the state', function () {
             $this->addresses->shouldReceive('findForOwner')->once()->andReturn($this->existing);
         });
 
-        it('links the catalogue state a typed name matches when the address moves', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->once()
+        it('links the catalogue state a typed name matches and forgets the name it held', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
                 ->with(CountryCode::Mx, 'CMX')
                 ->andReturn(AddressFixtures::state());
             $this->addresses->shouldReceive('save')->once();
@@ -400,12 +466,40 @@ describe('resolving the state', function () {
             $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'CMX'))->value();
 
             expect($data->stateId)->toBe(AddressFixtures::STATE_ID)
-                ->and($data->stateName)->toBe('CMX')
-                ->and($this->existing->stateName())->toBe('CMX');
+                ->and($data->stateName)->toBeNull()
+                ->and($this->existing->stateId())->toBe(AddressFixtures::STATE_ID)
+                ->and($this->existing->stateName())->toBeNull();
         });
 
-        it('forgets the name it held once a catalogue state is chosen', function () {
-            $this->states->shouldNotReceive('findActiveByNameOrCode');
+        it('keeps the country when the match sits in the country the caller sent', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+                ->andReturn(AddressFixtures::state());
+            $this->addresses->shouldReceive('save')->once();
+
+            $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'CMX'))->value();
+
+            expect($data->countryCode)->toBe('MX')
+                ->and($this->existing->country())->toBe(CountryCode::Mx);
+        });
+
+        it('moves the address into the country of a match found in another country', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+                ->with(CountryCode::Mx, 'Texas')
+                ->andReturn($this->texas);
+            $this->addresses->shouldReceive('save')->once()
+                ->with(Mockery::on(fn (Address $address): bool => $address === $this->existing));
+
+            $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'Texas'))->value();
+
+            expect($data->countryCode)->toBe('US')
+                ->and($data->stateId)->toBe(AddressFixtures::SECOND_STATE_ID)
+                ->and($data->stateName)->toBeNull()
+                ->and($this->existing->country())->toBe(CountryCode::Us)
+                ->and($this->existing->stateId())->toBe(AddressFixtures::SECOND_STATE_ID);
+        });
+
+        it('forgets the name it held once a catalogue state is chosen, without asking the catalogue', function () {
+            $this->states->shouldNotReceive('findActiveByNameOrCodePreferring');
             $this->addresses->shouldReceive('save')->once();
 
             $data = $this->useCase->handle(replaceAddressInput(stateName: 'Jalisco'))->value();
@@ -414,18 +508,26 @@ describe('resolving the state', function () {
                 ->and($data->stateName)->toBeNull();
         });
 
-        it('keeps an unknown typed name on the moved address', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->once()->andReturnNull();
+        it('keeps an unknown typed name on the moved address under the country the caller sent', function () {
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+                ->with(CountryCode::Us, 'Atlantis')
+                ->andReturnNull();
             $this->addresses->shouldReceive('save')->once();
 
-            $data = $this->useCase->handle(replaceAddressInput(stateId: null, stateName: 'Atlantis'))->value();
+            $data = $this->useCase->handle(replaceAddressInput(
+                stateId: null,
+                country: CountryCode::Us,
+                stateName: 'Atlantis',
+            ))->value();
 
             expect($data->stateId)->toBeNull()
-                ->and($data->stateName)->toBe('Atlantis');
+                ->and($data->stateName)->toBe('Atlantis')
+                ->and($data->countryCode)->toBe('US')
+                ->and($this->existing->country())->toBe(CountryCode::Us);
         });
 
         it('saves nothing and leaves the stored name alone when the new one is refused', function () {
-            $this->states->shouldReceive('findActiveByNameOrCode')->andReturnNull();
+            $this->states->shouldReceive('findActiveByNameOrCodePreferring')->andReturnNull();
             $this->addresses->shouldNotReceive('save');
 
             $response = $this->useCase->handle(replaceAddressInput(
@@ -434,7 +536,8 @@ describe('resolving the state', function () {
             ));
 
             expect($response->error()->code)->toBe('invalid_address_state_name')
-                ->and($this->existing->stateName())->toBe('Jalisco');
+                ->and($this->existing->stateName())->toBe('Jalisco')
+                ->and($this->existing->country())->toBe(CountryCode::Mx);
         });
     });
 });

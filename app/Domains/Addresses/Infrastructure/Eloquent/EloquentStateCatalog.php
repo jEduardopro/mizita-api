@@ -8,17 +8,14 @@ use App\Domains\Addresses\Contracts\StateCatalog;
 use App\Domains\Addresses\Entities\State;
 use App\Domains\Addresses\Infrastructure\Eloquent\Mappers\StateMapper;
 use App\Domains\Addresses\Infrastructure\Eloquent\Models\StateModel;
+use App\Domains\Addresses\Services\StateMatcher;
 use App\Shared\ValueObjects\CountryCode;
-use Illuminate\Support\Str;
 
 final class EloquentStateCatalog implements StateCatalog
 {
-    private const WHITESPACE_RUN = '/\s+/u';
-
-    private const SINGLE_SPACE = ' ';
-
     public function __construct(
         private readonly StateMapper $mapper,
+        private readonly StateMatcher $matcher,
     ) {}
 
     /**
@@ -37,27 +34,28 @@ final class EloquentStateCatalog implements StateCatalog
             ->all();
     }
 
-    public function findActiveByNameOrCode(CountryCode $country, string $nameOrCode): ?State
+    public function findActiveByNameOrCodePreferring(CountryCode $preferredCountry, string $nameOrCode): ?State
     {
-        $wanted = self::comparable($nameOrCode);
-
-        if ($wanted === '') {
+        if (! $this->matcher->canMatch($nameOrCode)) {
             return null;
         }
 
-        foreach ($this->allActiveFor($country) as $state) {
-            if (self::comparable($state->name()) === $wanted || self::comparable($state->code()) === $wanted) {
-                return $state;
-            }
-        }
-
-        return null;
+        return $this->matcher->bestMatch($this->allActiveInCatalog(), $preferredCountry, $nameOrCode);
     }
 
-    private static function comparable(string $value): string
+    /**
+     * @return list<State>
+     */
+    private function allActiveInCatalog(): array
     {
-        $collapsed = (string) preg_replace(self::WHITESPACE_RUN, self::SINGLE_SPACE, trim($value));
-
-        return Str::ascii(mb_strtolower($collapsed));
+        return StateModel::query()
+            ->whereIn('country_code', array_column(CountryCode::cases(), 'value'))
+            ->where('active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (StateModel $model): State => $this->mapper->toEntity($model))
+            ->values()
+            ->all();
     }
 }

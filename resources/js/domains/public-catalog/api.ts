@@ -7,6 +7,7 @@ import type {
     PublicBookingConfirmation,
     PublicBookingCredentials,
     PublicBusinessPage,
+    PublicState,
     ReschedulePublicBookingPayload,
 } from './types';
 
@@ -29,6 +30,18 @@ export async function fetchPublicBusinessPage(
     signal?: AbortSignal,
 ): Promise<PublicBusinessPage> {
     const { data } = await api.get<{ data: PublicBusinessPage }>(businessUrl(slug), { signal });
+
+    return data.data;
+}
+
+export async function fetchPublicStates(
+    country: string,
+    signal?: AbortSignal,
+): Promise<PublicState[]> {
+    const { data } = await api.get<{ data: PublicState[] }>('/public/states', {
+        params: { country },
+        signal,
+    });
 
     return data.data;
 }

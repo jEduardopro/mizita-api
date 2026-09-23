@@ -309,7 +309,7 @@ describe('filing the address a business submitted', function () {
     });
 
     it('never guesses a state from the catalogue, because a business picks its state from the list', function () {
-        $this->states->shouldNotReceive('findActiveByNameOrCode');
+        $this->states->shouldNotReceive('findActiveByNameOrCodePreferring');
         $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
 
         $saved = null;

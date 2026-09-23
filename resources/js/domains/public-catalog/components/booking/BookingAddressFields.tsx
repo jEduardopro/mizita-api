@@ -3,6 +3,7 @@ import { fieldMessage, FieldMessage } from '@/components/form/FieldMessage';
 import { FieldRow } from '@/components/form/FieldRow';
 import { FormField } from '@/components/form/FormField';
 import type { BookingAddressField, BookingAddressValues } from './booking-details-values';
+import { BookingStateField } from './BookingStateField';
 import {
     isContactFieldOptional,
     isContactFieldRequired,
@@ -15,7 +16,7 @@ const GROUP_ID = 'booking-guest-address';
 type Props = {
     level: ShownContactFieldLevel;
     values: BookingAddressValues;
-    onChange(field: BookingAddressField, value: string): void;
+    onChange<Field extends BookingAddressField>(field: Field, value: BookingAddressValues[Field]): void;
     errorFor(field: BookingAddressField): string | undefined;
 };
 
@@ -56,7 +57,7 @@ export function BookingAddressFields({ level, values, onChange, errorFor }: Prop
                 error={errorFor('street')}
             />
 
-            <FieldRow columns={3}>
+            <FieldRow columns={2}>
                 <FormField
                     id={`${GROUP_ID}-city`}
                     label={t('booking.flow.details.address.city.label')}
@@ -65,16 +66,6 @@ export function BookingAddressFields({ level, values, onChange, errorFor }: Prop
                     value={values.city}
                     onChange={(event) => onChange('city', event.target.value)}
                     error={errorFor('city')}
-                />
-
-                <FormField
-                    id={`${GROUP_ID}-state`}
-                    label={t('booking.flow.details.address.state.label')}
-                    autoComplete="address-level1"
-                    required={required}
-                    value={values.state}
-                    onChange={(event) => onChange('state', event.target.value)}
-                    error={errorFor('state')}
                 />
 
                 <FormField
@@ -88,6 +79,14 @@ export function BookingAddressFields({ level, values, onChange, errorFor }: Prop
                     error={errorFor('postalCode')}
                 />
             </FieldRow>
+
+            <BookingStateField
+                id={`${GROUP_ID}-state`}
+                value={values.state}
+                onChange={(state) => onChange('state', state)}
+                required={required}
+                error={errorFor('state')}
+            />
         </div>
     );
 }

@@ -241,7 +241,19 @@
                         "label": "Ciudad"
                     },
                     "state": {
-                        "label": "Estado"
+                        "label": "Estado",
+                        "placeholder": "Selecciona un estado",
+                        "empty": "Ningún estado coincide. Si el tuyo no aparece, usa «Mi estado no está en la lista».",
+                        "error": "No pudimos cargar los estados. Usa «Mi estado no está en la lista» para escribir el tuyo.",
+                        "loading": "Cargando estados…",
+                        "results_one": "{{count}} estado disponible",
+                        "results_other": "{{count}} estados disponibles",
+                        "notListed": "Mi estado no está en la lista",
+                        "chooseFromList": "Elegir de la lista",
+                        "otherInput": {
+                            "label": "Nombre del estado",
+                            "placeholder": "Texas"
+                        }
                     },
                     "postalCode": {
                         "label": "Código postal"

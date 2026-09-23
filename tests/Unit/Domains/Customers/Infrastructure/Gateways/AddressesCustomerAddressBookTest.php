@@ -270,8 +270,8 @@ describe('filing the address a customer submitted', function () {
         expect($saved->stateId())->toBeNull();
     });
 
-    it('files a typed state name and links the catalogue state it matches', function () {
-        $this->states->shouldReceive('findActiveByNameOrCode')->once()
+    it('links the catalogue state a typed state name matches and stores no typed name', function () {
+        $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
             ->with(CountryCode::Mx, 'Ciudad de Mexico')
             ->andReturn(AddressFixtures::state());
         $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
@@ -282,11 +282,14 @@ describe('filing the address a customer submitted', function () {
         ($this->replace)(filedCustomerAddress(stateId: null, stateName: 'Ciudad de Mexico'));
 
         expect($saved->stateId())->toBe(AddressFixtures::STATE_ID)
-            ->and($saved->stateName())->toBe('Ciudad de Mexico');
+            ->and($saved->stateName())->toBeNull()
+            ->and($saved->country())->toBe(CountryCode::Mx);
     });
 
     it('files a typed state name the catalogue does not know, with no state linked', function () {
-        $this->states->shouldReceive('findActiveByNameOrCode')->once()->andReturnNull();
+        $this->states->shouldReceive('findActiveByNameOrCodePreferring')->once()
+            ->with(CountryCode::Mx, 'Atlantis')
+            ->andReturnNull();
         $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
 
         $saved = null;
@@ -482,7 +485,7 @@ describe('refusing an address the neighbour will not take', function () {
     });
 
     it('refuses a typed state name longer than the column', function () {
-        $this->states->shouldReceive('findActiveByNameOrCode')->andReturnNull();
+        $this->states->shouldReceive('findActiveByNameOrCodePreferring')->andReturnNull();
         $this->addresses->shouldReceive('findForOwner')->once()->andReturnNull();
         $this->addresses->shouldNotReceive('save');
 
