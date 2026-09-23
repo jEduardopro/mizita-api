@@ -40,6 +40,7 @@ export function PaymentTransactionsSection({
                         <PaymentTransactionRow
                             key={transaction.id}
                             transaction={transaction}
+                            paidCents={paidCents}
                             currencyCode={currencyCode}
                             timezone={timezone}
                             onVoid={() => setTransactionToVoid(transaction.id)}

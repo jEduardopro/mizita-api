@@ -16,7 +16,9 @@ use App\Domains\Payments\Entities\PaymentTransaction;
 use App\Domains\Payments\ValueObjects\AppointmentSnapshot;
 use App\Domains\Payments\ValueObjects\Discount;
 use App\Domains\Payments\ValueObjects\Money;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Domains\Payments\ValueObjects\PaymentItemName;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Shared\ValueObjects\CurrencyCode;
 use DateTimeImmutable;
 use Tests\Support\FakeBusinessContext;
@@ -69,6 +71,10 @@ final class PaymentFixtures
     public const GENERATED_SECOND_ADD_ON_ID = '01930000-0000-7000-8000-000000002002';
 
     public const GENERATED_TRANSACTION_ID = '01930000-0000-7000-8000-000000001099';
+
+    public const GENERATED_VOID_ID = '01930000-0000-7000-8000-000000003001';
+
+    public const GENERATED_SECOND_VOID_ID = '01930000-0000-7000-8000-000000003002';
 
     public const CURRENCY = 'MXN';
 
@@ -127,6 +133,17 @@ final class PaymentFixtures
         );
     }
 
+    public static function breakdown(
+        int $subtotalPreDiscountCents = self::SERVICE_PRICE_CENTS,
+        ?Discount $discount = null,
+        string $currencyCode = self::CURRENCY,
+    ): PaymentBreakdown {
+        return PaymentBreakdown::of(
+            self::money($subtotalPreDiscountCents, $currencyCode),
+            $discount ?? Discount::none(),
+        );
+    }
+
     public static function transaction(
         string $id = self::TRANSACTION_ID,
         string $paymentMethodId = self::CASH_METHOD_ID,
@@ -135,14 +152,30 @@ final class PaymentFixtures
         ?string $voidedAt = null,
         ?string $voidedByAccountId = null,
         string $currencyCode = self::CURRENCY,
+        PaymentTransactionType $type = PaymentTransactionType::Approved,
+        ?PaymentBreakdown $breakdown = null,
+        ?string $accountId = null,
     ): PaymentTransaction {
+        if ($voidedAt !== null) {
+            return PaymentTransaction::restore(
+                $id,
+                PaymentTransactionType::Void,
+                $paymentMethodId,
+                $voidedByAccountId,
+                PaymentBreakdown::none(self::currency($currencyCode)),
+                self::money($amountCents, $currencyCode),
+                self::instant($voidedAt),
+            );
+        }
+
         return PaymentTransaction::restore(
             $id,
+            $type,
             $paymentMethodId,
+            $accountId,
+            $breakdown ?? PaymentBreakdown::none(self::currency($currencyCode)),
             self::money($amountCents, $currencyCode),
             self::instant($processedAt ?? self::NOW),
-            $voidedAt === null ? null : self::instant($voidedAt),
-            $voidedByAccountId,
         );
     }
 
@@ -194,6 +227,7 @@ final class PaymentFixtures
         ?DiscountInput $discount = null,
         string $paymentMethodId = self::CASH_METHOD_ID,
         int $amountCents = self::SERVICE_PRICE_CENTS,
+        string $actorAccountId = self::ACTOR_ID,
     ): CreateAppointmentPaymentInput {
         return new CreateAppointmentPaymentInput(
             appointmentId: $appointmentId,
@@ -201,6 +235,7 @@ final class PaymentFixtures
             discount: $discount,
             paymentMethodId: $paymentMethodId,
             amountCents: $amountCents,
+            actorAccountId: $actorAccountId,
         );
     }
 
@@ -208,8 +243,9 @@ final class PaymentFixtures
         string $paymentId = self::PAYMENT_ID,
         string $paymentMethodId = self::CASH_METHOD_ID,
         int $amountCents = self::SERVICE_PRICE_CENTS,
+        string $actorAccountId = self::ACTOR_ID,
     ): RecordPaymentTransactionInput {
-        return new RecordPaymentTransactionInput($paymentId, $paymentMethodId, $amountCents);
+        return new RecordPaymentTransactionInput($paymentId, $paymentMethodId, $amountCents, $actorAccountId);
     }
 
     public static function voidInput(
@@ -220,14 +256,29 @@ final class PaymentFixtures
         return new VoidPaymentTransactionInput($paymentId, $transactionId, $actorAccountId);
     }
 
-    public static function idGenerator(int $addOns = 0): FixedIdGenerator
+    public static function idGenerator(int $addOns = 0, int $voids = 0): FixedIdGenerator
     {
         return new FixedIdGenerator(
             self::GENERATED_PAYMENT_ID,
             self::GENERATED_SERVICE_ITEM_ID,
             ...self::addOnIds($addOns),
             ...[self::GENERATED_TRANSACTION_ID],
+            ...self::voidIds($voids),
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function voidIds(int $count): array
+    {
+        $ids = [];
+
+        for ($index = 1; $index <= $count; $index++) {
+            $ids[] = sprintf('01930000-0000-7000-8000-%012d', 3000 + $index);
+        }
+
+        return $ids;
     }
 
     /**

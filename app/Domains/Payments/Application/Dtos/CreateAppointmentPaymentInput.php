@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Payments\Application\Dtos;
 
+use App\Domains\Payments\Exceptions\InvalidPaymentActor;
 use App\Domains\Payments\Exceptions\InvalidPaymentDiscount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemAmount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemName;
@@ -30,12 +31,13 @@ final readonly class CreateAppointmentPaymentInput
         public ?DiscountInput $discount,
         public string $paymentMethodId,
         public int $amountCents,
+        public string $actorAccountId,
     ) {}
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function fromRequest(array $payload, string $appointmentId): self
+    public static function fromRequest(array $payload, string $appointmentId, string $actorAccountId): self
     {
         return new self(
             appointmentId: $appointmentId,
@@ -43,6 +45,7 @@ final readonly class CreateAppointmentPaymentInput
             discount: self::discountFrom($payload['discount'] ?? null),
             paymentMethodId: self::textOrEmpty($payload['payment_method_id'] ?? null),
             amountCents: self::centsOrZero($payload['amount_cents'] ?? null),
+            actorAccountId: $actorAccountId,
         );
     }
 
@@ -54,6 +57,7 @@ final readonly class CreateAppointmentPaymentInput
      * @throws InvalidPaymentItemAmount
      * @throws InvalidPaymentDiscount
      * @throws InvalidTransactionAmount
+     * @throws InvalidPaymentActor
      */
     public function validate(): void
     {
@@ -62,6 +66,7 @@ final readonly class CreateAppointmentPaymentInput
         $this->validateAddOns();
         $this->discount?->validate();
         $this->validateAmountCents();
+        $this->validateActorAccountId();
     }
 
     /**
@@ -141,6 +146,13 @@ final readonly class CreateAppointmentPaymentInput
 
         if ($this->amountCents > Money::MAXIMUM_CENTS) {
             throw InvalidTransactionAmount::tooLarge($this->amountCents, Money::MAXIMUM_CENTS);
+        }
+    }
+
+    private function validateActorAccountId(): void
+    {
+        if (! Identifier::isWellFormed($this->actorAccountId)) {
+            throw InvalidPaymentActor::malformed($this->actorAccountId);
         }
     }
 }

@@ -220,8 +220,12 @@
             "paid": "Pagado"
         },
         "transaction": {
-            "completed": "Pagado",
-            "voided": "Anulada",
+            "types": {
+                "approved": "Cobro",
+                "void": "Anulación",
+                "refund": "Reembolso",
+                "failed": "Cobro fallido"
+            },
             "method": "Forma de pago",
             "reference": "ID de transacción",
             "toggle": "Ver el detalle de la transacción",
@@ -229,7 +233,7 @@
         },
         "void": {
             "title": "¿Anular esta transacción?",
-            "description": "El importe vuelve al saldo pendiente y la transacción queda registrada como anulada.",
+            "description": "El cobro queda registrado y la anulación se añade como un movimiento nuevo. El importe vuelve al saldo pendiente.",
             "confirm": "Anular transacción"
         },
         "toasts": {
@@ -239,6 +243,7 @@
         "errors": {
             "chargeFailed": "No pudimos registrar el cobro. Inténtalo de nuevo.",
             "voidFailed": "No pudimos anular la transacción. Inténtalo de nuevo.",
+            "voidNotPossible": "Ya se ha anulado todo lo cobrado, así que no queda nada por devolver.",
             "load": "No pudimos cargar el pago.",
             "methodsLoad": "No pudimos cargar las formas de pago.",
             "itemName": "El complemento necesita un nombre.",

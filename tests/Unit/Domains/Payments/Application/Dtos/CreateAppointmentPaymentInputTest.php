@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Payments\Application\Dtos\CreateAppointmentPaymentInput;
 use App\Domains\Payments\Application\Dtos\DiscountInput;
 use App\Domains\Payments\Application\Dtos\PaymentAddOnInput;
+use App\Domains\Payments\Exceptions\InvalidPaymentActor;
 use App\Domains\Payments\Exceptions\InvalidPaymentDiscount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemAmount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemName;
@@ -26,9 +27,10 @@ describe('reading an untrusted payload', function () {
                 ['name' => 'Hot towel', 'amount_cents' => 3_000],
             ],
             'discount' => ['type' => 'percentage', 'value' => 1_000],
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->appointmentId)->toBe(PaymentFixtures::APPOINTMENT_ID)
+            ->and($input->actorAccountId)->toBe(PaymentFixtures::ACTOR_ID)
             ->and($input->paymentMethodId)->toBe(PaymentFixtures::CASH_METHOD_ID)
             ->and($input->amountCents)->toBe(PaymentFixtures::SERVICE_PRICE_CENTS)
             ->and($input->addOns)->toHaveCount(2)
@@ -45,9 +47,18 @@ describe('reading an untrusted payload', function () {
     it('takes the appointment from the route and never from the body', function () {
         $input = CreateAppointmentPaymentInput::fromRequest(PaymentFixtures::createPayload([
             'appointment_id' => PaymentFixtures::SECOND_APPOINTMENT_ID,
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->appointmentId)->toBe(PaymentFixtures::APPOINTMENT_ID);
+    });
+
+    it('takes the actor from the authenticated caller and never from the body', function () {
+        $input = CreateAppointmentPaymentInput::fromRequest(PaymentFixtures::createPayload([
+            'actor_account_id' => PaymentFixtures::OTHER_ACTOR_ID,
+            'account_id' => PaymentFixtures::OTHER_ACTOR_ID,
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
+
+        expect($input->actorAccountId)->toBe(PaymentFixtures::ACTOR_ID);
     });
 
     it('carries no key for the service line, so a caller cannot price it', function () {
@@ -57,15 +68,15 @@ describe('reading an untrusted payload', function () {
             'service_price_cents' => 0,
             'subtotal_cents' => 0,
             'total_cents' => 0,
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect(array_keys(get_object_vars($input)))
-            ->toBe(['appointmentId', 'addOns', 'discount', 'paymentMethodId', 'amountCents'])
+            ->toBe(['appointmentId', 'addOns', 'discount', 'paymentMethodId', 'amountCents', 'actorAccountId'])
             ->and($input->addOns)->toBe([]);
     });
 
     it('survives a payload with no keys at all and refuses it on validate', function () {
-        $input = CreateAppointmentPaymentInput::fromRequest([], PaymentFixtures::APPOINTMENT_ID);
+        $input = CreateAppointmentPaymentInput::fromRequest([], PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->addOns)->toBe([])
             ->and($input->discount)->toBeNull()
@@ -80,7 +91,7 @@ describe('reading an untrusted payload', function () {
             'discount' => 42,
             'payment_method_id' => ['an', 'array'],
             'amount_cents' => 'not a number',
-        ], PaymentFixtures::APPOINTMENT_ID);
+        ], PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->addOns)->toBe([])
             ->and($input->discount)->toBeNull()
@@ -92,7 +103,7 @@ describe('reading an untrusted payload', function () {
     it('turns an add-on that is not even an array into one it can rule on', function () {
         $input = CreateAppointmentPaymentInput::fromRequest(PaymentFixtures::createPayload([
             'add_ons' => ['a bare string', null, 7],
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->addOns)->toHaveCount(3)
             ->and($input->addOns[0])->toBeInstanceOf(PaymentAddOnInput::class)
@@ -103,7 +114,7 @@ describe('reading an untrusted payload', function () {
     it('reindexes add-ons that arrived under string keys', function () {
         $input = CreateAppointmentPaymentInput::fromRequest(PaymentFixtures::createPayload([
             'add_ons' => ['second' => ['name' => 'Hot towel', 'amount_cents' => 3_000]],
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect(array_keys($input->addOns))->toBe([0])
             ->and($input->addOns[0]->name)->toBe('Hot towel');
@@ -199,9 +210,24 @@ describe('the rules it states', function () {
             ->not->toThrow(Throwable::class);
     });
 
+    it('refuses an actor identifier that is no uuid', function (string $actorAccountId) {
+        expect(fn () => PaymentFixtures::createInput(actorAccountId: $actorAccountId)->validate())
+            ->toThrow(InvalidPaymentActor::class);
+    })->with([
+        'empty' => '',
+        'whitespace only' => '   ',
+        'a sequential int' => '1',
+        'a word' => 'the-owner',
+    ]);
+
     it('rules on the appointment before the payment method', function () {
         expect(fn () => PaymentFixtures::createInput(appointmentId: 'nope', paymentMethodId: 'nope')->validate())
             ->toThrow(PaymentAppointmentNotFound::class);
+    });
+
+    it('rules on the amount before the actor', function () {
+        expect(fn () => PaymentFixtures::createInput(amountCents: 0, actorAccountId: 'nope')->validate())
+            ->toThrow(InvalidTransactionAmount::class);
     });
 
     it('rules on the payment method before the add-ons', function () {

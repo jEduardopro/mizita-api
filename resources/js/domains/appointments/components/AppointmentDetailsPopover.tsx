@@ -59,7 +59,9 @@ function AppointmentDetailsSheetBody({ appointment, timezone, renderPaymentPanel
 
     if (renderPaymentPanel === undefined) {
         return (
-            <div className="overflow-y-auto overscroll-contain px-4 pb-4">{details}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+                {details}
+            </div>
         );
     }
 
@@ -97,7 +99,7 @@ export function AppointmentDetailsPopover({
             <Sheet open={open} onOpenChange={onOpenChange}>
                 <SheetContent
                     side="bottom"
-                    className="flex max-h-[85svh] flex-col pb-[env(safe-area-inset-bottom)]"
+                    className="flex flex-col pb-[env(safe-area-inset-bottom)] data-[side=bottom]:h-[85svh]"
                 >
                     <SheetHeader className="shrink-0 pr-14">
                         <div className="flex flex-wrap items-center gap-2">

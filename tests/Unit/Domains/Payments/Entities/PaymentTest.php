@@ -12,14 +12,16 @@ use App\Domains\Payments\Exceptions\InvalidVoidActor;
 use App\Domains\Payments\Exceptions\PaymentAlreadySettled;
 use App\Domains\Payments\Exceptions\PaymentAlreadyStarted;
 use App\Domains\Payments\Exceptions\PaymentOverpaid;
-use App\Domains\Payments\Exceptions\PaymentTransactionAlreadyVoided;
 use App\Domains\Payments\Exceptions\PaymentTransactionNotFound;
+use App\Domains\Payments\Exceptions\PaymentTransactionNotVoidable;
+use App\Domains\Payments\Exceptions\VoidExceedsPaidAmount;
 use App\Domains\Payments\ValueObjects\Discount;
 use App\Domains\Payments\ValueObjects\DiscountType;
 use App\Domains\Payments\ValueObjects\Money;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Domains\Payments\ValueObjects\PaymentItemName;
 use App\Domains\Payments\ValueObjects\PaymentStatus;
-use App\Domains\Payments\ValueObjects\PaymentTransactionStatus;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Shared\ValueObjects\CurrencyCode;
 
 const PAYMENT_AGGREGATE_ID = '01930000-0000-7000-8000-000000000001';
@@ -52,6 +54,11 @@ function paymentAggregateChildId(int $position): string
     return sprintf('01930000-0000-7000-8000-00000000%04d', 1000 + $position);
 }
 
+function paymentAggregateBreakdown(): PaymentBreakdown
+{
+    return PaymentBreakdown::none(CurrencyCode::default());
+}
+
 function openPaymentAggregate(): Payment
 {
     return Payment::open(
@@ -78,13 +85,44 @@ function paymentAggregateWithItems(int ...$amounts): Payment
     return $payment;
 }
 
-function recordOnPaymentAggregate(Payment $payment, int $cents, int $position = 0): PaymentTransaction
-{
+function recordOnPaymentAggregate(
+    Payment $payment,
+    int $cents,
+    int $position = 0,
+    ?PaymentBreakdown $breakdown = null,
+): PaymentTransaction {
     return $payment->recordTransaction(
         paymentAggregateChildId(100 + $position),
         PAYMENT_AGGREGATE_METHOD_ID,
+        PAYMENT_AGGREGATE_ACTOR_ID,
+        $breakdown ?? paymentAggregateBreakdown(),
         paymentAggregateMoney($cents),
         paymentAggregateInstant(),
+    );
+}
+
+function voidOnPaymentAggregate(
+    Payment $payment,
+    int $sourcePosition = 0,
+    int $newPosition = 200,
+    string $actorAccountId = PAYMENT_AGGREGATE_ACTOR_ID,
+): PaymentTransaction {
+    return $payment->voidTransaction(
+        paymentAggregateChildId($newPosition),
+        paymentAggregateChildId(100 + $sourcePosition),
+        $actorAccountId,
+        paymentAggregateInstant(),
+    );
+}
+
+/**
+ * @return list<PaymentTransactionType>
+ */
+function paymentAggregateTypes(Payment $payment): array
+{
+    return array_map(
+        static fn (PaymentTransaction $transaction): PaymentTransactionType => $transaction->type,
+        $payment->transactions(),
     );
 }
 
@@ -223,9 +261,32 @@ describe('recording a transaction', function () {
             ->and($payment->transactions()[0])->toBe($transaction)
             ->and($transaction->id)->toBe(paymentAggregateChildId(100))
             ->and($transaction->paymentMethodId)->toBe(PAYMENT_AGGREGATE_METHOD_ID)
-            ->and($transaction->amount->amount)->toBe(4000)
+            ->and($transaction->total->amount)->toBe(4000)
             ->and($transaction->processedAt)->toEqual(paymentAggregateInstant())
-            ->and($transaction->status())->toBe(PaymentTransactionStatus::Completed);
+            ->and($transaction->type)->toBe(PaymentTransactionType::Approved);
+    });
+
+    it('stamps the transaction with the account that took the money', function () {
+        $payment = paymentAggregateWithItems(10000);
+
+        expect(recordOnPaymentAggregate($payment, 4000)->accountId)->toBe(PAYMENT_AGGREGATE_ACTOR_ID);
+    });
+
+    it('keeps the breakdown the caller priced the charge with', function () {
+        $payment = paymentAggregateWithItems(10000);
+        $payment->applyDiscount(Discount::ofPercentage(1000));
+
+        $transaction = recordOnPaymentAggregate(
+            $payment,
+            9000,
+            0,
+            PaymentBreakdown::of($payment->subtotal(), $payment->discount()),
+        );
+
+        expect($transaction->breakdown->subtotalPreDiscount->amount)->toBe(10000)
+            ->and($transaction->breakdown->discountType())->toBe(DiscountType::Percentage)
+            ->and($transaction->breakdown->discountAmount->amount)->toBe(1000)
+            ->and($transaction->breakdown->subtotal->amount)->toBe(9000);
     });
 
     it('moves what is paid and what is left owing', function () {
@@ -306,6 +367,8 @@ describe('recording a transaction', function () {
         expect(fn () => $payment->recordTransaction(
             paymentAggregateChildId(100),
             PAYMENT_AGGREGATE_METHOD_ID,
+            PAYMENT_AGGREGATE_ACTOR_ID,
+            paymentAggregateBreakdown(),
             paymentAggregateForeignMoney(1000),
             paymentAggregateInstant(),
         ))->toThrow(CurrencyMismatch::class);
@@ -369,14 +432,10 @@ describe('the guard that keeps a started payment from being rewritten', function
             ->toThrow(PaymentAlreadyStarted::class);
     });
 
-    it('does not count a voided transaction as money the payment holds', function () {
+    it('reopens the payment once a void has taken the money back off it', function () {
         $payment = paymentAggregateWithItems(10000);
         recordOnPaymentAggregate($payment, 4000);
-        $payment->voidTransaction(
-            paymentAggregateChildId(100),
-            PAYMENT_AGGREGATE_ACTOR_ID,
-            paymentAggregateInstant(),
-        );
+        voidOnPaymentAggregate($payment);
 
         $payment->addItem(
             paymentAggregateChildId(1),
@@ -394,29 +453,37 @@ describe('voiding a transaction', function () {
         recordOnPaymentAggregate($this->payment, 4000, 0);
     });
 
-    it('keeps the voided transaction on the payment instead of removing it', function () {
-        $this->payment->voidTransaction(
-            paymentAggregateChildId(100),
-            PAYMENT_AGGREGATE_ACTOR_ID,
-            paymentAggregateInstant('2026-03-10T08:00:00+00:00'),
-        );
+    it('appends a void row and leaves the charge it reverses approved for ever', function () {
+        $void = voidOnPaymentAggregate($this->payment);
 
-        $transaction = $this->payment->transactions()[0];
+        expect($this->payment->transactions())->toHaveCount(2)
+            ->and($this->payment->transactions()[0]->id)->toBe(paymentAggregateChildId(100))
+            ->and($this->payment->transactions()[0]->type)->toBe(PaymentTransactionType::Approved)
+            ->and($this->payment->transactions()[1])->toBe($void)
+            ->and($void->id)->toBe(paymentAggregateChildId(200))
+            ->and($void->type)->toBe(PaymentTransactionType::Void);
+    });
 
-        expect($this->payment->transactions())->toHaveCount(1)
-            ->and($transaction->id)->toBe(paymentAggregateChildId(100))
-            ->and($transaction->isVoided())->toBeTrue()
-            ->and($transaction->status())->toBe(PaymentTransactionStatus::Voided)
-            ->and($transaction->voidedAt())->toEqual(paymentAggregateInstant('2026-03-10T08:00:00+00:00'))
-            ->and($transaction->voidedByAccountId())->toBe(PAYMENT_AGGREGATE_ACTOR_ID);
+    it('gives the void row the amount, the method and the actor it answers for', function () {
+        $void = voidOnPaymentAggregate($this->payment);
+
+        expect($void->total->amount)->toBe(4000)
+            ->and($void->paymentMethodId)->toBe(PAYMENT_AGGREGATE_METHOD_ID)
+            ->and($void->accountId)->toBe(PAYMENT_AGGREGATE_ACTOR_ID)
+            ->and($void->processedAt)->toEqual(paymentAggregateInstant());
+    });
+
+    it('prices nothing on the void row, so its breakdown is all zeros', function () {
+        $void = voidOnPaymentAggregate($this->payment);
+
+        expect($void->breakdown->subtotalPreDiscount->amount)->toBe(0)
+            ->and($void->breakdown->discountAmount->amount)->toBe(0)
+            ->and($void->breakdown->subtotal->amount)->toBe(0)
+            ->and($void->breakdown->discountType())->toBe(DiscountType::None);
     });
 
     it('gives the money back to the outstanding balance', function () {
-        $this->payment->voidTransaction(
-            paymentAggregateChildId(100),
-            PAYMENT_AGGREGATE_ACTOR_ID,
-            paymentAggregateInstant(),
-        );
+        voidOnPaymentAggregate($this->payment);
 
         expect($this->payment->paid()->amount)->toBe(0)
             ->and($this->payment->balance()->amount)->toBe(10000)
@@ -431,37 +498,33 @@ describe('voiding a transaction', function () {
 
         expect($payment->status())->toBe(PaymentStatus::Paid);
 
-        $payment->voidTransaction(
-            paymentAggregateChildId(101),
-            PAYMENT_AGGREGATE_ACTOR_ID,
-            paymentAggregateInstant(),
-        );
+        voidOnPaymentAggregate($payment, sourcePosition: 1);
 
         expect($payment->status())->toBe(PaymentStatus::PartiallyPaid)
             ->and($payment->paid()->amount)->toBe(6000)
             ->and($payment->balance()->amount)->toBe(4000)
-            ->and($payment->transactions())->toHaveCount(2);
+            ->and($payment->transactions())->toHaveCount(3);
     });
 
-    it('refuses to void the same transaction twice', function () {
-        $this->payment->voidTransaction(
-            paymentAggregateChildId(100),
-            PAYMENT_AGGREGATE_ACTOR_ID,
-            paymentAggregateInstant(),
-        );
+    it('refuses to void a row that is not an approved charge', function () {
+        voidOnPaymentAggregate($this->payment);
 
         expect(fn () => $this->payment->voidTransaction(
-            paymentAggregateChildId(100),
+            paymentAggregateChildId(201),
+            paymentAggregateChildId(200),
             PAYMENT_AGGREGATE_ACTOR_ID,
             paymentAggregateInstant(),
         ))->toThrow(
-            PaymentTransactionAlreadyVoided::class,
-            'Payment transaction ['.paymentAggregateChildId(100).'] is already voided.',
+            PaymentTransactionNotVoidable::class,
+            'Payment transaction ['.paymentAggregateChildId(200).'] is not an approved charge.',
         );
+
+        expect($this->payment->transactions())->toHaveCount(2);
     });
 
     it('refuses to void a transaction this payment never recorded', function () {
         expect(fn () => $this->payment->voidTransaction(
+            paymentAggregateChildId(200),
             '01930000-0000-7000-8000-000000009999',
             PAYMENT_AGGREGATE_ACTOR_ID,
             paymentAggregateInstant(),
@@ -470,29 +533,132 @@ describe('voiding a transaction', function () {
             'Payment transaction [01930000-0000-7000-8000-000000009999] was not found.',
         );
 
-        expect($this->payment->paid()->amount)->toBe(4000);
+        expect($this->payment->paid()->amount)->toBe(4000)
+            ->and($this->payment->transactions())->toHaveCount(1);
     });
 
     it('refuses a void nobody is accountable for, and leaves the money where it was', function () {
-        expect(fn () => $this->payment->voidTransaction(
-            paymentAggregateChildId(100),
-            '   ',
-            paymentAggregateInstant(),
-        ))->toThrow(InvalidVoidActor::class);
+        expect(fn () => voidOnPaymentAggregate($this->payment, actorAccountId: '   '))
+            ->toThrow(InvalidVoidActor::class);
 
-        expect($this->payment->transactions()[0]->isVoided())->toBeFalse()
+        expect($this->payment->transactions())->toHaveCount(1)
             ->and($this->payment->paid()->amount)->toBe(4000);
+    });
+
+    it('refuses a void against a payment that is holding no money at all', function () {
+        $payment = paymentAggregateWithItems(10000);
+        recordOnPaymentAggregate($payment, 4000, 0);
+        voidOnPaymentAggregate($payment);
+
+        expect(fn () => $payment->voidTransaction(
+            paymentAggregateChildId(201),
+            paymentAggregateChildId(100),
+            PAYMENT_AGGREGATE_ACTOR_ID,
+            paymentAggregateInstant(),
+        ))->toThrow(
+            VoidExceedsPaidAmount::class,
+            'A void of [4000] exceeds the collected amount of [0].',
+        );
+
+        expect($payment->transactions())->toHaveCount(2)
+            ->and($payment->paid()->amount)->toBe(0);
+    });
+
+    it('refuses a void larger than what is still collected', function () {
+        $payment = paymentAggregateWithItems(10000);
+        recordOnPaymentAggregate($payment, 6000, 0);
+        recordOnPaymentAggregate($payment, 4000, 1);
+        voidOnPaymentAggregate($payment, sourcePosition: 0, newPosition: 200);
+
+        expect($payment->paid()->amount)->toBe(4000)
+            ->and(fn () => $payment->voidTransaction(
+                paymentAggregateChildId(201),
+                paymentAggregateChildId(100),
+                PAYMENT_AGGREGATE_ACTOR_ID,
+                paymentAggregateInstant(),
+            ))->toThrow(
+                VoidExceedsPaidAmount::class,
+                'A void of [6000] exceeds the collected amount of [4000].',
+            );
+
+        expect($payment->transactions())->toHaveCount(3)
+            ->and($payment->paid()->amount)->toBe(4000);
+    });
+
+    it('refuses a charge larger than the amount a refund has left collected', function () {
+        $payment = Payment::restore(
+            id: PAYMENT_AGGREGATE_ID,
+            businessId: PAYMENT_AGGREGATE_BUSINESS_ID,
+            appointmentId: PAYMENT_AGGREGATE_APPOINTMENT_ID,
+            currency: CurrencyCode::default(),
+            items: [
+                PaymentItem::restore(
+                    paymentAggregateChildId(0),
+                    PaymentItemName::restore('Corte'),
+                    paymentAggregateMoney(10000),
+                    0,
+                ),
+            ],
+            discount: Discount::none(),
+            transactions: [
+                PaymentTransaction::restore(
+                    paymentAggregateChildId(100),
+                    PaymentTransactionType::Approved,
+                    PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
+                    paymentAggregateMoney(6000),
+                    paymentAggregateInstant(),
+                ),
+                PaymentTransaction::restore(
+                    paymentAggregateChildId(200),
+                    PaymentTransactionType::Refund,
+                    PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
+                    paymentAggregateMoney(4000),
+                    paymentAggregateInstant(),
+                ),
+            ],
+            createdAt: paymentAggregateInstant(),
+        );
+
+        expect($payment->paid()->amount)->toBe(2000)
+            ->and(fn () => $payment->voidTransaction(
+                paymentAggregateChildId(201),
+                paymentAggregateChildId(100),
+                PAYMENT_AGGREGATE_ACTOR_ID,
+                paymentAggregateInstant(),
+            ))->toThrow(
+                VoidExceedsPaidAmount::class,
+                'A void of [6000] exceeds the collected amount of [2000].',
+            );
+    });
+
+    it('accepts voiding the same charge twice when a second charge still covers it, and that is a decision, not a bug', function () {
+        $payment = paymentAggregateWithItems(10000);
+        recordOnPaymentAggregate($payment, 5000, 0);
+        recordOnPaymentAggregate($payment, 5000, 1);
+
+        voidOnPaymentAggregate($payment, sourcePosition: 0, newPosition: 200);
+        voidOnPaymentAggregate($payment, sourcePosition: 0, newPosition: 201);
+
+        expect($payment->paid()->amount)->toBe(0)
+            ->and($payment->transactions())->toHaveCount(4)
+            ->and(paymentAggregateTypes($payment))->toBe([
+                PaymentTransactionType::Approved,
+                PaymentTransactionType::Approved,
+                PaymentTransactionType::Void,
+                PaymentTransactionType::Void,
+            ])
+            ->and($payment->status())->toBe(PaymentStatus::Pending);
     });
 
     it('reopens a settled payment for changes once its only transaction is voided', function () {
         $payment = paymentAggregateWithItems(10000);
         recordOnPaymentAggregate($payment, 10000, 0);
 
-        $payment->voidTransaction(
-            paymentAggregateChildId(100),
-            PAYMENT_AGGREGATE_ACTOR_ID,
-            paymentAggregateInstant(),
-        );
+        voidOnPaymentAggregate($payment);
 
         $payment->addItem(
             paymentAggregateChildId(1),
@@ -505,6 +671,128 @@ describe('voiding a transaction', function () {
             ->and($payment->total()->amount)->toBe(14000)
             ->and($payment->balance()->amount)->toBe(14000)
             ->and($payment->status())->toBe(PaymentStatus::Pending);
+    });
+});
+
+describe('what a payment reads as collected', function () {
+    it('reads the same total whichever order the ledger rows come back in', function () {
+        $approved = PaymentTransaction::restore(
+            paymentAggregateChildId(100),
+            PaymentTransactionType::Approved,
+            PAYMENT_AGGREGATE_METHOD_ID,
+            PAYMENT_AGGREGATE_ACTOR_ID,
+            paymentAggregateBreakdown(),
+            paymentAggregateMoney(4000),
+            paymentAggregateInstant(),
+        );
+
+        $void = PaymentTransaction::restore(
+            paymentAggregateChildId(200),
+            PaymentTransactionType::Void,
+            PAYMENT_AGGREGATE_METHOD_ID,
+            PAYMENT_AGGREGATE_ACTOR_ID,
+            paymentAggregateBreakdown(),
+            paymentAggregateMoney(4000),
+            paymentAggregateInstant(),
+        );
+
+        $restore = static fn (array $transactions): Payment => Payment::restore(
+            id: PAYMENT_AGGREGATE_ID,
+            businessId: PAYMENT_AGGREGATE_BUSINESS_ID,
+            appointmentId: PAYMENT_AGGREGATE_APPOINTMENT_ID,
+            currency: CurrencyCode::default(),
+            items: [
+                PaymentItem::restore(
+                    paymentAggregateChildId(0),
+                    PaymentItemName::restore('Corte'),
+                    paymentAggregateMoney(10000),
+                    0,
+                ),
+            ],
+            discount: Discount::none(),
+            transactions: $transactions,
+            createdAt: paymentAggregateInstant(),
+        );
+
+        expect($restore([$void, $approved])->paid()->amount)->toBe(0)
+            ->and($restore([$approved, $void])->paid()->amount)->toBe(0);
+    });
+
+    it('leaves a failed attempt out of both sides of the ledger', function () {
+        $payment = Payment::restore(
+            id: PAYMENT_AGGREGATE_ID,
+            businessId: PAYMENT_AGGREGATE_BUSINESS_ID,
+            appointmentId: PAYMENT_AGGREGATE_APPOINTMENT_ID,
+            currency: CurrencyCode::default(),
+            items: [
+                PaymentItem::restore(
+                    paymentAggregateChildId(0),
+                    PaymentItemName::restore('Corte'),
+                    paymentAggregateMoney(10000),
+                    0,
+                ),
+            ],
+            discount: Discount::none(),
+            transactions: [
+                PaymentTransaction::restore(
+                    paymentAggregateChildId(100),
+                    PaymentTransactionType::Failed,
+                    PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
+                    paymentAggregateMoney(4000),
+                    paymentAggregateInstant(),
+                ),
+            ],
+            createdAt: paymentAggregateInstant(),
+        );
+
+        expect($payment->paid()->amount)->toBe(0)
+            ->and($payment->balance()->amount)->toBe(10000)
+            ->and($payment->status())->toBe(PaymentStatus::Pending);
+    });
+
+    it('takes a refund back off what was collected', function () {
+        $payment = Payment::restore(
+            id: PAYMENT_AGGREGATE_ID,
+            businessId: PAYMENT_AGGREGATE_BUSINESS_ID,
+            appointmentId: PAYMENT_AGGREGATE_APPOINTMENT_ID,
+            currency: CurrencyCode::default(),
+            items: [
+                PaymentItem::restore(
+                    paymentAggregateChildId(0),
+                    PaymentItemName::restore('Corte'),
+                    paymentAggregateMoney(10000),
+                    0,
+                ),
+            ],
+            discount: Discount::none(),
+            transactions: [
+                PaymentTransaction::restore(
+                    paymentAggregateChildId(100),
+                    PaymentTransactionType::Approved,
+                    PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
+                    paymentAggregateMoney(10000),
+                    paymentAggregateInstant(),
+                ),
+                PaymentTransaction::restore(
+                    paymentAggregateChildId(200),
+                    PaymentTransactionType::Refund,
+                    PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
+                    paymentAggregateMoney(2500),
+                    paymentAggregateInstant(),
+                ),
+            ],
+            createdAt: paymentAggregateInstant(),
+        );
+
+        expect($payment->paid()->amount)->toBe(7500)
+            ->and($payment->balance()->amount)->toBe(2500)
+            ->and($payment->status())->toBe(PaymentStatus::PartiallyPaid);
     });
 });
 
@@ -533,11 +821,12 @@ describe('restoring from persistence', function () {
             transactions: [
                 PaymentTransaction::restore(
                     paymentAggregateChildId(100),
+                    PaymentTransactionType::Approved,
                     PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
                     paymentAggregateMoney(3500),
                     paymentAggregateInstant(),
-                    null,
-                    null,
                 ),
             ],
             createdAt: paymentAggregateInstant('2026-01-01T00:00:00+00:00'),
@@ -552,7 +841,7 @@ describe('restoring from persistence', function () {
             ->and($payment->createdAt)->toEqual(paymentAggregateInstant('2026-01-01T00:00:00+00:00'));
     });
 
-    it('leaves a stored voided transaction out of what was paid and out of the guard', function () {
+    it('leaves a stored void out of what was paid and out of the guard', function () {
         $payment = Payment::restore(
             id: PAYMENT_AGGREGATE_ID,
             businessId: PAYMENT_AGGREGATE_BUSINESS_ID,
@@ -570,11 +859,21 @@ describe('restoring from persistence', function () {
             transactions: [
                 PaymentTransaction::restore(
                     paymentAggregateChildId(100),
+                    PaymentTransactionType::Approved,
                     PAYMENT_AGGREGATE_METHOD_ID,
+                    PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
                     paymentAggregateMoney(10000),
                     paymentAggregateInstant(),
-                    paymentAggregateInstant('2026-03-10T08:00:00+00:00'),
+                ),
+                PaymentTransaction::restore(
+                    paymentAggregateChildId(200),
+                    PaymentTransactionType::Void,
+                    PAYMENT_AGGREGATE_METHOD_ID,
                     PAYMENT_AGGREGATE_ACTOR_ID,
+                    paymentAggregateBreakdown(),
+                    paymentAggregateMoney(10000),
+                    paymentAggregateInstant('2026-03-10T08:00:00+00:00'),
                 ),
             ],
             createdAt: paymentAggregateInstant(),
@@ -585,6 +884,6 @@ describe('restoring from persistence', function () {
         expect($payment->paid()->amount)->toBe(0)
             ->and($payment->status())->toBe(PaymentStatus::Pending)
             ->and($payment->total()->amount)->toBe(9000)
-            ->and($payment->transactions())->toHaveCount(1);
+            ->and($payment->transactions())->toHaveCount(2);
     });
 });

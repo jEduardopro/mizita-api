@@ -7,14 +7,19 @@ namespace App\Domains\Payments\Entities;
 use App\Domains\Payments\Exceptions\CurrencyMismatch;
 use App\Domains\Payments\Exceptions\DiscountExceedsSubtotal;
 use App\Domains\Payments\Exceptions\InvalidTransactionAmount;
+use App\Domains\Payments\Exceptions\InvalidVoidActor;
 use App\Domains\Payments\Exceptions\PaymentAlreadySettled;
 use App\Domains\Payments\Exceptions\PaymentAlreadyStarted;
 use App\Domains\Payments\Exceptions\PaymentOverpaid;
 use App\Domains\Payments\Exceptions\PaymentTransactionNotFound;
+use App\Domains\Payments\Exceptions\PaymentTransactionNotVoidable;
+use App\Domains\Payments\Exceptions\VoidExceedsPaidAmount;
 use App\Domains\Payments\ValueObjects\Discount;
 use App\Domains\Payments\ValueObjects\Money;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Domains\Payments\ValueObjects\PaymentItemName;
 use App\Domains\Payments\ValueObjects\PaymentStatus;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Shared\ValueObjects\CurrencyCode;
 use DateTimeImmutable;
 
@@ -114,6 +119,8 @@ final class Payment
     public function recordTransaction(
         string $transactionId,
         string $paymentMethodId,
+        ?string $accountId,
+        PaymentBreakdown $breakdown,
         Money $amount,
         DateTimeImmutable $now,
     ): PaymentTransaction {
@@ -133,7 +140,14 @@ final class Payment
             throw PaymentOverpaid::byCents($amount->amount, $balance->amount);
         }
 
-        $transaction = PaymentTransaction::record($transactionId, $paymentMethodId, $amount, $now);
+        $transaction = PaymentTransaction::approve(
+            id: $transactionId,
+            paymentMethodId: $paymentMethodId,
+            accountId: $accountId,
+            breakdown: $breakdown,
+            total: $amount,
+            processedAt: $now,
+        );
 
         $this->transactions[] = $transaction;
 
@@ -141,11 +155,36 @@ final class Payment
     }
 
     /**
+     * @throws InvalidVoidActor
      * @throws PaymentTransactionNotFound
+     * @throws PaymentTransactionNotVoidable
+     * @throws VoidExceedsPaidAmount
      */
-    public function voidTransaction(string $transactionId, string $voidedByAccountId, DateTimeImmutable $now): void
-    {
-        $this->transactionWithId($transactionId)->void($voidedByAccountId, $now);
+    public function voidTransaction(
+        string $newTransactionId,
+        string $sourceTransactionId,
+        string $accountId,
+        DateTimeImmutable $now,
+    ): PaymentTransaction {
+        $source = $this->transactionWithId($sourceTransactionId);
+
+        if ($source->type !== PaymentTransactionType::Approved) {
+            throw PaymentTransactionNotVoidable::withId($sourceTransactionId);
+        }
+
+        $this->assertReversible($source->total);
+
+        $void = PaymentTransaction::void(
+            id: $newTransactionId,
+            paymentMethodId: $source->paymentMethodId,
+            accountId: $accountId,
+            total: $source->total,
+            processedAt: $now,
+        );
+
+        $this->transactions[] = $void;
+
+        return $void;
     }
 
     public function currency(): CurrencyCode
@@ -181,17 +220,22 @@ final class Payment
 
     public function paid(): Money
     {
-        $paid = Money::zero($this->currency);
+        $collectedCents = 0;
+        $reversedCents = 0;
 
         foreach ($this->transactions as $transaction) {
-            if ($transaction->isVoided()) {
+            if ($transaction->type->countsTowardsPaid()) {
+                $collectedCents += $transaction->total->amount;
+
                 continue;
             }
 
-            $paid = $paid->plus($transaction->amount);
+            if ($transaction->type->reversesPaid()) {
+                $reversedCents += $transaction->total->amount;
+            }
         }
 
-        return $paid;
+        return Money::fromCents($collectedCents - $reversedCents, $this->currency);
     }
 
     public function balance(): Money
@@ -238,10 +282,20 @@ final class Payment
      */
     private function assertNotStarted(): void
     {
-        foreach ($this->transactions as $transaction) {
-            if (! $transaction->isVoided()) {
-                throw PaymentAlreadyStarted::withId($this->id);
-            }
+        if (! $this->paid()->isZero()) {
+            throw PaymentAlreadyStarted::withId($this->id);
+        }
+    }
+
+    /**
+     * @throws VoidExceedsPaidAmount
+     */
+    private function assertReversible(Money $amount): void
+    {
+        $paid = $this->paid();
+
+        if ($paid->isZero() || $amount->isGreaterThan($paid)) {
+            throw VoidExceedsPaidAmount::byCents($amount->amount, $paid->amount);
         }
     }
 

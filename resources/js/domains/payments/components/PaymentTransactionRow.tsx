@@ -5,7 +5,30 @@ import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/
 import { Button } from '@/components/ui/button';
 import { formatMoneyFromCents } from '@/lib/money';
 import { formatTransactionDate } from './payment-dates';
-import type { PaymentTransaction } from '../types';
+import type { PaymentTransaction, PaymentTransactionType } from '../types';
+
+const MINUS_SIGN = '−';
+
+const TRANSACTION_TYPE_LABEL_KEYS = {
+    approved: 'payments.transaction.types.approved',
+    void: 'payments.transaction.types.void',
+    refund: 'payments.transaction.types.refund',
+    failed: 'payments.transaction.types.failed',
+} as const satisfies Record<PaymentTransactionType, string>;
+
+const TRANSACTION_TYPE_AMOUNT_PREFIXES = {
+    approved: '',
+    void: MINUS_SIGN,
+    refund: MINUS_SIGN,
+    failed: '',
+} as const satisfies Record<PaymentTransactionType, string>;
+
+const TRANSACTION_TYPE_AMOUNT_CLASSES = {
+    approved: 'font-semibold',
+    void: 'text-muted-foreground',
+    refund: 'text-muted-foreground',
+    failed: 'text-muted-foreground',
+} as const satisfies Record<PaymentTransactionType, string>;
 
 type DetailProps = {
     label: string;
@@ -25,37 +48,62 @@ function TransactionDetail({ label, value, valueClassName }: DetailProps) {
 
 type Props = {
     transaction: PaymentTransaction;
+    paidCents: number;
     currencyCode: string;
     timezone: string;
     onVoid: () => void;
 };
 
-export function PaymentTransactionRow({ transaction, currencyCode, timezone, onVoid }: Props) {
+export function PaymentTransactionRow({
+    transaction,
+    paidCents,
+    currencyCode,
+    timezone,
+    onVoid,
+}: Props) {
     const { t, i18n } = useTranslation('admin');
 
-    const voided = transaction.status === 'voided';
-    const amount = formatMoneyFromCents(transaction.amount_cents, currencyCode, i18n.language);
+    const money = (cents: number) => formatMoneyFromCents(cents, currencyCode, i18n.language);
+    const type = transaction.type;
     const date = formatTransactionDate(transaction.processed_at, timezone, i18n.language);
-    const statusLabel = voided ? t('payments.transaction.voided') : t('payments.transaction.completed');
+    const carriesBreakdown = transaction.subtotal_pre_discount_cents > 0;
+    const canVoid = type === 'approved' && paidCents > 0;
+    const isFullyReversed = type === 'approved' && paidCents === 0;
 
     return (
         <AccordionItem value={transaction.id} className="border-b border-border last:border-b-0">
             <AccordionTrigger className="min-h-11 items-center gap-3 py-2.5 hover:no-underline md:min-h-9">
-                <span className={cn('min-w-0 capitalize', voided && 'text-muted-foreground')}>
-                    {statusLabel} · {date}
+                <span className="min-w-0">
+                    {t(TRANSACTION_TYPE_LABEL_KEYS[type])} ·{' '}
+                    <span className="capitalize">{date}</span>
                 </span>
 
                 <span
                     className={cn(
                         'ml-auto shrink-0 tabular-nums',
-                        voided ? 'text-muted-foreground line-through' : 'font-semibold',
+                        TRANSACTION_TYPE_AMOUNT_CLASSES[type],
                     )}
                 >
-                    {amount}
+                    {TRANSACTION_TYPE_AMOUNT_PREFIXES[type]}
+                    {money(transaction.total_cents)}
                 </span>
             </AccordionTrigger>
 
             <AccordionContent className="grid h-auto gap-3 pb-4">
+                {carriesBreakdown ? (
+                    <TransactionDetail
+                        label={t('payments.panel.subtotal')}
+                        value={money(transaction.subtotal_pre_discount_cents)}
+                    />
+                ) : null}
+
+                {carriesBreakdown && transaction.subtotal_discount_cents > 0 ? (
+                    <TransactionDetail
+                        label={t('payments.panel.discount')}
+                        value={`${MINUS_SIGN}${money(transaction.subtotal_discount_cents)}`}
+                    />
+                ) : null}
+
                 <TransactionDetail
                     label={t('payments.transaction.method')}
                     value={transaction.payment_method.label}
@@ -67,7 +115,13 @@ export function PaymentTransactionRow({ transaction, currencyCode, timezone, onV
                     valueClassName="font-mono text-xs break-all"
                 />
 
-                {voided ? null : (
+                {isFullyReversed ? (
+                    <p className="text-pretty text-sm text-muted-foreground">
+                        {t('payments.errors.voidNotPossible')}
+                    </p>
+                ) : null}
+
+                {canVoid ? (
                     <div className="flex">
                         <Button
                             type="button"
@@ -80,7 +134,7 @@ export function PaymentTransactionRow({ transaction, currencyCode, timezone, onV
                             {t('payments.transaction.void')}
                         </Button>
                     </div>
-                )}
+                ) : null}
             </AccordionContent>
         </AccordionItem>
     );

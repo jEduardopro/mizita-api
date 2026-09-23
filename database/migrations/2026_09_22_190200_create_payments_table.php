@@ -13,21 +13,13 @@ return new class extends Migration
 
     private const CURRENCY_CHECK = 'payments_currency_code_valid';
 
-    private const DISCOUNT_TYPE_CHECK = 'payments_discount_type_valid';
-
-    private const DISCOUNT_NONE_CHECK = 'payments_discount_none_zeroed';
-
-    private const DISCOUNT_PERCENTAGE_CHECK = 'payments_discount_percentage_bounded';
-
-    private const DISCOUNT_WITHIN_SUBTOTAL_CHECK = 'payments_discount_within_subtotal';
-
-    private const TOTAL_CHECK = 'payments_total_matches_subtotal';
-
     private const PAID_CHECK = 'payments_paid_within_total';
 
-    private const MAXIMUM_BASIS_POINTS = 10000;
+    private const TOTAL_NOT_NEGATIVE_CHECK = 'payments_total_not_negative';
 
-    private const MAXIMUM_DISCOUNT_TYPE_LENGTH = 16;
+    private const PAID_NOT_NEGATIVE_CHECK = 'payments_paid_not_negative';
+
+    private const DISCOUNT_AMOUNT_NOT_NEGATIVE_CHECK = 'payments_discount_amount_not_negative';
 
     public function up(): void
     {
@@ -37,9 +29,6 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained('businesses')->cascadeOnDelete();
             $table->foreignId('appointment_id')->constrained('appointments')->cascadeOnDelete();
             $table->char('currency_code', 3);
-            $table->unsignedBigInteger('subtotal_cents');
-            $table->string('discount_type', self::MAXIMUM_DISCOUNT_TYPE_LENGTH)->default('none');
-            $table->unsignedBigInteger('discount_value')->default(0);
             $table->unsignedBigInteger('discount_amount_cents')->default(0);
             $table->unsignedBigInteger('total_cents');
             $table->unsignedBigInteger('paid_cents')->default(0);
@@ -59,28 +48,18 @@ return new class extends Migration
         );
 
         DB::statement(
-            'alter table payments add constraint '.self::DISCOUNT_TYPE_CHECK.
-            " check (discount_type in ('none', 'percentage', 'fixed'))"
+            'alter table payments add constraint '.self::TOTAL_NOT_NEGATIVE_CHECK.
+            ' check (total_cents >= 0)'
         );
 
         DB::statement(
-            'alter table payments add constraint '.self::DISCOUNT_NONE_CHECK.
-            " check (discount_type <> 'none' or (discount_value = 0 and discount_amount_cents = 0))"
+            'alter table payments add constraint '.self::PAID_NOT_NEGATIVE_CHECK.
+            ' check (paid_cents >= 0)'
         );
 
         DB::statement(
-            'alter table payments add constraint '.self::DISCOUNT_PERCENTAGE_CHECK.
-            " check (discount_type <> 'percentage' or discount_value <= ".self::MAXIMUM_BASIS_POINTS.')'
-        );
-
-        DB::statement(
-            'alter table payments add constraint '.self::DISCOUNT_WITHIN_SUBTOTAL_CHECK.
-            ' check (discount_amount_cents <= subtotal_cents)'
-        );
-
-        DB::statement(
-            'alter table payments add constraint '.self::TOTAL_CHECK.
-            ' check (total_cents = subtotal_cents - discount_amount_cents)'
+            'alter table payments add constraint '.self::DISCOUNT_AMOUNT_NOT_NEGATIVE_CHECK.
+            ' check (discount_amount_cents >= 0)'
         );
 
         DB::statement(
@@ -92,11 +71,9 @@ return new class extends Migration
     public function down(): void
     {
         DB::statement('alter table payments drop constraint if exists '.self::PAID_CHECK);
-        DB::statement('alter table payments drop constraint if exists '.self::TOTAL_CHECK);
-        DB::statement('alter table payments drop constraint if exists '.self::DISCOUNT_WITHIN_SUBTOTAL_CHECK);
-        DB::statement('alter table payments drop constraint if exists '.self::DISCOUNT_PERCENTAGE_CHECK);
-        DB::statement('alter table payments drop constraint if exists '.self::DISCOUNT_NONE_CHECK);
-        DB::statement('alter table payments drop constraint if exists '.self::DISCOUNT_TYPE_CHECK);
+        DB::statement('alter table payments drop constraint if exists '.self::DISCOUNT_AMOUNT_NOT_NEGATIVE_CHECK);
+        DB::statement('alter table payments drop constraint if exists '.self::PAID_NOT_NEGATIVE_CHECK);
+        DB::statement('alter table payments drop constraint if exists '.self::TOTAL_NOT_NEGATIVE_CHECK);
         DB::statement('alter table payments drop constraint if exists '.self::CURRENCY_CHECK);
         DB::statement('drop index if exists '.self::APPOINTMENT_UNIQUE_INDEX);
 

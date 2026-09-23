@@ -12,7 +12,7 @@ use App\Domains\Payments\Application\UseCases\CreateAppointmentPayment;
 use App\Domains\Payments\Exceptions\AppointmentAlreadyHasPayment;
 use App\Domains\Payments\ValueObjects\DiscountType;
 use App\Domains\Payments\ValueObjects\PaymentStatus;
-use App\Domains\Payments\ValueObjects\PaymentTransactionStatus;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\FakeClock;
@@ -82,9 +82,7 @@ describe('charging an appointment', function () {
             ->and($data->appointmentId)->toBe(PaymentFixtures::APPOINTMENT_ID)
             ->and($data->currencyCode)->toBe(PaymentFixtures::CURRENCY)
             ->and($data->subtotalCents)->toBe(PaymentFixtures::SERVICE_PRICE_CENTS)
-            ->and($data->discount->type)->toBe(DiscountType::None)
-            ->and($data->discount->value)->toBe(0)
-            ->and($data->discount->amountCents)->toBe(0)
+            ->and($data->discountAmountCents)->toBe(0)
             ->and($data->totalCents)->toBe(PaymentFixtures::SERVICE_PRICE_CENTS)
             ->and($data->paidCents)->toBe(PaymentFixtures::SERVICE_PRICE_CENTS)
             ->and($data->balanceCents)->toBe(0)
@@ -131,7 +129,7 @@ describe('the service line nobody may price', function () {
             'subtotal_cents' => 1,
             'total_cents' => 1,
             'amount_cents' => PaymentFixtures::SERVICE_PRICE_CENTS,
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         $data = ($this->build)()->handle($input)->value();
 
@@ -245,9 +243,7 @@ describe('the discount', function () {
         )->value();
 
         expect($data->subtotalCents)->toBe(50_000)
-            ->and($data->discount->type)->toBe(DiscountType::Percentage)
-            ->and($data->discount->value)->toBe(1_000)
-            ->and($data->discount->amountCents)->toBe(5_000)
+            ->and($data->discountAmountCents)->toBe(5_000)
             ->and($data->totalCents)->toBe(45_000);
     });
 
@@ -257,8 +253,7 @@ describe('the discount', function () {
             amountCents: 42_500,
         )->value();
 
-        expect($data->discount->type)->toBe(DiscountType::Fixed)
-            ->and($data->discount->amountCents)->toBe(7_500)
+        expect($data->discountAmountCents)->toBe(7_500)
             ->and($data->totalCents)->toBe(42_500);
     });
 
@@ -270,16 +265,19 @@ describe('the discount', function () {
         )->value();
 
         expect($data->subtotalCents)->toBe(60_000)
-            ->and($data->discount->amountCents)->toBe(30_000)
+            ->and($data->discountAmountCents)->toBe(30_000)
             ->and($data->totalCents)->toBe(30_000);
     });
 
     it('takes nothing off when the payload named no discount', function () {
         $data = ($this->create)(discount: null)->value();
 
-        expect($data->discount->type)->toBe(DiscountType::None)
-            ->and($data->discount->amountCents)->toBe(0)
+        expect($data->discountAmountCents)->toBe(0)
             ->and($data->totalCents)->toBe($data->subtotalCents);
+    });
+
+    it('carries no discount object of its own, only the amount it took off', function () {
+        expect(get_object_vars(($this->create)()->value()))->not->toHaveKey('discount');
     });
 });
 
@@ -291,10 +289,35 @@ describe('the first transaction', function () {
             ->and($data->transactions[0]->id)->toBe(PaymentFixtures::GENERATED_TRANSACTION_ID)
             ->and($data->transactions[0]->paymentMethodId)->toBe(PaymentFixtures::CASH_METHOD_ID)
             ->and($data->transactions[0]->paymentMethodCode)->toBe('cash')
-            ->and($data->transactions[0]->amountCents)->toBe(PaymentFixtures::SERVICE_PRICE_CENTS)
-            ->and($data->transactions[0]->status)->toBe(PaymentTransactionStatus::Completed)
-            ->and($data->transactions[0]->processedAt)->toEqual(PaymentFixtures::now())
-            ->and($data->transactions[0]->voidedAt)->toBeNull();
+            ->and($data->transactions[0]->totalCents)->toBe(PaymentFixtures::SERVICE_PRICE_CENTS)
+            ->and($data->transactions[0]->type)->toBe(PaymentTransactionType::Approved)
+            ->and($data->transactions[0]->processedAt)->toEqual(PaymentFixtures::now());
+    });
+
+    it('carries the breakdown the payment was priced with onto the first transaction', function () {
+        $transaction = ($this->create)(
+            discount: new DiscountInput('percentage', 1_000),
+            amountCents: 45_000,
+        )->value()->transactions[0];
+
+        expect($transaction->subtotalPreDiscountCents)->toBe(50_000)
+            ->and($transaction->discountType)->toBe(DiscountType::Percentage)
+            ->and($transaction->discountValue)->toBe(1_000)
+            ->and($transaction->subtotalDiscountCents)->toBe(5_000)
+            ->and($transaction->subtotalCents)->toBe(45_000)
+            ->and($transaction->totalCents)->toBe(45_000);
+    });
+
+    it('stamps the first transaction with the account the caller was authenticated as', function () {
+        ($this->create)();
+
+        expect($this->payments->saved[0]->transactions()[0]->accountId)
+            ->toBe(PaymentFixtures::ACTOR_ID);
+    });
+
+    it('never hands the account that took the money back to the client', function () {
+        expect(get_object_vars(($this->create)()->value()->transactions[0]))
+            ->not->toHaveKey('accountId');
     });
 
     it('resolves the method against the business, not against the catalogue alone', function () {
@@ -346,7 +369,7 @@ describe('the business it belongs to', function () {
     it('asks every neighbour about the business in context, never about one the payload names', function () {
         $input = CreateAppointmentPaymentInput::fromRequest(PaymentFixtures::createPayload([
             'business_id' => PaymentFixtures::OTHER_BUSINESS_ID,
-        ]), PaymentFixtures::APPOINTMENT_ID);
+        ]), PaymentFixtures::APPOINTMENT_ID, PaymentFixtures::ACTOR_ID);
 
         ($this->build)()->handle($input);
 
@@ -390,6 +413,7 @@ describe('refusing to charge', function () {
             'invalid_payment_discount',
         ],
         'an amount past what money can hold' => [['amountCents' => 10_000_000_000], 'invalid_transaction_amount'],
+        'an actor id that is no uuid' => [['actorAccountId' => 'the-owner'], 'invalid_payment_actor'],
     ]);
 
     it('refuses an appointment nobody booked here', function () {

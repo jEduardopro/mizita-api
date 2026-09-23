@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Domains\Payments\Entities\PaymentTransaction;
 use App\Domains\Payments\Exceptions\InvalidVoidActor;
-use App\Domains\Payments\Exceptions\PaymentTransactionAlreadyVoided;
+use App\Domains\Payments\ValueObjects\Discount;
+use App\Domains\Payments\ValueObjects\DiscountType;
 use App\Domains\Payments\ValueObjects\Money;
-use App\Domains\Payments\ValueObjects\PaymentTransactionStatus;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Shared\ValueObjects\CurrencyCode;
 
 const TRANSACTION_ID = '01930000-0000-7000-8000-000000000101';
@@ -15,142 +17,220 @@ const TRANSACTION_METHOD_ID = '01930000-0000-7000-8000-000000000102';
 
 const TRANSACTION_ACTOR_ID = '01930000-0000-7000-8000-000000000103';
 
-function recordedTransaction(int $cents = 4000): PaymentTransaction
+function transactionMoney(int $cents): Money
 {
-    return PaymentTransaction::record(
+    return Money::fromCents($cents, CurrencyCode::default());
+}
+
+function transactionBreakdown(int $subtotalPreDiscount = 5000, ?Discount $discount = null): PaymentBreakdown
+{
+    return PaymentBreakdown::of(transactionMoney($subtotalPreDiscount), $discount ?? Discount::none());
+}
+
+function approvedTransaction(int $cents = 4000, ?PaymentBreakdown $breakdown = null): PaymentTransaction
+{
+    return PaymentTransaction::approve(
         TRANSACTION_ID,
         TRANSACTION_METHOD_ID,
-        Money::fromCents($cents, CurrencyCode::default()),
+        TRANSACTION_ACTOR_ID,
+        $breakdown ?? transactionBreakdown(),
+        transactionMoney($cents),
         new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
     );
 }
 
-describe('a transaction just recorded', function () {
+describe('a charge just approved', function () {
     it('carries every identity as the uuid the api speaks in', function () {
-        expect(recordedTransaction()->id)->toBe(TRANSACTION_ID)
-            ->and(recordedTransaction()->paymentMethodId)->toBe(TRANSACTION_METHOD_ID);
+        expect(approvedTransaction()->id)->toBe(TRANSACTION_ID)
+            ->and(approvedTransaction()->paymentMethodId)->toBe(TRANSACTION_METHOD_ID)
+            ->and(approvedTransaction()->accountId)->toBe(TRANSACTION_ACTOR_ID);
     });
 
-    it('keeps the amount and the instant it was processed at', function () {
-        $transaction = recordedTransaction(4000);
+    it('is stamped approved', function () {
+        expect(approvedTransaction()->type)->toBe(PaymentTransactionType::Approved);
+    });
 
-        expect($transaction->amount->amount)->toBe(4000)
-            ->and($transaction->amount->currency->value)->toBe('MXN')
+    it('keeps the total and the instant it was processed at', function () {
+        $transaction = approvedTransaction(4000);
+
+        expect($transaction->total->amount)->toBe(4000)
+            ->and($transaction->total->currency->value)->toBe('MXN')
             ->and($transaction->processedAt)->toEqual(new DateTimeImmutable('2026-03-09T12:00:00+00:00'));
     });
 
-    it('starts completed, with nobody having voided it', function () {
-        $transaction = recordedTransaction();
+    it('keeps the breakdown the charge was priced from', function () {
+        $transaction = approvedTransaction(
+            4500,
+            transactionBreakdown(5000, Discount::ofPercentage(1000)),
+        );
 
-        expect($transaction->isVoided())->toBeFalse()
-            ->and($transaction->status())->toBe(PaymentTransactionStatus::Completed)
-            ->and($transaction->voidedAt())->toBeNull()
-            ->and($transaction->voidedByAccountId())->toBeNull();
+        expect($transaction->breakdown->subtotalPreDiscount->amount)->toBe(5000)
+            ->and($transaction->breakdown->discountType())->toBe(DiscountType::Percentage)
+            ->and($transaction->breakdown->discountValue())->toBe(1000)
+            ->and($transaction->breakdown->discountAmount->amount)->toBe(500)
+            ->and($transaction->breakdown->subtotal->amount)->toBe(4500);
+    });
+
+    it('accepts a charge nobody was authenticated for', function () {
+        $transaction = PaymentTransaction::approve(
+            TRANSACTION_ID,
+            TRANSACTION_METHOD_ID,
+            null,
+            transactionBreakdown(),
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
+        );
+
+        expect($transaction->accountId)->toBeNull();
     });
 });
 
-describe('voiding', function () {
-    it('records who voided it and when', function () {
-        $transaction = recordedTransaction();
-        $voidedAt = new DateTimeImmutable('2026-03-10T08:30:00+00:00');
+describe('a void appended to the ledger', function () {
+    it('is a row of its own, stamped void, for the amount it reverses', function () {
+        $void = PaymentTransaction::void(
+            '01930000-0000-7000-8000-000000000201',
+            TRANSACTION_METHOD_ID,
+            TRANSACTION_ACTOR_ID,
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-10T08:30:00+00:00'),
+        );
 
-        $transaction->void(TRANSACTION_ACTOR_ID, $voidedAt);
-
-        expect($transaction->isVoided())->toBeTrue()
-            ->and($transaction->status())->toBe(PaymentTransactionStatus::Voided)
-            ->and($transaction->voidedAt())->toEqual($voidedAt)
-            ->and($transaction->voidedByAccountId())->toBe(TRANSACTION_ACTOR_ID);
+        expect($void->id)->toBe('01930000-0000-7000-8000-000000000201')
+            ->and($void->type)->toBe(PaymentTransactionType::Void)
+            ->and($void->paymentMethodId)->toBe(TRANSACTION_METHOD_ID)
+            ->and($void->total->amount)->toBe(4000)
+            ->and($void->processedAt)->toEqual(new DateTimeImmutable('2026-03-10T08:30:00+00:00'));
     });
 
-    it('leaves the amount and the original instant untouched', function () {
-        $transaction = recordedTransaction(4000);
+    it('names the account that answers for it', function () {
+        $void = PaymentTransaction::void(
+            '01930000-0000-7000-8000-000000000201',
+            TRANSACTION_METHOD_ID,
+            TRANSACTION_ACTOR_ID,
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-10T08:30:00+00:00'),
+        );
 
-        $transaction->void(TRANSACTION_ACTOR_ID, new DateTimeImmutable('2026-03-10T08:30:00+00:00'));
-
-        expect($transaction->amount->amount)->toBe(4000)
-            ->and($transaction->processedAt)->toEqual(new DateTimeImmutable('2026-03-09T12:00:00+00:00'));
+        expect($void->accountId)->toBe(TRANSACTION_ACTOR_ID);
     });
 
-    it('refuses a second void', function () {
-        $transaction = recordedTransaction();
-        $transaction->void(TRANSACTION_ACTOR_ID, new DateTimeImmutable('2026-03-10T08:30:00+00:00'));
+    it('carries a breakdown of nothing, because it prices nothing', function () {
+        $void = PaymentTransaction::void(
+            '01930000-0000-7000-8000-000000000201',
+            TRANSACTION_METHOD_ID,
+            TRANSACTION_ACTOR_ID,
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-10T08:30:00+00:00'),
+        );
 
-        expect(fn () => $transaction->void(TRANSACTION_ACTOR_ID, new DateTimeImmutable('2026-03-11T08:30:00+00:00')))
-            ->toThrow(
-                PaymentTransactionAlreadyVoided::class,
-                'Payment transaction ['.TRANSACTION_ID.'] is already voided.',
-            );
+        expect($void->breakdown->subtotalPreDiscount->amount)->toBe(0)
+            ->and($void->breakdown->discountAmount->amount)->toBe(0)
+            ->and($void->breakdown->subtotal->amount)->toBe(0)
+            ->and($void->breakdown->discountType())->toBe(DiscountType::None)
+            ->and($void->breakdown->discountValue())->toBe(0);
     });
 
-    it('keeps the first void when a second one is turned down', function () {
-        $transaction = recordedTransaction();
-        $firstVoid = new DateTimeImmutable('2026-03-10T08:30:00+00:00');
-        $transaction->void(TRANSACTION_ACTOR_ID, $firstVoid);
+    it('takes its breakdown currency from the amount it reverses', function () {
+        $void = PaymentTransaction::void(
+            '01930000-0000-7000-8000-000000000201',
+            TRANSACTION_METHOD_ID,
+            TRANSACTION_ACTOR_ID,
+            Money::fromCents(4000, CurrencyCode::restore('USD')),
+            new DateTimeImmutable('2026-03-10T08:30:00+00:00'),
+        );
 
-        $secondVoid = new DateTimeImmutable('2026-03-11T08:30:00+00:00');
-
-        try {
-            $transaction->void('01930000-0000-7000-8000-000000000999', $secondVoid);
-        } catch (PaymentTransactionAlreadyVoided) {
-        }
-
-        expect($transaction->voidedAt())->toEqual($firstVoid)
-            ->and($transaction->voidedByAccountId())->toBe(TRANSACTION_ACTOR_ID);
+        expect($void->breakdown->subtotal->currency->value)->toBe('USD');
     });
 
     it('refuses a void nobody is accountable for', function (string $actor) {
-        $transaction = recordedTransaction();
-
-        expect(fn () => $transaction->void($actor, new DateTimeImmutable('2026-03-10T08:30:00+00:00')))
-            ->toThrow(
-                InvalidVoidActor::class,
-                'A payment transaction can only be voided by an identified account.',
-            );
-
-        expect($transaction->isVoided())->toBeFalse()
-            ->and($transaction->voidedAt())->toBeNull()
-            ->and($transaction->voidedByAccountId())->toBeNull();
+        expect(fn () => PaymentTransaction::void(
+            '01930000-0000-7000-8000-000000000201',
+            TRANSACTION_METHOD_ID,
+            $actor,
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-10T08:30:00+00:00'),
+        ))->toThrow(
+            InvalidVoidActor::class,
+            'A payment transaction can only be voided by an identified account.',
+        );
     })->with([
         'empty' => '',
         'spaces' => '   ',
         'a tab' => "\t",
         'a newline' => "\n",
     ]);
+});
 
-    it('turns down a second void before it asks who is voiding', function () {
-        $transaction = recordedTransaction();
-        $transaction->void(TRANSACTION_ACTOR_ID, new DateTimeImmutable('2026-03-10T08:30:00+00:00'));
+describe('restoring from persistence', function () {
+    it('reads the stored type back rather than deriving one', function (PaymentTransactionType $type) {
+        $transaction = PaymentTransaction::restore(
+            TRANSACTION_ID,
+            $type,
+            TRANSACTION_METHOD_ID,
+            TRANSACTION_ACTOR_ID,
+            transactionBreakdown(),
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
+        );
 
-        expect(fn () => $transaction->void('', new DateTimeImmutable('2026-03-11T08:30:00+00:00')))
-            ->toThrow(PaymentTransactionAlreadyVoided::class);
+        expect($transaction->type)->toBe($type);
+    })->with([
+        'approved' => PaymentTransactionType::Approved,
+        'void' => PaymentTransactionType::Void,
+        'refund' => PaymentTransactionType::Refund,
+        'failed' => PaymentTransactionType::Failed,
+    ]);
+
+    it('skips the actor rule a void is created under', function () {
+        $transaction = PaymentTransaction::restore(
+            TRANSACTION_ID,
+            PaymentTransactionType::Void,
+            TRANSACTION_METHOD_ID,
+            null,
+            PaymentBreakdown::none(CurrencyCode::default()),
+            transactionMoney(4000),
+            new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
+        );
+
+        expect($transaction->accountId)->toBeNull()
+            ->and($transaction->type)->toBe(PaymentTransactionType::Void);
+    });
+
+    it('restores the breakdown the row was stored with, discount and all', function () {
+        $transaction = PaymentTransaction::restore(
+            TRANSACTION_ID,
+            PaymentTransactionType::Approved,
+            TRANSACTION_METHOD_ID,
+            TRANSACTION_ACTOR_ID,
+            PaymentBreakdown::restore(
+                transactionMoney(5000),
+                Discount::restore(DiscountType::Fixed, 500),
+                transactionMoney(500),
+                transactionMoney(4500),
+            ),
+            transactionMoney(4500),
+            new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
+        );
+
+        expect($transaction->breakdown->subtotalPreDiscount->amount)->toBe(5000)
+            ->and($transaction->breakdown->discountType())->toBe(DiscountType::Fixed)
+            ->and($transaction->breakdown->discountValue())->toBe(500)
+            ->and($transaction->breakdown->subtotal->amount)->toBe(4500);
     });
 });
 
-it('restores a voided transaction with the void it was stored with', function () {
-    $transaction = PaymentTransaction::restore(
-        TRANSACTION_ID,
-        TRANSACTION_METHOD_ID,
-        Money::fromCents(4000, CurrencyCode::default()),
-        new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
-        new DateTimeImmutable('2026-03-10T08:30:00+00:00'),
-        TRANSACTION_ACTOR_ID,
-    );
+it('is a ledger entry nothing can rewrite, so it carries no mutable void state', function (string $method) {
+    expect(method_exists(PaymentTransaction::class, $method))->toBeFalse();
+})->with([
+    'the voided flag' => 'isVoided',
+    'the status reader' => 'status',
+    'the void instant' => 'voidedAt',
+    'the void actor' => 'voidedByAccountId',
+]);
 
-    expect($transaction->isVoided())->toBeTrue()
-        ->and($transaction->status())->toBe(PaymentTransactionStatus::Voided)
-        ->and($transaction->voidedByAccountId())->toBe(TRANSACTION_ACTOR_ID);
-});
+it('offers void only as a named constructor for a new row', function () {
+    $void = new ReflectionMethod(PaymentTransaction::class, 'void');
 
-it('restores a live transaction with no void on it', function () {
-    $transaction = PaymentTransaction::restore(
-        TRANSACTION_ID,
-        TRANSACTION_METHOD_ID,
-        Money::fromCents(4000, CurrencyCode::default()),
-        new DateTimeImmutable('2026-03-09T12:00:00+00:00'),
-        null,
-        null,
-    );
-
-    expect($transaction->isVoided())->toBeFalse()
-        ->and($transaction->status())->toBe(PaymentTransactionStatus::Completed);
+    expect($void->isStatic())->toBeTrue()
+        ->and((string) $void->getReturnType())->toBe(PaymentTransaction::class);
 });

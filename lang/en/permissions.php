@@ -116,7 +116,7 @@ return [
 
     'void_payment_transaction' => [
         'label' => 'Void transactions',
-        'description' => 'Undo a payment that was recorded by mistake. The transaction stays on record as voided.',
+        'description' => 'Undo a payment that was recorded by mistake. The original charge stays on record and the reversal is added as a new movement.',
     ],
 
 ];

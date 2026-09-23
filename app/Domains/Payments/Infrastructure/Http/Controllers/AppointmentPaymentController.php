@@ -13,6 +13,7 @@ use App\Domains\Payments\Infrastructure\Http\Resources\PaymentResource;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponder;
 use App\Http\Responses\NullResource;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -51,9 +52,12 @@ final class AppointmentPaymentController extends Controller
         CreateAppointmentPayment $createAppointmentPayment,
         ApiResponder $responder,
     ): JsonResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+
         try {
             $response = $createAppointmentPayment->handle(
-                CreateAppointmentPaymentInput::fromRequest($request->validated(), $appointment),
+                CreateAppointmentPaymentInput::fromRequest($request->validated(), $appointment, $actor->uuid),
             );
 
             if ($response->failed()) {

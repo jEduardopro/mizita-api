@@ -7,6 +7,8 @@ namespace App\Domains\Payments\Infrastructure\Eloquent\Factories;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentMethodModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentTransactionModel;
+use App\Domains\Payments\ValueObjects\DiscountType;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Models\User;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -32,20 +34,30 @@ final class PaymentTransactionModelFactory extends Factory
         return [
             'payment_id' => fn (): int => PaymentModel::factory()->create()->id,
             'payment_method_id' => fn (): int => PaymentMethodModel::factory()->create()->id,
-            'amount_cents' => fake()->numberBetween(self::MINIMUM_AMOUNT_UNITS, self::MAXIMUM_AMOUNT_UNITS)
+            'account_id' => null,
+            'type' => PaymentTransactionType::Approved,
+            'subtotal_pre_discount_cents' => 0,
+            'discount_type' => DiscountType::None,
+            'discount_value' => 0,
+            'subtotal_discount_cents' => 0,
+            'subtotal_cents' => 0,
+            'total_cents' => fake()->numberBetween(self::MINIMUM_AMOUNT_UNITS, self::MAXIMUM_AMOUNT_UNITS)
                 * self::CENTS_PER_UNIT,
             'external_reference' => null,
             'processed_at' => (new DateTimeImmutable)->format(DATE_ATOM),
-            'voided_at' => null,
-            'voided_by_account_id' => null,
         ];
     }
 
-    public function voidedBy(User $account): self
+    public function approved(): self
+    {
+        return $this->state(fn (): array => ['type' => PaymentTransactionType::Approved]);
+    }
+
+    public function voided(User $account): self
     {
         return $this->state(fn (): array => [
-            'voided_at' => (new DateTimeImmutable)->format(DATE_ATOM),
-            'voided_by_account_id' => $account->id,
+            'type' => PaymentTransactionType::Void,
+            'account_id' => $account->id,
         ]);
     }
 }

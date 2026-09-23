@@ -12,6 +12,7 @@ use App\Domains\Payments\Contracts\PaymentRepository;
 use App\Domains\Payments\Entities\Payment;
 use App\Domains\Payments\Entities\PaymentMethod;
 use App\Domains\Payments\ValueObjects\Money;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
@@ -62,6 +63,8 @@ final class RecordPaymentTransaction
         $payment->recordTransaction(
             $this->ids->next(),
             $method->id,
+            $input->actorAccountId,
+            PaymentBreakdown::none($payment->currency()),
             Money::fromCents($input->amountCents, $payment->currency()),
             $this->clock->now(),
         );

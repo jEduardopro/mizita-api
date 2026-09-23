@@ -73,7 +73,7 @@ export function AppointmentPaymentPanel({
     const currency = record.currency_code === '' ? currencyCode : record.currency_code;
 
     return (
-        <div className="grid min-h-0 gap-6 overflow-y-auto overscroll-contain">
+        <div className="grid gap-6">
             <div className="flex items-center gap-3">
                 <Avatar aria-hidden="true" className="shrink-0">
                     <AvatarFallback>{initialsFrom(customerName)}</AvatarFallback>
@@ -87,7 +87,7 @@ export function AppointmentPaymentPanel({
             <PaymentPurchasesSection
                 items={record.items}
                 subtotalCents={record.subtotal_cents}
-                discountCents={record.discount.amount_cents}
+                discountCents={record.discount_amount_cents}
                 totalCents={record.total_cents}
                 currencyCode={currency}
             />

@@ -139,7 +139,7 @@ export function chargeTotals(values: ChargeFormValues, serviceCents: number): Ch
 export function outstandingTotals(payment: AppointmentPayment): ChargeTotals {
     return {
         subtotalCents: payment.subtotal_cents,
-        discountCents: payment.discount.amount_cents,
+        discountCents: payment.discount_amount_cents,
         balanceCents: payment.balance_cents,
         amountCents: payment.balance_cents,
         remainingCents: 0,

@@ -5,79 +5,76 @@ declare(strict_types=1);
 namespace App\Domains\Payments\Entities;
 
 use App\Domains\Payments\Exceptions\InvalidVoidActor;
-use App\Domains\Payments\Exceptions\PaymentTransactionAlreadyVoided;
 use App\Domains\Payments\ValueObjects\Money;
-use App\Domains\Payments\ValueObjects\PaymentTransactionStatus;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use DateTimeImmutable;
 
 final class PaymentTransaction
 {
     private function __construct(
         public readonly string $id,
+        public readonly PaymentTransactionType $type,
         public readonly string $paymentMethodId,
-        public readonly Money $amount,
+        public readonly ?string $accountId,
+        public readonly PaymentBreakdown $breakdown,
+        public readonly Money $total,
         public readonly DateTimeImmutable $processedAt,
-        private ?DateTimeImmutable $voidedAt,
-        private ?string $voidedByAccountId,
     ) {}
 
-    public static function record(
+    public static function approve(
         string $id,
         string $paymentMethodId,
-        Money $amount,
+        ?string $accountId,
+        PaymentBreakdown $breakdown,
+        Money $total,
         DateTimeImmutable $processedAt,
     ): self {
-        return new self($id, $paymentMethodId, $amount, $processedAt, null, null);
-    }
-
-    public static function restore(
-        string $id,
-        string $paymentMethodId,
-        Money $amount,
-        DateTimeImmutable $processedAt,
-        ?DateTimeImmutable $voidedAt,
-        ?string $voidedByAccountId,
-    ): self {
-        return new self($id, $paymentMethodId, $amount, $processedAt, $voidedAt, $voidedByAccountId);
+        return new self(
+            id: $id,
+            type: PaymentTransactionType::Approved,
+            paymentMethodId: $paymentMethodId,
+            accountId: $accountId,
+            breakdown: $breakdown,
+            total: $total,
+            processedAt: $processedAt,
+        );
     }
 
     /**
      * @throws InvalidVoidActor
-     * @throws PaymentTransactionAlreadyVoided
      */
-    public function void(string $accountId, DateTimeImmutable $now): void
-    {
-        if ($this->isVoided()) {
-            throw PaymentTransactionAlreadyVoided::withId($this->id);
-        }
-
+    public static function void(
+        string $id,
+        string $paymentMethodId,
+        string $accountId,
+        Money $total,
+        DateTimeImmutable $processedAt,
+    ): self {
         if (trim($accountId) === '') {
             throw InvalidVoidActor::empty();
         }
 
-        $this->voidedAt = $now;
-        $this->voidedByAccountId = $accountId;
+        return new self(
+            id: $id,
+            type: PaymentTransactionType::Void,
+            paymentMethodId: $paymentMethodId,
+            accountId: $accountId,
+            breakdown: PaymentBreakdown::none($total->currency),
+            total: $total,
+            processedAt: $processedAt,
+        );
     }
 
-    public function isVoided(): bool
-    {
-        return $this->voidedAt !== null;
-    }
-
-    public function status(): PaymentTransactionStatus
-    {
-        return $this->isVoided()
-            ? PaymentTransactionStatus::Voided
-            : PaymentTransactionStatus::Completed;
-    }
-
-    public function voidedAt(): ?DateTimeImmutable
-    {
-        return $this->voidedAt;
-    }
-
-    public function voidedByAccountId(): ?string
-    {
-        return $this->voidedByAccountId;
+    public static function restore(
+        string $id,
+        PaymentTransactionType $type,
+        string $paymentMethodId,
+        ?string $accountId,
+        PaymentBreakdown $breakdown,
+        Money $total,
+        DateTimeImmutable $processedAt,
+    ): self {
+        return new self($id, $type, $paymentMethodId, $accountId, $breakdown, $total, $processedAt);
     }
 }

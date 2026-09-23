@@ -13,6 +13,7 @@ use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
+use App\Shared\Contracts\IdGenerator;
 use App\Shared\Contracts\TransactionManager;
 
 final class VoidPaymentTransaction
@@ -20,6 +21,7 @@ final class VoidPaymentTransaction
     public function __construct(
         private readonly PaymentRepository $payments,
         private readonly PaymentPresenter $presenter,
+        private readonly IdGenerator $ids,
         private readonly Clock $clock,
         private readonly TransactionManager $transactions,
         private readonly BusinessContext $business,
@@ -49,7 +51,12 @@ final class VoidPaymentTransaction
     {
         $payment = $this->payments->lockForBusiness($businessId, $input->paymentId);
 
-        $payment->voidTransaction($input->transactionId, $input->actorAccountId, $this->clock->now());
+        $payment->voidTransaction(
+            $this->ids->next(),
+            $input->transactionId,
+            $input->actorAccountId,
+            $this->clock->now(),
+        );
 
         $this->payments->save($payment);
 

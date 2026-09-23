@@ -5,8 +5,9 @@ declare(strict_types=1);
 use App\Domains\Payments\Application\Dtos\PaymentData;
 use App\Domains\Payments\Application\Presenters\PaymentPresenter;
 use App\Domains\Payments\Application\UseCases\RecordPaymentTransaction;
+use App\Domains\Payments\ValueObjects\DiscountType;
 use App\Domains\Payments\ValueObjects\PaymentStatus;
-use App\Domains\Payments\ValueObjects\PaymentTransactionStatus;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\FakeClock;
@@ -23,7 +24,11 @@ beforeEach(function () {
 
     $this->payments = (new FakePaymentRepository($this->journal, $this->transactions))
         ->store(PaymentFixtures::payment(
-            transactions: [PaymentFixtures::transaction(amountCents: 20_000)],
+            transactions: [PaymentFixtures::transaction(
+                amountCents: 20_000,
+                breakdown: PaymentFixtures::breakdown(50_000),
+                accountId: PaymentFixtures::ACTOR_ID,
+            )],
         ));
 
     $this->cash = PaymentFixtures::paymentMethod(PaymentFixtures::CASH_METHOD_ID, 'cash', 1);
@@ -71,10 +76,36 @@ describe('taking a further payment', function () {
         expect($transaction->id)->toBe(PaymentFixtures::GENERATED_TRANSACTION_ID)
             ->and($transaction->paymentMethodId)->toBe(PaymentFixtures::CARD_METHOD_ID)
             ->and($transaction->paymentMethodCode)->toBe('card')
-            ->and($transaction->amountCents)->toBe(10_000)
-            ->and($transaction->status)->toBe(PaymentTransactionStatus::Completed)
-            ->and($transaction->processedAt)->toEqual(PaymentFixtures::instant('2026-03-11T15:00:00+00:00'))
-            ->and($transaction->voidedAt)->toBeNull();
+            ->and($transaction->totalCents)->toBe(10_000)
+            ->and($transaction->type)->toBe(PaymentTransactionType::Approved)
+            ->and($transaction->processedAt)->toEqual(PaymentFixtures::instant('2026-03-11T15:00:00+00:00'));
+    });
+
+    it('prices nothing on a later transaction, because the first one carries the breakdown', function () {
+        $data = ($this->record)(amountCents: 10_000)->value();
+
+        expect($data->transactions[0]->subtotalPreDiscountCents)->toBe(50_000)
+            ->and($data->transactions[0]->subtotalCents)->toBe(50_000)
+            ->and($data->transactions[1]->subtotalPreDiscountCents)->toBe(0)
+            ->and($data->transactions[1]->subtotalDiscountCents)->toBe(0)
+            ->and($data->transactions[1]->subtotalCents)->toBe(0)
+            ->and($data->transactions[1]->discountType)->toBe(DiscountType::None)
+            ->and($data->transactions[1]->discountValue)->toBe(0);
+    });
+
+    it('stamps the transaction with the account the caller was authenticated as', function () {
+        ($this->record)(amountCents: 10_000);
+
+        expect($this->payments->saved[0]->transactions()[1]->accountId)
+            ->toBe(PaymentFixtures::ACTOR_ID);
+    });
+
+    it('records whichever actor the input names, and never shows it to the client', function () {
+        $data = ($this->record)(amountCents: 10_000, actorAccountId: PaymentFixtures::OTHER_ACTOR_ID)->value();
+
+        expect($this->payments->saved[0]->transactions()[1]->accountId)
+            ->toBe(PaymentFixtures::OTHER_ACTOR_ID)
+            ->and(get_object_vars($data->transactions[1]))->not->toHaveKey('accountId');
     });
 
     it('leaves the payment part paid when the transaction does not cover the balance', function () {
@@ -188,6 +219,7 @@ describe('refusing the transaction', function () {
         'a payment id that is no uuid' => [['paymentId' => 'not-a-uuid'], 'payment_not_found'],
         'a payment method id that is no uuid' => [['paymentMethodId' => ''], 'payment_method_not_found'],
         'an amount past what money can hold' => [['amountCents' => 10_000_000_000], 'invalid_transaction_amount'],
+        'an actor id that is no uuid' => [['actorAccountId' => 'the-owner'], 'invalid_payment_actor'],
     ]);
 
     it('refuses a payment nobody opened here', function () {

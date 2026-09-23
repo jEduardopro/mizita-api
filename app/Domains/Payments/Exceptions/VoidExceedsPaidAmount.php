@@ -8,16 +8,16 @@ use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use DomainException;
 
-final class PaymentTransactionAlreadyVoided extends DomainException implements DomainFailure
+final class VoidExceedsPaidAmount extends DomainException implements DomainFailure
 {
-    public static function withId(string $transactionId): self
+    public static function byCents(int $amountCents, int $paidCents): self
     {
-        return new self("Payment transaction [{$transactionId}] is already voided.");
+        return new self("A void of [{$amountCents}] exceeds the collected amount of [{$paidCents}].");
     }
 
     public function errorCode(): string
     {
-        return 'payment_transaction_already_voided';
+        return 'void_exceeds_paid_amount';
     }
 
     public function kind(): DomainFailureKind

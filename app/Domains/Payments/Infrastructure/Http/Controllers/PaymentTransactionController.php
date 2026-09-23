@@ -26,9 +26,12 @@ final class PaymentTransactionController extends Controller
         RecordPaymentTransaction $recordPaymentTransaction,
         ApiResponder $responder,
     ): JsonResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+
         try {
             $response = $recordPaymentTransaction->handle(
-                RecordPaymentTransactionInput::fromRequest($request->validated(), $payment),
+                RecordPaymentTransactionInput::fromRequest($request->validated(), $payment, $actor->uuid),
             );
 
             if ($response->failed()) {

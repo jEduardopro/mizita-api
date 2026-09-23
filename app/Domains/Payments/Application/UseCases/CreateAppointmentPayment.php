@@ -15,6 +15,7 @@ use App\Domains\Payments\Contracts\PaymentRepository;
 use App\Domains\Payments\Contracts\ServiceCatalog;
 use App\Domains\Payments\Entities\Payment;
 use App\Domains\Payments\ValueObjects\Money;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Domains\Payments\ValueObjects\PaymentItemName;
 use App\Domains\Payments\ValueObjects\ServiceSnapshot;
 use App\Shared\Application\UseCaseResponse;
@@ -116,6 +117,8 @@ final class CreateAppointmentPayment
         $payment->recordTransaction(
             $this->ids->next(),
             $method->id,
+            $input->actorAccountId,
+            PaymentBreakdown::of($payment->subtotal(), $payment->discount()),
             Money::fromCents($input->amountCents, $payment->currency()),
             $now,
         );

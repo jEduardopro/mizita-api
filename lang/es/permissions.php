@@ -112,7 +112,7 @@ return [
 
     'void_payment_transaction' => [
         'label' => 'Anular transacciones',
-        'description' => 'Deshacer un cobro registrado por error. La transacción queda registrada como anulada.',
+        'description' => 'Deshacer un cobro registrado por error. El cobro original queda registrado y la anulación se añade como un movimiento nuevo.',
     ],
 
 ];

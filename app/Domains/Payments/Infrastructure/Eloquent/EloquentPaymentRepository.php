@@ -8,6 +8,7 @@ use App\Domains\Payments\Contracts\PaymentRepository;
 use App\Domains\Payments\Entities\Payment;
 use App\Domains\Payments\Entities\PaymentTransaction;
 use App\Domains\Payments\Exceptions\AppointmentAlreadyHasPayment;
+use App\Domains\Payments\Exceptions\PaymentAccountNotFound;
 use App\Domains\Payments\Exceptions\PaymentAppointmentNotFound;
 use App\Domains\Payments\Exceptions\PaymentMethodNotFound;
 use App\Domains\Payments\Exceptions\PaymentNotFound;
@@ -23,7 +24,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 final class EloquentPaymentRepository implements PaymentRepository
 {
@@ -44,7 +44,7 @@ final class EloquentPaymentRepository implements PaymentRepository
         'appointment',
         'items',
         'transactions.paymentMethod',
-        'transactions.voidedByAccount',
+        'transactions.account',
     ];
 
     /**
@@ -190,29 +190,47 @@ final class EloquentPaymentRepository implements PaymentRepository
 
     private function syncTransactions(PaymentModel $model, Payment $payment): void
     {
-        $transactions = $payment->transactions();
+        $paymentKey = (int) $model->id;
+        $pending = self::unpersistedTransactions($payment->transactions(), $paymentKey);
 
-        if ($transactions === []) {
+        if ($pending === []) {
             return;
         }
 
-        $paymentKey = (int) $model->id;
-        $methodKeys = self::paymentMethodKeys($transactions);
-        $actorKeys = self::voidActorKeys($transactions);
+        $methodKeys = self::paymentMethodKeys($pending);
+        $accountKeys = self::accountKeys($pending);
 
-        foreach ($transactions as $transaction) {
-            $actorId = $transaction->voidedByAccountId();
-
-            PaymentTransactionModel::query()->updateOrCreate(
-                ['uuid' => $transaction->id],
+        foreach ($pending as $transaction) {
+            PaymentTransactionModel::query()->create(
                 $this->mapper->transactionToAttributes(
                     $transaction,
                     $paymentKey,
                     $methodKeys[$transaction->paymentMethodId],
-                    $actorId === null ? null : $actorKeys[$actorId],
+                    $transaction->accountId === null ? null : $accountKeys[$transaction->accountId],
                 ),
             );
         }
+    }
+
+    /**
+     * @param  list<PaymentTransaction>  $transactions
+     * @return list<PaymentTransaction>
+     */
+    private static function unpersistedTransactions(array $transactions, int $paymentKey): array
+    {
+        if ($transactions === []) {
+            return [];
+        }
+
+        $persistedIds = PaymentTransactionModel::withTrashed()
+            ->where('payment_id', $paymentKey)
+            ->pluck('uuid')
+            ->all();
+
+        return array_values(array_filter(
+            $transactions,
+            static fn (PaymentTransaction $transaction): bool => ! in_array($transaction->id, $persistedIds, true),
+        ));
     }
 
     /**
@@ -293,11 +311,13 @@ final class EloquentPaymentRepository implements PaymentRepository
     /**
      * @param  list<PaymentTransaction>  $transactions
      * @return array<string, int>
+     *
+     * @throws PaymentAccountNotFound
      */
-    private static function voidActorKeys(array $transactions): array
+    private static function accountKeys(array $transactions): array
     {
         $wanted = array_values(array_unique(array_filter(array_map(
-            static fn (PaymentTransaction $transaction): ?string => $transaction->voidedByAccountId(),
+            static fn (PaymentTransaction $transaction): ?string => $transaction->accountId,
             $transactions,
         ))));
 
@@ -309,7 +329,7 @@ final class EloquentPaymentRepository implements PaymentRepository
 
         foreach ($wanted as $accountId) {
             if (! isset($keys[$accountId])) {
-                throw new RuntimeException("Account [{$accountId}] is not on record.");
+                throw PaymentAccountNotFound::withId($accountId);
             }
         }
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Payments\Application\Dtos\RecordPaymentTransactionInput;
+use App\Domains\Payments\Exceptions\InvalidPaymentActor;
 use App\Domains\Payments\Exceptions\InvalidTransactionAmount;
 use App\Domains\Payments\Exceptions\PaymentMethodNotFound;
 use App\Domains\Payments\Exceptions\PaymentNotFound;
@@ -14,11 +15,12 @@ describe('reading an untrusted payload', function () {
         $input = RecordPaymentTransactionInput::fromRequest([
             'payment_method_id' => PaymentFixtures::CARD_METHOD_ID,
             'amount_cents' => 25_000,
-        ], PaymentFixtures::PAYMENT_ID);
+        ], PaymentFixtures::PAYMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->paymentId)->toBe(PaymentFixtures::PAYMENT_ID)
             ->and($input->paymentMethodId)->toBe(PaymentFixtures::CARD_METHOD_ID)
             ->and($input->amountCents)->toBe(25_000)
+            ->and($input->actorAccountId)->toBe(PaymentFixtures::ACTOR_ID)
             ->and(fn () => $input->validate())->not->toThrow(Throwable::class);
     });
 
@@ -27,13 +29,24 @@ describe('reading an untrusted payload', function () {
             'payment_id' => PaymentFixtures::UNKNOWN_ID,
             'payment_method_id' => PaymentFixtures::CASH_METHOD_ID,
             'amount_cents' => 1_000,
-        ], PaymentFixtures::PAYMENT_ID);
+        ], PaymentFixtures::PAYMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->paymentId)->toBe(PaymentFixtures::PAYMENT_ID);
     });
 
+    it('takes the actor from the authenticated caller and never from the body', function () {
+        $input = RecordPaymentTransactionInput::fromRequest([
+            'actor_account_id' => PaymentFixtures::OTHER_ACTOR_ID,
+            'account_id' => PaymentFixtures::OTHER_ACTOR_ID,
+            'payment_method_id' => PaymentFixtures::CASH_METHOD_ID,
+            'amount_cents' => 1_000,
+        ], PaymentFixtures::PAYMENT_ID, PaymentFixtures::ACTOR_ID);
+
+        expect($input->actorAccountId)->toBe(PaymentFixtures::ACTOR_ID);
+    });
+
     it('survives a payload with no keys at all and refuses it on validate', function () {
-        $input = RecordPaymentTransactionInput::fromRequest([], PaymentFixtures::PAYMENT_ID);
+        $input = RecordPaymentTransactionInput::fromRequest([], PaymentFixtures::PAYMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->paymentMethodId)->toBe('')
             ->and($input->amountCents)->toBe(0)
@@ -44,7 +57,7 @@ describe('reading an untrusted payload', function () {
         $input = RecordPaymentTransactionInput::fromRequest([
             'payment_method_id' => $paymentMethodId,
             'amount_cents' => $amountCents,
-        ], PaymentFixtures::PAYMENT_ID);
+        ], PaymentFixtures::PAYMENT_ID, PaymentFixtures::ACTOR_ID);
 
         expect($input->paymentMethodId)->toBeString()
             ->and($input->amountCents)->toBeInt()
@@ -59,7 +72,7 @@ describe('reading an untrusted payload', function () {
         expect(RecordPaymentTransactionInput::fromRequest([
             'payment_method_id' => PaymentFixtures::CASH_METHOD_ID,
             'amount_cents' => '25000',
-        ], PaymentFixtures::PAYMENT_ID)->amountCents)->toBe(25_000);
+        ], PaymentFixtures::PAYMENT_ID, PaymentFixtures::ACTOR_ID)->amountCents)->toBe(25_000);
     });
 });
 
@@ -106,8 +119,23 @@ describe('the rules it states', function () {
         'the maximum money can hold' => Money::MAXIMUM_CENTS,
     ]);
 
+    it('refuses an actor identifier that is no uuid', function (string $actorAccountId) {
+        expect(fn () => PaymentFixtures::recordInput(actorAccountId: $actorAccountId)->validate())
+            ->toThrow(InvalidPaymentActor::class);
+    })->with([
+        'empty' => '',
+        'whitespace only' => '   ',
+        'a sequential int' => '4',
+        'a word' => 'the-owner',
+    ]);
+
     it('rules on the payment before the payment method', function () {
         expect(fn () => PaymentFixtures::recordInput(paymentId: 'nope', paymentMethodId: 'nope')->validate())
             ->toThrow(PaymentNotFound::class);
+    });
+
+    it('rules on the amount before the actor', function () {
+        expect(fn () => PaymentFixtures::recordInput(amountCents: 0, actorAccountId: 'nope')->validate())
+            ->toThrow(InvalidTransactionAmount::class);
     });
 });

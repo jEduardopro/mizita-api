@@ -6,11 +6,13 @@ use App\Domains\Payments\Exceptions\AppointmentAlreadyHasPayment;
 use App\Domains\Payments\Exceptions\CurrencyMismatch;
 use App\Domains\Payments\Exceptions\DiscountExceedsSubtotal;
 use App\Domains\Payments\Exceptions\InvalidMoneyAmount;
+use App\Domains\Payments\Exceptions\InvalidPaymentActor;
 use App\Domains\Payments\Exceptions\InvalidPaymentDiscount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemAmount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemName;
 use App\Domains\Payments\Exceptions\InvalidTransactionAmount;
 use App\Domains\Payments\Exceptions\InvalidVoidActor;
+use App\Domains\Payments\Exceptions\PaymentAccountNotFound;
 use App\Domains\Payments\Exceptions\PaymentAlreadySettled;
 use App\Domains\Payments\Exceptions\PaymentAlreadyStarted;
 use App\Domains\Payments\Exceptions\PaymentAppointmentNotFound;
@@ -20,9 +22,10 @@ use App\Domains\Payments\Exceptions\PaymentMethodNotFound;
 use App\Domains\Payments\Exceptions\PaymentNotFound;
 use App\Domains\Payments\Exceptions\PaymentOverpaid;
 use App\Domains\Payments\Exceptions\PaymentServiceNotFound;
-use App\Domains\Payments\Exceptions\PaymentTransactionAlreadyVoided;
 use App\Domains\Payments\Exceptions\PaymentTransactionNotFound;
+use App\Domains\Payments\Exceptions\PaymentTransactionNotVoidable;
 use App\Domains\Payments\Exceptions\TooManyPaymentItems;
+use App\Domains\Payments\Exceptions\VoidExceedsPaidAmount;
 use App\Domains\Payments\ValueObjects\Money;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -80,6 +83,11 @@ function paymentFailures(): array
             'invalid_payment_discount',
             DomainFailureKind::Invalid,
         ],
+        'a payment recorded by a malformed account' => [
+            InvalidPaymentActor::malformed('42'),
+            'invalid_payment_actor',
+            DomainFailureKind::Invalid,
+        ],
         'a negative item amount' => [
             InvalidPaymentItemAmount::negative(-1),
             'invalid_payment_item_amount',
@@ -119,6 +127,11 @@ function paymentFailures(): array
             InvalidVoidActor::malformed('42'),
             'invalid_void_actor',
             DomainFailureKind::Invalid,
+        ],
+        'an account nobody holds' => [
+            PaymentAccountNotFound::withId($id),
+            'payment_account_not_found',
+            DomainFailureKind::NotFound,
         ],
         'a payment with nothing left owing' => [
             PaymentAlreadySettled::withId($id),
@@ -170,20 +183,25 @@ function paymentFailures(): array
             'payment_service_not_found',
             DomainFailureKind::NotFound,
         ],
-        'a transaction already voided' => [
-            PaymentTransactionAlreadyVoided::withId($id),
-            'payment_transaction_already_voided',
-            DomainFailureKind::Conflict,
-        ],
         'a transaction that is not there' => [
             PaymentTransactionNotFound::withId($id),
             'payment_transaction_not_found',
             DomainFailureKind::NotFound,
         ],
+        'a ledger row that is no approved charge' => [
+            PaymentTransactionNotVoidable::withId($id),
+            'payment_transaction_not_voidable',
+            DomainFailureKind::Conflict,
+        ],
         'more items than a payment holds' => [
             TooManyPaymentItems::atMost(20),
             'too_many_payment_items',
             DomainFailureKind::Invalid,
+        ],
+        'a void bigger than what is still collected' => [
+            VoidExceedsPaidAmount::byCents(6_000, 4_000),
+            'void_exceeds_paid_amount',
+            DomainFailureKind::Conflict,
         ],
     ];
 }
@@ -227,7 +245,11 @@ it('says what it turned down without naming another business row', function () {
         ->and(PaymentAlreadyStarted::withId('the-id')->getMessage())
         ->toBe('Payment [the-id] already holds money and can no longer be changed.')
         ->and(DiscountExceedsSubtotal::of(11_001, 11_000)->getMessage())
-        ->toBe('A discount of [11001] exceeds the subtotal of [11000].');
+        ->toBe('A discount of [11001] exceeds the subtotal of [11000].')
+        ->and(PaymentTransactionNotVoidable::withId('the-id')->getMessage())
+        ->toBe('Payment transaction [the-id] is not an approved charge.')
+        ->and(VoidExceedsPaidAmount::byCents(6_000, 4_000)->getMessage())
+        ->toBe('A void of [6000] exceeds the collected amount of [4000].');
 });
 
 /**

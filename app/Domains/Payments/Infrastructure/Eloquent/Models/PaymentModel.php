@@ -7,7 +7,6 @@ namespace App\Domains\Payments\Infrastructure\Eloquent\Models;
 use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Factories\PaymentModelFactory;
-use App\Domains\Payments\ValueObjects\DiscountType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,9 +20,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'business_id',
     'appointment_id',
     'currency_code',
-    'subtotal_cents',
-    'discount_type',
-    'discount_value',
     'discount_amount_cents',
     'total_cents',
     'paid_cents',
@@ -91,9 +87,6 @@ class PaymentModel extends Model
     protected function casts(): array
     {
         return [
-            'discount_type' => DiscountType::class,
-            'subtotal_cents' => 'integer',
-            'discount_value' => 'integer',
             'discount_amount_cents' => 'integer',
             'total_cents' => 'integer',
             'paid_cents' => 'integer',

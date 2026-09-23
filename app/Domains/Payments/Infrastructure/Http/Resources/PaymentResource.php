@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domains\Payments\Infrastructure\Http\Resources;
 
 use App\Domains\Payments\Application\Dtos\PaymentData;
-use App\Domains\Payments\Application\Dtos\PaymentDiscountData;
 use App\Domains\Payments\Application\Dtos\PaymentItemData;
 use App\Domains\Payments\Application\Dtos\PaymentTransactionData;
 use Illuminate\Http\Request;
@@ -28,7 +27,7 @@ final class PaymentResource extends JsonResource
             'status' => $this->resource->status->value,
             'items' => array_map(self::describeItem(...), $this->resource->items),
             'subtotal_cents' => $this->resource->subtotalCents,
-            'discount' => self::describeDiscount($this->resource->discount),
+            'discount_amount_cents' => $this->resource->discountAmountCents,
             'total_cents' => $this->resource->totalCents,
             'paid_cents' => $this->resource->paidCents,
             'balance_cents' => $this->resource->balanceCents,
@@ -51,33 +50,27 @@ final class PaymentResource extends JsonResource
     }
 
     /**
-     * @return array{type: string, value: int, amount_cents: int}
-     */
-    private static function describeDiscount(PaymentDiscountData $discount): array
-    {
-        return [
-            'type' => $discount->type->value,
-            'value' => $discount->value,
-            'amount_cents' => $discount->amountCents,
-        ];
-    }
-
-    /**
-     * @return array{id: string, status: string, amount_cents: int, payment_method: array{id: string, code: string, label: string}, processed_at: string, voided_at: string|null}
+     * @return array{id: string, type: string, subtotal_pre_discount_cents: int, discount: array{type: string, value: int}, subtotal_discount_cents: int, subtotal_cents: int, total_cents: int, payment_method: array{id: string, code: string, label: string}, processed_at: string}
      */
     private static function describeTransaction(PaymentTransactionData $transaction): array
     {
         return [
             'id' => $transaction->id,
-            'status' => $transaction->status->value,
-            'amount_cents' => $transaction->amountCents,
+            'type' => $transaction->type->value,
+            'subtotal_pre_discount_cents' => $transaction->subtotalPreDiscountCents,
+            'discount' => [
+                'type' => $transaction->discountType->value,
+                'value' => $transaction->discountValue,
+            ],
+            'subtotal_discount_cents' => $transaction->subtotalDiscountCents,
+            'subtotal_cents' => $transaction->subtotalCents,
+            'total_cents' => $transaction->totalCents,
             'payment_method' => [
                 'id' => $transaction->paymentMethodId,
                 'code' => $transaction->paymentMethodCode,
                 'label' => PaymentMethodLabel::for($transaction->paymentMethodCode),
             ],
             'processed_at' => $transaction->processedAt->format(DATE_ATOM),
-            'voided_at' => $transaction->voidedAt?->format(DATE_ATOM),
         ];
     }
 }

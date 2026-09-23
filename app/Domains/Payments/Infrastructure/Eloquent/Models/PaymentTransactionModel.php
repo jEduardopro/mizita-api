@@ -6,6 +6,8 @@ namespace App\Domains\Payments\Infrastructure\Eloquent\Models;
 
 use App\Domains\Payments\Infrastructure\Eloquent\Casts\UtcInstant;
 use App\Domains\Payments\Infrastructure\Eloquent\Factories\PaymentTransactionModelFactory;
+use App\Domains\Payments\ValueObjects\DiscountType;
+use App\Domains\Payments\ValueObjects\PaymentTransactionType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,11 +20,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'uuid',
     'payment_id',
     'payment_method_id',
-    'amount_cents',
+    'account_id',
+    'type',
+    'subtotal_pre_discount_cents',
+    'discount_type',
+    'discount_value',
+    'subtotal_discount_cents',
+    'subtotal_cents',
+    'total_cents',
     'external_reference',
     'processed_at',
-    'voided_at',
-    'voided_by_account_id',
 ])]
 class PaymentTransactionModel extends Model
 {
@@ -64,9 +71,9 @@ class PaymentTransactionModel extends Model
     /**
      * @return BelongsTo<User, $this>
      */
-    public function voidedByAccount(): BelongsTo
+    public function account(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'voided_by_account_id');
+        return $this->belongsTo(User::class, 'account_id');
     }
 
     /**
@@ -75,9 +82,14 @@ class PaymentTransactionModel extends Model
     protected function casts(): array
     {
         return [
-            'amount_cents' => 'integer',
+            'type' => PaymentTransactionType::class,
+            'discount_type' => DiscountType::class,
+            'subtotal_pre_discount_cents' => 'integer',
+            'discount_value' => 'integer',
+            'subtotal_discount_cents' => 'integer',
+            'subtotal_cents' => 'integer',
+            'total_cents' => 'integer',
             'processed_at' => UtcInstant::class,
-            'voided_at' => UtcInstant::class,
         ];
     }
 

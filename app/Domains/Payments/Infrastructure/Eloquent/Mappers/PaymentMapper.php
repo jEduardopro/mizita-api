@@ -11,7 +11,9 @@ use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentItemModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentTransactionModel;
 use App\Domains\Payments\ValueObjects\Discount;
+use App\Domains\Payments\ValueObjects\DiscountType;
 use App\Domains\Payments\ValueObjects\Money;
+use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Domains\Payments\ValueObjects\PaymentItemName;
 use App\Shared\ValueObjects\CurrencyCode;
 use DateTimeImmutable;
@@ -28,7 +30,7 @@ final class PaymentMapper
             appointmentId: $model->appointment->uuid,
             currency: $currency,
             items: $this->itemsOf($model, $currency),
-            discount: Discount::restore($model->discount_type, $model->discount_value),
+            discount: self::discountOf($model),
             transactions: $this->transactionsOf($model, $currency),
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
         );
@@ -44,9 +46,6 @@ final class PaymentMapper
             'business_id' => $businessKey,
             'appointment_id' => $appointmentKey,
             'currency_code' => $payment->currency()->value,
-            'subtotal_cents' => $payment->subtotal()->amount,
-            'discount_type' => $payment->discount()->type,
-            'discount_value' => $payment->discount()->value,
             'discount_amount_cents' => $payment->discountAmount()->amount,
             'total_cents' => $payment->total()->amount,
             'paid_cents' => $payment->paid()->amount,
@@ -74,17 +73,33 @@ final class PaymentMapper
         PaymentTransaction $transaction,
         int $paymentKey,
         int $paymentMethodKey,
-        ?int $voidedByAccountKey,
+        ?int $accountKey,
     ): array {
+        $breakdown = $transaction->breakdown;
+
         return [
             'uuid' => $transaction->id,
             'payment_id' => $paymentKey,
             'payment_method_id' => $paymentMethodKey,
-            'amount_cents' => $transaction->amount->amount,
+            'account_id' => $accountKey,
+            'type' => $transaction->type,
+            'subtotal_pre_discount_cents' => $breakdown->subtotalPreDiscount->amount,
+            'discount_type' => $breakdown->discountType(),
+            'discount_value' => $breakdown->discountValue(),
+            'subtotal_discount_cents' => $breakdown->discountAmount->amount,
+            'subtotal_cents' => $breakdown->subtotal->amount,
+            'total_cents' => $transaction->total->amount,
             'processed_at' => $transaction->processedAt->format(DATE_ATOM),
-            'voided_at' => $transaction->voidedAt()?->format(DATE_ATOM),
-            'voided_by_account_id' => $voidedByAccountKey,
         ];
+    }
+
+    private static function discountOf(PaymentModel $model): Discount
+    {
+        if ($model->discount_amount_cents <= 0) {
+            return Discount::none();
+        }
+
+        return Discount::restore(DiscountType::Fixed, $model->discount_amount_cents);
     }
 
     /**
@@ -111,13 +126,24 @@ final class PaymentMapper
         return $model->transactions
             ->map(static fn (PaymentTransactionModel $transaction): PaymentTransaction => PaymentTransaction::restore(
                 id: $transaction->uuid,
+                type: $transaction->type,
                 paymentMethodId: $transaction->paymentMethod->uuid,
-                amount: Money::fromCents($transaction->amount_cents, $currency),
+                accountId: $transaction->account?->uuid,
+                breakdown: self::breakdownOf($transaction, $currency),
+                total: Money::fromCents($transaction->total_cents, $currency),
                 processedAt: DateTimeImmutable::createFromInterface($transaction->processed_at),
-                voidedAt: $transaction->voided_at,
-                voidedByAccountId: $transaction->voidedByAccount?->uuid,
             ))
             ->values()
             ->all();
+    }
+
+    private static function breakdownOf(PaymentTransactionModel $transaction, CurrencyCode $currency): PaymentBreakdown
+    {
+        return PaymentBreakdown::restore(
+            subtotalPreDiscount: Money::fromCents($transaction->subtotal_pre_discount_cents, $currency),
+            discount: Discount::restore($transaction->discount_type, $transaction->discount_value),
+            discountAmount: Money::fromCents($transaction->subtotal_discount_cents, $currency),
+            subtotal: Money::fromCents($transaction->subtotal_cents, $currency),
+        );
     }
 }

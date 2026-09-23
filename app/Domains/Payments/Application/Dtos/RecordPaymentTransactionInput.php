@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Payments\Application\Dtos;
 
+use App\Domains\Payments\Exceptions\InvalidPaymentActor;
 use App\Domains\Payments\Exceptions\InvalidTransactionAmount;
 use App\Domains\Payments\Exceptions\PaymentMethodNotFound;
 use App\Domains\Payments\Exceptions\PaymentNotFound;
@@ -18,17 +19,19 @@ final readonly class RecordPaymentTransactionInput
         public string $paymentId,
         public string $paymentMethodId,
         public int $amountCents,
+        public string $actorAccountId,
     ) {}
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function fromRequest(array $payload, string $paymentId): self
+    public static function fromRequest(array $payload, string $paymentId, string $actorAccountId): self
     {
         return new self(
             paymentId: $paymentId,
             paymentMethodId: self::textOrEmpty($payload['payment_method_id'] ?? null),
             amountCents: self::centsOrZero($payload['amount_cents'] ?? null),
+            actorAccountId: $actorAccountId,
         );
     }
 
@@ -36,12 +39,14 @@ final readonly class RecordPaymentTransactionInput
      * @throws PaymentNotFound
      * @throws PaymentMethodNotFound
      * @throws InvalidTransactionAmount
+     * @throws InvalidPaymentActor
      */
     public function validate(): void
     {
         $this->validatePaymentId();
         $this->validatePaymentMethodId();
         $this->validateAmountCents();
+        $this->validateActorAccountId();
     }
 
     private static function textOrEmpty(mixed $value): string
@@ -76,6 +81,13 @@ final readonly class RecordPaymentTransactionInput
 
         if ($this->amountCents > Money::MAXIMUM_CENTS) {
             throw InvalidTransactionAmount::tooLarge($this->amountCents, Money::MAXIMUM_CENTS);
+        }
+    }
+
+    private function validateActorAccountId(): void
+    {
+        if (! Identifier::isWellFormed($this->actorAccountId)) {
+            throw InvalidPaymentActor::malformed($this->actorAccountId);
         }
     }
 }
