@@ -47,7 +47,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
         ),
         services,
         hours: (
-            <div className="-mx-5 flex max-w-2xl flex-col sm:mx-0 sm:rounded-xl sm:border sm:border-border sm:pt-5">
+            <div className="-mx-5 flex max-w-2xl flex-col sm:mx-0 sm:rounded-xl sm:border sm:border-border sm:pt-4">
                 {hours}
             </div>
         ),

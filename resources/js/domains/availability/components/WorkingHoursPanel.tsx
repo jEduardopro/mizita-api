@@ -25,7 +25,7 @@ function WorkingHoursSkeleton() {
 
                 <div className="grid gap-px overflow-hidden rounded-xl border border-border">
                     {WEEKDAYS.map((weekday) => (
-                        <Skeleton key={weekday} className="h-16 rounded-none" />
+                        <Skeleton key={weekday} className="h-16 rounded-none md:h-13" />
                     ))}
                 </div>
             </div>

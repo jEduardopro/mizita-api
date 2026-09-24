@@ -8,7 +8,7 @@ type Props = {
 
 export function BusinessHoursNotice({ businessSettingsHref }: Props) {
     return (
-        <p className="flex gap-2.5 rounded-lg bg-muted px-4 py-3 text-sm leading-relaxed text-foreground/80">
+        <p className="flex gap-2.5 rounded-lg bg-muted px-4 py-3 text-sm leading-relaxed text-foreground/80 md:py-2.5">
             <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
 
             <span>

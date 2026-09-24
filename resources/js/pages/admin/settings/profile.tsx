@@ -134,7 +134,7 @@ export default function Profile() {
         : undefined;
 
     return (
-        <AdminLayout title={t('profile.title')} description={t('profile.description')} breadcrumbs={breadcrumbs}>
+        <AdminLayout title={t('profile.title')} breadcrumbs={breadcrumbs}>
             {profile.data ? <MyProfileScreen profile={profile.data} /> : null}
 
             {profile.isPending ? <StaffProfileSkeleton /> : null}

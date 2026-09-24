@@ -8,7 +8,7 @@ import type { WorkingDay, WorkingInterval } from './working-week';
 
 const TIME_FIELD = 'min-w-0 flex-1 sm:w-32 sm:flex-none';
 
-const TIME_CONTROL = 'h-11 md:h-10 md:min-h-10';
+const TIME_CONTROL = 'h-11 md:h-9 md:min-h-9';
 
 type Props = {
     label: string;
@@ -28,13 +28,13 @@ export function WorkingDayRow({ label, day, onToggle, onChange, trailing }: Prop
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3 last:border-b-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3 last:border-b-0 md:py-2">
             <div className="flex min-w-36 flex-1 items-center gap-3">
                 <Switch id={`${rowId}-switch`} checked={day.enabled} onCheckedChange={onToggle} />
 
                 <Label
                     htmlFor={`${rowId}-switch`}
-                    className="min-h-11 flex-1 text-base font-normal sm:text-sm"
+                    className="min-h-11 flex-1 text-base font-normal sm:text-sm md:min-h-9"
                 >
                     {label}
                 </Label>
@@ -69,7 +69,7 @@ export function WorkingDayRow({ label, day, onToggle, onChange, trailing }: Prop
                         />
                     </div>
 
-                    {trailing ?? <span aria-hidden="true" className="hidden size-11 shrink-0 sm:block md:size-10" />}
+                    {trailing ?? <span aria-hidden="true" className="hidden size-11 shrink-0 sm:block md:size-9" />}
                 </div>
             ) : (
                 <Badge variant="secondary" className="h-7 rounded-md px-2.5 font-normal">

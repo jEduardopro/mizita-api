@@ -19,15 +19,10 @@ type Props = {
 
 function StaffServicesSkeleton() {
     return (
-        <ul role="status" aria-busy="true" className="grid">
+        <ul role="status" aria-busy="true" className="grid max-w-2xl gap-3">
             {SKELETON_ROWS.map((row) => (
-                <li key={row} className="flex items-center gap-3 py-3">
-                    <Skeleton className="size-10 rounded-xl" />
-
-                    <span className="grid flex-1 gap-1.5">
-                        <Skeleton className="h-3.5 w-40" />
-                        <Skeleton className="h-3 w-28" />
-                    </span>
+                <li key={row}>
+                    <Skeleton className="h-[4.25rem] rounded-xl" />
                 </li>
             ))}
         </ul>
@@ -63,6 +58,8 @@ export function StaffServicesPanel({
 
     return (
         <div className="grid max-w-2xl gap-4">
+            {addField}
+
             {services.length === 0 ? (
                 <div className="grid justify-items-start gap-2 rounded-xl border border-dashed border-border p-5">
                     <ListChecks aria-hidden="true" className="size-5 text-muted-foreground" />
@@ -72,14 +69,12 @@ export function StaffServicesPanel({
                     <p className="text-sm text-muted-foreground">{emptyHint}</p>
                 </div>
             ) : (
-                <ul className="grid">
+                <ul className="grid gap-3">
                     {services.map((service) => (
                         <StaffServiceRow key={service.id} service={service} action={renderAction?.(service)} />
                     ))}
                 </ul>
             )}
-
-            {addField}
         </div>
     );
 }

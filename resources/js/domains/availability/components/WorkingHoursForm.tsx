@@ -40,7 +40,7 @@ export function WorkingHoursForm({ schedule, businessSchedule, onSave, onCancel,
             aria-label={t('workingHours.copyToAll', {
                 day: tCommon(WEEKDAY_IN_SENTENCE_LABEL_KEYS[FIRST_WEEKDAY]),
             })}
-            className="size-11 shrink-0 p-0 text-muted-foreground hover:text-foreground md:size-10"
+            className="size-11 shrink-0 p-0 text-muted-foreground hover:text-foreground md:size-9"
         >
             <CopyCheck aria-hidden="true" />
         </Button>
@@ -48,7 +48,7 @@ export function WorkingHoursForm({ schedule, businessSchedule, onSave, onCancel,
 
     return (
         <form onSubmit={form.submit} className="flex min-h-0 flex-1 flex-col">
-            <SettingsPaneBody className="grid content-start gap-4">
+            <SettingsPaneBody className="grid content-start gap-4 md:gap-3">
                 <div className="grid gap-1">
                     <p className="text-sm text-muted-foreground">{t('workingHours.description')}</p>
 

@@ -597,7 +597,6 @@
     },
     "profile": {
         "title": "Your profile",
-        "description": "Your details, the services you offer and your working hours.",
         "edit": "Edit your profile",
         "roles": {
             "owner": "Owner",

@@ -597,7 +597,6 @@
     },
     "profile": {
         "title": "Tu perfil",
-        "description": "Tus datos, los servicios que das y tu horario de trabajo.",
         "edit": "Editar tu perfil",
         "roles": {
             "owner": "Propietario",
