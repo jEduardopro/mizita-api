@@ -14,6 +14,7 @@ use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
+use App\Domains\Businesses\Contracts\ScheduleProvisioner;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Events\BusinessCreated;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
@@ -44,6 +45,7 @@ final class OnboardBusiness
         private readonly RoleProvisioner $roles,
         private readonly PaymentMethodProvisioner $paymentMethods,
         private readonly OwnerRegistrar $owners,
+        private readonly ScheduleProvisioner $schedules,
         private readonly PhoneBook $phones,
         private readonly SlugAllocator $slugs,
         private readonly PhoneNumberParser $phoneNumberParser,
@@ -126,7 +128,9 @@ final class OnboardBusiness
 
         $this->paymentMethods->provisionFor($business->id);
 
-        $ownerEvents = $this->owners->registerOwner($business->id, $input->ownerAccountId);
+        $owner = $this->owners->registerOwner($business->id, $input->ownerAccountId);
+
+        $this->schedules->provisionDefaultsFor($business->id, $owner->staffMemberId);
 
         if ($phone !== null) {
             $this->phones->attachToBusiness($business->id, $phone);
@@ -134,7 +138,7 @@ final class OnboardBusiness
 
         return new OnboardingOutcome(
             BusinessData::fromEntity($business, null),
-            [new BusinessCreated($business->id), ...$ownerEvents],
+            [new BusinessCreated($business->id), ...$owner->events],
         );
     }
 

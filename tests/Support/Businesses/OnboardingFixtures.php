@@ -9,6 +9,7 @@ use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
+use App\Domains\Businesses\ValueObjects\OwnerRegistration;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use App\Shared\ValueObjects\CountryCode;
@@ -24,6 +25,8 @@ final class OnboardingFixtures
     public const GENERATED_BUSINESS_ID = '01930000-0000-7000-8000-000000000001';
 
     public const OWNER_ACCOUNT_ID = '01930000-0000-7000-8000-0000000000a1';
+
+    public const OWNER_STAFF_MEMBER_ID = '01930000-0000-7000-8000-0000000000b1';
 
     public const INDUSTRY_ID = '01930000-0000-7000-8000-0000000000f1';
 
@@ -75,6 +78,16 @@ final class OnboardingFixtures
             about: $about,
             currency: $currency,
         );
+    }
+
+    /**
+     * @param  list<object>  $events
+     */
+    public static function ownerRegistration(
+        array $events = [],
+        string $staffMemberId = self::OWNER_STAFF_MEMBER_ID,
+    ): OwnerRegistration {
+        return new OwnerRegistration(staffMemberId: $staffMemberId, events: $events);
     }
 
     public static function submittedPhone(

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Exceptions\OwnerAlreadyHasBusiness;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffOwnerRegistrar;
+use App\Domains\Businesses\ValueObjects\OwnerRegistration;
 use App\Domains\Staff\Application\UseCases\RegisterBusinessOwner;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Entities\StaffMember;
@@ -26,26 +27,41 @@ beforeEach(function () {
         new FakeClock(OnboardingFixtures::now()),
     ));
 
-    $this->register = fn (): array => $this->registrar->registerOwner(
+    $this->register = fn (): OwnerRegistration => $this->registrar->registerOwner(
         OnboardingFixtures::GENERATED_BUSINESS_ID,
         OnboardingFixtures::OWNER_ACCOUNT_ID,
     );
 });
 
 describe('registering the owner of a brand new business', function () {
-    it('registers the membership and hands back only the events', function () {
+    it('registers the owner membership of the new business for the given account', function () {
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->once()
             ->with(OnboardingFixtures::OWNER_ACCOUNT_ID)->andReturn(false);
 
         $saved = null;
         $this->staffMembers->shouldReceive('save')->once()->with(Mockery::capture($saved));
 
-        $events = ($this->register)();
+        ($this->register)();
 
         expect($saved)->toBeInstanceOf(StaffMember::class)
+            ->and($saved->id)->toBe($this->registeredMemberId)
             ->and($saved->businessId)->toBe(OnboardingFixtures::GENERATED_BUSINESS_ID)
             ->and($saved->accountId)->toBe(OnboardingFixtures::OWNER_ACCOUNT_ID)
             ->and($saved->role())->toBe(StaffRole::Owner);
+    });
+
+    it('hands back the uuid of the staff member it registered', function () {
+        $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
+        $this->staffMembers->shouldReceive('save')->once();
+
+        expect(($this->register)()->staffMemberId)->toBe($this->registeredMemberId);
+    });
+
+    it('hands back the events the staff use case raised', function () {
+        $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
+        $this->staffMembers->shouldReceive('save')->once();
+
+        $events = ($this->register)()->events;
 
         expect($events)->toHaveCount(1)
             ->and($events[0])->toBeInstanceOf(StaffMemberRegistered::class)
@@ -56,19 +72,17 @@ describe('registering the owner of a brand new business', function () {
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
         $this->staffMembers->shouldReceive('save')->once();
 
-        $events = ($this->register)();
-
-        expect($events)->toBeArray()
-            ->and($events)->not->toBeInstanceOf(UseCaseResponse::class);
+        expect(($this->register)())->toBeInstanceOf(OwnerRegistration::class)
+            ->not->toBeInstanceOf(UseCaseResponse::class);
     });
 
-    it('declares an array on the port, which is what forbids answering with a failure', function () {
+    it('declares an owner registration on the port, which is what forbids answering with a failure', function () {
         $returnTypes = array_map(
             static fn (ReflectionMethod $method): string => (string) $method->getReturnType(),
             (new ReflectionClass(OwnerRegistrar::class))->getMethods(),
         );
 
-        expect($returnTypes)->toBe(['array'])
+        expect($returnTypes)->toBe([OwnerRegistration::class])
             ->and($returnTypes)->not->toContain(UseCaseResponse::class);
     });
 });

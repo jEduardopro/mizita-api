@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\Availability\Exceptions\ScheduleIntervalInverted;
 use App\Domains\Businesses\Application\Dtos\BusinessData;
 use App\Domains\Businesses\Application\Dtos\OnboardBusinessInput;
 use App\Domains\Businesses\Application\Dtos\PhoneNumberInput;
@@ -12,6 +13,7 @@ use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
+use App\Domains\Businesses\Contracts\ScheduleProvisioner;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Events\BusinessCreated;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
@@ -43,6 +45,7 @@ beforeEach(function () {
     $this->roles = Mockery::mock(RoleProvisioner::class);
     $this->paymentMethods = Mockery::mock(PaymentMethodProvisioner::class);
     $this->owners = Mockery::mock(OwnerRegistrar::class);
+    $this->schedules = Mockery::mock(ScheduleProvisioner::class);
     $this->phones = Mockery::mock(PhoneBook::class);
     $this->events = Mockery::mock(Dispatcher::class);
     $this->transactions = new FakeTransactionManager;
@@ -59,6 +62,7 @@ beforeEach(function () {
             $this->roles,
             $this->paymentMethods,
             $this->owners,
+            $this->schedules,
             $this->phones,
             new SlugAllocator,
             $parser ?? $this->parser,
@@ -89,6 +93,7 @@ beforeEach(function () {
 
     $this->roles->shouldReceive('provisionFor')->byDefault();
     $this->paymentMethods->shouldReceive('provisionFor')->byDefault();
+    $this->schedules->shouldReceive('provisionDefaultsFor')->byDefault();
 
     $this->ownerEvents = [new stdClass, new stdClass];
 
@@ -117,7 +122,7 @@ describe('onboarding a business', function () {
         $this->businesses->shouldReceive('save')->once()->with(Mockery::capture($saved));
         $this->owners->shouldReceive('registerOwner')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, OnboardingFixtures::OWNER_ACCOUNT_ID)
-            ->andReturn($this->ownerEvents);
+            ->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
         $this->phones->shouldNotReceive('attachToBusiness');
         $this->events->shouldReceive('dispatch')->times(3);
 
@@ -146,7 +151,7 @@ describe('onboarding a business', function () {
 
         $saved = null;
         $this->businesses->shouldReceive('save')->once()->with(Mockery::capture($saved));
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         $data = ($this->onboard)(OnboardingFixtures::input());
@@ -164,7 +169,7 @@ describe('onboarding a business', function () {
 
         $saved = null;
         $this->businesses->shouldReceive('save')->once()->with(Mockery::capture($saved));
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         $data = ($this->onboard)(OnboardingFixtures::input(name: '   Barbería Ñandú   '));
@@ -179,7 +184,7 @@ describe('onboarding a business', function () {
         $useCase = ($this->build)(clock: new FakeClock(new DateTimeImmutable('2026-03-29T01:30:00+00:00')));
 
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         expect(($this->onboard)(OnboardingFixtures::input(), $useCase)->createdAt)
@@ -192,7 +197,7 @@ describe('onboarding a business', function () {
         $this->businesses->shouldReceive('save')->once();
         $this->owners->shouldReceive('registerOwner')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, 'another-account-uuid')
-            ->andReturn([]);
+            ->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input(ownerAccountId: 'another-account-uuid'));
@@ -206,7 +211,7 @@ describe('the roles the business starts life with', function () {
         $this->roles->shouldReceive('provisionFor')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID);
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -228,7 +233,7 @@ describe('the roles the business starts life with', function () {
             ->with(Mockery::on(fn (): bool => $record('provision')));
         $this->owners->shouldReceive('registerOwner')->once()
             ->with(Mockery::on(fn (): bool => $record('owner')), Mockery::any())
-            ->andReturn([]);
+            ->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -242,7 +247,7 @@ describe('the roles the business starts life with', function () {
         $this->roles->shouldReceive('provisionFor')->once()
             ->with(Mockery::on($this->recordTransactionState));
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -280,7 +285,7 @@ describe('the payment methods the business starts life with', function () {
         $this->paymentMethods->shouldReceive('provisionFor')->once()
             ->with(OnboardingFixtures::GENERATED_BUSINESS_ID);
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -304,7 +309,7 @@ describe('the payment methods the business starts life with', function () {
             ->with(Mockery::on(fn (): bool => $record('payment methods')));
         $this->owners->shouldReceive('registerOwner')->once()
             ->with(Mockery::on(fn (): bool => $record('owner')), Mockery::any())
-            ->andReturn([]);
+            ->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -318,7 +323,7 @@ describe('the payment methods the business starts life with', function () {
         $this->paymentMethods->shouldReceive('provisionFor')->once()
             ->with(Mockery::on($this->recordTransactionState));
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -361,6 +366,147 @@ describe('the payment methods the business starts life with', function () {
     });
 });
 
+describe('the default hours the business starts life with', function () {
+    it('provisions them once, for the new business and the staff member the registrar registered', function () {
+        ($this->arrangeReads)();
+
+        $registeredMemberId = '01930000-0000-7000-8000-0000000000b7';
+
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->once()
+            ->andReturn(OnboardingFixtures::ownerRegistration(staffMemberId: $registeredMemberId));
+        $this->schedules->shouldReceive('provisionDefaultsFor')->once()
+            ->with(OnboardingFixtures::GENERATED_BUSINESS_ID, $registeredMemberId);
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->onboard)(OnboardingFixtures::input());
+    });
+
+    it('provisions them after the owner is registered and before the phone is filed', function () {
+        ($this->arrangeReads)();
+
+        $order = [];
+        $record = function (string $step) use (&$order): bool {
+            $order[] = $step;
+
+            return true;
+        };
+
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->once()
+            ->with(Mockery::on(fn (): bool => $record('owner')), Mockery::any())
+            ->andReturn(OnboardingFixtures::ownerRegistration());
+        $this->schedules->shouldReceive('provisionDefaultsFor')->once()
+            ->with(Mockery::on(fn (): bool => $record('default hours')), Mockery::any());
+        $this->phones->shouldReceive('attachToBusiness')->once()
+            ->with(Mockery::on(fn (): bool => $record('phone')), Mockery::any());
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->onboard)(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()));
+
+        expect($order)->toBe(['owner', 'default hours', 'phone']);
+    });
+
+    it('provisions them inside the transaction that writes the business', function () {
+        ($this->arrangeReads)();
+
+        $this->businesses->shouldReceive('save')->once();
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
+        $this->schedules->shouldReceive('provisionDefaultsFor')->once()
+            ->with(Mockery::on($this->recordTransactionState), Mockery::any());
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->onboard)(OnboardingFixtures::input());
+
+        expect($this->insideTransaction)->toBe([true])
+            ->and($this->transactions->runs())->toBe(1);
+    });
+
+    describe('when onboarding is refused before the defaults are reached', function () {
+        beforeEach(function () {
+            $this->schedules->shouldNotReceive('provisionDefaultsFor');
+            $this->events->shouldNotReceive('dispatch');
+        });
+
+        it('provisions nothing for an input the form request never saw', function () {
+            $this->businesses->shouldNotReceive('save');
+
+            expect(($this->refuse)(OnboardingFixtures::input(ownerAccountId: '   '))->code)
+                ->toBe('invalid_business_owner');
+        });
+
+        it('provisions nothing for an industry the catalog does not know', function () {
+            $this->industries->shouldReceive('exists')->andReturn(false);
+            $this->businesses->shouldNotReceive('save');
+
+            expect(($this->refuse)(OnboardingFixtures::input())->code)->toBe('unknown_industry');
+        });
+
+        it('provisions nothing when the name is already taken', function () {
+            $this->industries->shouldReceive('exists')->andReturn(true);
+            $this->businesses->shouldReceive('existsByName')->andReturn(true);
+            $this->businesses->shouldNotReceive('save');
+
+            expect(($this->refuse)(OnboardingFixtures::input())->code)->toBe('business_name_taken');
+        });
+
+        it('provisions nothing for a time zone PHP cannot resolve', function () {
+            ($this->arrangeReads)();
+            $this->businesses->shouldNotReceive('save');
+
+            expect(($this->refuse)(OnboardingFixtures::input(timezone: 'europe/madrid'))->code)
+                ->toBe('invalid_timezone');
+        });
+
+        it('provisions nothing when the caller already owns a business', function () {
+            ($this->arrangeReads)();
+            $this->businesses->shouldReceive('save')->once();
+            $this->owners->shouldReceive('registerOwner')->once()
+                ->andThrow(OwnerAlreadyHasBusiness::forAccount(OnboardingFixtures::OWNER_ACCOUNT_ID));
+
+            expect(($this->refuse)(OnboardingFixtures::input())->code)->toBe('owner_already_has_business');
+        });
+    });
+
+    describe('when the defaults cannot be provisioned', function () {
+        beforeEach(function () {
+            ($this->arrangeReads)();
+            $this->businesses->shouldReceive('save')->once();
+            $this->owners->shouldReceive('registerOwner')->once()
+                ->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
+
+            $this->provisioningFailure = ScheduleIntervalInverted::between('17:00', '09:00');
+            $this->schedules->shouldReceive('provisionDefaultsFor')->once()
+                ->andThrow($this->provisioningFailure);
+        });
+
+        it('answers with the provisioner refusal instead of throwing it', function () {
+            $this->events->shouldNotReceive('dispatch');
+
+            $error = ($this->refuse)(OnboardingFixtures::input());
+
+            expect($error->code)->toBe('schedule_interval_inverted')
+                ->and($error->kind)->toBe(DomainFailureKind::Invalid)
+                ->and($error->cause())->toBe($this->provisioningFailure)
+                ->and($this->transactions->runs())->toBe(1);
+        });
+
+        it('announces neither the business nor its owner', function () {
+            $this->events->shouldNotReceive('dispatch');
+
+            ($this->answer)(OnboardingFixtures::input());
+        });
+
+        it('files no phone number once the defaults have failed', function () {
+            $this->phones->shouldNotReceive('attachToBusiness');
+            $this->events->shouldNotReceive('dispatch');
+
+            expect(($this->answer)(OnboardingFixtures::input(phone: OnboardingFixtures::submittedPhone()))->failed())
+                ->toBeTrue();
+        });
+    });
+});
+
 describe('the unit of work', function () {
     it('reads and computes before it opens a transaction', function () {
         $this->industries->shouldReceive('exists')->once()
@@ -370,7 +516,7 @@ describe('the unit of work', function () {
         $this->businesses->shouldReceive('slugsMatching')->once()
             ->with(Mockery::on($this->recordTransactionState))->andReturn([]);
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         ($this->onboard)(OnboardingFixtures::input());
@@ -386,7 +532,7 @@ describe('the unit of work', function () {
         $this->roles->shouldReceive('provisionFor')->once()->with(Mockery::on($this->recordTransactionState));
         $this->owners->shouldReceive('registerOwner')->once()
             ->with(Mockery::on($this->recordTransactionState), Mockery::any())
-            ->andReturn([]);
+            ->andReturn(OnboardingFixtures::ownerRegistration());
         $this->phones->shouldReceive('attachToBusiness')->once()
             ->with(Mockery::on($this->recordTransactionState), Mockery::any());
         $this->events->shouldReceive('dispatch')->once();
@@ -402,7 +548,7 @@ describe('the contact number', function () {
     beforeEach(function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
     });
 
@@ -503,7 +649,7 @@ describe('announcing what happened', function () {
     it('announces nothing until the transaction has closed', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn($this->ownerEvents);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
 
         $this->events->shouldReceive('dispatch')->times(3)
             ->with(Mockery::on($this->recordTransactionState));
@@ -517,7 +663,7 @@ describe('announcing what happened', function () {
     it('announces the business before anything that refers to it', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn($this->ownerEvents);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
 
         $announced = [];
         $this->events->shouldReceive('dispatch')->times(3)
@@ -538,7 +684,7 @@ describe('announcing what happened', function () {
     it('announces only the business when the owner registration earned no events', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
 
         $this->events->shouldReceive('dispatch')->once()->with(Mockery::type(BusinessCreated::class));
 
@@ -548,7 +694,7 @@ describe('announcing what happened', function () {
     it('announces nothing when the commit itself fails', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn($this->ownerEvents);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
         $this->phones->shouldReceive('attachToBusiness')->once();
 
         $this->events->shouldNotReceive('dispatch');
@@ -569,7 +715,7 @@ describe('announcing what happened', function () {
     it('lets a domain failure a listener raises after the commit escape, never answering with one', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
 
         $listenerFailure = BusinessNotFound::withId(OnboardingFixtures::GENERATED_BUSINESS_ID);
         $this->events->shouldReceive('dispatch')->once()->andThrow($listenerFailure);
@@ -588,7 +734,7 @@ describe('announcing what happened', function () {
     it('stops announcing at the listener that failed, and still never answers with a failure', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn($this->ownerEvents);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
 
         $announced = [];
         $this->events->shouldReceive('dispatch')->twice()
@@ -763,7 +909,7 @@ describe('refusing to onboard', function () {
         ($this->arrangeReads)();
 
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->once()->andReturn($this->ownerEvents);
+        $this->owners->shouldReceive('registerOwner')->once()->andReturn(OnboardingFixtures::ownerRegistration($this->ownerEvents));
         $this->phones->shouldReceive('attachToBusiness')->once()
             ->andThrow(new RuntimeException('the phone book rejected the row'));
 
@@ -778,7 +924,7 @@ describe('the shape of the answer', function () {
     it('succeeds with the business data and no warnings when everything holds', function () {
         ($this->arrangeReads)();
         $this->businesses->shouldReceive('save')->once();
-        $this->owners->shouldReceive('registerOwner')->andReturn([]);
+        $this->owners->shouldReceive('registerOwner')->andReturn(OnboardingFixtures::ownerRegistration());
         $this->events->shouldReceive('dispatch')->once();
 
         $response = ($this->answer)(OnboardingFixtures::input());
@@ -864,6 +1010,7 @@ describe('what it deliberately does not depend on', function () {
             RoleProvisioner::class,
             PaymentMethodProvisioner::class,
             OwnerRegistrar::class,
+            ScheduleProvisioner::class,
             PhoneBook::class,
             SlugAllocator::class,
             PhoneNumberParser::class,
@@ -887,6 +1034,7 @@ describe('what it deliberately does not depend on', function () {
         'the role provisioner' => RoleProvisioner::class,
         'the payment method provisioner' => PaymentMethodProvisioner::class,
         'the owner registrar' => OwnerRegistrar::class,
+        'the schedule provisioner' => ScheduleProvisioner::class,
         'the phone book' => PhoneBook::class,
     ]);
 });

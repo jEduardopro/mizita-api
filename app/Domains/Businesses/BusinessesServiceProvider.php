@@ -16,10 +16,12 @@ use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
+use App\Domains\Businesses\Contracts\ScheduleProvisioner;
 use App\Domains\Businesses\Infrastructure\Eloquent\EloquentBusinessRepository;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Businesses\Infrastructure\Gateways\AddressesBusinessAddressBook;
 use App\Domains\Businesses\Infrastructure\Gateways\AvailabilityBusinessSchedule;
+use App\Domains\Businesses\Infrastructure\Gateways\AvailabilityScheduleProvisioner;
 use App\Domains\Businesses\Infrastructure\Gateways\BookingPagesBookingPageSettings;
 use App\Domains\Businesses\Infrastructure\Gateways\BookingPoliciesBookingPolicySettings;
 use App\Domains\Businesses\Infrastructure\Gateways\EloquentBusinessTeamKey;
@@ -59,6 +61,7 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(BusinessAddressBook::class, AddressesBusinessAddressBook::class);
         $this->app->bind(BusinessLinkList::class, LinksBusinessLinkList::class);
         $this->app->bind(BusinessSchedule::class, AvailabilityBusinessSchedule::class);
+        $this->app->bind(ScheduleProvisioner::class, AvailabilityScheduleProvisioner::class);
         $this->app->bind(BookingPageSettings::class, BookingPagesBookingPageSettings::class);
         $this->app->bind(BookingPolicySettings::class, BookingPoliciesBookingPolicySettings::class);
     }
