@@ -1,6 +1,19 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Calendar, ListChecks, Settings, Users, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import {
+    Calendar,
+    ChevronRight,
+    ListChecks,
+    Settings,
+    Users,
+    type LucideIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -10,6 +23,7 @@ import {
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuthorization } from '@/hooks/use-authorization';
 import type { PermissionName } from '@/lib/authorization';
@@ -63,25 +77,22 @@ function isActive(url: string, href: string): boolean {
     return url === href || url.startsWith(`${href}/`) || url.startsWith(`${href}?`);
 }
 
-type NavItemEntryProps = {
+type NavLinkEntryProps = {
     item: NavItem;
-    subItems: readonly NavLink[];
     url: string;
 };
 
-function NavItemEntry({ item, subItems, url }: NavItemEntryProps) {
+function NavLinkEntry({ item, url }: NavLinkEntryProps) {
     const { t } = useTranslation('admin');
 
     const label = t(item.labelKey);
     const Icon = item.icon;
-    const isItemActive =
-        isActive(url, item.href) || subItems.some((subItem) => isActive(url, subItem.href));
 
     return (
         <SidebarMenuItem>
             <SidebarMenuButton
                 asChild
-                isActive={isItemActive}
+                isActive={isActive(url, item.href)}
                 tooltip={label}
                 className="h-11 md:h-8"
             >
@@ -90,25 +101,87 @@ function NavItemEntry({ item, subItems, url }: NavItemEntryProps) {
                     <span>{label}</span>
                 </Link>
             </SidebarMenuButton>
-
-            {subItems.length > 0 ? (
-                <SidebarMenuSub>
-                    {subItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.href}>
-                            <SidebarMenuSubButton
-                                asChild
-                                isActive={isActive(url, subItem.href)}
-                                className="h-11 md:h-7"
-                            >
-                                <Link href={subItem.href}>
-                                    <span>{t(subItem.labelKey)}</span>
-                                </Link>
-                            </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                    ))}
-                </SidebarMenuSub>
-            ) : null}
         </SidebarMenuItem>
+    );
+}
+
+type NavCollapsibleEntryProps = {
+    item: NavItem;
+    subItems: readonly NavLink[];
+    url: string;
+};
+
+function NavCollapsibleEntry({ item, subItems, url }: NavCollapsibleEntryProps) {
+    const { t } = useTranslation('admin');
+    const { isMobile, state, setOpen: setSidebarOpen } = useSidebar();
+
+    const label = t(item.labelKey);
+    const Icon = item.icon;
+    const isAnyChildActive = subItems.some((subItem) => isActive(url, subItem.href));
+    const [isOpen, setIsOpen] = useState(isAnyChildActive);
+    const isIconCollapsed = state === 'collapsed' && !isMobile;
+
+    function handleOpenChange(nextOpen: boolean) {
+        if (isIconCollapsed) {
+            setSidebarOpen(true);
+            setIsOpen(true);
+
+            return;
+        }
+
+        setIsOpen(nextOpen);
+    }
+
+    return (
+        <Collapsible
+            asChild
+            open={isOpen}
+            onOpenChange={handleOpenChange}
+            className="group/collapsible"
+        >
+            <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                        isActive={isAnyChildActive}
+                        tooltip={label}
+                        className="h-11 md:h-8"
+                    >
+                        <Icon />
+                        <span>{label}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 motion-reduce:transition-none" />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                        {subItems.map((subItem) => (
+                            <NavSubLink key={subItem.href} link={subItem} url={url} />
+                        ))}
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+            </SidebarMenuItem>
+        </Collapsible>
+    );
+}
+
+type NavSubLinkProps = {
+    link: NavLink;
+    url: string;
+};
+
+function NavSubLink({ link, url }: NavSubLinkProps) {
+    const { t } = useTranslation('admin');
+
+    const isCurrent = isActive(url, link.href);
+
+    return (
+        <SidebarMenuSubItem>
+            <SidebarMenuSubButton asChild isActive={isCurrent} className="h-11 md:h-7">
+                <Link href={link.href} aria-current={isCurrent ? 'page' : undefined}>
+                    <span>{t(link.labelKey)}</span>
+                </Link>
+            </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
     );
 }
 
@@ -120,19 +193,20 @@ export function AdminNav() {
         return link.permission === undefined || can(link.permission);
     }
 
+    function renderEntry(item: NavItem) {
+        const subItems = (item.children ?? []).filter(isPermitted);
+
+        if (subItems.length === 0) {
+            return <NavLinkEntry key={item.href} item={item} url={url} />;
+        }
+
+        return <NavCollapsibleEntry key={item.href} item={item} subItems={subItems} url={url} />;
+    }
+
     return (
         <SidebarGroup>
             <SidebarGroupContent>
-                <SidebarMenu>
-                    {navItems.filter(isPermitted).map((item) => (
-                        <NavItemEntry
-                            key={item.href}
-                            item={item}
-                            subItems={(item.children ?? []).filter(isPermitted)}
-                            url={url}
-                        />
-                    ))}
-                </SidebarMenu>
+                <SidebarMenu>{navItems.filter(isPermitted).map(renderEntry)}</SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>
     );
