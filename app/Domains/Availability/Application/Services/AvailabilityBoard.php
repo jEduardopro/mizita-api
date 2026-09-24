@@ -52,13 +52,13 @@ final class AvailabilityBoard
 
         $range = $query->range();
         $zone = new DateTimeZone($this->businessClock->timezoneOf($businessId));
-        $businessHours = $this->schedules->forBusiness($businessId);
-        $staffHours = $this->schedules->forStaffMember($query->staffId)->orInheritedFrom($businessHours);
+        $workingHours = $this->schedules
+            ->forStaffMember($query->staffId)
+            ->orInheritedFrom($this->schedules->forBusiness($businessId));
 
         $days = $this->calculator->slotsBetween(
             $range,
-            $businessHours,
-            $staffHours,
+            $workingHours,
             $this->bookedWithin($businessId, $query, $range, $zone),
             $this->blockFor($businessId, $query),
             $this->rules->forBusiness($businessId),

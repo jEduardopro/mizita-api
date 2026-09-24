@@ -92,6 +92,13 @@ return [
 
         'industry_not_found' => 'No hemos encontrado ese rubro.',
         'staff_member_not_found' => 'No hemos encontrado a esa persona del equipo.',
+        'staff_profile_not_found' => 'No hemos encontrado tu perfil.',
+        'invalid_profile_name' => 'Ese nombre no es válido.',
+        'invalid_profile_job_title' => 'Ese rol es demasiado largo.',
+        'invalid_profile_about' => 'Esa descripción es demasiado larga.',
+        'invalid_profile_phone' => 'Ese no es un número de teléfono válido para el país seleccionado.',
+        'profile_photo_too_large' => 'Esa foto es demasiado grande. Usa una de menos de 2 MB.',
+        'unsupported_profile_photo' => 'Ese archivo no es una foto compatible. Usa un JPG, PNG o WebP.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.
@@ -147,6 +154,7 @@ return [
         'invalid_weekday' => 'Ese no es un día de la semana.',
         'schedule_interval_inverted' => 'La hora de apertura tiene que ser anterior a la de cierre.',
         'overlapping_schedule_intervals' => 'Dos rangos de horario del mismo día se traslapan.',
+        'schedule_not_submitted' => 'Envía el horario semanal completo, aunque esté vacío.',
 
         'booking_page_not_found' => 'No hemos encontrado tu página de reservas.',
         'booking_page_image_too_large' => 'Esa imagen es demasiado grande. Usa una de menos de 5 MB.',

@@ -178,6 +178,105 @@ describe('verifyEmail', function () {
     });
 });
 
+describe('the name length limit', function () {
+    it('accepts a name at exactly the limit, counting characters rather than bytes', function (string $character) {
+        $name = str_repeat($character, Account::MAXIMUM_NAME_LENGTH);
+
+        $account = Account::registerWithVerifiedEmail('account-uuid', $name, 'ada@example.com', new DateTimeImmutable);
+
+        expect($account->name())->toBe($name);
+    })->with([
+        'ascii' => 'a',
+        'accented' => 'ñ',
+        'cjk' => '愛',
+    ]);
+
+    it('rejects a name one character past the limit, naming the limit', function () {
+        expect(fn () => Account::registerWithVerifiedEmail(
+            'account-uuid',
+            str_repeat('a', Account::MAXIMUM_NAME_LENGTH + 1),
+            'ada@example.com',
+            new DateTimeImmutable,
+        ))->toThrow(InvalidAccountName::class, 'An account name takes up to [255] characters.');
+    });
+
+    it('measures the name after trimming it', function () {
+        $name = '   '.str_repeat('a', Account::MAXIMUM_NAME_LENGTH).'   ';
+
+        $account = Account::registerWithVerifiedEmail('account-uuid', $name, 'ada@example.com', new DateTimeImmutable);
+
+        expect($account->name())->toBe(str_repeat('a', Account::MAXIMUM_NAME_LENGTH));
+    });
+
+    it('lets a stored name longer than the limit still load', function () {
+        $name = str_repeat('a', Account::MAXIMUM_NAME_LENGTH + 10);
+
+        expect(Account::restore('account-uuid', $name, 'ada@example.com', null, new DateTimeImmutable)->name())
+            ->toBe($name);
+    });
+});
+
+describe('rename', function () {
+    beforeEach(function () {
+        $this->createdAt = new DateTimeImmutable('2025-05-01T08:30:00+00:00');
+        $this->verifiedAt = new DateTimeImmutable('2025-06-01T08:30:00+00:00');
+        $this->account = Account::restore('account-uuid', 'Ada Lovelace', 'ada@example.com', $this->verifiedAt, $this->createdAt);
+    });
+
+    it('takes the new name, trimmed', function () {
+        $this->account->rename("  Ada King\n");
+
+        expect($this->account->name())->toBe('Ada King');
+    });
+
+    it('keeps accents and non-latin characters intact', function (string $name) {
+        $this->account->rename($name);
+
+        expect($this->account->name())->toBe($name);
+    })->with([
+        'accents' => 'José Álvarez Muñoz',
+        'cyrillic' => 'Ада Лавлейс',
+        'cjk' => '愛田 明日香',
+    ]);
+
+    it('leaves everything but the name untouched', function () {
+        $this->account->rename('Ada King');
+
+        expect($this->account->id)->toBe('account-uuid')
+            ->and($this->account->email())->toBe('ada@example.com')
+            ->and($this->account->emailVerifiedAt())->toEqual($this->verifiedAt)
+            ->and($this->account->createdAt)->toEqual($this->createdAt);
+    });
+
+    it('refuses a blank name and keeps the one it had', function (string $name) {
+        expect(fn () => $this->account->rename($name))
+            ->toThrow(InvalidAccountName::class, 'An account name cannot be empty.')
+            ->and($this->account->name())->toBe('Ada Lovelace');
+    })->with([
+        'empty' => '',
+        'spaces' => '   ',
+        'tab' => "\t",
+    ]);
+
+    it('refuses a name past the limit and keeps the one it had', function () {
+        expect(fn () => $this->account->rename(str_repeat('a', Account::MAXIMUM_NAME_LENGTH + 1)))
+            ->toThrow(InvalidAccountName::class, 'An account name takes up to [255] characters.')
+            ->and($this->account->name())->toBe('Ada Lovelace');
+    });
+
+    it('accepts a name at exactly the limit', function () {
+        $this->account->rename(str_repeat('ñ', Account::MAXIMUM_NAME_LENGTH));
+
+        expect(mb_strlen($this->account->name()))->toBe(Account::MAXIMUM_NAME_LENGTH);
+    });
+
+    it('holds the name rule a restored row skipped, the moment the name is changed', function () {
+        $legacy = Account::restore('account-uuid', '', 'ada@example.com', null, new DateTimeImmutable);
+
+        expect(fn () => $legacy->rename(' '))->toThrow(InvalidAccountName::class);
+    });
+});
+
 it('never exposes a password hash', function () {
     $properties = array_map(
         static fn (ReflectionProperty $property): string => $property->getName(),

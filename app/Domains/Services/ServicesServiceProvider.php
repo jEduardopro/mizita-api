@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Services;
 
 use App\Domains\Services\Contracts\BusinessProfile;
+use App\Domains\Services\Contracts\OfferedServices;
 use App\Domains\Services\Contracts\ServiceImages;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Contracts\StaffDirectory;
@@ -32,6 +33,7 @@ final class ServicesServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ServiceRepository::class, EloquentServiceRepository::class);
+        $this->app->bind(OfferedServices::class, EloquentServiceRepository::class);
         $this->app->bind(StaffDirectory::class, StaffStaffDirectory::class);
         $this->app->bind(ServiceImages::class, SpatieServiceImages::class);
         $this->app->bind(BusinessProfile::class, BusinessesBusinessProfile::class);

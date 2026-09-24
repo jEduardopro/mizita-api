@@ -6,6 +6,8 @@ use App\Domains\Availability\Exceptions\InvalidTimeOfDay;
 use App\Domains\Availability\Exceptions\InvalidWeekday;
 use App\Domains\Availability\Exceptions\OverlappingScheduleIntervals;
 use App\Domains\Availability\Exceptions\ScheduleIntervalInverted;
+use App\Domains\Availability\Exceptions\ScheduleNotSubmitted;
+use App\Domains\Availability\Exceptions\StaffMembershipNotFound;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 
@@ -39,6 +41,16 @@ function availabilityFailures(): array
             ScheduleIntervalInverted::between('18:00', '09:00'),
             'schedule_interval_inverted',
             DomainFailureKind::Invalid,
+        ],
+        'a replacement with no schedule' => [
+            ScheduleNotSubmitted::forAccount('01930000-0000-7000-8000-0000000000a1'),
+            'schedule_not_submitted',
+            DomainFailureKind::Invalid,
+        ],
+        'an account that is no staff member of the business' => [
+            StaffMembershipNotFound::forAccount('01930000-0000-7000-8000-0000000000a1', '01930000-0000-7000-8000-0000000000b1'),
+            'business_not_accessible',
+            DomainFailureKind::Forbidden,
         ],
     ];
 }
@@ -84,7 +96,11 @@ it('says what it turned down and nothing more', function () {
         ->and(OverlappingScheduleIntervals::onWeekday(3)->getMessage())
         ->toBe('Two schedule intervals overlap on weekday [3].')
         ->and(ScheduleIntervalInverted::between('18:00', '09:00')->getMessage())
-        ->toBe('A schedule interval must end after it starts, got [18:00] to [09:00].');
+        ->toBe('A schedule interval must end after it starts, got [18:00] to [09:00].')
+        ->and(ScheduleNotSubmitted::forAccount('account-uuid')->getMessage())
+        ->toBe('Account [account-uuid] asked to replace its schedule without submitting one.')
+        ->and(StaffMembershipNotFound::forAccount('account-uuid', 'business-uuid')->getMessage())
+        ->toBe('Account [account-uuid] is not a staff member of business [business-uuid].');
 });
 
 it('gives each refusal an error code of its own', function () {
@@ -93,6 +109,8 @@ it('gives each refusal an error code of its own', function () {
         InvalidWeekday::withNumber(8)->errorCode(),
         OverlappingScheduleIntervals::onWeekday(1)->errorCode(),
         ScheduleIntervalInverted::between('18:00', '09:00')->errorCode(),
+        ScheduleNotSubmitted::forAccount('account-uuid')->errorCode(),
+        StaffMembershipNotFound::forAccount('account-uuid', 'business-uuid')->errorCode(),
     ];
 
     expect(array_unique($codes))->toHaveCount(count($codes));

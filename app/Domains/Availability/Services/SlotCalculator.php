@@ -39,15 +39,13 @@ final class SlotCalculator
      */
     public function slotsBetween(
         LocalDateRange $range,
-        WeeklyIntervals $businessHours,
-        WeeklyIntervals $staffHours,
+        WeeklyIntervals $workingHours,
         array $booked,
         BookingBlock $block,
         SlotRules $rules,
         DateTimeZone $zone,
         DateTimeImmutable $now,
     ): array {
-        $openingHours = $businessHours->intersect($staffHours);
         $earliest = $this->earliestStart($now, $rules);
         $latest = $this->latestStart($now, $rules, $zone);
 
@@ -56,7 +54,7 @@ final class SlotCalculator
         foreach ($range->dates() as $date) {
             $days[] = new AvailableDay(
                 $date,
-                $this->startsOn($date, $openingHours, $booked, $block, $rules, $zone, $earliest, $latest),
+                $this->startsOn($date, $workingHours, $booked, $block, $rules, $zone, $earliest, $latest),
             );
         }
 
@@ -69,7 +67,7 @@ final class SlotCalculator
      */
     private function startsOn(
         string $date,
-        WeeklyIntervals $openingHours,
+        WeeklyIntervals $workingHours,
         array $booked,
         BookingBlock $block,
         SlotRules $rules,
@@ -79,7 +77,7 @@ final class SlotCalculator
     ): array {
         $starts = [];
 
-        foreach ($openingHours->forWeekday($this->weekdayOf($date)) as [$opensAt, $closesAt]) {
+        foreach ($workingHours->forWeekday($this->weekdayOf($date)) as [$opensAt, $closesAt]) {
             foreach ($this->gridWithin($opensAt, $closesAt, $block, $rules) as $minute) {
                 $wallClock = $this->wallClockAt($minute);
                 $start = $this->utcInstantFor($date, $wallClock, $zone);

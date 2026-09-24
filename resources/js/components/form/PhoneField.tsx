@@ -18,6 +18,7 @@ type Props = {
     error?: string;
     hint?: string;
     required?: boolean;
+    placeholder?: string;
 };
 
 export function PhoneField({
@@ -33,6 +34,7 @@ export function PhoneField({
     error,
     hint,
     required,
+    placeholder,
 }: Props) {
     const labelId = `${id}-label`;
     const message = fieldMessage({ id, error, hint });
@@ -60,6 +62,7 @@ export function PhoneField({
                     inputMode="tel"
                     autoComplete="tel-national"
                     required={required}
+                    placeholder={placeholder}
                     aria-label={numberLabel}
                     aria-invalid={!! error}
                     aria-describedby={message?.id}

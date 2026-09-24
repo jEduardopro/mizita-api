@@ -10,5 +10,6 @@ final readonly class AccountSnapshot
         public string $id,
         public string $name,
         public string $email,
+        public bool $hasPassword,
     ) {}
 }

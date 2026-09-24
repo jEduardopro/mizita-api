@@ -15,16 +15,22 @@ use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseResponse;
 use Tests\Support\Businesses\OnboardingFixtures;
 use Tests\Support\FakeClock;
+use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
+use Tests\Support\Staff\FakeStaffProfileRepository;
 
 beforeEach(function () {
     $this->registeredMemberId = '01930000-0000-7000-8000-0000000000c9';
+    $this->registeredProfileId = '01930000-0000-7000-8000-0000000000e9';
     $this->staffMembers = Mockery::mock(StaffMemberRepository::class);
+    $this->profiles = new FakeStaffProfileRepository;
 
     $this->registrar = new StaffOwnerRegistrar(new RegisterBusinessOwner(
         $this->staffMembers,
-        new FixedIdGenerator($this->registeredMemberId),
+        $this->profiles,
+        new FixedIdGenerator($this->registeredMemberId, $this->registeredProfileId),
         new FakeClock(OnboardingFixtures::now()),
+        new FakeTransactionManager,
     ));
 
     $this->register = fn (): OwnerRegistration => $this->registrar->registerOwner(
@@ -55,6 +61,17 @@ describe('registering the owner of a brand new business', function () {
         $this->staffMembers->shouldReceive('save')->once();
 
         expect(($this->register)()->staffMemberId)->toBe($this->registeredMemberId);
+    });
+
+    it('hands back the staff member uuid, never the uuid of the profile created alongside it', function () {
+        $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
+        $this->staffMembers->shouldReceive('save')->once();
+
+        $staffMemberId = ($this->register)()->staffMemberId;
+
+        expect($staffMemberId)->not->toBe($this->registeredProfileId)
+            ->and($this->profiles->saved[0]->staffMemberId)->toBe($staffMemberId)
+            ->and($this->profiles->saved[0]->businessId)->toBe(OnboardingFixtures::GENERATED_BUSINESS_ID);
     });
 
     it('hands back the events the staff use case raised', function () {

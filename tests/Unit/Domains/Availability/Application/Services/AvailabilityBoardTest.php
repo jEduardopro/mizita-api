@@ -18,6 +18,7 @@ use App\Domains\Availability\Exceptions\StaffMemberNotBookable;
 use App\Domains\Availability\Services\SlotCalculator;
 use App\Domains\Availability\ValueObjects\BookableService;
 use App\Domains\Availability\ValueObjects\BookedInterval;
+use App\Domains\Availability\ValueObjects\ScheduleOwnerType;
 use App\Domains\Availability\ValueObjects\SlotRules;
 use App\Domains\Availability\ValueObjects\WeeklyIntervals;
 use Tests\Support\Availability\ScheduleFixtures;
@@ -29,6 +30,8 @@ const BOARD_SERVICE_ID = '01930000-0000-7000-8000-0000000000e1';
 const BOARD_APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a1';
 
 const BOARD_TUESDAY = 2;
+
+const BOARD_WEDNESDAY = 3;
 
 beforeEach(function () {
     $this->services = Mockery::mock(BookableServices::class);
@@ -123,22 +126,77 @@ describe('reading the days a visitor may book', function () {
         expect($asked)->toBe(array_fill(0, 5, FakeBusinessContext::BUSINESS_ID));
     });
 
-    it('lets a staff member with no hours of their own inherit the business hours', function () {
-        ($this->openFor)(staffHours: WeeklyIntervals::none());
+    it('reads the hours of the staff member the query names', function () {
+        $this->businessClock->shouldReceive('timezoneOf')->andReturn('UTC');
+        $this->schedules->shouldReceive('forBusiness')->andReturn(WeeklyIntervals::none());
+        $this->schedules->shouldReceive('forStaffMember')->once()
+            ->with(ScheduleFixtures::STAFF_ID)
+            ->andReturn(WeeklyIntervals::none());
+        $this->bookings->shouldReceive('forStaffBetween')->andReturn([]);
+        $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
+        $this->services->shouldReceive('describe')
+            ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
 
-        expect(($this->read)()[0]->starts)->toHaveCount(4);
+        expect(($this->read)()[0]->starts)->toBe([]);
     });
+});
 
-    it('holds a staff member with hours of their own to the intersection', function () {
-        ($this->openFor)(staffHours: ScheduleFixtures::weeklyIntervals(
-            [BOARD_TUESDAY => [['10:00', '11:00']]],
-            ownerId: ScheduleFixtures::STAFF_ID,
-        ));
+describe('the hours a staff member works', function () {
+    it('offers a staff member with no rules of their own the business hours', function () {
+        ($this->openFor)(
+            businessHours: ScheduleFixtures::weeklyIntervals([BOARD_TUESDAY => [['13:00', '14:30']]]),
+            staffHours: WeeklyIntervals::none(),
+        );
 
         expect(array_map(
             static fn (DateTimeImmutable $start): string => $start->format('H:i'),
             ($this->read)()[0]->starts,
-        ))->toBe(['10:00', '10:30']);
+        ))->toBe(['13:00', '13:30', '14:00']);
+    });
+
+    it('offers a slot in staff hours that start before the business opens', function () {
+        ($this->openFor)(
+            businessHours: ScheduleFixtures::weeklyIntervals([BOARD_TUESDAY => [['09:00', '11:00']]]),
+            staffHours: ScheduleFixtures::weeklyIntervals(
+                [BOARD_TUESDAY => [['08:00', '09:00']]],
+                ScheduleOwnerType::StaffMember,
+                ScheduleFixtures::STAFF_ID,
+            ),
+        );
+
+        expect(array_map(
+            static fn (DateTimeImmutable $start): string => $start->format('H:i'),
+            ($this->read)()[0]->starts,
+        ))->toBe(['08:00', '08:30']);
+    });
+
+    it('offers a staff member their own hours in full, even past business closing time', function () {
+        ($this->openFor)(
+            businessHours: ScheduleFixtures::weeklyIntervals([BOARD_TUESDAY => [['09:00', '11:00']]]),
+            staffHours: ScheduleFixtures::weeklyIntervals(
+                [BOARD_TUESDAY => [['10:00', '12:00']]],
+                ScheduleOwnerType::StaffMember,
+                ScheduleFixtures::STAFF_ID,
+            ),
+        );
+
+        expect(array_map(
+            static fn (DateTimeImmutable $start): string => $start->format('H:i'),
+            ($this->read)()[0]->starts,
+        ))->toBe(['10:00', '10:30', '11:00', '11:30']);
+    });
+
+    it('offers nothing on a weekday the staff member left out, even when the business is open', function () {
+        ($this->openFor)(
+            businessHours: ScheduleFixtures::weeklyIntervals([BOARD_TUESDAY => [['09:00', '11:00']]]),
+            staffHours: ScheduleFixtures::weeklyIntervals(
+                [BOARD_WEDNESDAY => [['09:00', '11:00']]],
+                ScheduleOwnerType::StaffMember,
+                ScheduleFixtures::STAFF_ID,
+            ),
+        );
+
+        expect(($this->read)()[0]->starts)->toBe([]);
     });
 });
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Services\Infrastructure\Eloquent;
 
+use App\Domains\Services\Contracts\OfferedServices;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Exceptions\ServiceNameAlreadyTaken;
@@ -23,7 +24,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
-final class EloquentServiceRepository implements ServiceRepository
+final class EloquentServiceRepository implements OfferedServices, ServiceRepository
 {
     private const NAME_UNIQUE_INDEX = 'services_business_name_lower_unique';
 
@@ -38,6 +39,8 @@ final class EloquentServiceRepository implements ServiceRepository
     private const TIEBREAKER_COLUMN = 'id';
 
     private const MAXIMUM_ACTIVE_SERVICES = 200;
+
+    private const MAXIMUM_OFFERED_SERVICES = 200;
 
     public function __construct(
         private readonly ServiceMapper $mapper,
@@ -81,6 +84,24 @@ final class EloquentServiceRepository implements ServiceRepository
             ->orderBy('name')
             ->orderBy(self::TIEBREAKER_COLUMN)
             ->limit(self::MAXIMUM_ACTIVE_SERVICES)
+            ->get()
+            ->map(fn (ServiceModel $model): Service => $this->mapper->toEntity($model, $businessId))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<Service>
+     */
+    public function offeredBy(string $businessId, string $staffId): array
+    {
+        return $this->ofBusiness($businessId)
+            ->whereHas('staffMembers', static fn (Builder $staff) => $staff
+                ->where(self::STAFF_MEMBERS_TABLE.'.uuid', $staffId))
+            ->with(self::STAFF_SELECTION)
+            ->orderBy('name')
+            ->orderBy(self::TIEBREAKER_COLUMN)
+            ->limit(self::MAXIMUM_OFFERED_SERVICES)
             ->get()
             ->map(fn (ServiceModel $model): Service => $this->mapper->toEntity($model, $businessId))
             ->values()

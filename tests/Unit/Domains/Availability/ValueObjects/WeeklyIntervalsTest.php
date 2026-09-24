@@ -126,71 +126,20 @@ describe('a staff member who set any hours of their own', function () {
         expect($effective->forWeekday(Weekday::Wednesday))->toBe([]);
     });
 
-    it('is held to the strict intersection with the business on every weekday', function () {
-        $staff = staffIntervals([1 => [['10:00', '12:00']]]);
-        $business = businessIntervals([
-            1 => [['09:00', '18:00']],
-            3 => [['09:00', '18:00']],
-        ]);
-
-        $open = $business->intersect($staff->orInheritedFrom($business));
-
-        expect($open->forWeekday(Weekday::Monday))->toBe([[600, 720]])
-            ->and($open->forWeekday(Weekday::Wednesday))->toBe([]);
-    });
-
-    it('works no hour the business is closed for, even one it declared itself', function () {
+    it('keeps its own hours even where they run outside the business hours', function () {
         $staff = staffIntervals([1 => [['08:00', '20:00']]]);
-        $business = businessIntervals([1 => [['09:00', '14:00']]]);
 
-        expect($business->intersect($staff)->forWeekday(Weekday::Monday))->toBe([[540, 840]]);
-    });
-});
+        $effective = $staff->orInheritedFrom(businessIntervals([1 => [['09:00', '14:00']]]));
 
-describe('the hours two sides share', function () {
-    it('keeps the overlap of two intervals, never their union', function () {
-        $open = businessIntervals([1 => [['09:00', '14:00']]])
-            ->intersect(staffIntervals([1 => [['12:00', '18:00']]]));
-
-        expect($open->forWeekday(Weekday::Monday))->toBe([[720, 840]]);
+        expect($effective->forWeekday(Weekday::Monday))->toBe([[480, 1200]]);
     });
 
-    it('keeps every overlapping stretch of a split shift', function () {
-        $open = businessIntervals([1 => [['09:00', '14:00'], ['16:00', '20:00']]])
-            ->intersect(staffIntervals([1 => [['10:00', '18:00']]]));
+    it('keeps its own hours on a weekday the business is closed', function () {
+        $staff = staffIntervals([7 => [['10:00', '12:00']]]);
 
-        expect($open->forWeekday(Weekday::Monday))->toBe([[600, 840], [960, 1080]]);
-    });
+        $effective = $staff->orInheritedFrom(businessIntervals([1 => [['09:00', '14:00']]]));
 
-    it('drops a weekday where the two sides touch without overlapping', function () {
-        $open = businessIntervals([1 => [['09:00', '14:00']]])
-            ->intersect(staffIntervals([1 => [['14:00', '18:00']]]));
-
-        expect($open->forWeekday(Weekday::Monday))->toBe([])
-            ->and($open->isEmpty())->toBeTrue();
-    });
-
-    it('drops every weekday one of the two sides never opens', function () {
-        $open = businessIntervals([1 => [['09:00', '14:00']]])
-            ->intersect(staffIntervals([3 => [['09:00', '14:00']]]));
-
-        expect($open->isEmpty())->toBeTrue();
-    });
-
-    it('answers with nothing at all when either side keeps no hours', function () {
-        $business = businessIntervals([1 => [['09:00', '14:00']]]);
-
-        expect($business->intersect(WeeklyIntervals::none())->isEmpty())->toBeTrue()
-            ->and(WeeklyIntervals::none()->intersect($business)->isEmpty())->toBeTrue();
-    });
-
-    it('leaves both sides untouched, because an interval set is a value', function () {
-        $business = businessIntervals([1 => [['09:00', '14:00']]]);
-        $staff = staffIntervals([1 => [['12:00', '18:00']]]);
-
-        $business->intersect($staff);
-
-        expect($business->forWeekday(Weekday::Monday))->toBe([[540, 840]])
-            ->and($staff->forWeekday(Weekday::Monday))->toBe([[720, 1080]]);
+        expect($effective->forWeekday(Weekday::Sunday))->toBe([[600, 720]])
+            ->and($effective->forWeekday(Weekday::Monday))->toBe([]);
     });
 });

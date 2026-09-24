@@ -7,6 +7,7 @@ use App\Domains\Availability\ValueObjects\AvailableDay;
 use App\Domains\Availability\ValueObjects\BookedInterval;
 use App\Domains\Availability\ValueObjects\BookingBlock;
 use App\Domains\Availability\ValueObjects\LocalDateRange;
+use App\Domains\Availability\ValueObjects\ScheduleOwnerType;
 use App\Domains\Availability\ValueObjects\SlotRules;
 use App\Domains\Availability\ValueObjects\WeeklyIntervals;
 use Tests\Support\Availability\ScheduleFixtures;
@@ -68,8 +69,7 @@ beforeEach(function () {
 
     $this->slotsOn = function (
         string $date,
-        WeeklyIntervals $businessHours,
-        ?WeeklyIntervals $staffHours = null,
+        WeeklyIntervals $workingHours,
         array $booked = [],
         ?BookingBlock $block = null,
         ?SlotRules $rules = null,
@@ -79,8 +79,7 @@ beforeEach(function () {
     ): array {
         return $this->calculator->slotsBetween(
             LocalDateRange::between($date, $until ?? $date),
-            $businessHours,
-            $staffHours ?? $businessHours,
+            $workingHours,
             $booked,
             $block ?? BookingBlock::lasting(30, 0, 0),
             $rules ?? new SlotRules(0, null, 30),
@@ -466,11 +465,10 @@ describe('a day nobody works', function () {
             ->and($days[2]->starts)->toBe([]);
     });
 
-    it('returns a day with no start when the business and the staff member share no hour', function () {
+    it('returns a day with no start when the working hours never open on that weekday', function () {
         $days = ($this->slotsOn)(
             PLAIN_TUESDAY,
-            ScheduleFixtures::weeklyIntervals([TUESDAY => [['09:00', '12:00']]]),
-            ScheduleFixtures::weeklyIntervals([WEDNESDAY => [['09:00', '12:00']]], ownerId: ScheduleFixtures::STAFF_ID),
+            ScheduleFixtures::weeklyIntervals([WEDNESDAY => [['09:00', '12:00']]]),
         );
 
         expect($days)->toHaveCount(1)
@@ -478,7 +476,7 @@ describe('a day nobody works', function () {
             ->and($days[0]->starts)->toBe([]);
     });
 
-    it('returns every date with no start when neither side opens at all', function () {
+    it('returns every date with no start when there are no working hours at all', function () {
         $days = ($this->slotsOn)(
             '2026-03-09',
             WeeklyIntervals::none(),
@@ -489,14 +487,30 @@ describe('a day nobody works', function () {
             ->and(array_map(static fn (AvailableDay $day): array => $day->starts, $days))
             ->toBe([[], [], []]);
     });
+});
 
-    it('offers only the hours the business and the staff member both keep', function () {
+describe('the working hours it is handed', function () {
+    it('offers a start at any hour of the working hours, however early', function () {
         $days = ($this->slotsOn)(
             PLAIN_TUESDAY,
-            ScheduleFixtures::weeklyIntervals([TUESDAY => [['09:00', '14:00']]]),
-            ScheduleFixtures::weeklyIntervals([TUESDAY => [['10:00', '11:00']]], ownerId: ScheduleFixtures::STAFF_ID),
+            ScheduleFixtures::weeklyIntervals(
+                [TUESDAY => [['06:00', '07:00']]],
+                ScheduleOwnerType::StaffMember,
+                ScheduleFixtures::STAFF_ID,
+            ),
         );
 
-        expect(utcStartsOf($days))->toBe(['10:00', '10:30']);
+        expect(utcStartsOf($days))->toBe(['06:00', '06:30']);
+    });
+
+    it('reads the working hours as local wall time in the zone it is given', function () {
+        $days = ($this->slotsOn)(
+            PLAIN_TUESDAY,
+            ScheduleFixtures::weeklyIntervals([TUESDAY => [['08:00', '09:00']]]),
+            zone: new DateTimeZone(MADRID),
+        );
+
+        expect(utcStartsOf($days))->toBe(['07:00', '07:30'])
+            ->and(wallClockStartsOf($days, $this->madrid))->toBe(['08:00', '08:30']);
     });
 });

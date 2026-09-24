@@ -175,6 +175,36 @@ final class Service
     }
 
     /**
+     * @throws UnknownStaffMember
+     */
+    public function offerBy(string $staffId): void
+    {
+        if ($this->isOfferedBy($staffId)) {
+            return;
+        }
+
+        $this->assignStaff([...$this->staffIds, $staffId]);
+    }
+
+    /**
+     * @throws ServiceRequiresStaff
+     */
+    public function withdrawFrom(string $staffId): void
+    {
+        if (! $this->isOfferedBy($staffId)) {
+            return;
+        }
+
+        $remaining = array_values(array_diff($this->staffIds, [$staffId]));
+
+        if ($remaining === []) {
+            throw ServiceRequiresStaff::none();
+        }
+
+        $this->staffIds = $remaining;
+    }
+
+    /**
      * @throws ServiceAlreadyActive
      */
     public function activate(): void
@@ -265,6 +295,11 @@ final class Service
     public function staffIds(): array
     {
         return $this->staffIds;
+    }
+
+    private function isOfferedBy(string $staffId): bool
+    {
+        return in_array($staffId, $this->staffIds, true);
     }
 
     /**

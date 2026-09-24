@@ -34,6 +34,8 @@ type NavLabelKey =
     | 'nav.customers'
     | 'nav.settings'
     | 'nav.brand'
+    | 'nav.yourProfile'
+    | 'nav.team'
     | 'nav.bookingPreferences';
 
 type NavLink = {
@@ -63,6 +65,16 @@ const navItems: NavItem[] = [
                 href: BRAND_SETTINGS_HREF,
                 labelKey: 'nav.brand',
                 permission: 'view_business_settings',
+            },
+            {
+                href: '/settings/profile',
+                labelKey: 'nav.yourProfile',
+                permission: 'view_business_settings',
+            },
+            {
+                href: '/settings/team',
+                labelKey: 'nav.team',
+                permission: 'manage_staff',
             },
             {
                 href: '/settings/booking',

@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
+use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffProfileModel;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -25,6 +29,27 @@ class User extends Authenticatable
     public function uniqueIds(): array
     {
         return ['uuid'];
+    }
+
+    /**
+     * @return HasMany<StaffMemberModel, $this>
+     */
+    public function staffMembers(): HasMany
+    {
+        return $this->hasMany(StaffMemberModel::class, 'account_id');
+    }
+
+    /**
+     * @return HasManyThrough<StaffProfileModel, StaffMemberModel, $this>
+     */
+    public function staffProfiles(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            StaffProfileModel::class,
+            StaffMemberModel::class,
+            'account_id',
+            'staff_member_id',
+        );
     }
 
     /**

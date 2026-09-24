@@ -14,9 +14,12 @@ use App\Shared\Infrastructure\SystemClock;
 use App\Shared\Infrastructure\UuidGenerator;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
+    private const MINIMUM_PASSWORD_LENGTH = 8;
+
     public function register(): void
     {
         $this->app->bind(Clock::class, SystemClock::class);
@@ -29,5 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Relation::enforceMorphMap(['user' => User::class]);
+
+        Password::defaults(fn (): Password => Password::min(self::MINIMUM_PASSWORD_LENGTH)->mixedCase()->numbers()->symbols());
     }
 }

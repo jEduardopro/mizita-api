@@ -68,6 +68,23 @@ export function isoDateIn(timeZone: string, instant: Date): string | null {
     }
 }
 
+export function timezoneAbbreviationIn(timeZone: string, instant: Date): string | null {
+    if (timeZone === '') {
+        return null;
+    }
+
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone,
+            timeZoneName: 'short',
+        }).formatToParts(instant);
+
+        return parts.find((part) => part.type === 'timeZoneName')?.value ?? null;
+    } catch {
+        return null;
+    }
+}
+
 export function resolvedTimezone(): string {
     try {
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

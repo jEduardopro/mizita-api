@@ -92,6 +92,13 @@ return [
 
         'industry_not_found' => 'We could not find that industry.',
         'staff_member_not_found' => 'We could not find that team member.',
+        'staff_profile_not_found' => 'We could not find your profile.',
+        'invalid_profile_name' => 'That name is not valid.',
+        'invalid_profile_job_title' => 'That role is too long.',
+        'invalid_profile_about' => 'That description is too long.',
+        'invalid_profile_phone' => 'That is not a valid phone number for the selected country.',
+        'profile_photo_too_large' => 'That photo is too large. Please use one under 2 MB.',
+        'unsupported_profile_photo' => 'That file is not a photo we support. Please use a JPG, PNG or WebP.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.
@@ -147,6 +154,7 @@ return [
         'invalid_weekday' => 'That is not a day of the week.',
         'schedule_interval_inverted' => 'An opening time has to come before its closing time.',
         'overlapping_schedule_intervals' => 'Two time ranges on the same day overlap.',
+        'schedule_not_submitted' => 'Send the full weekly schedule, even if it is empty.',
 
         'booking_page_not_found' => 'We could not find your booking page.',
         'booking_page_image_too_large' => 'That image is too large. Please use one under 5 MB.',

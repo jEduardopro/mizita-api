@@ -6,13 +6,16 @@ import {
     useQueryClient,
 } from '@tanstack/react-query';
 import {
+    assignStaffToService,
     attachServiceImage,
     createService,
     deleteService,
     duplicateService,
     getService,
     listServices,
+    listStaffServices,
     removeServiceImage,
+    unassignStaffFromService,
     updateService,
 } from './api';
 import type { DuplicateServicePayload, ServiceListParams, ServicePayload } from './types';
@@ -21,11 +24,21 @@ const INFINITE_PAGE_SIZE = 20;
 
 const FIRST_PAGE = 1;
 
+const MAXIMUM_PAGE_SIZE = 100;
+
+const ASSIGNABLE_SERVICES_PARAMS: ServiceListParams = {
+    page: FIRST_PAGE,
+    per_page: MAXIMUM_PAGE_SIZE,
+    sort: 'name',
+    direction: 'asc',
+};
+
 export const serviceKeys = {
     all: ['services'] as const,
     list: (params: ServiceListParams) => [...serviceKeys.all, 'list', params] as const,
     infinite: (search: string) => [...serviceKeys.all, 'infinite', search] as const,
     detail: (id: string) => [...serviceKeys.all, 'detail', id] as const,
+    byStaff: (staffMemberId: string) => [...serviceKeys.all, 'staff', staffMemberId] as const,
 };
 
 export function useServices(params: ServiceListParams) {
@@ -103,4 +116,35 @@ export function useAttachServiceImage() {
 
 export function useRemoveServiceImage() {
     return useServiceMutation((id: string) => removeServiceImage(id));
+}
+
+export function useStaffServices(staffMemberId: string) {
+    return useQuery({
+        queryKey: serviceKeys.byStaff(staffMemberId),
+        queryFn: ({ signal }) => listStaffServices(staffMemberId, signal),
+    });
+}
+
+export function useAssignableServices() {
+    return useQuery({
+        queryKey: serviceKeys.list(ASSIGNABLE_SERVICES_PARAMS),
+        queryFn: ({ signal }) => listServices(ASSIGNABLE_SERVICES_PARAMS, signal),
+    });
+}
+
+type StaffAssignment = {
+    serviceId: string;
+    staffMemberId: string;
+};
+
+export function useAssignStaffToService() {
+    return useServiceMutation(({ serviceId, staffMemberId }: StaffAssignment) =>
+        assignStaffToService(serviceId, staffMemberId),
+    );
+}
+
+export function useUnassignStaffFromService() {
+    return useServiceMutation(({ serviceId, staffMemberId }: StaffAssignment) =>
+        unassignStaffFromService(serviceId, staffMemberId),
+    );
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Services\Infrastructure\Http\Controllers\ServiceController;
 use App\Domains\Services\Infrastructure\Http\Controllers\ServiceImageController;
+use App\Domains\Services\Infrastructure\Http\Controllers\ServiceStaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/services', [ServiceController::class, 'index'])
@@ -31,3 +32,15 @@ Route::post('/services/{service}/duplicate', [ServiceController::class, 'duplica
 Route::delete('/services/{service}/image', [ServiceImageController::class, 'destroy'])
     ->middleware('permission:edit_service')
     ->whereUuid('service');
+
+Route::get('/staff/{staffMember}/services', [ServiceStaffController::class, 'index'])
+    ->middleware('permission:view_services')
+    ->whereUuid('staffMember');
+
+Route::put('/services/{service}/staff/{staffMember}', [ServiceStaffController::class, 'update'])
+    ->middleware('permission:edit_service')
+    ->whereUuid(['service', 'staffMember']);
+
+Route::delete('/services/{service}/staff/{staffMember}', [ServiceStaffController::class, 'destroy'])
+    ->middleware('permission:edit_service')
+    ->whereUuid(['service', 'staffMember']);

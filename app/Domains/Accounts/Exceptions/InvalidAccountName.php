@@ -15,6 +15,11 @@ final class InvalidAccountName extends DomainException implements DomainFailure
         return new self('An account name cannot be empty.');
     }
 
+    public static function tooLong(int $maximumLength): self
+    {
+        return new self("An account name takes up to [{$maximumLength}] characters.");
+    }
+
     public function errorCode(): string
     {
         return 'invalid_account_name';

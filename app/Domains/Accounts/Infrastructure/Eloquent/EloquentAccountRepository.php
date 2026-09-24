@@ -66,6 +66,25 @@ final class EloquentAccountRepository implements AccountRepository
         return $accounts;
     }
 
+    /**
+     * @param  list<string>  $ids
+     * @return list<string>
+     */
+    public function idsHoldingPassword(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        return User::query()
+            ->whereIn('uuid', $ids)
+            ->whereNotNull('password')
+            ->pluck('uuid')
+            ->map(static fn (mixed $uuid): string => (string) $uuid)
+            ->values()
+            ->all();
+    }
+
     public function save(Account $account): void
     {
         try {

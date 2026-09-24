@@ -264,6 +264,121 @@ describe('changing a service', function () {
     });
 });
 
+describe('offering a service by one more staff member', function () {
+    it('adds the staff member after the ones it already had', function () {
+        $service = ServiceFixtures::service(staffIds: [ServiceFixtures::STAFF_ID]);
+
+        $service->offerBy(ServiceFixtures::SECOND_STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID]);
+    });
+
+    it('changes nothing when the staff member already offers it', function () {
+        $service = ServiceFixtures::service(staffIds: [ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID]);
+
+        $service->offerBy(ServiceFixtures::STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID]);
+    });
+
+    it('gives a service restored with nobody its first staff member', function () {
+        $service = ServiceFixtures::service(staffIds: []);
+
+        $service->offerBy(ServiceFixtures::STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID]);
+    });
+
+    it('drops the duplicates a restored service carried once it is offered by someone new', function () {
+        $service = ServiceFixtures::service(staffIds: [ServiceFixtures::STAFF_ID, ServiceFixtures::STAFF_ID]);
+
+        $service->offerBy(ServiceFixtures::SECOND_STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID]);
+    });
+
+    it('accepts the staff member that fills it up to the bound', function () {
+        $service = ServiceFixtures::service(staffIds: array_map(static fn (int $n): string => "staff-{$n}", range(1, 49)));
+
+        $service->offerBy('staff-50');
+
+        expect($service->staffIds())->toHaveCount(50);
+    });
+
+    it('refuses a staff member past the bound and keeps the ones it had', function () {
+        $staffIds = array_map(static fn (int $n): string => "staff-{$n}", range(1, 50));
+        $service = ServiceFixtures::service(staffIds: $staffIds);
+
+        expect(fn () => $service->offerBy('staff-51'))->toThrow(UnknownStaffMember::class)
+            ->and($service->staffIds())->toBe($staffIds);
+    });
+
+    it('accepts a staff member who already offers a full service', function () {
+        $staffIds = array_map(static fn (int $n): string => "staff-{$n}", range(1, 50));
+        $service = ServiceFixtures::service(staffIds: $staffIds);
+
+        $service->offerBy('staff-50');
+
+        expect($service->staffIds())->toBe($staffIds);
+    });
+});
+
+describe('withdrawing a service from a staff member', function () {
+    it('removes the staff member and keeps the others in order', function () {
+        $service = ServiceFixtures::service(staffIds: [
+            ServiceFixtures::STAFF_ID,
+            ServiceFixtures::SECOND_STAFF_ID,
+            ServiceFixtures::FOREIGN_STAFF_ID,
+        ]);
+
+        $service->withdrawFrom(ServiceFixtures::SECOND_STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::FOREIGN_STAFF_ID]);
+    });
+
+    it('changes nothing when the staff member does not offer it', function () {
+        $service = ServiceFixtures::service(staffIds: [ServiceFixtures::STAFF_ID]);
+
+        $service->withdrawFrom(ServiceFixtures::SECOND_STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::STAFF_ID]);
+    });
+
+    it('changes nothing on a service restored with nobody', function () {
+        $service = ServiceFixtures::service(staffIds: []);
+
+        $service->withdrawFrom(ServiceFixtures::STAFF_ID);
+
+        expect($service->staffIds())->toBe([]);
+    });
+
+    it('refuses to withdraw the last staff member and keeps them', function () {
+        $service = ServiceFixtures::service(staffIds: [ServiceFixtures::STAFF_ID]);
+
+        expect(fn () => $service->withdrawFrom(ServiceFixtures::STAFF_ID))->toThrow(ServiceRequiresStaff::class)
+            ->and($service->staffIds())->toBe([ServiceFixtures::STAFF_ID]);
+    });
+
+    it('removes every copy of a staff member a restored service carried twice', function () {
+        $service = ServiceFixtures::service(staffIds: [
+            ServiceFixtures::STAFF_ID,
+            ServiceFixtures::SECOND_STAFF_ID,
+            ServiceFixtures::STAFF_ID,
+        ]);
+
+        $service->withdrawFrom(ServiceFixtures::STAFF_ID);
+
+        expect($service->staffIds())->toBe([ServiceFixtures::SECOND_STAFF_ID]);
+    });
+
+    it('refuses to withdraw a staff member who is the only one, however many times a restored service carried them', function () {
+        $service = ServiceFixtures::service(staffIds: [ServiceFixtures::STAFF_ID, ServiceFixtures::STAFF_ID]);
+
+        expect(fn () => $service->withdrawFrom(ServiceFixtures::STAFF_ID))->toThrow(ServiceRequiresStaff::class)
+            ->and($service->staffIds())->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::STAFF_ID]);
+    });
+});
+
 describe('publishing a service', function () {
     it('activates a hidden service', function () {
         $service = ServiceFixtures::service(active: false);

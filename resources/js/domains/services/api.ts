@@ -57,3 +57,36 @@ export async function removeServiceImage(id: string): Promise<Service> {
 
     return data.data;
 }
+
+export async function listStaffServices(
+    staffMemberId: string,
+    signal?: AbortSignal,
+): Promise<Service[]> {
+    const { data } = await api.get<{ data: Service[] }>(`/staff/${staffMemberId}/services`, {
+        signal,
+    });
+
+    return data.data;
+}
+
+export async function assignStaffToService(
+    serviceId: string,
+    staffMemberId: string,
+): Promise<Service> {
+    const { data } = await api.put<{ data: Service }>(
+        `/services/${serviceId}/staff/${staffMemberId}`,
+    );
+
+    return data.data;
+}
+
+export async function unassignStaffFromService(
+    serviceId: string,
+    staffMemberId: string,
+): Promise<Service> {
+    const { data } = await api.delete<{ data: Service }>(
+        `/services/${serviceId}/staff/${staffMemberId}`,
+    );
+
+    return data.data;
+}

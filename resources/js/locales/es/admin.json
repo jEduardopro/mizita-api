@@ -5,6 +5,8 @@
         "customers": "Clientes",
         "settings": "Configuración",
         "brand": "Tu marca",
+        "yourProfile": "Tu perfil",
+        "team": "Tu equipo",
         "bookingPreferences": "Preferencias de reserva"
     },
     "shell": {
@@ -594,8 +596,89 @@
         }
     },
     "profile": {
-        "title": "Mi cuenta",
-        "description": "Tus datos personales y cómo inicias sesión."
+        "title": "Tu perfil",
+        "description": "Tus datos, los servicios que das y tu horario de trabajo.",
+        "edit": "Editar tu perfil",
+        "roles": {
+            "owner": "Propietario",
+            "staff": "Personal"
+        },
+        "tabs": {
+            "about": "Acerca de",
+            "services": "Servicios",
+            "hours": "Horario de trabajo"
+        },
+        "about": {
+            "phone": "Teléfono",
+            "addPhone": "Añadir teléfono",
+            "email": "Correo electrónico",
+            "hours": "Horario de trabajo",
+            "about": "Acerca de",
+            "addAbout": "Añadir una descripción",
+            "role": "Nivel de permiso"
+        },
+        "notFound": {
+            "title": "No encontramos tu perfil",
+            "body": "Tu cuenta no tiene un perfil en este negocio. Pide a la persona propietaria que te añada al equipo."
+        },
+        "loadError": {
+            "title": "No pudimos cargar tu perfil",
+            "body": "Revisa tu conexión y vuelve a intentarlo."
+        },
+        "dialog": {
+            "title": "Tu perfil",
+            "close": "Cerrar",
+            "nav": "Secciones de tu perfil",
+            "panes": {
+                "profile": "Perfil",
+                "hours": "Horario de trabajo",
+                "security": "Inicio de Sesión y Seguridad",
+                "account": "Administrar tu cuenta"
+            }
+        },
+        "photo": {
+            "add": "Añadir una foto de perfil",
+            "change": "Cambiar tu foto de perfil",
+            "remove": "Quitar foto",
+            "uploaded": "Foto actualizada",
+            "removed": "Foto quitada",
+            "failed": "No pudimos actualizar tu foto. Inténtalo de nuevo.",
+            "tooLarge": "La foto pesa más de 2 MB. Elige una más ligera.",
+            "unsupported": "Solo aceptamos JPG, PNG y WebP."
+        },
+        "form": {
+            "details": "Detalles principales",
+            "name": {
+                "label": "Nombre completo"
+            },
+            "phone": {
+                "label": "Teléfono principal",
+                "country": "País del teléfono",
+                "number": "Número de teléfono",
+                "placeholder": "Introduce el número de teléfono",
+                "countries": {
+                    "MX": "México",
+                    "US": "Estados Unidos"
+                }
+            },
+            "email": {
+                "label": "Correo electrónico principal",
+                "locked": "Es el correo con el que inicias sesión y no se puede cambiar aquí."
+            },
+            "jobTitle": {
+                "label": "Puesto",
+                "placeholder": "Por ejemplo, estilista"
+            },
+            "about": {
+                "label": "Acerca de",
+                "placeholder": "Cuéntales a tus clientes quién eres y qué haces."
+            },
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "saving": "Guardando…",
+            "saved": "Perfil guardado",
+            "unexpected": "No pudimos guardar tu perfil. Inténtalo de nuevo."
+        }
     },
     "onboarding": {
         "title": "Crea tu negocio",
@@ -958,5 +1041,108 @@
         "errors": {
             "unexpected": "No hemos podido guardar los cambios. Inténtalo otra vez."
         }
+    },
+    "workingHours": {
+        "title": "Administrar horas de trabajo",
+        "description": "¿Qué días y horas trabajas? Esto determina tu disponibilidad de reservas.",
+        "inherited": "Ahora usas el horario de tu negocio. Cámbialo aquí para tener uno propio.",
+        "dayOff": "Día libre",
+        "from": "Hora de inicio del {{day}}",
+        "to": "Hora de fin del {{day}}",
+        "list": "Horas disponibles",
+        "empty": "Ninguna hora coincide",
+        "copyToAll": "Copiar el horario del {{day}} a todos los días activos",
+        "notice": "Para actualizar el horario de apertura y cierre de tu negocio, ve a <brand>Tu marca</brand> y selecciona <section>Horario comercial</section>.",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "saving": "Guardando…",
+        "saved": "Horario guardado",
+        "unexpected": "No pudimos guardar tu horario. Inténtalo de nuevo.",
+        "loadError": "No pudimos cargar tu horario.",
+        "summary": {
+            "today": "Hoy • {{hours}}",
+            "expand": "Ver el horario de toda la semana",
+            "collapse": "Ocultar el horario de la semana",
+            "edit": "Editar tu horario de trabajo"
+        }
+    },
+    "staffServices": {
+        "empty": "Todavía no das ningún servicio.",
+        "emptyManaged": "Añade los servicios que das para que tus clientes puedan reservarlos contigo.",
+        "emptyReadOnly": "Quien administra tu negocio puede asignarte servicios.",
+        "loadError": "No pudimos cargar tus servicios.",
+        "unassign": "Quitar {{service}}",
+        "assigned": "Servicio añadido",
+        "unassigned": "Servicio quitado",
+        "failed": "No pudimos actualizar tus servicios. Inténtalo de nuevo.",
+        "add": {
+            "label": "Añadir servicio",
+            "placeholder": "Busca un servicio",
+            "empty": "No quedan servicios por añadir",
+            "results": "Servicios disponibles",
+            "optionsError": "No pudimos cargar los servicios."
+        }
+    },
+    "security": {
+        "title": "Inicio de Sesión y Seguridad",
+        "back": "Volver a Inicio de Sesión y Seguridad",
+        "email": "Correo electrónico",
+        "password": "Contraseña",
+        "passwordNotSet": "No establecida",
+        "changePassword": "Cambiar tu contraseña",
+        "createPassword": "Crear una contraseña",
+        "methods": "Seguridad",
+        "openMethods": "Ver las opciones de seguridad",
+        "permission": "Nivel de permiso",
+        "disabled": "Desactivado",
+        "comingSoon": "Muy pronto",
+        "twoFactor": {
+            "title": "Autenticación de dos factores",
+            "body": "Refuerza la seguridad solicitando un código de autenticación para iniciar sesión.",
+            "action": "Activar ahora"
+        },
+        "passkey": {
+            "title": "Clave de acceso",
+            "body": "Usa Face ID o tu huella digital para iniciar sesión de forma rápida y segura.",
+            "action": "Añadir clave de acceso"
+        },
+        "passwordForm": {
+            "updateTitle": "Actualiza tu contraseña",
+            "createTitle": "Crear contraseña",
+            "current": {
+                "label": "Contraseña actual",
+                "placeholder": "Contraseña actual"
+            },
+            "reset": "Restablecer la contraseña",
+            "new": {
+                "label": "Nueva contraseña",
+                "placeholder": "Nueva contraseña",
+                "hint": "Introduce al menos 1 letra mayúscula, 1 número y 1 carácter especial."
+            },
+            "confirmation": {
+                "label": "Confirmar nueva contraseña",
+                "placeholder": "Confirmar nueva contraseña"
+            },
+            "notice": "Al actualizar tu contraseña, se cerrará la sesión en todos tus demás dispositivos.",
+            "cancel": "Cancelar",
+            "update": "Actualizar contraseña",
+            "create": "Crear contraseña",
+            "saving": "Guardando…",
+            "updated": "Contraseña actualizada",
+            "created": "Contraseña creada",
+            "unexpected": "No pudimos guardar tu contraseña. Inténtalo de nuevo."
+        },
+        "account": {
+            "title": "Administrar tu cuenta",
+            "delete": {
+                "title": "Eliminar tu cuenta",
+                "body": "Todos los datos de tu cuenta se eliminarán de forma permanente.",
+                "action": "Eliminar cuenta"
+            }
+        }
+    },
+    "team": {
+        "title": "Tu equipo",
+        "description": "Las personas que trabajan contigo en tu negocio."
     }
 }

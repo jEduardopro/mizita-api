@@ -44,9 +44,9 @@ final readonly class WeeklyIntervals
         return $this->minutesByWeekday === [];
     }
 
-    public function orInheritedFrom(self $wider): self
+    public function orInheritedFrom(self $inherited): self
     {
-        return $this->isEmpty() ? $wider : $this;
+        return $this->isEmpty() ? $inherited : $this;
     }
 
     /**
@@ -55,59 +55,6 @@ final readonly class WeeklyIntervals
     public function forWeekday(Weekday $weekday): array
     {
         return $this->minutesByWeekday[$weekday->value] ?? [];
-    }
-
-    public function intersect(self $other): self
-    {
-        $intersected = [];
-
-        foreach (Weekday::cases() as $weekday) {
-            $shared = self::overlapping($this->forWeekday($weekday), $other->forWeekday($weekday));
-
-            if ($shared === []) {
-                continue;
-            }
-
-            $intersected[$weekday->value] = $shared;
-        }
-
-        return new self($intersected);
-    }
-
-    /**
-     * @param  list<array{int, int}>  $ours
-     * @param  list<array{int, int}>  $theirs
-     * @return list<array{int, int}>
-     */
-    private static function overlapping(array $ours, array $theirs): array
-    {
-        $shared = [];
-        $ourIndex = 0;
-        $theirIndex = 0;
-        $ourCount = count($ours);
-        $theirCount = count($theirs);
-
-        while ($ourIndex < $ourCount && $theirIndex < $theirCount) {
-            [$ourStart, $ourEnd] = $ours[$ourIndex];
-            [$theirStart, $theirEnd] = $theirs[$theirIndex];
-
-            $start = max($ourStart, $theirStart);
-            $end = min($ourEnd, $theirEnd);
-
-            if ($start < $end) {
-                $shared[] = [$start, $end];
-            }
-
-            if ($ourEnd < $theirEnd) {
-                $ourIndex++;
-
-                continue;
-            }
-
-            $theirIndex++;
-        }
-
-        return $shared;
     }
 
     /**

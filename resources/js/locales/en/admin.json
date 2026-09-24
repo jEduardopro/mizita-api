@@ -5,6 +5,8 @@
         "customers": "Customers",
         "settings": "Settings",
         "brand": "Your brand",
+        "yourProfile": "Your profile",
+        "team": "Your team",
         "bookingPreferences": "Booking preferences"
     },
     "shell": {
@@ -594,8 +596,89 @@
         }
     },
     "profile": {
-        "title": "My account",
-        "description": "Your personal details and how you sign in."
+        "title": "Your profile",
+        "description": "Your details, the services you offer and your working hours.",
+        "edit": "Edit your profile",
+        "roles": {
+            "owner": "Owner",
+            "staff": "Staff"
+        },
+        "tabs": {
+            "about": "About",
+            "services": "Services",
+            "hours": "Working hours"
+        },
+        "about": {
+            "phone": "Phone",
+            "addPhone": "Add phone",
+            "email": "Email",
+            "hours": "Working hours",
+            "about": "About",
+            "addAbout": "Add a description",
+            "role": "Permission level"
+        },
+        "notFound": {
+            "title": "We couldn’t find your profile",
+            "body": "Your account has no profile at this business. Ask the owner to add you to the team."
+        },
+        "loadError": {
+            "title": "We couldn’t load your profile",
+            "body": "Check your connection and try again."
+        },
+        "dialog": {
+            "title": "Your profile",
+            "close": "Close",
+            "nav": "Profile sections",
+            "panes": {
+                "profile": "Profile",
+                "hours": "Working hours",
+                "security": "Sign-in and security",
+                "account": "Manage your account"
+            }
+        },
+        "photo": {
+            "add": "Add a profile photo",
+            "change": "Change your profile photo",
+            "remove": "Remove photo",
+            "uploaded": "Photo updated",
+            "removed": "Photo removed",
+            "failed": "We couldn’t update your photo. Try again.",
+            "tooLarge": "That photo is over 2 MB. Pick a lighter one.",
+            "unsupported": "We only accept JPG, PNG and WebP."
+        },
+        "form": {
+            "details": "Main details",
+            "name": {
+                "label": "Full name"
+            },
+            "phone": {
+                "label": "Main phone",
+                "country": "Phone country",
+                "number": "Phone number",
+                "placeholder": "Enter your phone number",
+                "countries": {
+                    "MX": "Mexico",
+                    "US": "United States"
+                }
+            },
+            "email": {
+                "label": "Main email",
+                "locked": "This is the email you sign in with, and it can’t be changed here."
+            },
+            "jobTitle": {
+                "label": "Job title",
+                "placeholder": "For example, stylist"
+            },
+            "about": {
+                "label": "About",
+                "placeholder": "Tell your clients who you are and what you do."
+            },
+            "cancel": "Cancel",
+            "save": "Save",
+            "saving": "Saving…",
+            "saved": "Profile saved",
+            "unexpected": "We couldn’t save your profile. Try again."
+        }
     },
     "onboarding": {
         "title": "Create your business",
@@ -958,5 +1041,108 @@
         "errors": {
             "unexpected": "We could not save your changes. Try again."
         }
+    },
+    "workingHours": {
+        "title": "Manage working hours",
+        "description": "Which days and hours do you work? This sets when clients can book you.",
+        "inherited": "You’re using your business hours right now. Change them here to set your own.",
+        "dayOff": "Day off",
+        "from": "{{day}} start time",
+        "to": "{{day}} end time",
+        "list": "Available times",
+        "empty": "No times match",
+        "copyToAll": "Copy {{day}} hours to every active day",
+        "notice": "To update your business opening and closing hours, go to <brand>Your brand</brand> and select <section>Business hours</section>.",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Working hours saved",
+        "unexpected": "We couldn’t save your working hours. Try again.",
+        "loadError": "We couldn’t load your working hours.",
+        "summary": {
+            "today": "Today • {{hours}}",
+            "expand": "Show the whole week",
+            "collapse": "Hide the week",
+            "edit": "Edit your working hours"
+        }
+    },
+    "staffServices": {
+        "empty": "You don’t offer any services yet.",
+        "emptyManaged": "Add the services you offer so clients can book them with you.",
+        "emptyReadOnly": "Whoever manages your business can assign services to you.",
+        "loadError": "We couldn’t load your services.",
+        "unassign": "Remove {{service}}",
+        "assigned": "Service added",
+        "unassigned": "Service removed",
+        "failed": "We couldn’t update your services. Try again.",
+        "add": {
+            "label": "Add service",
+            "placeholder": "Search for a service",
+            "empty": "No services left to add",
+            "results": "Available services",
+            "optionsError": "We couldn’t load the services."
+        }
+    },
+    "security": {
+        "title": "Sign-in and security",
+        "back": "Back to sign-in and security",
+        "email": "Email",
+        "password": "Password",
+        "passwordNotSet": "Not set",
+        "changePassword": "Change your password",
+        "createPassword": "Create a password",
+        "methods": "Security",
+        "openMethods": "See security options",
+        "permission": "Permission level",
+        "disabled": "Off",
+        "comingSoon": "Coming soon",
+        "twoFactor": {
+            "title": "Two-factor authentication",
+            "body": "Strengthen your security by asking for an authentication code when you sign in.",
+            "action": "Turn on now"
+        },
+        "passkey": {
+            "title": "Passkey",
+            "body": "Use Face ID or your fingerprint to sign in quickly and securely.",
+            "action": "Add passkey"
+        },
+        "passwordForm": {
+            "updateTitle": "Update your password",
+            "createTitle": "Create a password",
+            "current": {
+                "label": "Current password",
+                "placeholder": "Current password"
+            },
+            "reset": "Reset your password",
+            "new": {
+                "label": "New password",
+                "placeholder": "New password",
+                "hint": "Include at least 1 uppercase letter, 1 number and 1 special character."
+            },
+            "confirmation": {
+                "label": "Confirm new password",
+                "placeholder": "Confirm new password"
+            },
+            "notice": "Updating your password signs you out on all your other devices.",
+            "cancel": "Cancel",
+            "update": "Update password",
+            "create": "Create password",
+            "saving": "Saving…",
+            "updated": "Password updated",
+            "created": "Password created",
+            "unexpected": "We couldn’t save your password. Try again."
+        },
+        "account": {
+            "title": "Manage your account",
+            "delete": {
+                "title": "Delete your account",
+                "body": "All of your account data will be deleted permanently.",
+                "action": "Delete account"
+            }
+        }
+    },
+    "team": {
+        "title": "Your team",
+        "description": "The people who work with you at your business."
     }
 }

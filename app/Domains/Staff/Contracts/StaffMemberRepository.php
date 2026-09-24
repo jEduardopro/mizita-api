@@ -21,6 +21,11 @@ interface StaffMemberRepository
     public function findById(string $id): StaffMember;
 
     /**
+     * @throws StaffMemberNotFound
+     */
+    public function findForAccount(string $businessId, string $accountId): StaffMember;
+
+    /**
      * @return list<StaffMember>
      */
     public function allForBusiness(string $businessId): array;

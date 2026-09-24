@@ -65,6 +65,31 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository
         return $this->mapper->toEntity($model, $business->uuid, $account->uuid, $role);
     }
 
+    public function findForAccount(string $businessId, string $accountId): StaffMember
+    {
+        $businessKey = $this->businessKey($businessId);
+
+        $model = StaffMemberModel::query()
+            ->with('account')
+            ->where('business_id', $businessKey)
+            ->whereRelation('account', 'uuid', $accountId)
+            ->first();
+
+        $account = $model?->account;
+
+        if ($model === null || $account === null) {
+            throw StaffMemberNotFound::forAccount($accountId);
+        }
+
+        $role = $this->roles->roleFor($account, $businessKey);
+
+        if ($role === null) {
+            throw StaffMemberNotFound::forAccount($accountId);
+        }
+
+        return $this->mapper->toEntity($model, $businessId, $account->uuid, $role);
+    }
+
     /**
      * @return list<StaffMember>
      */

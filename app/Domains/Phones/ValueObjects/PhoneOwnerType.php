@@ -11,4 +11,6 @@ enum PhoneOwnerType: string
     case StaffMember = 'staff_member';
 
     case Customer = 'customer';
+
+    case StaffProfile = 'staff_profile';
 }

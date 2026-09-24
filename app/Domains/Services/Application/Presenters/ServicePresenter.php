@@ -12,6 +12,7 @@ use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Services\BookingLinks;
 use App\Domains\Services\ValueObjects\StaffMemberSnapshot;
 use App\Shared\ValueObjects\Paginated;
+use Closure;
 
 final class ServicePresenter
 {
@@ -40,20 +41,38 @@ final class ServicePresenter
      */
     public function describePage(string $businessId, Paginated $page): Paginated
     {
+        return $page->map($this->describerFor($businessId, $page->items));
+    }
+
+    /**
+     * @param  list<Service>  $services
+     * @return list<ServiceData>
+     */
+    public function describeAll(string $businessId, array $services): array
+    {
+        return array_values(array_map($this->describerFor($businessId, $services), $services));
+    }
+
+    /**
+     * @param  list<Service>  $services
+     * @return Closure(Service): ServiceData
+     */
+    private function describerFor(string $businessId, array $services): Closure
+    {
         $imageUrls = $this->images->urlsFor($businessId, array_map(
             static fn (Service $service): string => $service->id,
-            $page->items,
+            $services,
         ));
 
-        $snapshots = $this->snapshotsById($businessId, $page->items);
+        $snapshots = $this->snapshotsById($businessId, $services);
         $businessSlug = $this->businesses->slugFor($businessId);
 
-        return $page->map(fn (Service $service): ServiceData => ServiceData::fromEntity(
+        return fn (Service $service): ServiceData => ServiceData::fromEntity(
             $service,
             $this->staffOf($service, $snapshots),
             $imageUrls[$service->id] ?? null,
             $this->bookingLinks->forService($businessSlug, $service->slug()),
-        ));
+        );
     }
 
     /**

@@ -10,6 +10,8 @@ use DateTimeImmutable;
 
 final class Account
 {
+    public const MAXIMUM_NAME_LENGTH = 255;
+
     private function __construct(
         public readonly string $id,
         private string $name,
@@ -58,6 +60,11 @@ final class Account
         $this->emailVerifiedAt = $now;
     }
 
+    public function rename(string $name): void
+    {
+        $this->name = self::normalizeName($name);
+    }
+
     public function name(): string
     {
         return $this->name;
@@ -79,6 +86,10 @@ final class Account
 
         if ($name === '') {
             throw InvalidAccountName::empty();
+        }
+
+        if (mb_strlen($name) > self::MAXIMUM_NAME_LENGTH) {
+            throw InvalidAccountName::tooLong(self::MAXIMUM_NAME_LENGTH);
         }
 
         return $name;

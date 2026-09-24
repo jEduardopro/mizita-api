@@ -29,6 +29,7 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/customers/{customer}', fn (string $customer) => Inertia::render('admin/customers/show', ['customerId' => $customer]))->whereUuid('customer')->name('customers.show');
     Route::get('/customers/{customer}/edit', fn (string $customer) => Inertia::render('admin/customers/edit', ['customerId' => $customer]))->name('customers.edit');
     Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
+    Route::get('/settings/team', fn () => Inertia::render('admin/settings/team'))->name('settings.team');
     Route::get('/settings/business', fn () => Inertia::render('admin/settings/business'))->name('settings.business');
     Route::get('/settings/booking', fn () => Inertia::render('admin/settings/booking'))->name('settings.booking');
 });

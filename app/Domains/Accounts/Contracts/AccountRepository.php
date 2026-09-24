@@ -24,6 +24,12 @@ interface AccountRepository
     public function findManyByIds(array $ids): array;
 
     /**
+     * @param  list<string>  $ids
+     * @return list<string>
+     */
+    public function idsHoldingPassword(array $ids): array;
+
+    /**
      * @throws AccountAlreadyRegistered
      */
     public function save(Account $account): void;
