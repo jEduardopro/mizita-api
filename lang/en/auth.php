@@ -16,5 +16,6 @@ return [
     'failed' => 'These credentials do not match our records.',
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+    'scheduled_for_deletion' => 'An account with this email is scheduled for deletion. Sign in to reactivate it.',
 
 ];

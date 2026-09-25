@@ -13,6 +13,7 @@ final readonly class AuthenticatedAccountData
         public string $name,
         public string $email,
         public bool $isNewAccount,
+        public bool $requiresSecondFactor,
     ) {}
 
     public static function forExistingAccount(Account $account): self
@@ -22,6 +23,7 @@ final readonly class AuthenticatedAccountData
             name: $account->name(),
             email: $account->email(),
             isNewAccount: false,
+            requiresSecondFactor: $account->requiresSecondFactor(),
         );
     }
 
@@ -32,6 +34,7 @@ final readonly class AuthenticatedAccountData
             name: $account->name(),
             email: $account->email(),
             isNewAccount: true,
+            requiresSecondFactor: false,
         );
     }
 }

@@ -31,6 +31,11 @@ final class FakeTeamRoster implements TeamRoster
      */
     public array $emailChecks = [];
 
+    /**
+     * @var list<string>
+     */
+    public array $teamLookups = [];
+
     public function __construct(
         private readonly StaffJournal $journal = new StaffJournal,
     ) {}
@@ -80,5 +85,21 @@ final class FakeTeamRoster implements TeamRoster
         $this->emailChecks[] = ['businessId' => $businessId, 'emails' => array_values($emails)];
 
         return array_values(array_intersect($emails, $this->emailsOnTeam[$businessId] ?? []));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function accountIdsOnTeam(string $businessId): array
+    {
+        $this->teamLookups[] = $businessId;
+
+        return array_values(array_unique(array_map(
+            static fn (StaffMember $member): string => $member->accountId,
+            array_filter(
+                $this->members,
+                static fn (StaffMember $member): bool => $member->businessId === $businessId,
+            ),
+        )));
     }
 }

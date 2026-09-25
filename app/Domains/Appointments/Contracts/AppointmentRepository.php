@@ -41,6 +41,8 @@ interface AppointmentRepository
 
     public function hasUpcomingForStaffMember(string $businessId, string $staffMemberId, DateTimeImmutable $now): bool;
 
+    public function countUpcomingForBusiness(string $businessId, DateTimeImmutable $now): int;
+
     public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment;
 
     /**

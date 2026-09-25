@@ -6,6 +6,7 @@ use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Infrastructure\Eloquent\Mappers\AccountMapper;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use App\Models\User;
 
 /**
@@ -22,6 +23,18 @@ function storedAccountUser(array $attributes): User
         'created_at' => new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
         ...$attributes,
     ], sync: true);
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ * @return list<string>
+ */
+function twoFactorKeysIn(array $attributes): array
+{
+    return array_values(array_filter(
+        array_keys($attributes),
+        static fn (string $key): bool => str_starts_with($key, 'two_factor'),
+    ));
 }
 
 beforeEach(function () {
@@ -42,6 +55,7 @@ it('writes the uuid, the name, the email and the verification timestamp', functi
         'name' => 'Ada Lovelace',
         'email' => 'ada@example.com',
         'email_verified_at' => $account->emailVerifiedAt(),
+        'deleted_at' => null,
     ]);
 });
 
@@ -61,7 +75,7 @@ it('writes no attribute the Account entity does not hold', function () {
     $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable);
 
     expect(array_keys($this->mapper->toAttributes($account)))
-        ->toBe(['uuid', 'name', 'email', 'email_verified_at']);
+        ->toBe(['uuid', 'name', 'email', 'email_verified_at', 'deleted_at']);
 });
 
 it('leaves the verification timestamp null for an unverified account', function () {
@@ -80,6 +94,7 @@ describe('an issued temporary password', function () {
             'name' => 'Ada',
             'email' => 'ada@example.com',
             'email_verified_at' => null,
+            'deleted_at' => null,
             'password' => 'temporary-hash',
             'must_change_password' => true,
         ]);
@@ -158,7 +173,111 @@ describe('reading a stored user with a linked social identity', function () {
         $account = $this->mapper->toEntity(storedAccountUser(['password' => null]), [SocialProvider::Google]);
 
         expect(array_keys($this->mapper->toAttributes($account)))
-            ->toBe(['uuid', 'name', 'email', 'email_verified_at']);
+            ->toBe(['uuid', 'name', 'email', 'email_verified_at', 'deleted_at']);
+    });
+});
+
+describe('the deletion request', function () {
+    it('writes a null deleted_at for an active account, so saving never soft deletes it', function () {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable);
+
+        expect($this->mapper->toAttributes($account))->toHaveKey('deleted_at')
+            ->and($this->mapper->toAttributes($account)['deleted_at'])->toBeNull();
+    });
+
+    it('writes the instant the deletion was requested into deleted_at', function () {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable);
+        $requestedAt = new DateTimeImmutable('2026-01-01T12:00:00+00:00');
+        $account->scheduleDeletion($requestedAt);
+
+        expect($this->mapper->toAttributes($account)['deleted_at'])->toEqual($requestedAt);
+    });
+
+    it('writes deleted_at back to null once the account is reactivated, restoring the row', function () {
+        $account = $this->mapper->toEntity(storedAccountUser(['deleted_at' => new DateTimeImmutable('2025-12-20T09:15:00+00:00')]), []);
+
+        $account->reactivate();
+
+        expect($this->mapper->toAttributes($account))->toHaveKey('deleted_at')
+            ->and($this->mapper->toAttributes($account)['deleted_at'])->toBeNull();
+    });
+
+    it('reads a soft deleted user as an account scheduled for deletion at that instant', function () {
+        $account = $this->mapper->toEntity(storedAccountUser(['deleted_at' => new DateTimeImmutable('2025-12-20T09:15:00+00:00')]), []);
+
+        expect($account->isScheduledForDeletion())->toBeTrue()
+            ->and($account->deletionRequestedAt())->toBeInstanceOf(DateTimeImmutable::class)
+            ->and($account->deletionRequestedAt()->format(DATE_ATOM))->toBe('2025-12-20T09:15:00+00:00')
+            ->and($account->gracePeriodEndsAt()->format(DATE_ATOM))->toBe('2026-01-19T09:15:00+00:00');
+    });
+
+    it('reads a user with no deleted_at as an active account', function () {
+        $account = $this->mapper->toEntity(storedAccountUser(['deleted_at' => null]), []);
+
+        expect($account->isScheduledForDeletion())->toBeFalse()
+            ->and($account->deletionRequestedAt())->toBeNull();
+    });
+
+    it('reads a user row that carries no deleted_at column at all as an active account', function () {
+        expect($this->mapper->toEntity(storedAccountUser([]), [])->isScheduledForDeletion())->toBeFalse();
+    });
+
+    it('round trips the deletion request unchanged', function () {
+        $requestedAt = new DateTimeImmutable('2025-12-20T09:15:00+00:00');
+        $account = $this->mapper->toEntity(storedAccountUser(['deleted_at' => $requestedAt]), []);
+
+        expect($this->mapper->toAttributes($account)['deleted_at']->format(DATE_ATOM))->toBe($requestedAt->format(DATE_ATOM));
+    });
+});
+
+describe('the two-factor status', function () {
+    it('derives the status from the secret and its confirmation', function (?string $secret, ?DateTimeImmutable $confirmedAt, TwoFactorStatus $expected, bool $requiresSecondFactor) {
+        $account = $this->mapper->toEntity(
+            storedAccountUser(['two_factor_secret' => $secret, 'two_factor_confirmed_at' => $confirmedAt]),
+            [],
+        );
+
+        expect($account->twoFactorStatus())->toBe($expected)
+            ->and($account->requiresSecondFactor())->toBe($requiresSecondFactor);
+    })->with([
+        'no secret and no confirmation' => [null, null, TwoFactorStatus::Disabled, false],
+        'a secret still waiting for its first code' => ['encrypted-secret', null, TwoFactorStatus::Pending, false],
+        'a secret confirmed with a code' => ['encrypted-secret', new DateTimeImmutable('2026-01-01T12:00:00+00:00'), TwoFactorStatus::Enabled, true],
+        'a stale confirmation with the secret gone' => [null, new DateTimeImmutable('2026-01-01T12:00:00+00:00'), TwoFactorStatus::Disabled, false],
+    ]);
+
+    it('reads a user row that carries no two-factor columns at all as disabled', function () {
+        expect($this->mapper->toEntity(storedAccountUser([]), [])->twoFactorStatus())->toBe(TwoFactorStatus::Disabled);
+    });
+
+    it('never writes a two-factor column, leaving them to Fortify, whatever the status', function (TwoFactorStatus $status) {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable, twoFactorStatus: $status);
+
+        expect(twoFactorKeysIn($this->mapper->toAttributes($account)))->toBe([]);
+    })->with([TwoFactorStatus::Disabled, TwoFactorStatus::Pending, TwoFactorStatus::Enabled]);
+
+    it('never writes a two-factor column when a temporary password is issued either', function () {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable, twoFactorStatus: TwoFactorStatus::Enabled);
+        $account->issueTemporaryPassword('temporary-hash');
+
+        $attributes = $this->mapper->toAttributes($account);
+
+        expect(twoFactorKeysIn($attributes))->toBe([])
+            ->and($attributes)->toHaveKey('password');
+    });
+
+    it('writes an enabled account read from storage back with exactly the columns it always wrote', function () {
+        $account = $this->mapper->toEntity(
+            storedAccountUser([
+                'two_factor_secret' => 'encrypted-secret',
+                'two_factor_recovery_codes' => 'encrypted-codes',
+                'two_factor_confirmed_at' => new DateTimeImmutable('2026-01-01T12:00:00+00:00'),
+            ]),
+            [],
+        );
+
+        expect(array_keys($this->mapper->toAttributes($account)))
+            ->toBe(['uuid', 'name', 'email', 'email_verified_at', 'deleted_at']);
     });
 });
 

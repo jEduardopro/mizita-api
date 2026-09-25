@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -27,7 +28,8 @@ class CreateNewUser implements CreatesNewUsers
                 'string',
                 'email',
                 'max:255',
-                Rule::unique(User::class),
+                $this->notScheduledForDeletion(...),
+                Rule::unique(User::class)->withoutTrashed(),
             ],
             'password' => $this->passwordRules(confirmed: false),
         ])->validate();
@@ -37,5 +39,20 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
         ]);
+    }
+
+    private function notScheduledForDeletion(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (! is_string($value)) {
+            return;
+        }
+
+        $scheduledForDeletion = User::onlyTrashed()
+            ->whereRaw('lower(email) = ?', [mb_strtolower(trim($value))])
+            ->exists();
+
+        if ($scheduledForDeletion) {
+            $fail(__('auth.scheduled_for_deletion'));
+        }
     }
 }

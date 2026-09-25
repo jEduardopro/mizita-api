@@ -17,6 +17,9 @@ use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Contracts\RoleProvisioner;
 use App\Domains\Businesses\Contracts\ScheduleProvisioner;
+use App\Domains\Businesses\Contracts\TeamSignOut;
+use App\Domains\Businesses\Contracts\TenantDataEraser;
+use App\Domains\Businesses\Infrastructure\Console\PurgeClosedBusinessesCommand;
 use App\Domains\Businesses\Infrastructure\Eloquent\EloquentBusinessRepository;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Businesses\Infrastructure\Gateways\AddressesBusinessAddressBook;
@@ -31,7 +34,9 @@ use App\Domains\Businesses\Infrastructure\Gateways\PaymentsPaymentMethodProvisio
 use App\Domains\Businesses\Infrastructure\Gateways\PhonesPhoneBook;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffOwnerRegistrar;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffRoleProvisioner;
+use App\Domains\Businesses\Infrastructure\Gateways\StaffTeamSignOut;
 use App\Domains\Businesses\Infrastructure\Media\SpatieBusinessLogo;
+use App\Domains\Businesses\Infrastructure\Purge\DatabaseTenantDataEraser;
 use App\Shared\Contracts\BusinessTeamKey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -64,6 +69,8 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(ScheduleProvisioner::class, AvailabilityScheduleProvisioner::class);
         $this->app->bind(BookingPageSettings::class, BookingPagesBookingPageSettings::class);
         $this->app->bind(BookingPolicySettings::class, BookingPoliciesBookingPolicySettings::class);
+        $this->app->bind(TeamSignOut::class, StaffTeamSignOut::class);
+        $this->app->bind(TenantDataEraser::class, DatabaseTenantDataEraser::class);
     }
 
     public function boot(): void
@@ -71,6 +78,10 @@ final class BusinessesServiceProvider extends ServiceProvider
         Relation::enforceMorphMap(['business' => BusinessModel::class]);
 
         $this->registerImageUploadLimiter();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([PurgeClosedBusinessesCommand::class]);
+        }
 
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum'])

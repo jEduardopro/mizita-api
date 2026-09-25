@@ -7,6 +7,7 @@ namespace Tests\Support\Businesses;
 use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Exceptions\BusinessNotFound;
+use DateTimeImmutable;
 use Throwable;
 
 final class FakeBusinessRepository implements BusinessRepository
@@ -58,6 +59,21 @@ final class FakeBusinessRepository implements BusinessRepository
      */
     public array $deleted = [];
 
+    /**
+     * @var list<string>
+     */
+    public array $closedIdsRead = [];
+
+    /**
+     * @var list<string>
+     */
+    public array $closedOwnersRead = [];
+
+    /**
+     * @var list<DateTimeImmutable>
+     */
+    public array $purgeCutoffs = [];
+
     public function store(Business ...$businesses): self
     {
         foreach ($businesses as $business) {
@@ -92,7 +108,7 @@ final class FakeBusinessRepository implements BusinessRepository
     {
         $this->idsRead[] = $id;
 
-        return $this->businesses[$id] ?? throw BusinessNotFound::withId($id);
+        return $this->open($id) ?? throw BusinessNotFound::withId($id);
     }
 
     public function findBySlug(string $slug): Business
@@ -121,12 +137,63 @@ final class FakeBusinessRepository implements BusinessRepository
         foreach ($ids as $id) {
             $this->idsRead[] = $id;
 
-            if (isset($this->businesses[$id])) {
-                $found[] = $this->businesses[$id];
+            $business = $this->open($id);
+
+            if ($business !== null) {
+                $found[] = $business;
             }
         }
 
         return $found;
+    }
+
+    public function findClosedById(string $id): ?Business
+    {
+        $this->closedIdsRead[] = $id;
+
+        $business = $this->businesses[$id] ?? null;
+
+        return $business !== null && $business->isClosed() ? $business : null;
+    }
+
+    public function findClosedOwnedBy(string $accountId): ?Business
+    {
+        $this->closedOwnersRead[] = $accountId;
+
+        $closedByAccount = array_filter(
+            $this->businesses,
+            static fn (Business $business): bool => $business->isClosed()
+                && $business->closedByAccountId() === $accountId,
+        );
+
+        usort(
+            $closedByAccount,
+            static fn (Business $earlier, Business $later): int => $later->closedAt() <=> $earlier->closedAt(),
+        );
+
+        return $closedByAccount[0] ?? null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function idsDueForPurge(DateTimeImmutable $cutoff): array
+    {
+        $this->purgeCutoffs[] = $cutoff;
+
+        $due = array_filter(
+            $this->businesses,
+            static fn (Business $business): bool => $business->isClosed()
+                && ! $business->isPurged()
+                && $business->closedAt() <= $cutoff,
+        );
+
+        usort(
+            $due,
+            static fn (Business $earlier, Business $later): int => $earlier->closedAt() <=> $later->closedAt(),
+        );
+
+        return array_map(static fn (Business $business): string => $business->id, $due);
     }
 
     public function existsByName(string $name): bool
@@ -169,12 +236,19 @@ final class FakeBusinessRepository implements BusinessRepository
     private function matching(string $slug): ?Business
     {
         foreach ($this->businesses as $business) {
-            if (self::fold($business->slug()) === self::fold($slug)) {
+            if (! $business->isClosed() && self::fold($business->slug()) === self::fold($slug)) {
                 return $business;
             }
         }
 
         return null;
+    }
+
+    private function open(string $id): ?Business
+    {
+        $business = $this->businesses[$id] ?? null;
+
+        return $business !== null && ! $business->isClosed() ? $business : null;
     }
 
     private static function fold(string $slug): string

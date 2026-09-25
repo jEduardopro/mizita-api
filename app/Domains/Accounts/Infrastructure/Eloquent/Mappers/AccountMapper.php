@@ -7,6 +7,7 @@ namespace App\Domains\Accounts\Infrastructure\Eloquent\Mappers;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use App\Models\User;
 use DateTimeImmutable;
 
@@ -27,6 +28,10 @@ final class AccountMapper
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
             passwordStatus: $this->passwordStatusOf($model),
             linkedSocialProviders: $linkedSocialProviders,
+            deletionRequestedAt: $model->deleted_at === null
+                ? null
+                : DateTimeImmutable::createFromInterface($model->deleted_at),
+            twoFactorStatus: $this->twoFactorStatusOf($model),
         );
     }
 
@@ -40,6 +45,7 @@ final class AccountMapper
             'name' => $account->name(),
             'email' => $account->email(),
             'email_verified_at' => $account->emailVerifiedAt(),
+            'deleted_at' => $account->deletionRequestedAt(),
         ];
 
         $issuedPasswordHash = $account->issuedPasswordHash();
@@ -66,5 +72,18 @@ final class AccountMapper
         }
 
         return PasswordStatus::Chosen;
+    }
+
+    private function twoFactorStatusOf(User $model): TwoFactorStatus
+    {
+        if ($model->two_factor_secret === null) {
+            return TwoFactorStatus::Disabled;
+        }
+
+        if ($model->two_factor_confirmed_at === null) {
+            return TwoFactorStatus::Pending;
+        }
+
+        return TwoFactorStatus::Enabled;
     }
 }

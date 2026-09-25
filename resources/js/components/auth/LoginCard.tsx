@@ -1,5 +1,5 @@
 import { Link, usePage, type InertiaFormProps } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { AuthMethodChoice } from '@/components/auth/AuthMethodChoice';
@@ -21,9 +21,10 @@ type Props = {
     form: InertiaFormProps<LoginForm>;
     status: string | null;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+    passkeySignIn?: ReactNode;
 };
 
-export function LoginCard({ form, status, onSubmit }: Props) {
+export function LoginCard({ form, status, onSubmit, passkeySignIn }: Props) {
     const { t } = useTranslation('auth');
 
     const googleFailed = Boolean(usePage().props.errors.google);
@@ -79,6 +80,7 @@ export function LoginCard({ form, status, onSubmit }: Props) {
                             googleError={
                                 googleFailed ? t('login.methods.googleFailed') : undefined
                             }
+                            passkey={passkeySignIn}
                             divider={t('login.divider')}
                             email={t('login.methods.email')}
                             onEmail={() => setMode('email')}

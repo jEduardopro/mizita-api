@@ -6,6 +6,7 @@ namespace App\Domains\Businesses\Infrastructure\Eloquent\Models;
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Factories\BusinessModelFactory;
 use App\Domains\Industries\Infrastructure\Eloquent\Models\IndustryModel;
+use App\Models\User;
 use App\Shared\Infrastructure\Media\BusinessScopedMediaOwner;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -16,7 +17,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-#[Fillable(['uuid', 'name', 'slug', 'industry_id', 'timezone', 'contact_email', 'about', 'currency_code'])]
+#[Fillable([
+    'uuid',
+    'name',
+    'slug',
+    'industry_id',
+    'timezone',
+    'contact_email',
+    'about',
+    'currency_code',
+    'closed_at',
+    'closed_by_account_id',
+    'purged_at',
+    'deleted_at',
+])]
 class BusinessModel extends Model implements BusinessScopedMediaOwner, HasMedia
 {
     use HasFactory;
@@ -71,12 +85,21 @@ class BusinessModel extends Model implements BusinessScopedMediaOwner, HasMedia
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function closedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closed_by_account_id')->withTrashed();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-
+            'closed_at' => 'immutable_datetime',
+            'purged_at' => 'immutable_datetime',
         ];
     }
 

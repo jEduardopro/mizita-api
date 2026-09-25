@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsPaneBody } from '@/components/admin/settings/SettingsPane';
 import { Badge } from '@/components/ui/badge';
+import type { TwoFactorStatus } from '../types';
+import { SECURITY_BADGE_CLASSES, SECURITY_ON_TONE_CLASSES, TwoFactorStatusBadge } from './TwoFactorStatusBadge';
 
 const ROW_GRID = 'grid gap-1 py-4 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4';
 
@@ -53,17 +55,31 @@ function ActionRow({ label, actionLabel, onOpen, children }: ActionRowProps) {
 
 type StatusLineProps = {
     label: string;
-    status: string;
+    isLoading: boolean;
+    children: ReactNode;
 };
 
-function StatusLine({ label, status }: StatusLineProps) {
+function StatusLine({ label, isLoading, children }: StatusLineProps) {
     return (
         <span className="flex flex-wrap items-center gap-2">
             {label}
-            <Badge variant="secondary" className="rounded-md font-normal">
-                {status}
-            </Badge>
+            {isLoading ? (
+                <span aria-hidden="true" className="inline-block h-5 w-16 animate-pulse rounded-md bg-muted" />
+            ) : (
+                children
+            )}
         </span>
+    );
+}
+
+function PasskeyStatusBadge({ passkeyCount }: { passkeyCount: number }) {
+    const { t } = useTranslation('admin');
+    const hasPasskeys = passkeyCount > 0;
+
+    return (
+        <Badge variant="secondary" className={cn(SECURITY_BADGE_CLASSES, hasPasskeys && SECURITY_ON_TONE_CLASSES)}>
+            {hasPasskeys ? t('security.passkeyCount', { count: passkeyCount }) : t('security.disabled')}
+        </Badge>
     );
 }
 
@@ -71,11 +87,23 @@ type Props = {
     email: string;
     hasPassword: boolean;
     roleLabel: string;
+    twoFactorStatus: TwoFactorStatus | undefined;
+    passkeyCount: number | undefined;
+    isLoadingMethods: boolean;
     onOpenPassword: () => void;
     onOpenMethods: () => void;
 };
 
-export function SignInOverview({ email, hasPassword, roleLabel, onOpenPassword, onOpenMethods }: Props) {
+export function SignInOverview({
+    email,
+    hasPassword,
+    roleLabel,
+    twoFactorStatus,
+    passkeyCount,
+    isLoadingMethods,
+    onOpenPassword,
+    onOpenMethods,
+}: Props) {
     const { t } = useTranslation('admin');
 
     return (
@@ -99,8 +127,13 @@ export function SignInOverview({ email, hasPassword, roleLabel, onOpenPassword, 
             </ActionRow>
 
             <ActionRow label={t('security.methods')} actionLabel={t('security.openMethods')} onOpen={onOpenMethods}>
-                <StatusLine label={t('security.twoFactor.title')} status={t('security.disabled')} />
-                <StatusLine label={t('security.passkey.title')} status={t('security.disabled')} />
+                <StatusLine label={t('security.twoFactor.title')} isLoading={isLoadingMethods}>
+                    {twoFactorStatus === undefined ? null : <TwoFactorStatusBadge status={twoFactorStatus} />}
+                </StatusLine>
+
+                <StatusLine label={t('security.passkey.title')} isLoading={isLoadingMethods}>
+                    {passkeyCount === undefined ? null : <PasskeyStatusBadge passkeyCount={passkeyCount} />}
+                </StatusLine>
             </ActionRow>
 
             <dl className="grid">

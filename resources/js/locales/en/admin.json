@@ -1095,16 +1095,112 @@
         "openMethods": "See security options",
         "permission": "Permission level",
         "disabled": "Off",
-        "comingSoon": "Coming soon",
         "twoFactor": {
             "title": "Two-factor authentication",
             "body": "Strengthen your security by asking for an authentication code when you sign in.",
-            "action": "Turn on now"
+            "action": "Turn on now",
+            "enabledBody": "Every time you sign in, we ask for a code from your authenticator app.",
+            "pendingBody": "You started setting this up. Finish it so we ask for the code when you sign in.",
+            "enable": "Turn on",
+            "enabling": "Turning on…",
+            "resume": "Finish setting up",
+            "setup": {
+                "title": "Turn on two-factor authentication",
+                "scan": {
+                    "title": "Scan the QR code",
+                    "body": "Open your authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…) and scan this code."
+                },
+                "verify": {
+                    "title": "Confirm with a code",
+                    "body": "Enter the 6-digit code the app shows."
+                }
+            },
+            "qr": {
+                "label": "QR code for your authenticator app",
+                "loading": "Generating the QR code…",
+                "loadFailed": "We couldn’t generate the QR code. Try again."
+            },
+            "secretKey": {
+                "toggle": "Can’t scan it? Use a key",
+                "label": "Setup key",
+                "hint": "Type it into your authenticator app if you can’t scan the code."
+            },
+            "copy": "Copy",
+            "copied": "Copied",
+            "code": {
+                "label": "6-digit code",
+                "hint": "You’ll find it in your authenticator app."
+            },
+            "confirm": "Verify and turn on",
+            "confirming": "Verifying…",
+            "activated": "Two-factor authentication turned on",
+            "enableFailed": "We couldn’t turn on two-factor authentication. Try again.",
+            "confirmFailed": "We couldn’t verify the code. Try again.",
+            "cancelSetup": "Cancel setup",
+            "disable": "Turn off",
+            "disabling": "Turning off…",
+            "deactivated": "Two-factor authentication turned off",
+            "disableFailed": "We couldn’t turn off two-factor authentication. Try again.",
+            "disableConfirm": {
+                "title": "Turn off two-factor authentication?",
+                "body": "We’ll stop asking for a code when you sign in, and your recovery codes will stop working.",
+                "action": "Turn off"
+            },
+            "recoveryCodes": {
+                "title": "Recovery codes",
+                "body": "Keep them somewhere safe. If you lose access to your authenticator app, each code signs you in once.",
+                "show": "View recovery codes",
+                "hide": "Hide codes",
+                "copy": "Copy codes",
+                "copied": "Codes copied",
+                "download": "Download",
+                "fileName": "recovery-codes.txt",
+                "regenerate": "Generate new codes",
+                "regenerating": "Generating…",
+                "regenerated": "New recovery codes ready",
+                "regenerateFailed": "We couldn’t generate new codes. Try again.",
+                "regenerateConfirm": {
+                    "title": "Generate new codes?",
+                    "body": "Your current codes stop working right away.",
+                    "action": "Generate new codes"
+                },
+                "loading": "Loading your codes…",
+                "loadFailed": "We couldn’t load your codes. Try again.",
+                "copyFailed": "We couldn’t copy the codes. Download them or copy them by hand."
+            },
+            "done": "Done",
+            "openInApp": "Open in your authenticator app",
+            "copyFailed": "We couldn’t copy the key. Copy it by hand."
         },
         "passkey": {
             "title": "Passkey",
             "body": "Use Face ID or your fingerprint to sign in quickly and securely.",
-            "action": "Add passkey"
+            "action": "Add passkey",
+            "add": "Add passkey",
+            "adding": "Waiting for your device…",
+            "name": "Passkey name",
+            "namePlaceholder": "E.g. Work iPhone",
+            "nameHint": "Give it a name that helps you recognise the device.",
+            "list": "Your passkeys",
+            "empty": "You have no passkeys yet. Add one to sign in with Face ID, your fingerprint or your screen lock.",
+            "lastUsed": "Last used {{date}}",
+            "neverUsed": "Not used yet",
+            "created": "Created {{date}}",
+            "delete": "Delete",
+            "deleteLabel": "Delete {{name}}",
+            "deleting": "Deleting…",
+            "deleteConfirm": {
+                "title": "Delete “{{name}}”?",
+                "body": "You won’t be able to sign in with this passkey anymore. You can add it again at any time.",
+                "action": "Delete passkey"
+            },
+            "unsupported": "This browser doesn’t support passkeys. Try another browser or device.",
+            "cancelled": "The passkey wasn’t added because the request was cancelled.",
+            "alreadyRegistered": "This device already has a passkey for your account.",
+            "added": "Passkey added",
+            "addFailed": "We couldn’t add the passkey. Try again.",
+            "deleted": "Passkey deleted",
+            "deleteFailed": "We couldn’t delete the passkey. Try again."
         },
         "passwordForm": {
             "updateTitle": "Update your password",
@@ -1136,10 +1232,59 @@
             "title": "Manage your account",
             "delete": {
                 "title": "Delete your account",
-                "body": "All of your account data will be deleted permanently.",
-                "action": "Delete account"
+                "body": "Your account is deactivated as soon as you confirm. You have a window to restore it; after that it is deleted permanently.",
+                "action": "Delete account",
+                "deleting": "Deleting account…",
+                "unexpected": "We couldn't delete your account. Try again.",
+                "dialog": {
+                    "title": "Delete your account?",
+                    "ownerTitle": "Delete your account and close {{business}}?",
+                    "loading": "Checking what happens to your account…",
+                    "loadFailed": "We couldn't check your account. Try again."
+                },
+                "owner": {
+                    "description": "You own {{business}}, so the business closes along with your account.",
+                    "closed": "{{business}} closes right away and stops appearing in the catalog.",
+                    "team": "Your team loses access and their sessions are closed.",
+                    "appointments_one": "You have {{count}} upcoming appointment that won't take place. Your clients won't be notified.",
+                    "appointments_other": "You have {{count}} upcoming appointments that won't take place. Your clients won't be notified.",
+                    "restore": "You can restore everything by signing in before {{date}}.",
+                    "purge": "After {{date}}, services, appointments, payments, clients, hours and team are deleted permanently."
+                },
+                "regular": {
+                    "description": "Review what happens before you confirm.",
+                    "deleted": "Your account is deleted and you are signed out.",
+                    "restore": "You can restore it by signing in before {{date}}."
+                },
+                "blocked": {
+                    "title": "You can't delete your account yet",
+                    "body": "You have upcoming appointments assigned to you. Ask for them to be reassigned or cancelled, then try again.",
+                    "acknowledge": "Got it"
+                },
+                "confirmation": {
+                    "password": "Enter your password to confirm",
+                    "email": "Type {{email}} to confirm"
+                }
             }
-        }
+        },
+        "enabled": "On",
+        "pending": "Pending",
+        "passkeyCount_one": "{{count}} passkey",
+        "passkeyCount_other": "{{count}} passkeys",
+        "confirmPassword": {
+            "title": "Confirm your password",
+            "body": "For your security, enter your password to continue.",
+            "label": "Password",
+            "submit": "Confirm",
+            "submitting": "Confirming…",
+            "unexpected": "We couldn’t confirm your password. Try again."
+        },
+        "passwordRequired": {
+            "title": "Create a password first",
+            "body": "To turn on two-factor authentication or add a passkey, your account needs a password.",
+            "action": "Create a password"
+        },
+        "methodsLoadFailed": "We couldn’t load your security options. Try again."
     },
     "team": {
         "title": "Your team",

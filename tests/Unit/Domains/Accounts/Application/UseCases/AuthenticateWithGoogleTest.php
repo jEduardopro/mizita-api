@@ -15,6 +15,7 @@ use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Domains\Accounts\Exceptions\GoogleEmailNotVerified;
 use App\Domains\Accounts\Exceptions\SocialIdentityAlreadyLinked;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -350,7 +351,8 @@ describe('a first-time visitor', function () {
             ->and($data->id)->toBe(GoogleFixtures::GENERATED_ACCOUNT_ID)
             ->and($data->name)->toBe('Ada Lovelace')
             ->and($data->email)->toBe('ada@example.com')
-            ->and($data->isNewAccount)->toBeTrue();
+            ->and($data->isNewAccount)->toBeTrue()
+            ->and($data->requiresSecondFactor)->toBeFalse();
 
         expect($savedAccount)->toBeInstanceOf(Account::class)
             ->and($savedAccount->id)->toBe(GoogleFixtures::GENERATED_ACCOUNT_ID)
@@ -627,6 +629,129 @@ describe('a race with a concurrent sign in', function () {
 
         expect($data->id)->toBe(GoogleFixtures::EXISTING_ACCOUNT_ID)
             ->and($data->isNewAccount)->toBeFalse();
+    });
+});
+
+describe('an account scheduled for deletion', function () {
+    beforeEach(function () {
+        $this->scheduledAccount = Account::restore(
+            GoogleFixtures::EXISTING_ACCOUNT_ID,
+            GoogleFixtures::NAME,
+            GoogleFixtures::EMAIL,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            deletionRequestedAt: new DateTimeImmutable('2025-12-20T09:15:00+00:00'),
+        );
+
+        $this->socialIdentities->shouldNotReceive('save');
+        $this->events->shouldNotReceive('dispatch');
+    });
+
+    it('refuses a linked Google identity with account_pending_reactivation', function () {
+        $this->accounts->shouldNotReceive('save');
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(GoogleFixtures::storedIdentity());
+        $this->accounts->shouldReceive('findById')->once()
+            ->with(GoogleFixtures::EXISTING_ACCOUNT_ID)
+            ->andReturn($this->scheduledAccount);
+
+        $response = $this->useCase->handle(GoogleFixtures::input());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('account_pending_reactivation')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict)
+            ->and($response->error()->cause()->accountId)->toBe(GoogleFixtures::EXISTING_ACCOUNT_ID);
+    });
+
+    it('refuses to claim the account by its email, saving and linking nothing', function () {
+        $this->accounts->shouldNotReceive('save');
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->with('ada@example.com')->andReturn($this->scheduledAccount);
+
+        $response = $this->useCase->handle(GoogleFixtures::input());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('account_pending_reactivation')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict)
+            ->and($this->scheduledAccount->isScheduledForDeletion())->toBeTrue();
+    });
+
+    it('leaves the email of a scheduled account unverified when it refuses the claim', function () {
+        $unverified = Account::restore(
+            GoogleFixtures::EXISTING_ACCOUNT_ID,
+            GoogleFixtures::NAME,
+            GoogleFixtures::EMAIL,
+            null,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            deletionRequestedAt: new DateTimeImmutable('2025-12-20T09:15:00+00:00'),
+        );
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->andReturn($unverified);
+        $this->accounts->shouldNotReceive('save');
+
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($unverified->emailVerifiedAt())->toBeNull();
+    });
+
+    it('refuses the account it would have adopted after losing a registration race', function () {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()->andReturn(null, null);
+        $this->accounts->shouldReceive('findByEmail')->twice()->with('ada@example.com')
+            ->andReturn(null, $this->scheduledAccount);
+        $this->accounts->shouldReceive('save')->once()
+            ->andThrow(AccountAlreadyRegistered::withEmail('ada@example.com'));
+
+        $response = $this->useCase->handle(GoogleFixtures::input());
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('account_pending_reactivation');
+    });
+});
+
+describe('whether the account still owes a second factor', function () {
+    beforeEach(function () {
+        $this->withTwoFactor = fn (TwoFactorStatus $status): Account => Account::restore(
+            GoogleFixtures::EXISTING_ACCOUNT_ID,
+            GoogleFixtures::NAME,
+            GoogleFixtures::EMAIL,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            twoFactorStatus: $status,
+        );
+    });
+
+    it('reads it off the account a stored link points at', function (TwoFactorStatus $status, bool $requiresSecondFactor) {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(GoogleFixtures::storedIdentity());
+        $this->accounts->shouldReceive('findById')->once()->andReturn(($this->withTwoFactor)($status));
+
+        expect($this->useCase->handle(GoogleFixtures::input())->value()->requiresSecondFactor)
+            ->toBe($requiresSecondFactor);
+    })->with([
+        'enabled' => [TwoFactorStatus::Enabled, true],
+        'set up but never confirmed' => [TwoFactorStatus::Pending, false],
+        'disabled' => [TwoFactorStatus::Disabled, false],
+    ]);
+
+    it('reads it off an existing account Google claims for the first time', function () {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->andReturn(($this->withTwoFactor)(TwoFactorStatus::Enabled));
+        $this->accounts->shouldReceive('save')->once();
+        $this->socialIdentities->shouldReceive('save')->once();
+        $this->events->shouldReceive('dispatch')->once();
+
+        $data = $this->useCase->handle(GoogleFixtures::input())->value();
+
+        expect($data->isNewAccount)->toBeFalse()
+            ->and($data->requiresSecondFactor)->toBeTrue();
+    });
+
+    it('reads it off the account adopted after losing a registration race', function () {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()->andReturn(null, null);
+        $this->accounts->shouldReceive('findByEmail')->twice()
+            ->andReturn(null, ($this->withTwoFactor)(TwoFactorStatus::Enabled));
+        $this->accounts->shouldReceive('save')->once()->andThrow(AccountAlreadyRegistered::withEmail(GoogleFixtures::EMAIL));
+        $this->events->shouldNotReceive('dispatch');
+
+        expect($this->useCase->handle(GoogleFixtures::input())->value()->requiresSecondFactor)->toBeTrue();
     });
 });
 

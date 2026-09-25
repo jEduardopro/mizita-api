@@ -20,4 +20,9 @@ interface TeamRoster
      * @return list<string>
      */
     public function emailsAlreadyOnTeam(string $businessId, array $emails): array;
+
+    /**
+     * @return list<string>
+     */
+    public function accountIdsOnTeam(string $businessId): array;
 }

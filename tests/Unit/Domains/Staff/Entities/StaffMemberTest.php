@@ -149,6 +149,29 @@ describe('changing the level of a member', function () {
     ]);
 });
 
+describe('owning the business', function () {
+    it('owns the business only when it holds the owner role', function (StaffRole $role, bool $owns) {
+        expect(staffMemberWithRole($role)->ownsBusiness())->toBe($owns);
+    })->with([
+        'owner' => [StaffRole::Owner, true],
+        'staff' => [StaffRole::Member, false],
+        'no access' => [StaffRole::NoAccess, false],
+    ]);
+
+    it('owns the business it registered', function () {
+        expect(StaffMember::registerOwner(STAFF_MEMBER_ID, STAFF_BUSINESS_ID, STAFF_ACCOUNT_ID, new DateTimeImmutable('2026-01-01T12:00:00+00:00'))->ownsBusiness())
+            ->toBeTrue();
+    });
+
+    it('never owns a business it was invited to', function (StaffRole $role) {
+        expect(StaffMember::register(STAFF_MEMBER_ID, STAFF_BUSINESS_ID, STAFF_ACCOUNT_ID, new DateTimeImmutable('2026-01-01T12:00:00+00:00'), $role)->ownsBusiness())
+            ->toBeFalse();
+    })->with([
+        'staff' => StaffRole::Member,
+        'no access' => StaffRole::NoAccess,
+    ]);
+});
+
 describe('removing a member', function () {
     it('lets anyone but the owner be removed', function (StaffRole $role) {
         expect(fn () => staffMemberWithRole($role)->ensureRemovable())->not->toThrow(Throwable::class);

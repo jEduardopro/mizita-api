@@ -69,6 +69,16 @@ return [
         'password_change_required' => 'You need to set a new password before continuing.',
         'account_holds_own_password' => 'This account already has its own password.',
         'account_signs_in_with_social_identity' => 'This account already signs in with a linked provider.',
+        'incorrect_account_password' => 'That password is not correct.',
+        'account_deletion_email_mismatch' => 'The email you typed does not match your account.',
+        'account_has_upcoming_appointments' => 'You still have upcoming appointments assigned to you in a team. Ask the business to reassign or cancel them before deleting your account.',
+        'account_pending_reactivation' => 'This account is scheduled for deletion. Reactivate it before signing in.',
+        'account_already_scheduled_for_deletion' => 'This account is already scheduled for deletion.',
+        'account_not_scheduled_for_deletion' => 'This account is not scheduled for deletion.',
+        'account_reactivation_not_pending' => 'There is no account waiting to be reactivated. Please sign in again.',
+        'two_factor_required' => 'Enter the code from your authenticator app, or a recovery code, to finish signing in.',
+        'invalid_two_factor_code' => 'That authentication code is not valid.',
+        'invalid_recovery_code' => 'That recovery code is not valid.',
 
         // Business onboarding. The wording never repeats the name, slug or
         // timezone that was rejected - the caller already knows what it sent.
@@ -87,6 +97,9 @@ return [
         'invalid_business_coordinates' => 'That map location is not valid.',
         'business_logo_too_large' => 'That logo is too large. Please use one under 2 MB.',
         'unsupported_business_logo' => 'That file is not an image we support. Please use a JPG, PNG or WebP.',
+        'business_already_closed' => 'That business is already closed.',
+        'business_not_closed' => 'That business is not closed.',
+        'business_not_due_for_purge' => 'That business cannot be erased yet.',
 
         // One sentence for every way a phone number is turned down - a country
         // we do not operate in, or digits that are not a number within one we

@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\Accounts\FakeAccountSessions;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -20,10 +22,12 @@ const UPDATE_TEMPORARY_PASSWORD = 'Tq7mW2xK9pLr4ZvB8nYd';
 
 const STOPPED_AFTER_SAVING = 'The update was stopped once the account was about to be saved.';
 
-function refusedPasswordUpdate(User $user, array $input): ValidationException
+const UPDATE_PASSWORD_ACCOUNT_UUID = '01930000-0000-7000-8000-00000000ac09';
+
+function refusedPasswordUpdate(UpdateUserPassword $action, User $user, array $input): ValidationException
 {
     try {
-        (new UpdateUserPassword)->update($user, $input);
+        $action->update($user, $input);
     } catch (ValidationException $refusal) {
         return $refusal;
     }
@@ -32,13 +36,15 @@ function refusedPasswordUpdate(User $user, array $input): ValidationException
 }
 
 beforeEach(function () {
+    $this->sessions = new FakeAccountSessions;
+    $this->action = new UpdateUserPassword($this->sessions);
     $this->passwordAccount = (new User)->forceFill(['password' => CURRENT_PASSWORD]);
     $this->googleAccount = new User;
 });
 
 describe('an account that signs in with a password', function () {
     it('requires the current password', function () {
-        $refusal = refusedPasswordUpdate($this->passwordAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->passwordAccount, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => STRONG_PASSWORD,
         ]);
@@ -49,7 +55,7 @@ describe('an account that signs in with a password', function () {
     it('rejects a current password that does not match the stored one', function () {
         $this->actingAs($this->passwordAccount, 'web');
 
-        $refusal = refusedPasswordUpdate($this->passwordAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->passwordAccount, [
             'current_password' => 'Wr0ng!Pass',
             'password' => STRONG_PASSWORD,
             'password_confirmation' => STRONG_PASSWORD,
@@ -61,7 +67,7 @@ describe('an account that signs in with a password', function () {
     it('leaves the stored password untouched when the update is refused', function () {
         $storedHash = $this->passwordAccount->getAuthPassword();
 
-        refusedPasswordUpdate($this->passwordAccount, [
+        refusedPasswordUpdate($this->action, $this->passwordAccount, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => STRONG_PASSWORD,
         ]);
@@ -73,7 +79,7 @@ describe('an account that signs in with a password', function () {
 
 describe('an account created through Google, with no password yet', function () {
     it('does not ask for a current password it never had', function () {
-        $refusal = refusedPasswordUpdate($this->googleAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->googleAccount, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => 'Different1!Pass',
         ]);
@@ -82,7 +88,7 @@ describe('an account created through Google, with no password yet', function () 
     });
 
     it('ignores a current password it was sent anyway', function () {
-        $refusal = refusedPasswordUpdate($this->googleAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->googleAccount, [
             'current_password' => 'anything at all',
             'password' => STRONG_PASSWORD,
             'password_confirmation' => 'Different1!Pass',
@@ -101,7 +107,7 @@ describe('an account still holding the temporary password it was issued', functi
     });
 
     it('does not ask for the temporary password it was handed', function () {
-        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->temporaryAccount, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => 'Different1!Pass',
         ]);
@@ -110,7 +116,7 @@ describe('an account still holding the temporary password it was issued', functi
     });
 
     it('ignores a current password it was sent anyway, even a wrong one', function () {
-        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->temporaryAccount, [
             'current_password' => 'Wr0ng!Pass',
             'password' => STRONG_PASSWORD,
             'password_confirmation' => 'Different1!Pass',
@@ -120,7 +126,7 @@ describe('an account still holding the temporary password it was issued', functi
     });
 
     it('still holds the new password to the strength rule', function () {
-        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->temporaryAccount, [
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
@@ -132,7 +138,7 @@ describe('an account still holding the temporary password it was issued', functi
     it('asks for the current password again once the flag is cleared', function () {
         $this->temporaryAccount->forceFill(['must_change_password' => false]);
 
-        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->temporaryAccount, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => STRONG_PASSWORD,
         ]);
@@ -143,7 +149,7 @@ describe('an account still holding the temporary password it was issued', functi
 
 describe('the new password', function () {
     it('rejects a password that misses the strength rule', function (string $weak) {
-        $refusal = refusedPasswordUpdate($this->googleAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->googleAccount, [
             'password' => $weak,
             'password_confirmation' => $weak,
         ]);
@@ -160,7 +166,7 @@ describe('the new password', function () {
     ]);
 
     it('rejects a password whose confirmation does not match', function () {
-        $refusal = refusedPasswordUpdate($this->googleAccount, [
+        $refusal = refusedPasswordUpdate($this->action, $this->googleAccount, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => 'Str0ng!Pas',
         ]);
@@ -169,7 +175,7 @@ describe('the new password', function () {
     });
 
     it('rejects a missing password', function () {
-        $refusal = refusedPasswordUpdate($this->googleAccount, []);
+        $refusal = refusedPasswordUpdate($this->action, $this->googleAccount, []);
 
         expect(array_keys($refusal->errors()))->toBe(['password']);
     });
@@ -177,7 +183,7 @@ describe('the new password', function () {
 
 describe('where the refusal is reported', function () {
     it('reports every refusal under the update password error bag', function (string $account, array $input) {
-        expect(refusedPasswordUpdate($this->{$account}, $input)->errorBag)->toBe(UPDATE_PASSWORD_BAG);
+        expect(refusedPasswordUpdate($this->action, $this->{$account}, $input)->errorBag)->toBe(UPDATE_PASSWORD_BAG);
     })->with([
         'a missing current password' => ['passwordAccount', ['password' => STRONG_PASSWORD, 'password_confirmation' => STRONG_PASSWORD]],
         'a weak new password' => ['googleAccount', ['password' => 'password', 'password_confirmation' => 'password']],
@@ -205,7 +211,7 @@ describe('an update that is accepted', function () {
     it('discards the temporary password an owner could still copy', function (string $account) {
         $this->{$account}->forceFill(['temporary_password' => UPDATE_TEMPORARY_PASSWORD]);
 
-        expect(fn () => (new UpdateUserPassword)->update($this->{$account}, [
+        expect(fn () => $this->action->update($this->{$account}, [
             'password' => STRONG_PASSWORD,
             'password_confirmation' => STRONG_PASSWORD,
         ]))
@@ -218,4 +224,42 @@ describe('an update that is accepted', function () {
         'still holding the temporary password' => 'temporaryAccount',
         'created through Google' => 'googleAccount',
     ]);
+
+    it('ends no session when the save fails', function () {
+        expect(fn () => $this->action->update($this->temporaryAccount, [
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => STRONG_PASSWORD,
+        ]))->toThrow(RuntimeException::class, STOPPED_AFTER_SAVING)
+            ->and($this->sessions->endedExcept)->toBe([])
+            ->and($this->sessions->endedForAll)->toBe([]);
+    });
+});
+
+describe('the other sessions of the account', function () {
+    it('ends none when the update is refused', function () {
+        refusedPasswordUpdate($this->action, $this->passwordAccount, [
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => STRONG_PASSWORD,
+        ]);
+
+        expect($this->sessions->endedExcept)->toBe([])
+            ->and($this->sessions->endedForAll)->toBe([]);
+    });
+
+    it('ends every other session of the account by its uuid, keeping the current one', function () {
+        $account = (new User)->forceFill(['uuid' => UPDATE_PASSWORD_ACCOUNT_UUID]);
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (Closure $work): mixed => $work());
+        User::saving(fn (): bool => false);
+
+        $this->action->update($account, [
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => STRONG_PASSWORD,
+        ]);
+
+        expect($this->sessions->endedExcept)->toBe([[
+            'accountId' => UPDATE_PASSWORD_ACCOUNT_UUID,
+            'keptSessionId' => Session::getId(),
+        ]])
+            ->and($this->sessions->endedForAll)->toBe([]);
+    });
 });

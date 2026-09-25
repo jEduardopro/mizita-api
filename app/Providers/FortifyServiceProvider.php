@@ -6,6 +6,8 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Domains\Accounts\Infrastructure\Auth\PasswordCredentialsAuthenticator;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,6 +16,8 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\Passkeys;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -24,6 +28,12 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
+        Fortify::authenticateUsing(
+            fn (Request $request): ?User => $this->app->make(PasswordCredentialsAuthenticator::class)->authenticate($request),
+        );
+        Passkeys::authorizeLoginUsing(
+            fn (Request $request, ?PasskeyUser $user): bool => $this->isActiveAccount($user),
+        );
 
         $this->registerViews();
 
@@ -58,5 +68,14 @@ class FortifyServiceProvider extends ServiceProvider
             'token' => (string) $request->route('token'),
             'email' => (string) $request->query('email', ''),
         ]));
+
+        Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
+
+        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+    }
+
+    private function isActiveAccount(?PasskeyUser $user): bool
+    {
+        return $user instanceof User && ! $user->trashed();
     }
 }

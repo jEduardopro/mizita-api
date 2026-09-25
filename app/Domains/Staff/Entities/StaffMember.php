@@ -109,11 +109,16 @@ final class StaffMember
 
     public function removalBlocker(): ?RemovalBlocker
     {
-        if ($this->role === StaffRole::Owner) {
+        if ($this->ownsBusiness()) {
             return RemovalBlocker::Owner;
         }
 
         return null;
+    }
+
+    public function ownsBusiness(): bool
+    {
+        return $this->role === StaffRole::Owner;
     }
 
     public function hasPendingInvitation(AccountSnapshot $account): bool

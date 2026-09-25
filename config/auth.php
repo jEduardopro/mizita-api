@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Accounts\Infrastructure\Auth\AccountsIncludingDeletedUserProvider;
 use App\Models\User;
 
 return [
@@ -67,6 +68,11 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
+        'accounts_including_deleted' => [
+            'driver' => AccountsIncludingDeletedUserProvider::DRIVER,
+            'model' => env('AUTH_MODEL', User::class),
+        ],
+
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
@@ -94,7 +100,7 @@ return [
 
     'passwords' => [
         'users' => [
-            'provider' => 'users',
+            'provider' => 'accounts_including_deleted',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

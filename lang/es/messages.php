@@ -69,6 +69,16 @@ return [
         'password_change_required' => 'Necesitas establecer una nueva contraseña antes de continuar.',
         'account_holds_own_password' => 'Esta cuenta ya tiene su propia contraseña.',
         'account_signs_in_with_social_identity' => 'Esta cuenta ya inicia sesión con un proveedor vinculado.',
+        'incorrect_account_password' => 'Esa contraseña no es correcta.',
+        'account_deletion_email_mismatch' => 'El correo que escribiste no coincide con el de tu cuenta.',
+        'account_has_upcoming_appointments' => 'Todavía tienes citas próximas asignadas en un equipo. Pide al negocio que las reasigne o cancele antes de eliminar tu cuenta.',
+        'account_pending_reactivation' => 'Esta cuenta está programada para eliminarse. Reactívala antes de iniciar sesión.',
+        'account_already_scheduled_for_deletion' => 'Esta cuenta ya está programada para eliminarse.',
+        'account_not_scheduled_for_deletion' => 'Esta cuenta no está programada para eliminarse.',
+        'account_reactivation_not_pending' => 'No hay ninguna cuenta pendiente de reactivar. Inicia sesión de nuevo.',
+        'two_factor_required' => 'Escribe el código de tu app de autenticación, o un código de recuperación, para terminar de iniciar sesión.',
+        'invalid_two_factor_code' => 'Ese código de autenticación no es válido.',
+        'invalid_recovery_code' => 'Ese código de recuperación no es válido.',
 
         // Business onboarding. The wording never repeats the name, slug or
         // timezone that was rejected - the caller already knows what it sent.
@@ -87,6 +97,9 @@ return [
         'invalid_business_coordinates' => 'Esa ubicación en el mapa no es válida.',
         'business_logo_too_large' => 'Ese logotipo es demasiado grande. Usa uno de menos de 2 MB.',
         'unsupported_business_logo' => 'Ese archivo no es una imagen compatible. Usa un JPG, PNG o WebP.',
+        'business_already_closed' => 'Ese negocio ya está cerrado.',
+        'business_not_closed' => 'Ese negocio no está cerrado.',
+        'business_not_due_for_purge' => 'Ese negocio todavía no se puede borrar.',
 
         // One sentence for every way a phone number is turned down - a country
         // we do not operate in, or digits that are not a number within one we

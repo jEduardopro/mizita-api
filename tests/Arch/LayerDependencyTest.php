@@ -115,12 +115,25 @@ arch('sends a team invitation without a business context, because it runs from a
     ->expect('App\Domains\Staff\Application\UseCases\SendTeamInvitation')
     ->not->toUse('App\Shared\Contracts\BusinessContext');
 
+arch('removes an account\'s memberships without a business context, because it acts on one account across every business from a cross-tenant route')
+    ->expect('App\Domains\Staff\Application\UseCases\RemoveAccountMemberships')
+    ->not->toUse('App\Shared\Contracts\BusinessContext');
+
+arch('checks an account\'s memberships removal without a business context, because it acts on one account across every business from a cross-tenant route')
+    ->expect('App\Domains\Staff\Application\UseCases\CheckAccountMembershipsRemoval')
+    ->not->toUse('App\Shared\Contracts\BusinessContext');
+
 it('takes the tenant from the business context in every other staff use case', function () {
     $useCases = glob(dirname(__DIR__, 2).'/app/Domains/Staff/Application/UseCases/*.php') ?: [];
 
     $withoutContext = array_values(array_filter(
         $useCases,
-        static fn (string $file): bool => ! in_array(basename($file), ['RegisterBusinessOwner.php', 'SendTeamInvitation.php'], true)
+        static fn (string $file): bool => ! in_array(basename($file), [
+            'RegisterBusinessOwner.php',
+            'SendTeamInvitation.php',
+            'RemoveAccountMemberships.php',
+            'CheckAccountMembershipsRemoval.php',
+        ], true)
             && ! str_contains((string) file_get_contents($file), 'App\Shared\Contracts\BusinessContext'),
     ));
 

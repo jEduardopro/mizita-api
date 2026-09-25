@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Domains\Accounts\Entities;
 
+use App\Domains\Accounts\Exceptions\AccountAlreadyScheduledForDeletion;
+use App\Domains\Accounts\Exceptions\AccountDeletionEmailMismatch;
 use App\Domains\Accounts\Exceptions\AccountHoldsOwnPassword;
+use App\Domains\Accounts\Exceptions\AccountNotScheduledForDeletion;
+use App\Domains\Accounts\Exceptions\AccountPendingReactivation;
 use App\Domains\Accounts\Exceptions\AccountSignsInWithSocialIdentity;
 use App\Domains\Accounts\Exceptions\InvalidAccountEmail;
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
+use App\Domains\Accounts\ValueObjects\DeletionGracePeriod;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use DateTimeImmutable;
 
 final class Account
@@ -28,6 +34,8 @@ final class Account
         private PasswordStatus $passwordStatus,
         private ?string $issuedPasswordHash,
         private readonly array $linkedSocialProviders,
+        private ?DateTimeImmutable $deletionRequestedAt,
+        private readonly TwoFactorStatus $twoFactorStatus,
     ) {}
 
     public static function registerWithVerifiedEmail(
@@ -45,6 +53,8 @@ final class Account
             passwordStatus: PasswordStatus::Absent,
             issuedPasswordHash: null,
             linkedSocialProviders: [],
+            deletionRequestedAt: null,
+            twoFactorStatus: TwoFactorStatus::Disabled,
         );
     }
 
@@ -64,6 +74,8 @@ final class Account
             passwordStatus: PasswordStatus::Temporary,
             issuedPasswordHash: $temporaryPasswordHash,
             linkedSocialProviders: [],
+            deletionRequestedAt: null,
+            twoFactorStatus: TwoFactorStatus::Disabled,
         );
     }
 
@@ -82,6 +94,8 @@ final class Account
             passwordStatus: PasswordStatus::Absent,
             issuedPasswordHash: null,
             linkedSocialProviders: [],
+            deletionRequestedAt: null,
+            twoFactorStatus: TwoFactorStatus::Disabled,
         );
     }
 
@@ -96,6 +110,8 @@ final class Account
         DateTimeImmutable $createdAt,
         PasswordStatus $passwordStatus = PasswordStatus::Absent,
         array $linkedSocialProviders = [],
+        ?DateTimeImmutable $deletionRequestedAt = null,
+        TwoFactorStatus $twoFactorStatus = TwoFactorStatus::Disabled,
     ): self {
         return new self(
             id: $id,
@@ -106,6 +122,8 @@ final class Account
             passwordStatus: $passwordStatus,
             issuedPasswordHash: null,
             linkedSocialProviders: $linkedSocialProviders,
+            deletionRequestedAt: $deletionRequestedAt,
+            twoFactorStatus: $twoFactorStatus,
         );
     }
 
@@ -146,6 +164,82 @@ final class Account
         $this->issuedPasswordHash = $temporaryPasswordHash;
     }
 
+    /**
+     * @throws AccountAlreadyScheduledForDeletion
+     */
+    public function scheduleDeletion(DateTimeImmutable $now): void
+    {
+        if ($this->isScheduledForDeletion()) {
+            throw AccountAlreadyScheduledForDeletion::forAccount($this->id);
+        }
+
+        $this->deletionRequestedAt = $now;
+    }
+
+    /**
+     * @throws AccountNotScheduledForDeletion
+     */
+    public function reactivate(): void
+    {
+        $this->ensureScheduledForDeletion();
+
+        $this->deletionRequestedAt = null;
+    }
+
+    /**
+     * @throws AccountPendingReactivation
+     */
+    public function ensureActive(): void
+    {
+        if ($this->isScheduledForDeletion()) {
+            throw AccountPendingReactivation::forAccount($this->id);
+        }
+    }
+
+    /**
+     * @throws AccountNotScheduledForDeletion
+     */
+    public function ensureScheduledForDeletion(): void
+    {
+        if (! $this->isScheduledForDeletion()) {
+            throw AccountNotScheduledForDeletion::forAccount($this->id);
+        }
+    }
+
+    /**
+     * @throws AccountDeletionEmailMismatch
+     */
+    public function ensureDeletionConfirmedBy(string $typedEmail): void
+    {
+        if (mb_strtolower(trim($typedEmail)) !== mb_strtolower($this->email)) {
+            throw AccountDeletionEmailMismatch::forAccount($this->id);
+        }
+    }
+
+    public function holdsPassword(): bool
+    {
+        return $this->passwordStatus !== PasswordStatus::Absent;
+    }
+
+    public function isScheduledForDeletion(): bool
+    {
+        return $this->deletionRequestedAt !== null;
+    }
+
+    public function deletionRequestedAt(): ?DateTimeImmutable
+    {
+        return $this->deletionRequestedAt;
+    }
+
+    public function gracePeriodEndsAt(): ?DateTimeImmutable
+    {
+        if ($this->deletionRequestedAt === null) {
+            return null;
+        }
+
+        return DeletionGracePeriod::endingFrom($this->deletionRequestedAt);
+    }
+
     public function name(): string
     {
         return $this->name;
@@ -159,6 +253,16 @@ final class Account
     public function emailVerifiedAt(): ?DateTimeImmutable
     {
         return $this->emailVerifiedAt;
+    }
+
+    public function twoFactorStatus(): TwoFactorStatus
+    {
+        return $this->twoFactorStatus;
+    }
+
+    public function requiresSecondFactor(): bool
+    {
+        return $this->twoFactorStatus->requiresSecondFactor();
     }
 
     public function mustChangePassword(): bool

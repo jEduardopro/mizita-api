@@ -70,6 +70,32 @@ final class StaffRoleAssignments
     }
 
     /**
+     * @return array<int, StaffRole>
+     */
+    public function rolesAcrossBusinessesOf(User $account): array
+    {
+        $names = $this->assignmentsOf($account)
+            ->pluck(self::ROLES_TABLE.'.name', self::ASSIGNMENTS_TABLE.'.'.self::TEAM_COLUMN);
+
+        $roles = [];
+
+        foreach ($names as $businessKey => $name) {
+            $roles[(int) $businessKey] = StaffRole::from((string) $name);
+        }
+
+        return $roles;
+    }
+
+    public function ownedBusinessKeyOf(User $account): ?int
+    {
+        $businessKey = $this->assignmentsOf($account)
+            ->where(self::ROLES_TABLE.'.name', StaffRole::Owner->value)
+            ->value(self::ASSIGNMENTS_TABLE.'.'.self::TEAM_COLUMN);
+
+        return $businessKey === null ? null : (int) $businessKey;
+    }
+
+    /**
      * @return array{roles: list<string>, permissions: list<string>}
      */
     public function grantsFor(User $account, int $businessKey): array

@@ -43,7 +43,19 @@ interface StaffMemberRepository
      */
     public function findManyIncludingArchived(string $businessId, array $ids): array;
 
+    /**
+     * @return list<StaffMember>
+     */
+    public function allForAccount(string $accountId): array;
+
+    /**
+     * @return list<StaffMember>
+     */
+    public function allInOpenBusinessesForAccount(string $accountId): array;
+
     public function ownsAnyBusiness(string $accountId): bool;
+
+    public function ownedBusinessIdOf(string $accountId): ?string;
 
     /**
      * @throws StaffMemberNotFound

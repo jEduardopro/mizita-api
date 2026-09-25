@@ -8,6 +8,8 @@ use App\Domains\Businesses\Entities\Business;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
 use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
+use App\Domains\Businesses\Exceptions\InvalidBusinessOwner;
+use DateTimeImmutable;
 
 interface BusinessRepository
 {
@@ -27,6 +29,15 @@ interface BusinessRepository
      */
     public function findManyByIds(array $ids): array;
 
+    public function findClosedById(string $id): ?Business;
+
+    public function findClosedOwnedBy(string $accountId): ?Business;
+
+    /**
+     * @return list<string>
+     */
+    public function idsDueForPurge(DateTimeImmutable $cutoff): array;
+
     public function existsByName(string $name): bool;
 
     public function existsBySlug(string $slug): bool;
@@ -39,6 +50,7 @@ interface BusinessRepository
     /**
      * @throws BusinessNameAlreadyTaken
      * @throws BusinessSlugAlreadyTaken
+     * @throws InvalidBusinessOwner
      */
     public function save(Business $business): void;
 

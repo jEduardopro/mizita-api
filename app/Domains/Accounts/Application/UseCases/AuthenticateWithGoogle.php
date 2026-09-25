@@ -14,6 +14,7 @@ use App\Domains\Accounts\Entities\SocialIdentity;
 use App\Domains\Accounts\Events\AccountRegistered;
 use App\Domains\Accounts\Events\SocialIdentityLinked;
 use App\Domains\Accounts\Exceptions\AccountAlreadyRegistered;
+use App\Domains\Accounts\Exceptions\AccountPendingReactivation;
 use App\Domains\Accounts\Exceptions\GoogleEmailNotVerified;
 use App\Domains\Accounts\Exceptions\SocialIdentityAlreadyLinked;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
@@ -86,6 +87,8 @@ final class AuthenticateWithGoogle
         $account = $this->accounts->findByEmail($email);
 
         if ($account !== null) {
+            $account->ensureActive();
+
             return $this->claim($account, $input->googleUserId);
         }
 
@@ -114,8 +117,13 @@ final class AuthenticateWithGoogle
         throw $conflict;
     }
 
+    /**
+     * @throws AccountPendingReactivation
+     */
     private function alreadyAuthenticated(Account $account): AuthenticationOutcome
     {
+        $account->ensureActive();
+
         return new AuthenticationOutcome(
             AuthenticatedAccountData::forExistingAccount($account),
             [],

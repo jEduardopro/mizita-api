@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LoginCard, type LoginForm } from '@/components/auth/LoginCard';
+import { PasskeySignInButton } from '@/domains/accounts/components/PasskeySignInButton';
 import { AuthTileLayout } from '@/layouts/AuthTileLayout';
 
 export default function Login() {
@@ -28,7 +29,12 @@ export default function Login() {
 
     return (
         <AuthTileLayout title={t('login.title')}>
-            <LoginCard form={form} status={status} onSubmit={submit} />
+            <LoginCard
+                form={form}
+                status={status}
+                onSubmit={submit}
+                passkeySignIn={<PasskeySignInButton remember={form.data.remember} />}
+            />
         </AuthTileLayout>
     );
 }

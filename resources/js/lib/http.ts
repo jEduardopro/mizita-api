@@ -9,6 +9,8 @@ const TOO_MANY_REQUESTS_STATUS = 429;
 
 const FORBIDDEN_STATUS = 403;
 
+const LOCKED_STATUS = 423;
+
 const PASSWORD_CHANGE_REQUIRED_CODE = 'password_change_required';
 
 export type FieldErrors = Record<string, string>;
@@ -79,6 +81,10 @@ export function isPasswordChangeRequiredError(error: unknown): boolean {
         httpStatusFrom(error) === FORBIDDEN_STATUS &&
         errorCodeFrom(error) === PASSWORD_CHANGE_REQUIRED_CODE
     );
+}
+
+export function isPasswordConfirmationRequiredError(error: unknown): boolean {
+    return httpStatusFrom(error) === LOCKED_STATUS;
 }
 
 export function httpStatusFrom(error: unknown): number | undefined {

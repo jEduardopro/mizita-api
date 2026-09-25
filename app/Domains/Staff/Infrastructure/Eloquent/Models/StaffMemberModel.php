@@ -36,7 +36,7 @@ class StaffMemberModel extends Model
      */
     public function account(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'account_id');
+        return $this->belongsTo(User::class, 'account_id')->withTrashed();
     }
 
     /**

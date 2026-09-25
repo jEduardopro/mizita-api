@@ -25,6 +25,7 @@ use App\Shared\ValueObjects\SearchTerm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -144,14 +145,55 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository, Team
         );
     }
 
+    /**
+     * @return list<StaffMember>
+     */
+    public function allForAccount(string $accountId): array
+    {
+        return $this->membershipsOfAccount(
+            $accountId,
+            StaffMemberModel::query()->with(['business' => static fn (BelongsTo $business) => $business->withTrashed()]),
+        );
+    }
+
+    /**
+     * @return list<StaffMember>
+     */
+    public function allInOpenBusinessesForAccount(string $accountId): array
+    {
+        return $this->membershipsOfAccount(
+            $accountId,
+            StaffMemberModel::query()->with('business')->whereHas('business'),
+        );
+    }
+
     public function ownsAnyBusiness(string $accountId): bool
     {
         return $this->roles->ownsAnyBusiness($this->accountFor($accountId));
     }
 
+    public function ownedBusinessIdOf(string $accountId): ?string
+    {
+        $account = $this->accountIncludingDeleted($accountId);
+
+        if ($account === null) {
+            return null;
+        }
+
+        $businessKey = $this->roles->ownedBusinessKeyOf($account);
+
+        if ($businessKey === null) {
+            return null;
+        }
+
+        $businessId = BusinessModel::withTrashed()->whereKey($businessKey)->value('uuid');
+
+        return $businessId === null ? null : (string) $businessId;
+    }
+
     public function delete(string $businessId, string $id): void
     {
-        $businessKey = $this->businessKey($businessId);
+        $businessKey = $this->businessKeyIncludingClosed($businessId);
 
         $model = StaffMemberModel::query()
             ->with('account')
@@ -216,6 +258,20 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository, Team
             ->pluck(self::USERS_TABLE.'.email')
             ->map(static fn (mixed $email): string => mb_strtolower((string) $email))
             ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function accountIdsOnTeam(string $businessId): array
+    {
+        return $this->withAccounts()
+            ->where('staff_members.business_id', $this->businessKeyIncludingClosed($businessId))
+            ->distinct()
+            ->pluck(self::USERS_TABLE.'.uuid')
+            ->map(static fn (mixed $accountId): string => (string) $accountId)
             ->values()
             ->all();
     }
@@ -303,6 +359,42 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository, Team
         };
     }
 
+    /**
+     * @param  Builder<StaffMemberModel>  $memberships
+     * @return list<StaffMember>
+     */
+    private function membershipsOfAccount(string $accountId, Builder $memberships): array
+    {
+        $account = $this->accountIncludingDeleted($accountId);
+
+        if ($account === null) {
+            return [];
+        }
+
+        $roles = $this->roles->rolesAcrossBusinessesOf($account);
+
+        $models = $memberships
+            ->where('account_id', $account->getKey())
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        $members = [];
+
+        foreach ($models as $model) {
+            $business = $model->business;
+            $role = $roles[(int) $model->business_id] ?? null;
+
+            if ($business === null || $role === null) {
+                continue;
+            }
+
+            $members[] = $this->mapper->toEntity($model, $business->uuid, $account->uuid, $role);
+        }
+
+        return $members;
+    }
+
     private function hydrateOrFail(
         ?StaffMemberModel $model,
         string $businessId,
@@ -366,7 +458,20 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository, Team
 
     private function businessKey(string $businessId): int
     {
-        $key = BusinessModel::query()->where('uuid', $businessId)->value('id');
+        return self::keyOf(BusinessModel::query(), $businessId);
+    }
+
+    private function businessKeyIncludingClosed(string $businessId): int
+    {
+        return self::keyOf(BusinessModel::withTrashed(), $businessId);
+    }
+
+    /**
+     * @param  Builder<BusinessModel>  $businesses
+     */
+    private static function keyOf(Builder $businesses, string $businessId): int
+    {
+        $key = $businesses->where('uuid', $businessId)->value('id');
 
         if ($key === null) {
             throw (new ModelNotFoundException)->setModel(BusinessModel::class, [$businessId]);
@@ -384,5 +489,10 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository, Team
         }
 
         return $account;
+    }
+
+    private function accountIncludingDeleted(string $accountId): ?User
+    {
+        return User::withTrashed()->where('uuid', $accountId)->first();
     }
 }

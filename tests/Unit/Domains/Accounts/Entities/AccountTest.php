@@ -3,14 +3,21 @@
 declare(strict_types=1);
 
 use App\Domains\Accounts\Entities\Account;
+use App\Domains\Accounts\Exceptions\AccountAlreadyScheduledForDeletion;
+use App\Domains\Accounts\Exceptions\AccountDeletionEmailMismatch;
 use App\Domains\Accounts\Exceptions\AccountHoldsOwnPassword;
+use App\Domains\Accounts\Exceptions\AccountNotScheduledForDeletion;
+use App\Domains\Accounts\Exceptions\AccountPendingReactivation;
 use App\Domains\Accounts\Exceptions\AccountSignsInWithSocialIdentity;
 use App\Domains\Accounts\Exceptions\InvalidAccountEmail;
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
+use App\Domains\Accounts\ValueObjects\DeletionGracePeriod;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Tests\Support\Accounts\AccountDeletionFixtures;
 
 describe('registerWithVerifiedEmail', function () {
     it('registers an account already verified at the given instant', function () {
@@ -514,6 +521,295 @@ describe('an account that signs in with a linked social identity', function () {
         expect($refusal)->toBeInstanceOf(DomainFailure::class)
             ->and($refusal->errorCode())->toBe('account_signs_in_with_social_identity')
             ->and($refusal->kind())->toBe(DomainFailureKind::Conflict);
+    });
+});
+
+describe('an account that was never asked to be deleted', function () {
+    it('is not scheduled for deletion and has no grace period, however it was created', function (Account $account) {
+        expect($account->isScheduledForDeletion())->toBeFalse()
+            ->and($account->deletionRequestedAt())->toBeNull()
+            ->and($account->gracePeriodEndsAt())->toBeNull();
+    })->with([
+        'registered through Google' => fn () => Account::registerWithVerifiedEmail('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable),
+        'invited with a temporary password' => fn () => Account::inviteWithTemporaryPassword('account-uuid', 'Ada', 'ada@example.com', 'temporary-hash', new DateTimeImmutable),
+        'invited without a password' => fn () => Account::inviteWithoutPassword('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable),
+        'restored with no deletion request' => fn () => Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable),
+    ]);
+});
+
+describe('scheduleDeletion', function () {
+    it('records the instant the deletion was requested', function () {
+        $account = AccountDeletionFixtures::activeAccount();
+
+        $account->scheduleDeletion(AccountDeletionFixtures::now());
+
+        expect($account->isScheduledForDeletion())->toBeTrue()
+            ->and($account->deletionRequestedAt())->toEqual(AccountDeletionFixtures::now());
+    });
+
+    it('ends the grace period exactly thirty days after the request', function () {
+        $account = AccountDeletionFixtures::activeAccount();
+
+        $account->scheduleDeletion(AccountDeletionFixtures::now());
+
+        expect($account->gracePeriodEndsAt()->format(DATE_ATOM))->toBe(AccountDeletionFixtures::GRACE_PERIOD_ENDS_AT)
+            ->and($account->gracePeriodEndsAt()->getTimestamp() - AccountDeletionFixtures::now()->getTimestamp())
+            ->toBe(DeletionGracePeriod::DAYS * 86400);
+    });
+
+    it('leaves the identity, the name, the email and the password status untouched', function () {
+        $account = AccountDeletionFixtures::activeAccount(PasswordStatus::Chosen);
+
+        $account->scheduleDeletion(AccountDeletionFixtures::now());
+
+        expect($account->id)->toBe(AccountDeletionFixtures::ACCOUNT_ID)
+            ->and($account->name())->toBe(AccountDeletionFixtures::NAME)
+            ->and($account->email())->toBe(AccountDeletionFixtures::EMAIL)
+            ->and($account->holdsPassword())->toBeTrue();
+    });
+
+    it('refuses to schedule an account twice', function () {
+        $account = AccountDeletionFixtures::scheduledAccount();
+
+        expect(fn () => $account->scheduleDeletion(AccountDeletionFixtures::now()))
+            ->toThrow(AccountAlreadyScheduledForDeletion::class, 'Account [01930000-0000-7000-8000-00000000ac01] is already scheduled for deletion.');
+    });
+
+    it('keeps the first request, and so the first grace period, when it refuses', function () {
+        $account = AccountDeletionFixtures::scheduledAccount();
+
+        expect(fn () => $account->scheduleDeletion(AccountDeletionFixtures::now()))->toThrow(AccountAlreadyScheduledForDeletion::class)
+            ->and($account->deletionRequestedAt()->format(DATE_ATOM))->toBe(AccountDeletionFixtures::DELETION_REQUESTED_AT)
+            ->and($account->gracePeriodEndsAt()->format(DATE_ATOM))->toBe(AccountDeletionFixtures::REQUESTED_GRACE_PERIOD_ENDS_AT);
+    });
+
+    it('classifies the double request as a conflict with a stable code', function () {
+        $refusal = AccountAlreadyScheduledForDeletion::forAccount('account-uuid');
+
+        expect($refusal)->toBeInstanceOf(DomainFailure::class)
+            ->and($refusal->errorCode())->toBe('account_already_scheduled_for_deletion')
+            ->and($refusal->kind())->toBe(DomainFailureKind::Conflict);
+    });
+});
+
+describe('restoring an account scheduled for deletion', function () {
+    it('rehydrates the stored request and derives the grace period from it', function () {
+        $account = AccountDeletionFixtures::scheduledAccount();
+
+        expect($account->isScheduledForDeletion())->toBeTrue()
+            ->and($account->deletionRequestedAt()->format(DATE_ATOM))->toBe(AccountDeletionFixtures::DELETION_REQUESTED_AT)
+            ->and($account->gracePeriodEndsAt()->format(DATE_ATOM))->toBe(AccountDeletionFixtures::REQUESTED_GRACE_PERIOD_ENDS_AT);
+    });
+
+    it('rehydrates a request whose grace period has already run out, because purging is not its job', function () {
+        $account = AccountDeletionFixtures::scheduledAccount('2024-01-01T00:00:00+00:00');
+
+        expect($account->isScheduledForDeletion())->toBeTrue()
+            ->and($account->gracePeriodEndsAt()->format(DATE_ATOM))->toBe('2024-01-31T00:00:00+00:00');
+    });
+});
+
+describe('reactivate', function () {
+    it('clears the deletion request and the grace period', function () {
+        $account = AccountDeletionFixtures::scheduledAccount();
+
+        $account->reactivate();
+
+        expect($account->isScheduledForDeletion())->toBeFalse()
+            ->and($account->deletionRequestedAt())->toBeNull()
+            ->and($account->gracePeriodEndsAt())->toBeNull();
+    });
+
+    it('can be scheduled for deletion again once reactivated', function () {
+        $account = AccountDeletionFixtures::scheduledAccount();
+        $account->reactivate();
+
+        $account->scheduleDeletion(AccountDeletionFixtures::now());
+
+        expect($account->deletionRequestedAt())->toEqual(AccountDeletionFixtures::now());
+    });
+
+    it('refuses to reactivate an account that is not scheduled for deletion', function () {
+        $account = AccountDeletionFixtures::activeAccount();
+
+        expect(fn () => $account->reactivate())
+            ->toThrow(AccountNotScheduledForDeletion::class, 'Account [01930000-0000-7000-8000-00000000ac01] is not scheduled for deletion.');
+    });
+
+    it('classifies the refusal as a conflict with a stable code', function () {
+        $refusal = AccountNotScheduledForDeletion::forAccount('account-uuid');
+
+        expect($refusal)->toBeInstanceOf(DomainFailure::class)
+            ->and($refusal->errorCode())->toBe('account_not_scheduled_for_deletion')
+            ->and($refusal->kind())->toBe(DomainFailureKind::Conflict);
+    });
+});
+
+describe('ensureActive', function () {
+    it('lets an active account through', function () {
+        expect(fn () => AccountDeletionFixtures::activeAccount()->ensureActive())->not->toThrow(Throwable::class);
+    });
+
+    it('stops an account scheduled for deletion, naming it', function () {
+        $refusal = null;
+
+        try {
+            AccountDeletionFixtures::scheduledAccount()->ensureActive();
+        } catch (AccountPendingReactivation $caught) {
+            $refusal = $caught;
+        }
+
+        expect($refusal)->toBeInstanceOf(AccountPendingReactivation::class)
+            ->and($refusal->accountId)->toBe(AccountDeletionFixtures::ACCOUNT_ID)
+            ->and($refusal->getMessage())
+            ->toBe('Account [01930000-0000-7000-8000-00000000ac01] is scheduled for deletion and must be reactivated before signing in.');
+    });
+
+    it('classifies the refusal as a conflict with a stable code', function () {
+        $refusal = AccountPendingReactivation::forAccount('account-uuid');
+
+        expect($refusal)->toBeInstanceOf(DomainFailure::class)
+            ->and($refusal->errorCode())->toBe('account_pending_reactivation')
+            ->and($refusal->kind())->toBe(DomainFailureKind::Conflict);
+    });
+});
+
+describe('ensureScheduledForDeletion', function () {
+    it('lets an account scheduled for deletion through', function () {
+        expect(fn () => AccountDeletionFixtures::scheduledAccount()->ensureScheduledForDeletion())->not->toThrow(Throwable::class);
+    });
+
+    it('stops an active account', function () {
+        expect(fn () => AccountDeletionFixtures::activeAccount()->ensureScheduledForDeletion())
+            ->toThrow(AccountNotScheduledForDeletion::class);
+    });
+});
+
+describe('holdsPassword', function () {
+    it('holds a password whenever one is stored, temporary or chosen', function (PasswordStatus $status, bool $holds) {
+        expect(AccountDeletionFixtures::activeAccount($status)->holdsPassword())->toBe($holds);
+    })->with([
+        'no password' => [PasswordStatus::Absent, false],
+        'a temporary password' => [PasswordStatus::Temporary, true],
+        'a chosen password' => [PasswordStatus::Chosen, true],
+    ]);
+
+    it('holds no password when it signs in only through Google', function () {
+        expect(AccountDeletionFixtures::activeAccount(PasswordStatus::Absent, linkedSocialProviders: [SocialProvider::Google])->holdsPassword())
+            ->toBeFalse();
+    });
+
+    it('holds the password it was invited with', function () {
+        expect(Account::inviteWithTemporaryPassword('account-uuid', 'Ada', 'ada@example.com', 'temporary-hash', new DateTimeImmutable)->holdsPassword())
+            ->toBeTrue();
+    });
+
+    it('holds a temporary password once one is issued', function () {
+        $account = AccountDeletionFixtures::activeAccount(PasswordStatus::Absent);
+
+        $account->issueTemporaryPassword('temporary-hash');
+
+        expect($account->holdsPassword())->toBeTrue();
+    });
+});
+
+describe('ensureDeletionConfirmedBy', function () {
+    it('accepts the account email however it was typed', function (string $typed) {
+        expect(fn () => AccountDeletionFixtures::activeAccount(PasswordStatus::Absent)->ensureDeletionConfirmedBy($typed))
+            ->not->toThrow(Throwable::class);
+    })->with([
+        'exactly' => 'ada@example.com',
+        'upper case' => 'ADA@EXAMPLE.COM',
+        'mixed case' => 'Ada@Example.Com',
+        'padded' => "  ada@example.com\n",
+        'padded and mixed case' => "\tAda@Example.com  ",
+    ]);
+
+    it('compares accented addresses without regard to case', function () {
+        $account = AccountDeletionFixtures::activeAccount(PasswordStatus::Absent, email: 'josé@example.com');
+
+        expect(fn () => $account->ensureDeletionConfirmedBy('JOSÉ@EXAMPLE.COM'))->not->toThrow(Throwable::class);
+    });
+
+    it('accepts a legacy address stored in upper case', function () {
+        $account = AccountDeletionFixtures::activeAccount(PasswordStatus::Absent, email: 'ADA@EXAMPLE.COM');
+
+        expect(fn () => $account->ensureDeletionConfirmedBy('ada@example.com'))->not->toThrow(Throwable::class);
+    });
+
+    it('refuses anything but the account email, naming the account', function (string $typed) {
+        expect(fn () => AccountDeletionFixtures::activeAccount(PasswordStatus::Absent)->ensureDeletionConfirmedBy($typed))
+            ->toThrow(AccountDeletionEmailMismatch::class, 'The email typed to confirm the deletion of account [01930000-0000-7000-8000-00000000ac01] does not match it.');
+    })->with([
+        'empty' => '',
+        'whitespace only' => "  \t ",
+        'another address' => 'grace@example.com',
+        'a truncated address' => 'ada@example.co',
+        'a longer address' => 'ada@example.com.mx',
+        'a space inside' => 'ada @example.com',
+        'the local part only' => 'ada',
+    ]);
+
+    it('changes nothing about the account when it refuses', function () {
+        $account = AccountDeletionFixtures::activeAccount(PasswordStatus::Absent);
+
+        expect(fn () => $account->ensureDeletionConfirmedBy('grace@example.com'))->toThrow(AccountDeletionEmailMismatch::class)
+            ->and($account->isScheduledForDeletion())->toBeFalse()
+            ->and($account->email())->toBe(AccountDeletionFixtures::EMAIL);
+    });
+
+    it('classifies the mismatch as invalid input with a stable code', function () {
+        $refusal = AccountDeletionEmailMismatch::forAccount('account-uuid');
+
+        expect($refusal)->toBeInstanceOf(DomainFailure::class)
+            ->and($refusal->errorCode())->toBe('account_deletion_email_mismatch')
+            ->and($refusal->kind())->toBe(DomainFailureKind::Invalid);
+    });
+});
+
+describe('the two-factor status', function () {
+    it('starts disabled however the account is created, so nobody is challenged for a code they never set up', function (Account $account) {
+        expect($account->twoFactorStatus())->toBe(TwoFactorStatus::Disabled)
+            ->and($account->requiresSecondFactor())->toBeFalse();
+    })->with([
+        'registered through Google' => fn () => Account::registerWithVerifiedEmail('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable),
+        'invited with a temporary password' => fn () => Account::inviteWithTemporaryPassword('account-uuid', 'Ada', 'ada@example.com', 'temporary-hash', new DateTimeImmutable),
+        'invited without a password' => fn () => Account::inviteWithoutPassword('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable),
+    ]);
+
+    it('restores as disabled when no status is given', function () {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable);
+
+        expect($account->twoFactorStatus())->toBe(TwoFactorStatus::Disabled)
+            ->and($account->requiresSecondFactor())->toBeFalse();
+    });
+
+    it('restores the stored status and requires a second factor only when it is enabled', function (TwoFactorStatus $status, bool $requires) {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable, twoFactorStatus: $status);
+
+        expect($account->twoFactorStatus())->toBe($status)
+            ->and($account->requiresSecondFactor())->toBe($requires);
+    })->with([
+        'disabled' => [TwoFactorStatus::Disabled, false],
+        'pending confirmation' => [TwoFactorStatus::Pending, false],
+        'enabled' => [TwoFactorStatus::Enabled, true],
+    ]);
+
+    it('still requires the second factor of an account scheduled for deletion', function () {
+        $account = Account::restore(
+            'account-uuid',
+            'Ada',
+            'ada@example.com',
+            null,
+            new DateTimeImmutable,
+            PasswordStatus::Chosen,
+            deletionRequestedAt: new DateTimeImmutable('2025-12-20T09:15:00+00:00'),
+            twoFactorStatus: TwoFactorStatus::Enabled,
+        );
+
+        $account->reactivate();
+
+        expect($account->requiresSecondFactor())->toBeTrue();
     });
 });
 

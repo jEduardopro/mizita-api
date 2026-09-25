@@ -1,5 +1,16 @@
 {
     "(and :count more error)": "(and :count more error)",
     "(and :count more errors)": "(and :count more errors)",
-    "The given data was invalid.": "The given data was invalid."
+    "Invalid credential format.": "Invalid credential format.",
+    "Passkey not recognized. It may have been removed from your account.": "Passkey not recognized. It may have been removed from your account.",
+    "Passkey registration session expired. Please try again.": "Passkey registration session expired. Please try again.",
+    "Passkey verification session expired. Please try again.": "Passkey verification session expired. Please try again.",
+    "The given data was invalid.": "The given data was invalid.",
+    "The provided password was incorrect.": "The provided password was incorrect.",
+    "The provided two factor authentication code was invalid.": "The provided two factor authentication code was invalid.",
+    "The provided two factor recovery code was invalid.": "The provided two factor recovery code was invalid.",
+    "Unable to register passkey. Please try again.": "Unable to register passkey. Please try again.",
+    "Unable to register this passkey.": "Unable to register this passkey.",
+    "Unable to sign in with this account.": "Unable to sign in with this account.",
+    "Unable to verify passkey. Please try again.": "Unable to verify passkey. Please try again."
 }

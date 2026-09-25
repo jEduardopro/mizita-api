@@ -131,10 +131,12 @@ final class EloquentAppointmentRepository implements AppointmentRepository
 
     public function hasUpcomingForStaffMember(string $businessId, string $staffMemberId, DateTimeImmutable $now): bool
     {
-        return $this->ofStaffMember($this->ofBusiness($businessId), $staffMemberId)
-            ->whereNull('cancelled_at')
-            ->where('ends_at', '>', $now->format(DATE_ATOM))
-            ->exists();
+        return $this->upcoming($this->ofStaffMember($this->ofBusiness($businessId), $staffMemberId), $now)->exists();
+    }
+
+    public function countUpcomingForBusiness(string $businessId, DateTimeImmutable $now): int
+    {
+        return $this->upcoming($this->ofBusiness($businessId), $now)->count();
     }
 
     public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment
@@ -237,6 +239,17 @@ final class EloquentAppointmentRepository implements AppointmentRepository
         }
 
         return $this->ofStaffMember($query, $staffMemberId);
+    }
+
+    /**
+     * @param  Builder<AppointmentModel>  $query
+     * @return Builder<AppointmentModel>
+     */
+    private function upcoming(Builder $query, DateTimeImmutable $now): Builder
+    {
+        return $query
+            ->whereNull('cancelled_at')
+            ->where('ends_at', '>', $now->format(DATE_ATOM));
     }
 
     /**

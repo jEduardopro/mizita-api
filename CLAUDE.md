@@ -58,7 +58,7 @@ Three route stacks follow, and the stack — not the controller — is what guar
 
 Three structural decisions worth knowing before you touch any of them:
 
-- **A staff row *is* the business membership.** `users` is pure authentication; which business a person may operate is a `staff_members` row. No staff rows means the person is an end customer. This replaced `users.business_id`, which no longer exists. The **role** is not on that row: roles and permissions are `spatie/laravel-permission`, with its teams feature on and the team being the business, so the same account can be an owner in one business and staff in another. `Staff\ValueObjects\StaffRole` stays the domain's vocabulary and names the seeded Spatie roles; nothing above `Infrastructure/` knows the package exists. How the rows are shaped is `.claude/rules/backend/access-model.md`, and it is not the obvious shape.
+- **A staff row *is* the business membership.** `users` is pure authentication; which business a person may operate is a `staff_members` row. No staff rows means the person is an end customer. This replaced `users.business_id`, which no longer exists. The **role** is not on that row: roles and permissions are `spatie/laravel-permission`, with its teams feature on and the team being the business, so the same account can be an owner in one business and staff in another. `Staff\ValueObjects\StaffRole` stays the domain's vocabulary and names the seeded Spatie roles; nothing above `Infrastructure/` knows the package exists. How the rows are shaped is the *Access model* section of `.claude/rules/backend/multi-tenant.md`, and it is not the obvious shape.
 - **Availability is one domain, not hours inside Businesses plus hours inside Staff.** `schedule_rules` carries `owner_type` + `owner_id`, so both share one entity, one calculator and one test suite. Availability = the staff member's own hours (or the business hours when they have none) − time off − booked appointments. Own hours may fall outside business hours on purpose.
 - **Every unauthenticated endpoint lives in `PublicCatalog`**, so "what can an anonymous person reach?" has one answer. (`Public` alone cannot be a namespace segment — it is a PHP reserved word.)
 
@@ -88,7 +88,7 @@ English, everywhere — class names, columns, routes, comments. The non-obvious 
 - Laravel 13.31, PHP 8.3+
 - PostgreSQL (`mizita_api` locally)
 - Sanctum, already wired for both session and token auth: `bootstrap/app.php` calls `statefulApi()`, and `withExceptions` forces JSON rendering for `api/*`. Do not re-add either.
-- `spatie/laravel-permission` for roles and permissions, teams on, the team being the business. Confined to `Infrastructure/` and seeded by `AuthorizationSeeder` from `config/authorization.php` — see *Domains* and `.claude/rules/backend/access-model.md`
+- `spatie/laravel-permission` for roles and permissions, teams on, the team being the business. Confined to `Infrastructure/` and seeded by `AuthorizationSeeder` from `config/authorization.php` — see *Domains* and the *Access model* section of `.claude/rules/backend/multi-tenant.md`
 - Pest for tests, Pint for formatting
 - React 19 + Vite 8 + TypeScript in `resources/js` — see `.claude/rules/frontend/`
 

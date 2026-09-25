@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
 import { Button } from '@/components/ui/button';
 
@@ -5,32 +6,37 @@ type Props = {
     google: string;
     googleHref: string;
     googleError?: string;
+    passkey?: ReactNode;
     divider: string;
     email: string;
     onEmail: () => void;
 };
 
-export function AuthMethodChoice({ google, googleHref, googleError, divider, email, onEmail }: Props) {
+export function AuthMethodChoice({ google, googleHref, googleError, passkey, divider, email, onEmail }: Props) {
     return (
         <div className="grid gap-4">
-            <div className="grid gap-2">
-                <Button
-                    asChild
-                    variant="outline"
-                    size="lg"
-                    className="h-12 w-full gap-3 rounded-xl text-sm"
-                >
-                    <a href={googleHref}>
-                        <GoogleIcon className="size-5" />
-                        {google}
-                    </a>
-                </Button>
+            <div className="grid gap-3">
+                <div className="grid gap-2">
+                    <Button
+                        asChild
+                        variant="outline"
+                        size="lg"
+                        className="h-12 w-full gap-3 rounded-xl text-sm"
+                    >
+                        <a href={googleHref}>
+                            <GoogleIcon className="size-5" />
+                            {google}
+                        </a>
+                    </Button>
 
-                {googleError ? (
-                    <p role="alert" className="text-center text-xs text-destructive">
-                        {googleError}
-                    </p>
-                ) : null}
+                    {googleError ? (
+                        <p role="alert" className="text-center text-xs text-destructive">
+                            {googleError}
+                        </p>
+                    ) : null}
+                </div>
+
+                {passkey}
             </div>
 
             <Divider label={divider} />

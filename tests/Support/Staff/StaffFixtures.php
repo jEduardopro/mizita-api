@@ -41,6 +41,10 @@ final class StaffFixtures
 
     public const OTHER_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b2';
 
+    public const THIRD_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b3';
+
+    public const FOURTH_MEMBER_ID = '01930000-0000-7000-8000-0000000000d4';
+
     public const JOB_TITLE = 'Barbera principal';
 
     public const ABOUT = 'Diez años cortando el pelo en Ñuñoa.';

@@ -63,6 +63,11 @@ final class FakeAppointmentRepository implements AppointmentRepository
      */
     public array $upcomingChecks = [];
 
+    /**
+     * @var list<array{businessId: string, now: string}>
+     */
+    public array $upcomingCounts = [];
+
     public function __construct(
         public readonly AppointmentJournal $journal = new AppointmentJournal,
     ) {}
@@ -202,6 +207,23 @@ final class FakeAppointmentRepository implements AppointmentRepository
         }
 
         return false;
+    }
+
+    public function countUpcomingForBusiness(string $businessId, DateTimeImmutable $now): int
+    {
+        $this->journal->record('appointments.countUpcomingForBusiness');
+        $this->businessIdsSeen[] = $businessId;
+        $this->upcomingCounts[] = [
+            'businessId' => $businessId,
+            'now' => $now->format(DATE_ATOM),
+        ];
+
+        return count(array_filter(
+            $this->appointments,
+            static fn (Appointment $appointment): bool => $appointment->businessId === $businessId
+                && ! $appointment->isCancelled()
+                && $appointment->slot()->endsAt > $now,
+        ));
     }
 
     public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment

@@ -23,6 +23,8 @@ This is the first thing you read and it overrides every other instruction in thi
 [ ] Feature tests       tests/Feature/**               — DISABLED
 ```
 
+**Scoped exception granted by the user (2026-09-25):** feature tests are enabled for exactly two files, and nothing else — `tests/Feature/Domains/Businesses/PurgeClosedBusinessIsolationTest.php` (purging one closed business erases its rows, leaves every other tenant intact, keeps its `users`/`businesses` rows, and a re-run is a no-op) and `tests/Feature/Domains/Businesses/TenantDataEraserCoverageTest.php` (every table in `information_schema` is classified by `DatabaseTenantDataEraser`). Everything below still applies to every other test.
+
 **Feature tests are off.** While that box is unchecked:
 
 - Write nothing new under `tests/Feature/`. No HTTP tests, no endpoint tests, no repository tests, no `RefreshDatabase`, no `Sanctum::actingAs`, no model factories, no database of any kind.

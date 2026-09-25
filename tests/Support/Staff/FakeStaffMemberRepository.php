@@ -37,6 +37,16 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
      */
     public array $deleted = [];
 
+    /**
+     * @var list<array{scope: string, accountId: string}>
+     */
+    public array $membershipLookups = [];
+
+    /**
+     * @var array<string, true>
+     */
+    private array $closedBusinesses = [];
+
     private ?Throwable $saveRefusal = null;
 
     private int $savesBeforeRefusal = 0;
@@ -60,6 +70,13 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
     {
         $this->saveRefusal = $refusal;
         $this->savesBeforeRefusal = $afterSaves;
+
+        return $this;
+    }
+
+    public function closeBusiness(string $businessId): self
+    {
+        $this->closedBusinesses[$businessId] = true;
 
         return $this;
     }
@@ -142,6 +159,40 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
         ));
     }
 
+    /**
+     * @return list<StaffMember>
+     */
+    public function allForAccount(string $accountId): array
+    {
+        $this->membershipLookups[] = ['scope' => 'all', 'accountId' => $accountId];
+
+        return $this->membershipsOf($accountId);
+    }
+
+    /**
+     * @return list<StaffMember>
+     */
+    public function allInOpenBusinessesForAccount(string $accountId): array
+    {
+        $this->membershipLookups[] = ['scope' => 'open', 'accountId' => $accountId];
+
+        return array_values(array_filter(
+            $this->membershipsOf($accountId),
+            fn (StaffMember $member): bool => ! isset($this->closedBusinesses[$member->businessId]),
+        ));
+    }
+
+    public function ownedBusinessIdOf(string $accountId): ?string
+    {
+        foreach ($this->membershipsOf($accountId) as $member) {
+            if ($member->ownsBusiness()) {
+                return $member->businessId;
+            }
+        }
+
+        return null;
+    }
+
     public function ownsAnyBusiness(string $accountId): bool
     {
         foreach ($this->members as $member) {
@@ -169,6 +220,20 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
 
         $this->deleted[] = ['businessId' => $businessId, 'id' => $id];
         unset($this->members[$id]);
+    }
+
+    /**
+     * @return list<StaffMember>
+     */
+    private function membershipsOf(string $accountId): array
+    {
+        return array_values(array_map(
+            self::copyOf(...),
+            array_filter(
+                $this->members,
+                static fn (StaffMember $member): bool => $member->accountId === $accountId,
+            ),
+        ));
     }
 
     private static function copyOf(StaffMember $member): StaffMember

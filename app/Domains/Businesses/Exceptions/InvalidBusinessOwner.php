@@ -15,6 +15,11 @@ final class InvalidBusinessOwner extends DomainException implements DomainFailur
         return new self('A business cannot be onboarded without an owner account.');
     }
 
+    public static function unknownAccount(string $accountId): self
+    {
+        return new self("Account [{$accountId}] does not exist.");
+    }
+
     public function errorCode(): string
     {
         return 'invalid_business_owner';

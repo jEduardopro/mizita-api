@@ -1095,16 +1095,112 @@
         "openMethods": "Ver las opciones de seguridad",
         "permission": "Nivel de permiso",
         "disabled": "Desactivado",
-        "comingSoon": "Muy pronto",
         "twoFactor": {
             "title": "Autenticación de dos factores",
             "body": "Refuerza la seguridad solicitando un código de autenticación para iniciar sesión.",
-            "action": "Activar ahora"
+            "action": "Activar ahora",
+            "enabledBody": "Cada vez que inicies sesión te pediremos un código de tu app de autenticación.",
+            "pendingBody": "Dejaste la configuración a medias. Termínala para que te pidamos el código al iniciar sesión.",
+            "enable": "Activar",
+            "enabling": "Activando…",
+            "resume": "Terminar la configuración",
+            "setup": {
+                "title": "Activa la autenticación de dos factores",
+                "scan": {
+                    "title": "Escanea el código QR",
+                    "body": "Abre tu app de autenticación (Google Authenticator, Microsoft Authenticator, 1Password…) y escanea este código."
+                },
+                "verify": {
+                    "title": "Confirma con un código",
+                    "body": "Escribe el código de 6 dígitos que muestra la app."
+                }
+            },
+            "qr": {
+                "label": "Código QR para tu app de autenticación",
+                "loading": "Generando el código QR…",
+                "loadFailed": "No pudimos generar el código QR. Inténtalo de nuevo."
+            },
+            "secretKey": {
+                "toggle": "¿No puedes escanearlo? Usa una clave",
+                "label": "Clave de configuración",
+                "hint": "Escríbela en tu app de autenticación si no puedes escanear el código."
+            },
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "code": {
+                "label": "Código de 6 dígitos",
+                "hint": "Lo encuentras en tu app de autenticación."
+            },
+            "confirm": "Verificar y activar",
+            "confirming": "Verificando…",
+            "activated": "Autenticación de dos factores activada",
+            "enableFailed": "No pudimos activar la autenticación de dos factores. Inténtalo de nuevo.",
+            "confirmFailed": "No pudimos verificar el código. Inténtalo de nuevo.",
+            "cancelSetup": "Cancelar la configuración",
+            "disable": "Desactivar",
+            "disabling": "Desactivando…",
+            "deactivated": "Autenticación de dos factores desactivada",
+            "disableFailed": "No pudimos desactivar la autenticación de dos factores. Inténtalo de nuevo.",
+            "disableConfirm": {
+                "title": "¿Desactivar la autenticación de dos factores?",
+                "body": "Ya no te pediremos un código al iniciar sesión y tus códigos de recuperación dejarán de funcionar.",
+                "action": "Desactivar"
+            },
+            "recoveryCodes": {
+                "title": "Códigos de recuperación",
+                "body": "Guárdalos en un lugar seguro. Si pierdes el acceso a tu app de autenticación, cada código te permite iniciar sesión una sola vez.",
+                "show": "Ver códigos de recuperación",
+                "hide": "Ocultar códigos",
+                "copy": "Copiar códigos",
+                "copied": "Códigos copiados",
+                "download": "Descargar",
+                "fileName": "codigos-de-recuperacion.txt",
+                "regenerate": "Generar códigos nuevos",
+                "regenerating": "Generando…",
+                "regenerated": "Códigos de recuperación nuevos listos",
+                "regenerateFailed": "No pudimos generar códigos nuevos. Inténtalo de nuevo.",
+                "regenerateConfirm": {
+                    "title": "¿Generar códigos nuevos?",
+                    "body": "Los códigos que tienes ahora dejarán de funcionar de inmediato.",
+                    "action": "Generar códigos nuevos"
+                },
+                "loading": "Cargando tus códigos…",
+                "loadFailed": "No pudimos cargar tus códigos. Inténtalo de nuevo.",
+                "copyFailed": "No pudimos copiar los códigos. Descárgalos o cópialos a mano."
+            },
+            "done": "Listo",
+            "openInApp": "Abrir en tu app de autenticación",
+            "copyFailed": "No pudimos copiar la clave. Cópiala a mano."
         },
         "passkey": {
             "title": "Clave de acceso",
             "body": "Usa Face ID o tu huella digital para iniciar sesión de forma rápida y segura.",
-            "action": "Añadir clave de acceso"
+            "action": "Añadir clave de acceso",
+            "add": "Añadir clave de acceso",
+            "adding": "Esperando tu dispositivo…",
+            "name": "Nombre de la clave de acceso",
+            "namePlaceholder": "Ej.: iPhone del trabajo",
+            "nameHint": "Ponle un nombre que te ayude a reconocer el dispositivo.",
+            "list": "Tus claves de acceso",
+            "empty": "Aún no tienes claves de acceso. Añade una para iniciar sesión con Face ID, tu huella o el bloqueo de pantalla.",
+            "lastUsed": "Último uso: {{date}}",
+            "neverUsed": "Aún no se ha usado",
+            "created": "Creada el {{date}}",
+            "delete": "Eliminar",
+            "deleteLabel": "Eliminar {{name}}",
+            "deleting": "Eliminando…",
+            "deleteConfirm": {
+                "title": "¿Eliminar «{{name}}»?",
+                "body": "Ya no podrás iniciar sesión con esta clave de acceso. Puedes volver a añadirla cuando quieras.",
+                "action": "Eliminar clave de acceso"
+            },
+            "unsupported": "Este navegador no admite claves de acceso. Prueba desde otro navegador o dispositivo.",
+            "cancelled": "No se añadió la clave de acceso porque se canceló el proceso.",
+            "alreadyRegistered": "Este dispositivo ya tiene una clave de acceso para tu cuenta.",
+            "added": "Clave de acceso añadida",
+            "addFailed": "No pudimos añadir la clave de acceso. Inténtalo de nuevo.",
+            "deleted": "Clave de acceso eliminada",
+            "deleteFailed": "No pudimos eliminar la clave de acceso. Inténtalo de nuevo."
         },
         "passwordForm": {
             "updateTitle": "Actualiza tu contraseña",
@@ -1136,10 +1232,59 @@
             "title": "Administrar tu cuenta",
             "delete": {
                 "title": "Eliminar tu cuenta",
-                "body": "Todos los datos de tu cuenta se eliminarán de forma permanente.",
-                "action": "Eliminar cuenta"
+                "body": "Tu cuenta se desactiva en cuanto confirmes. Tienes un plazo para restaurarla; después se elimina de forma permanente.",
+                "action": "Eliminar cuenta",
+                "deleting": "Eliminando cuenta…",
+                "unexpected": "No pudimos eliminar tu cuenta. Inténtalo de nuevo.",
+                "dialog": {
+                    "title": "¿Eliminar tu cuenta?",
+                    "ownerTitle": "¿Eliminar tu cuenta y cerrar {{business}}?",
+                    "loading": "Revisando qué pasa con tu cuenta…",
+                    "loadFailed": "No pudimos revisar tu cuenta. Inténtalo de nuevo."
+                },
+                "owner": {
+                    "description": "Eres el propietario de {{business}}, así que el negocio se cierra junto con tu cuenta.",
+                    "closed": "{{business}} se cierra de inmediato y deja de aparecer en el catálogo.",
+                    "team": "Tu equipo pierde el acceso y se cierran sus sesiones.",
+                    "appointments_one": "Tienes {{count}} cita próxima que no se atenderá. Tus clientes no recibirán aviso.",
+                    "appointments_other": "Tienes {{count}} citas próximas que no se atenderán. Tus clientes no recibirán aviso.",
+                    "restore": "Puedes restaurar todo iniciando sesión antes del {{date}}.",
+                    "purge": "Después del {{date}} se eliminarán permanentemente servicios, citas, pagos, clientes, horarios y equipo."
+                },
+                "regular": {
+                    "description": "Revisa qué pasa antes de confirmar.",
+                    "deleted": "Tu cuenta se elimina y se cierra tu sesión.",
+                    "restore": "Puedes restaurarla iniciando sesión antes del {{date}}."
+                },
+                "blocked": {
+                    "title": "Aún no puedes eliminar tu cuenta",
+                    "body": "Tienes citas próximas asignadas. Pide que las reasignen o las cancelen y vuelve a intentarlo.",
+                    "acknowledge": "Entendido"
+                },
+                "confirmation": {
+                    "password": "Escribe tu contraseña para confirmar",
+                    "email": "Escribe {{email}} para confirmar"
+                }
             }
-        }
+        },
+        "enabled": "Activado",
+        "pending": "Pendiente",
+        "passkeyCount_one": "{{count}} clave de acceso",
+        "passkeyCount_other": "{{count}} claves de acceso",
+        "confirmPassword": {
+            "title": "Confirma tu contraseña",
+            "body": "Por seguridad, escribe tu contraseña para continuar.",
+            "label": "Contraseña",
+            "submit": "Confirmar",
+            "submitting": "Confirmando…",
+            "unexpected": "No pudimos confirmar tu contraseña. Inténtalo de nuevo."
+        },
+        "passwordRequired": {
+            "title": "Primero crea una contraseña",
+            "body": "Para activar la autenticación de dos factores o añadir una clave de acceso, tu cuenta necesita una contraseña.",
+            "action": "Crear una contraseña"
+        },
+        "methodsLoadFailed": "No pudimos cargar tus opciones de seguridad. Inténtalo de nuevo."
     },
     "team": {
         "title": "Tu equipo",

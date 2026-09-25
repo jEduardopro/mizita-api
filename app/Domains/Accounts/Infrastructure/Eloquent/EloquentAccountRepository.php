@@ -22,7 +22,7 @@ final class EloquentAccountRepository implements AccountRepository
 
     public function findById(string $id): Account
     {
-        $model = User::query()->where('uuid', $id)->first();
+        $model = User::withTrashed()->where('uuid', $id)->first();
 
         if ($model === null) {
             throw AccountNotFound::withId($id);
@@ -33,7 +33,7 @@ final class EloquentAccountRepository implements AccountRepository
 
     public function findByEmail(string $email): ?Account
     {
-        $model = User::query()
+        $model = User::withTrashed()
             ->whereRaw('lower(email) = ?', [mb_strtolower(trim($email))])
             ->first();
 
@@ -50,7 +50,7 @@ final class EloquentAccountRepository implements AccountRepository
             return [];
         }
 
-        $modelsById = User::query()
+        $modelsById = User::withTrashed()
             ->whereIn('uuid', $ids)
             ->get()
             ->keyBy('uuid');
@@ -82,7 +82,7 @@ final class EloquentAccountRepository implements AccountRepository
             return [];
         }
 
-        return User::query()
+        return User::withTrashed()
             ->whereIn('uuid', $ids)
             ->whereNotNull('password')
             ->pluck('uuid')
@@ -101,7 +101,7 @@ final class EloquentAccountRepository implements AccountRepository
             return [];
         }
 
-        return User::query()
+        return User::withTrashed()
             ->whereIn('uuid', $accountIds)
             ->where('must_change_password', true)
             ->pluck('uuid')
@@ -112,11 +112,10 @@ final class EloquentAccountRepository implements AccountRepository
 
     public function save(Account $account): void
     {
+        $model = User::withTrashed()->where('uuid', $account->id)->first() ?? new User;
+
         try {
-            User::query()->updateOrCreate(
-                ['uuid' => $account->id],
-                $this->mapper->toAttributes($account),
-            );
+            $model->forceFill($this->mapper->toAttributes($account))->save();
         } catch (UniqueConstraintViolationException $violation) {
             throw AccountAlreadyRegistered::withEmail($account->email(), $violation);
         }

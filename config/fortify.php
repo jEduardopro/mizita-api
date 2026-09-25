@@ -116,8 +116,6 @@ return [
 
     'limiters' => [
         'login' => 'login',
-        // The two-factor and passkey features are disabled below, so their
-        // routes - and therefore their limiters - are never registered.
         'two-factor' => 'two-factor',
         'passkeys' => 'passkeys',
     ],
@@ -149,6 +147,7 @@ return [
     'passkeys' => [
         'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
         'allowed_origins' => [config('app.url')],
+        'user_handle_secret' => env('PASSKEYS_USER_HANDLE_SECRET') ?: config('app.key'),
         'timeout' => 60000,
     ],
 
@@ -166,21 +165,11 @@ return [
     'features' => [
         Features::registration(),
         Features::resetPasswords(),
+        // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
-
-        // Deliberately disabled. Each one needs schema, a trait or UI that this
-        // application does not ship yet:
-        // - email verification needs App\Models\User to implement MustVerifyEmail
-        //   and a mail transport; guest booking history also hangs off it, so it
-        //   gets enabled together with that flow.
-        // - two factor authentication needs the two_factor_* columns on users and
-        //   the TwoFactorAuthenticatable trait.
-        // - passkeys needs the laravel/passkeys migration (passkeys table), which
-        //   is intentionally not published.
-        // Features::emailVerification(),
-        // Features::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => true]),
-        // Features::passkeys(['confirmPassword' => true]),
+        Features::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => true]),
+        Features::passkeys(['confirmPassword' => true]),
     ],
 
 ];
