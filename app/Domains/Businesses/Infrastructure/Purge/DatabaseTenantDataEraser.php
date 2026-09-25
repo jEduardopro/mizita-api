@@ -15,6 +15,8 @@ use Spatie\Permission\PermissionRegistrar;
 final class DatabaseTenantDataEraser implements TenantDataEraser
 {
     public const ERASED_TABLES = [
+        'calendar_event_links',
+        'calendar_connections',
         'payment_transactions',
         'payment_items',
         'payments',

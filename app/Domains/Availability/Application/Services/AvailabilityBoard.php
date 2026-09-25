@@ -10,6 +10,7 @@ use App\Domains\Availability\Contracts\BookableServices;
 use App\Domains\Availability\Contracts\BookedIntervals;
 use App\Domains\Availability\Contracts\BookingRules;
 use App\Domains\Availability\Contracts\BusinessClock;
+use App\Domains\Availability\Contracts\ExternalBusyIntervals;
 use App\Domains\Availability\Contracts\StaffSchedules;
 use App\Domains\Availability\Exceptions\AvailabilityRangeTooWide;
 use App\Domains\Availability\Exceptions\BookableServiceNotFound;
@@ -30,6 +31,7 @@ final class AvailabilityBoard
         private readonly BookableServices $services,
         private readonly StaffSchedules $schedules,
         private readonly BookedIntervals $bookings,
+        private readonly ExternalBusyIntervals $externalBusy,
         private readonly BookingRules $rules,
         private readonly BusinessClock $businessClock,
         private readonly SlotCalculator $calculator,
@@ -59,7 +61,7 @@ final class AvailabilityBoard
         $days = $this->calculator->slotsBetween(
             $range,
             $workingHours,
-            $this->bookedWithin($businessId, $query, $range, $zone),
+            $this->busyWithin($businessId, $query, $range, $zone),
             $this->blockFor($businessId, $query),
             $this->rules->forBusiness($businessId),
             $zone,
@@ -84,6 +86,21 @@ final class AvailabilityBoard
     /**
      * @return list<BookedInterval>
      */
+    private function busyWithin(
+        string $businessId,
+        SlotQuery $query,
+        LocalDateRange $range,
+        DateTimeZone $zone,
+    ): array {
+        return [
+            ...$this->bookedWithin($businessId, $query, $range, $zone),
+            ...$this->externallyBusyWithin($businessId, $query, $range, $zone),
+        ];
+    }
+
+    /**
+     * @return list<BookedInterval>
+     */
     private function bookedWithin(
         string $businessId,
         SlotQuery $query,
@@ -96,6 +113,23 @@ final class AvailabilityBoard
             $range->startsAtIn($zone),
             $range->endsAtIn($zone),
             $query->excludingAppointmentId,
+        );
+    }
+
+    /**
+     * @return list<BookedInterval>
+     */
+    private function externallyBusyWithin(
+        string $businessId,
+        SlotQuery $query,
+        LocalDateRange $range,
+        DateTimeZone $zone,
+    ): array {
+        return $this->externalBusy->forStaffBetween(
+            $businessId,
+            $query->staffId,
+            $range->startsAtIn($zone),
+            $range->endsAtIn($zone),
         );
     }
 }

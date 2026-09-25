@@ -35,6 +35,7 @@ function mizitaDomainForModule(): array
         'customers' => 'Customers',
         'appointments' => 'Appointments',
         'payments' => 'Payments',
+        'integrations' => 'Integrations',
     ];
 }
 
@@ -183,7 +184,7 @@ describe('the staff role', function () {
         expect(mizitaCatalogueSection('roles')['staff']['template'])->toBeTrue();
     });
 
-    it('starts a clone with the agenda, the customers and the payments a member works with', function () {
+    it('starts a clone with the agenda, the customers, the payments and the integrations a member works with', function () {
         expect(mizitaCatalogueSection('roles')['staff']['permissions'])->toBe([
             'view_services',
             'view_appointments',
@@ -195,6 +196,7 @@ describe('the staff role', function () {
             'edit_customer',
             'view_payments',
             'create_payment',
+            'manage_integrations',
         ]);
     });
 });
@@ -277,6 +279,32 @@ describe('the team permissions', function () {
         'manage_all_calendars',
         'reveal_temporary_password',
     ]);
+});
+
+describe('the integrations permission', function () {
+    it('groups managing integrations under the integrations module, in the business scope', function () {
+        $permission = mizitaCatalogueSection('permissions')['manage_integrations'];
+
+        expect(mizitaModuleOf($permission))->toBe('integrations')
+            ->and($permission['scope'])->toBe(AuthorizationScope::Business);
+    });
+
+    it('lets the owner and the staff template manage their own integrations', function (string $role) {
+        expect(mizitaGrantedPermissions(mizitaCatalogueSection('roles')[$role]))->toContain('manage_integrations');
+    })->with(['owner', 'staff']);
+
+    it('keeps integrations out of reach of the no access role', function () {
+        expect(mizitaGrantedPermissions(mizitaCatalogueSection('roles')['no_access']))->not->toContain('manage_integrations');
+    });
+
+    it('is the only permission the integrations module declares', function () {
+        $integrationsModule = array_keys(array_filter(
+            mizitaCatalogueSection('permissions'),
+            static fn (array $permission): bool => mizitaModuleOf($permission) === 'integrations',
+        ));
+
+        expect($integrationsModule)->toBe(['manage_integrations']);
+    });
 });
 
 describe('what the routes enforce', function () {

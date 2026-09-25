@@ -6,11 +6,13 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\CancelAppointment;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
+use App\Domains\Appointments\Events\AppointmentCancelled;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\AppointmentPaymentStatus;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
@@ -36,12 +38,23 @@ beforeEach(function () {
     $this->payments = new FakePaymentLedger($this->journal);
     $this->calendars = FakeCalendarAccess::everyone();
 
+    $this->dispatched = [];
+    $this->savesBeforeDispatch = [];
+    $this->events = Mockery::mock(Dispatcher::class);
+    $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
+        $this->dispatched[] = $event;
+        $this->savesBeforeDispatch[] = count($this->appointments->saved);
+
+        return [];
+    });
+
     $this->build = fn (string $now = AppointmentFixtures::NOW): CancelAppointment => new CancelAppointment(
         $this->appointments,
         new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         new FakeBusinessContext,
         new FakeClock(AppointmentFixtures::instant($now)),
         $this->calendars,
+        $this->events,
     );
 
     $this->cancel = fn (string $now = AppointmentFixtures::NOW, ?string $appointmentId = null) => ($this->build)($now)
@@ -93,6 +106,20 @@ describe('the business cancelling an appointment', function () {
 
         expect($data->id)->toBeString()
             ->and(is_numeric($data->id))->toBeFalse();
+    });
+
+    it('announces the cancellation exactly once, carrying the appointment uuid', function () {
+        ($this->cancel)();
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(AppointmentCancelled::class)
+            ->and($this->dispatched[0]->id)->toBe(AppointmentFixtures::APPOINTMENT_ID);
+    });
+
+    it('announces the cancellation only after the appointment is saved', function () {
+        ($this->cancel)();
+
+        expect($this->savesBeforeDispatch)->toBe([1]);
     });
 });
 
@@ -220,6 +247,16 @@ describe('the guards the entity still applies', function () {
         'already cancelled' => [AppointmentFixtures::NOW, 'appointment_already_cancelled'],
         'already started' => ['2026-03-10T09:30:00+00:00', 'appointment_already_started'],
     ]);
+
+    it('announces nothing when a guard refuses', function () {
+        $this->appointments->store(AppointmentFixtures::appointment(
+            cancelledAt: '2026-01-02T10:00:00+00:00',
+            cancelledBy: Canceller::Customer,
+        ));
+
+        expect(($this->cancel)()->error()->code)->toBe('appointment_already_cancelled')
+            ->and($this->dispatched)->toBe([]);
+    });
 });
 
 describe('an appointment the caller may not reach', function () {
@@ -245,6 +282,12 @@ describe('an appointment the caller may not reach', function () {
 
         expect($response->error()->code)->toBe('appointment_not_found')
             ->and($this->journal->entries)->toBe([]);
+    });
+
+    it('announces nothing for an appointment it cannot find', function () {
+        ($this->cancel)();
+
+        expect($this->dispatched)->toBe([]);
     });
 });
 

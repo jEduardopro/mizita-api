@@ -144,4 +144,9 @@ return [
         'description' => 'Undo a payment that was recorded by mistake. The original charge stays on record and the reversal is added as a new movement.',
     ],
 
+    'manage_integrations' => [
+        'label' => 'Manage integrations',
+        'description' => 'Connect or disconnect your own Google Calendar, so your appointments appear there and events you add by hand block your availability.',
+    ],
+
 ];

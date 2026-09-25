@@ -9,6 +9,7 @@ use App\Domains\BookingPolicies\BookingPoliciesServiceProvider;
 use App\Domains\Businesses\BusinessesServiceProvider;
 use App\Domains\Customers\CustomersServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
+use App\Domains\Integrations\IntegrationsServiceProvider;
 use App\Domains\Links\LinksServiceProvider;
 use App\Domains\Payments\PaymentsServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
@@ -38,4 +39,5 @@ return [
     CustomersServiceProvider::class,
     AppointmentsServiceProvider::class,
     PaymentsServiceProvider::class,
+    IntegrationsServiceProvider::class,
 ];

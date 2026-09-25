@@ -13,6 +13,7 @@ use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
 use App\Domains\Appointments\Entities\Appointment;
+use App\Domains\Appointments\Events\AppointmentUpdated;
 use App\Domains\Appointments\Exceptions\AppointmentAlreadyCancelled;
 use App\Domains\Appointments\Exceptions\AppointmentAlreadyStarted;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
@@ -28,6 +29,7 @@ use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
 use DateTimeImmutable;
+use Illuminate\Contracts\Events\Dispatcher;
 
 final class UpdateAppointment
 {
@@ -40,6 +42,7 @@ final class UpdateAppointment
         private readonly BusinessContext $business,
         private readonly Clock $clock,
         private readonly CalendarAccess $calendars,
+        private readonly Dispatcher $events,
     ) {}
 
     /**
@@ -56,10 +59,14 @@ final class UpdateAppointment
 
             $this->apply($input, $appointment, $businessId, $scope);
 
-            return UseCaseResponse::success($this->presenter->describe($businessId, $appointment));
+            $updated = $this->presenter->describe($businessId, $appointment);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
+
+        $this->events->dispatch(new AppointmentUpdated($appointment->id));
+
+        return UseCaseResponse::success($updated);
     }
 
     /**

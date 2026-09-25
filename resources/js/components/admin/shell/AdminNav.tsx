@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
+    Blocks,
     Calendar,
     ChevronRight,
     ListChecks,
@@ -32,6 +33,7 @@ type NavLabelKey =
     | 'nav.calendar'
     | 'nav.services'
     | 'nav.customers'
+    | 'nav.integrations'
     | 'nav.settings'
     | 'nav.brand'
     | 'nav.yourProfile'
@@ -55,6 +57,12 @@ const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
     { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     { href: '/customers', labelKey: 'nav.customers', icon: Users, permission: 'view_customers' },
+    {
+        href: '/integrations',
+        labelKey: 'nav.integrations',
+        icon: Blocks,
+        permission: 'manage_integrations',
+    },
     {
         href: BRAND_SETTINGS_HREF,
         labelKey: 'nav.settings',

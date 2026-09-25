@@ -262,6 +262,18 @@ return [
         'invalid_void_actor' => 'No hemos podido identificar quién anula esta transacción.',
         'invalid_money_amount' => 'Ese importe no es válido.',
         'currency_mismatch' => 'Esos importes están en monedas distintas.',
+        'calendar_connection_not_found' => 'No tienes ningún calendario conectado.',
+        'calendar_already_connected' => 'Tu Google Calendar ya está conectado.',
+        'calendar_authorization_state_invalid' => 'Ese enlace para conectar Google Calendar ha caducado. Vuelve a intentarlo.',
+        'calendar_authorization_denied' => 'No se ha conectado Google Calendar porque no se concedió el acceso.',
+        'calendar_authorization_failed' => 'No hemos podido conectar tu Google Calendar. Vuelve a intentarlo.',
+        'calendar_scope_not_granted' => 'Para conectar Google Calendar, permite que Mizita gestione los calendarios que crea.',
+        'calendar_authorization_revoked' => 'Se ha revocado el acceso a Google Calendar. Vuelve a conectarlo para mantener tus citas sincronizadas.',
+        'external_calendar_unavailable' => 'No hemos podido contactar con Google Calendar en este momento.',
+        'invalid_calendar_connection' => 'Esa conexión de calendario está incompleta.',
+        'invalid_calendar_event_link' => 'No hemos podido vincular ese evento del calendario con la cita.',
+        'invalid_external_calendar_event' => 'Ese evento del calendario no tiene un inicio y un final válidos.',
+        'invalid_busy_window' => 'Ese intervalo de tiempo no es válido.',
 
     ],
 

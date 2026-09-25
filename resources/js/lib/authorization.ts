@@ -22,7 +22,8 @@ export type PermissionName =
     | 'delete_appointment'
     | 'view_payments'
     | 'create_payment'
-    | 'void_payment_transaction';
+    | 'void_payment_transaction'
+    | 'manage_integrations';
 
 export type RoleName = 'owner' | 'staff' | 'no_access';
 

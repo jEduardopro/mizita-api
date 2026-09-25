@@ -13,6 +13,7 @@ use App\Domains\Appointments\Contracts\BookableSlots;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Entities\Appointment;
+use App\Domains\Appointments\Events\AppointmentRescheduled;
 use App\Domains\Appointments\Exceptions\AppointmentSlotNotBookable;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
@@ -21,6 +22,7 @@ use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
 use DateTimeImmutable;
+use Illuminate\Contracts\Events\Dispatcher;
 
 final class RescheduleGuestBooking
 {
@@ -33,6 +35,7 @@ final class RescheduleGuestBooking
         private readonly AppointmentChangeWindow $changeWindow,
         private readonly GuestBookingPresenter $presenter,
         private readonly Clock $clock,
+        private readonly Dispatcher $events,
     ) {}
 
     /**
@@ -55,12 +58,14 @@ final class RescheduleGuestBooking
 
             $this->appointments->save($appointment);
 
-            return UseCaseResponse::success(
-                $this->presenter->describe($input->businessId, $appointment, $rule, $now),
-            );
+            $rescheduled = $this->presenter->describe($input->businessId, $appointment, $rule, $now);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
+
+        $this->events->dispatch(new AppointmentRescheduled($appointment->id));
+
+        return UseCaseResponse::success($rescheduled);
     }
 
     /**

@@ -3,6 +3,7 @@
         "calendar": "Calendario",
         "services": "Servicios",
         "customers": "Clientes",
+        "integrations": "Integraciones",
         "settings": "Configuración",
         "brand": "Tu marca",
         "yourProfile": "Tu perfil",
@@ -597,6 +598,99 @@
             },
             "errors": {
                 "unexpected": "No hemos podido guardar el cliente. Inténtalo otra vez."
+            }
+        }
+    },
+    "integrations": {
+        "title": "Integraciones",
+        "search": {
+            "label": "Buscar integraciones",
+            "placeholder": "Busca por nombre o por lo que hace"
+        },
+        "empty": {
+            "title": "Ninguna integración coincide",
+            "body": "Nada coincide con «{{search}}». Prueba con otra palabra."
+        },
+        "loadFailed": {
+            "title": "No hemos podido cargar tus integraciones",
+            "body": "Revisa tu conexión e inténtalo otra vez."
+        },
+        "categories": {
+            "calendar_sync": {
+                "title": "Sincronización de calendario",
+                "description": "Ve tus citas de Mizita en el calendario que ya usas."
+            }
+        },
+        "status": {
+            "connected": "Conectado",
+            "needs_reconnect": "Hay que reconectar"
+        },
+        "detail": {
+            "close": "Cerrar",
+            "tabs": {
+                "about": "Información",
+                "instructions": "Instrucciones"
+            },
+            "connection": "Tu conexión",
+            "account": "Cuenta de Google",
+            "connectedOn": "Conectado el"
+        },
+        "googleCalendar": {
+            "name": "Google Calendar",
+            "description": "Envía tus citas a tu propio Google Calendar y bloquea tiempo desde allí.",
+            "tagline": "Tus citas de Mizita, en tu propio Google Calendar.",
+            "calendarName": "Mizita – {{business}}",
+            "calendarNameFallback": "Mizita – tu negocio",
+            "about": {
+                "intro": "Cada persona de tu equipo conecta su propia cuenta de Google. Mizita crea entonces un calendario solo para tus citas, «{{calendar}}», y lo mantiene al día cuando reservas, cambias o cancelas.",
+                "flow": {
+                    "label": "Las citas van de Mizita a Google Calendar, y los eventos ocupados que añades allí vuelven como tiempo bloqueado.",
+                    "appointments": "Tus citas",
+                    "busyTime": "Eventos ocupados"
+                },
+                "oneWay": {
+                    "title": "Mizita envía, Google muestra",
+                    "body": "Haz los cambios de tus citas en Mizita. Google Calendar muestra una copia."
+                },
+                "blocks": {
+                    "title": "Bloquea tiempo desde Google",
+                    "body": "Los eventos que añades a mano al calendario de Mizita bloquean ese tiempo, así nadie puede reservarlo en línea. Los eventos marcados como disponibles no bloquean nada."
+                },
+                "privacy": {
+                    "title": "Qué recibe Google",
+                    "body": "Cada evento muestra el servicio y el nombre del cliente, junto con la referencia de la reserva y un enlace a Mizita. El teléfono y el correo del cliente se quedan en Mizita."
+                },
+                "otherCalendars": {
+                    "title": "Tus otros calendarios siguen siendo privados",
+                    "body": "Mizita solo puede ver y cambiar los calendarios que crea. Nunca lee tus calendarios personales."
+                }
+            },
+            "instructions": {
+                "title": "Cómo configurarlo",
+                "connect": "Selecciona «Conectar Google Calendar» e inicia sesión con la cuenta de Google que quieras usar.",
+                "approve": "Google te pide que permitas a Mizita crear y gestionar sus propios calendarios. Acéptalo para terminar de conectar.",
+                "find": "Abre Google Calendar. En «Mis calendarios» encontrarás «{{calendar}}» con tus próximas citas.",
+                "block": "Para bloquear tiempo, añade un evento a «{{calendar}}» y déjalo marcado como ocupado.",
+                "disconnect": "Para dejar de sincronizar, vuelve aquí y selecciona «Desconectar». Mizita elimina su calendario de tu cuenta de Google."
+            },
+            "notConnected": {
+                "title": "Sin conectar",
+                "body": "Conecta tu propia cuenta de Google. Cada persona de tu equipo conecta la suya."
+            },
+            "needsReconnect": "Google ya no acepta el acceso de Mizita, así que tus citas no se están sincronizando. Reconecta para seguir donde lo dejaste.",
+            "connect": "Conectar Google Calendar",
+            "reconnect": "Reconectar Google Calendar",
+            "connecting": "Abriendo Google…",
+            "connectFailed": "No hemos podido iniciar la conexión con Google. Inténtalo otra vez.",
+            "connected": "Google Calendar conectado",
+            "disconnect": "Desconectar",
+            "disconnecting": "Desconectando…",
+            "disconnected": "Google Calendar desconectado",
+            "disconnectFailed": "No hemos podido desconectar Google Calendar. Inténtalo otra vez.",
+            "disconnectConfirm": {
+                "title": "¿Desconectar Google Calendar?",
+                "body": "Mizita deja de enviar citas y elimina «{{calendar}}» de tu cuenta de Google, incluidos los eventos que hayas añadido. Tus otros calendarios no se tocan.",
+                "action": "Desconectar"
             }
         }
     },

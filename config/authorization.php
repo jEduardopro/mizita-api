@@ -129,6 +129,11 @@ return [
             'module' => 'payments',
         ],
 
+        'manage_integrations' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'integrations',
+        ],
+
     ],
 
     'roles' => [
@@ -154,6 +159,7 @@ return [
                 'edit_customer',
                 'view_payments',
                 'create_payment',
+                'manage_integrations',
             ],
         ],
 

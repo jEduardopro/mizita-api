@@ -8,6 +8,7 @@ use App\Domains\Availability\Contracts\BookableServices;
 use App\Domains\Availability\Contracts\BookedIntervals;
 use App\Domains\Availability\Contracts\BookingRules;
 use App\Domains\Availability\Contracts\BusinessClock;
+use App\Domains\Availability\Contracts\ExternalBusyIntervals;
 use App\Domains\Availability\Contracts\ScheduleRuleRepository;
 use App\Domains\Availability\Contracts\StaffMembership;
 use App\Domains\Availability\Contracts\StaffRoster;
@@ -16,6 +17,7 @@ use App\Domains\Availability\Infrastructure\Eloquent\EloquentScheduleRuleReposit
 use App\Domains\Availability\Infrastructure\Gateways\AppointmentsBookedIntervals;
 use App\Domains\Availability\Infrastructure\Gateways\BookingPoliciesBookingRules;
 use App\Domains\Availability\Infrastructure\Gateways\BusinessesBusinessClock;
+use App\Domains\Availability\Infrastructure\Gateways\IntegrationsExternalBusyIntervals;
 use App\Domains\Availability\Infrastructure\Gateways\RuleBasedStaffSchedules;
 use App\Domains\Availability\Infrastructure\Gateways\ServicesBookableServices;
 use App\Domains\Availability\Infrastructure\Gateways\StaffStaffMembership;
@@ -31,6 +33,7 @@ final class AvailabilityServiceProvider extends ServiceProvider
         $this->app->bind(BookableServices::class, ServicesBookableServices::class);
         $this->app->bind(StaffSchedules::class, RuleBasedStaffSchedules::class);
         $this->app->bind(BookedIntervals::class, AppointmentsBookedIntervals::class);
+        $this->app->bind(ExternalBusyIntervals::class, IntegrationsExternalBusyIntervals::class);
         $this->app->bind(BookingRules::class, BookingPoliciesBookingRules::class);
         $this->app->bind(BusinessClock::class, BusinessesBusinessClock::class);
         $this->app->bind(StaffMembership::class, StaffStaffMembership::class);

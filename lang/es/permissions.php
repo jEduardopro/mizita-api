@@ -140,4 +140,9 @@ return [
         'description' => 'Deshacer un cobro registrado por error. El cobro original queda registrado y la anulación se añade como un movimiento nuevo.',
     ],
 
+    'manage_integrations' => [
+        'label' => 'Gestionar integraciones',
+        'description' => 'Conectar o desconectar tu propio Google Calendar, para que tus citas aparezcan ahí y los eventos que añadas a mano bloqueen tu disponibilidad.',
+    ],
+
 ];

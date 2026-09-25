@@ -6,9 +6,11 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\UpdateAppointment;
 use App\Domains\Appointments\Entities\Appointment;
+use App\Domains\Appointments\Events\AppointmentUpdated;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\Contracts\Clock;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
@@ -59,6 +61,16 @@ beforeEach(function () {
     $this->payments = new FakePaymentLedger($this->journal);
     $this->calendars = FakeCalendarAccess::everyone();
 
+    $this->dispatched = [];
+    $this->savesBeforeDispatch = [];
+    $this->events = Mockery::mock(Dispatcher::class);
+    $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
+        $this->dispatched[] = $event;
+        $this->savesBeforeDispatch[] = count($this->appointments->saved);
+
+        return [];
+    });
+
     $this->build = fn (string $now = AppointmentFixtures::NOW): UpdateAppointment => new UpdateAppointment(
         $this->appointments,
         $this->services,
@@ -68,6 +80,7 @@ beforeEach(function () {
         new FakeBusinessContext,
         new FakeClock(AppointmentFixtures::instant($now)),
         $this->calendars,
+        $this->events,
     );
 
     $this->store = fn (Appointment $appointment): Appointment => tap(
@@ -154,6 +167,53 @@ describe('moving an appointment the business still may change', function () {
 
         expect(array_unique($this->appointments->businessIdsSeen))->toBe([FakeBusinessContext::BUSINESS_ID])
             ->and($this->appointments->saved[0]->businessId)->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('announces the update exactly once, carrying the appointment uuid', function () {
+        ($this->update)();
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(AppointmentUpdated::class)
+            ->and($this->dispatched[0]->id)->toBe(AppointmentFixtures::APPOINTMENT_ID);
+    });
+
+    it('announces the update only after the appointment is saved', function () {
+        ($this->update)();
+
+        expect($this->savesBeforeDispatch)->toBe([1]);
+    });
+});
+
+describe('a change the use case refuses', function () {
+    it('announces nothing for an appointment already cancelled', function () {
+        ($this->store)(AppointmentFixtures::appointment(
+            cancelledAt: '2026-01-02T10:00:00+00:00',
+            cancelledBy: Canceller::Business,
+        ));
+
+        expect(($this->update)()->error()->code)->toBe('appointment_already_cancelled')
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('announces nothing for an appointment that has already started', function () {
+        ($this->store)(AppointmentFixtures::appointment());
+
+        expect(($this->update)('2026-03-10T09:30:00+00:00')->error()->code)->toBe('appointment_already_started')
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('announces nothing for an appointment it cannot find', function () {
+        expect(($this->update)()->error()->code)->toBe('appointment_not_found')
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('announces nothing for a service the business does not offer', function () {
+        ($this->store)(AppointmentFixtures::appointment());
+
+        $response = ($this->update)(AppointmentFixtures::NOW, serviceId: AppointmentFixtures::UNKNOWN_ID);
+
+        expect($response->error()->code)->toBe('appointment_service_not_found')
+            ->and($this->dispatched)->toBe([]);
     });
 });
 

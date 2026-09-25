@@ -18,6 +18,8 @@ use App\Domains\Businesses\Application\UseCases\CloseBusiness;
 use App\Domains\Businesses\Application\UseCases\PurgeClosedBusiness;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
+use App\Domains\Integrations\Infrastructure\Eloquent\Models\CalendarConnectionModel;
+use App\Domains\Integrations\Infrastructure\Eloquent\Models\CalendarEventLinkModel;
 use App\Domains\Links\Infrastructure\Eloquent\Models\LinkModel;
 use App\Domains\Links\ValueObjects\LinkOwnerType;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\BusinessPaymentMethodModel;
@@ -45,6 +47,10 @@ final readonly class PurgeFixtures
     private const string PAYMENT_PROCESSED_AT = '2026-10-05T15:35:00+00:00';
 
     private const int PAYMENT_TOTAL_CENTS = 45000;
+
+    private const string CALENDAR_CONNECTED_AT = '2026-03-01T09:00:00+00:00';
+
+    private const string CALENDAR_TOKEN_EXPIRES_AT = '2026-03-01T10:00:00+00:00';
 
     private const string USER_MORPH_ALIAS = 'user';
 
@@ -78,7 +84,8 @@ final readonly class PurgeFixtures
             'staff_member_id' => $staffMember->id,
         ]);
 
-        self::seedLedger($business, $customer, $service, $staffMember, $paymentMethod);
+        $appointment = self::seedLedger($business, $customer, $service, $staffMember, $paymentMethod);
+        self::seedCalendarSync($business, $staffMember, $appointment);
         self::seedSchedule($business, $staffMember);
         self::seedContactDetails($business, $staffMember, $staffProfile, $customer);
         self::seedDirectPermission($business, $staffAccount);
@@ -176,7 +183,7 @@ final readonly class PurgeFixtures
         ServiceModel $service,
         StaffMemberModel $staffMember,
         PaymentMethodModel $paymentMethod,
-    ): void {
+    ): AppointmentModel {
         $appointment = AppointmentModel::factory()->create([
             'business_id' => $business->id,
             'customer_id' => $customer->id,
@@ -207,6 +214,27 @@ final readonly class PurgeFixtures
         BusinessPaymentMethodModel::factory()->create([
             'business_id' => $business->id,
             'payment_method_id' => $paymentMethod->id,
+        ]);
+
+        return $appointment;
+    }
+
+    private static function seedCalendarSync(
+        BusinessModel $business,
+        StaffMemberModel $staffMember,
+        AppointmentModel $appointment,
+    ): void {
+        $connection = CalendarConnectionModel::factory()->create([
+            'business_id' => $business->id,
+            'staff_member_id' => $staffMember->id,
+            'access_token_expires_at' => self::CALENDAR_TOKEN_EXPIRES_AT,
+            'connected_at' => self::CALENDAR_CONNECTED_AT,
+        ]);
+
+        CalendarEventLinkModel::factory()->create([
+            'business_id' => $business->id,
+            'calendar_connection_id' => $connection->id,
+            'appointment_id' => $appointment->id,
         ]);
     }
 

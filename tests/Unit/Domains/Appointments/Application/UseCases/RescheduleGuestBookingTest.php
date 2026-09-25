@@ -8,12 +8,14 @@ use App\Domains\Appointments\Application\Services\GuestBookingFinder;
 use App\Domains\Appointments\Application\UseCases\RescheduleGuestBooking;
 use App\Domains\Appointments\Contracts\BookableSlots;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
+use App\Domains\Appointments\Events\AppointmentRescheduled;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\CancellationRule;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Domains\Appointments\ValueObjects\ManageTokenExpiry;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
@@ -47,6 +49,16 @@ beforeEach(function () {
         });
     };
 
+    $this->dispatched = [];
+    $this->savesBeforeDispatch = [];
+    $this->events = Mockery::mock(Dispatcher::class);
+    $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
+        $this->dispatched[] = $event;
+        $this->savesBeforeDispatch[] = count($this->appointments->saved);
+
+        return [];
+    });
+
     $this->build = fn (string $now = AppointmentFixtures::NOW): RescheduleGuestBooking => new RescheduleGuestBooking(
         $this->appointments,
         new GuestBookingFinder($this->appointments),
@@ -56,6 +68,7 @@ beforeEach(function () {
         new AppointmentChangeWindow,
         new GuestBookingPresenter($this->services, $this->customers, $this->staff),
         new FakeClock(AppointmentFixtures::instant($now)),
+        $this->events,
     );
 
     $this->reschedule = fn (string $now = AppointmentFixtures::NOW, ...$overrides): UseCaseResponse => ($this->build)($now)
@@ -143,6 +156,24 @@ describe('a guest moving their own booking', function () {
         expect($serialized)->not->toContain(AppointmentFixtures::APPOINTMENT_ID)
             ->and($serialized)->not->toContain(AppointmentFixtures::CUSTOMER_EMAIL);
     });
+
+    it('announces the move exactly once, carrying the appointment uuid', function () {
+        ($this->allowChanges)();
+
+        ($this->reschedule)();
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(AppointmentRescheduled::class)
+            ->and($this->dispatched[0]->id)->toBe(AppointmentFixtures::APPOINTMENT_ID);
+    });
+
+    it('announces the move only after the booking is saved', function () {
+        ($this->allowChanges)();
+
+        ($this->reschedule)();
+
+        expect($this->savesBeforeDispatch)->toBe([1]);
+    });
 });
 
 describe('the window consulted before the entity is touched', function () {
@@ -207,6 +238,17 @@ describe('the window consulted before the entity is touched', function () {
         'window closed' => [fn () => CancellationRule::ofMinutes(120), '2026-03-10T08:30:00+00:00'],
     ]);
 
+    it('announces nothing when the window refuses', function (CancellationRule $rule, string $now) {
+        ($this->allowChanges)($rule);
+
+        ($this->reschedule)($now);
+
+        expect($this->dispatched)->toBe([]);
+    })->with([
+        'changes forbidden' => [fn () => CancellationRule::notAllowed(), AppointmentFixtures::NOW],
+        'window closed' => [fn () => CancellationRule::ofMinutes(120), '2026-03-10T08:30:00+00:00'],
+    ]);
+
     it('leaves the stored slot exactly where it was when the window refuses', function () {
         ($this->allowChanges)(CancellationRule::notAllowed());
 
@@ -232,6 +274,14 @@ describe('a slot the guest may not move to', function () {
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('appointment_slot_not_bookable')
             ->and($this->appointments->saved)->toBe([]);
+    });
+
+    it('announces nothing for a start the availability engine will not offer', function () {
+        ($this->allowChanges)(bookable: false);
+
+        ($this->reschedule)();
+
+        expect($this->dispatched)->toBe([]);
     });
 
     it('refuses a start instant it cannot read', function (string $startsAt) {

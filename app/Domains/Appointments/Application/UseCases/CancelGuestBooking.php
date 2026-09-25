@@ -10,11 +10,13 @@ use App\Domains\Appointments\Application\Presenters\GuestBookingPresenter;
 use App\Domains\Appointments\Application\Services\GuestBookingFinder;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
+use App\Domains\Appointments\Events\AppointmentCancelled;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
+use Illuminate\Contracts\Events\Dispatcher;
 
 final class CancelGuestBooking
 {
@@ -25,6 +27,7 @@ final class CancelGuestBooking
         private readonly AppointmentChangeWindow $changeWindow,
         private readonly GuestBookingPresenter $presenter,
         private readonly Clock $clock,
+        private readonly Dispatcher $events,
     ) {}
 
     /**
@@ -45,11 +48,13 @@ final class CancelGuestBooking
 
             $this->appointments->save($appointment);
 
-            return UseCaseResponse::success(
-                $this->presenter->describe($input->businessId, $appointment, $rule, $now),
-            );
+            $cancelled = $this->presenter->describe($input->businessId, $appointment, $rule, $now);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
+
+        $this->events->dispatch(new AppointmentCancelled($appointment->id));
+
+        return UseCaseResponse::success($cancelled);
     }
 }

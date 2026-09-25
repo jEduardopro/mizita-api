@@ -9,11 +9,13 @@ use App\Domains\Appointments\Application\Dtos\CancelAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Contracts\CalendarAccess;
+use App\Domains\Appointments\Events\AppointmentCancelled;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
+use Illuminate\Contracts\Events\Dispatcher;
 
 final class CancelAppointment
 {
@@ -23,6 +25,7 @@ final class CancelAppointment
         private readonly BusinessContext $business,
         private readonly Clock $clock,
         private readonly CalendarAccess $calendars,
+        private readonly Dispatcher $events,
     ) {}
 
     /**
@@ -41,9 +44,13 @@ final class CancelAppointment
 
             $this->appointments->save($appointment);
 
-            return UseCaseResponse::success($this->presenter->describe($businessId, $appointment));
+            $cancelled = $this->presenter->describe($businessId, $appointment);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
+
+        $this->events->dispatch(new AppointmentCancelled($appointment->id));
+
+        return UseCaseResponse::success($cancelled);
     }
 }

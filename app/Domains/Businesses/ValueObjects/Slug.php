@@ -29,6 +29,7 @@ final readonly class Slug
         'calendar',
         'services',
         'customers',
+        'integrations',
         'settings',
         'me',
         'auth',

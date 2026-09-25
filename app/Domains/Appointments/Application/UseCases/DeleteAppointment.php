@@ -8,10 +8,12 @@ use App\Domains\Appointments\Application\Dtos\DeleteAppointmentInput;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\PaymentLedger;
+use App\Domains\Appointments\Events\AppointmentDeleted;
 use App\Domains\Appointments\Exceptions\AppointmentHasPayment;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\DomainFailure;
+use Illuminate\Contracts\Events\Dispatcher;
 
 final class DeleteAppointment
 {
@@ -20,6 +22,7 @@ final class DeleteAppointment
         private readonly PaymentLedger $payments,
         private readonly BusinessContext $business,
         private readonly CalendarAccess $calendars,
+        private readonly Dispatcher $events,
     ) {}
 
     /**
@@ -37,11 +40,13 @@ final class DeleteAppointment
             $this->guardAgainstRecordedPayment($businessId, $appointment->id);
 
             $this->appointments->delete($businessId, $appointment->id);
-
-            return UseCaseResponse::success();
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
+
+        $this->events->dispatch(new AppointmentDeleted($appointment->id));
+
+        return UseCaseResponse::success();
     }
 
     /**

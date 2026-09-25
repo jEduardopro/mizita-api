@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Domains\Appointments\Application\UseCases\DeleteAppointment;
+use App\Domains\Appointments\Events\AppointmentDeleted;
 use App\Domains\Appointments\ValueObjects\AppointmentPaymentStatus;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
@@ -18,11 +20,22 @@ beforeEach(function () {
     $this->payments = new FakePaymentLedger($this->journal);
     $this->calendars = FakeCalendarAccess::everyone();
 
+    $this->dispatched = [];
+    $this->deletesBeforeDispatch = [];
+    $this->events = Mockery::mock(Dispatcher::class);
+    $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
+        $this->dispatched[] = $event;
+        $this->deletesBeforeDispatch[] = count($this->appointments->deleted);
+
+        return [];
+    });
+
     $this->build = fn (string $businessId = FakeBusinessContext::BUSINESS_ID): DeleteAppointment => new DeleteAppointment(
         $this->appointments,
         $this->payments,
         new FakeBusinessContext($businessId),
         $this->calendars,
+        $this->events,
     );
 
     $this->delete = fn (?string $appointmentId = null, string $businessId = FakeBusinessContext::BUSINESS_ID) => (
@@ -80,6 +93,20 @@ describe('deleting an appointment nobody has paid for', function () {
         expect($this->payments->paymentChecks[0]['businessId'])->toBe(AppointmentFixtures::OTHER_BUSINESS_ID)
             ->and($this->appointments->deleted[0]['businessId'])->toBe(AppointmentFixtures::OTHER_BUSINESS_ID);
     });
+
+    it('announces the deletion exactly once, carrying the appointment uuid', function () {
+        ($this->delete)();
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(AppointmentDeleted::class)
+            ->and($this->dispatched[0]->id)->toBe(AppointmentFixtures::APPOINTMENT_ID);
+    });
+
+    it('announces the deletion only after the appointment is deleted', function () {
+        ($this->delete)();
+
+        expect($this->deletesBeforeDispatch)->toBe([1]);
+    });
 });
 
 describe('deleting an appointment that has been charged', function () {
@@ -105,6 +132,12 @@ describe('deleting an appointment that has been charged', function () {
 
         expect($this->appointments->deleted)->toBe([])
             ->and($this->journal->entries)->not->toContain('appointments.delete');
+    });
+
+    it('announces nothing when it refuses', function () {
+        ($this->delete)();
+
+        expect($this->dispatched)->toBe([]);
     });
 
     it('leaves the appointment where the next read can still find it', function () {
@@ -176,6 +209,18 @@ describe('an appointment the caller may not reach', function () {
 
         expect(($this->delete)()->error()->code)->toBe('appointment_not_found')
             ->and($this->appointments->deleted)->toBe([]);
+    });
+
+    it('announces nothing for an appointment it cannot find', function () {
+        ($this->delete)();
+
+        expect($this->dispatched)->toBe([]);
+    });
+
+    it('announces nothing for a malformed uuid', function () {
+        ($this->delete)('not-a-uuid');
+
+        expect($this->dispatched)->toBe([]);
     });
 });
 

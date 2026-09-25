@@ -74,8 +74,8 @@ beforeEach(function () {
             new FakeTransactionManager,
             $events,
         ),
-        new RescheduleGuestBooking($this->appointments, $finder, $services, $this->slots, $policies, new AppointmentChangeWindow, $presenter, $clock),
-        new CancelGuestBooking($this->appointments, $finder, $policies, new AppointmentChangeWindow, $presenter, $clock),
+        new RescheduleGuestBooking($this->appointments, $finder, $services, $this->slots, $policies, new AppointmentChangeWindow, $presenter, $clock, $events),
+        new CancelGuestBooking($this->appointments, $finder, $policies, new AppointmentChangeWindow, $presenter, $clock, $events),
         new GuestBookingMapper,
     );
 

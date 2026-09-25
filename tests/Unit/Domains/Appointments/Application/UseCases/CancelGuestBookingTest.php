@@ -7,12 +7,14 @@ use App\Domains\Appointments\Application\Presenters\GuestBookingPresenter;
 use App\Domains\Appointments\Application\Services\GuestBookingFinder;
 use App\Domains\Appointments\Application\UseCases\CancelGuestBooking;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
+use App\Domains\Appointments\Events\AppointmentCancelled;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\CancellationRule;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
@@ -43,6 +45,16 @@ beforeEach(function () {
         });
     };
 
+    $this->dispatched = [];
+    $this->savesBeforeDispatch = [];
+    $this->events = Mockery::mock(Dispatcher::class);
+    $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
+        $this->dispatched[] = $event;
+        $this->savesBeforeDispatch[] = count($this->appointments->saved);
+
+        return [];
+    });
+
     $this->build = fn (string $now = AppointmentFixtures::NOW): CancelGuestBooking => new CancelGuestBooking(
         $this->appointments,
         new GuestBookingFinder($this->appointments),
@@ -50,6 +62,7 @@ beforeEach(function () {
         new AppointmentChangeWindow,
         new GuestBookingPresenter($this->services, $this->customers, $this->staff),
         new FakeClock(AppointmentFixtures::instant($now)),
+        $this->events,
     );
 
     $this->cancel = fn (string $now = AppointmentFixtures::NOW, ...$overrides): UseCaseResponse => ($this->build)($now)
@@ -97,6 +110,20 @@ describe('a guest cancelling their own booking', function () {
         expect($serialized)->not->toContain(AppointmentFixtures::MANAGE_TOKEN)
             ->and($serialized)->not->toContain(AppointmentFixtures::APPOINTMENT_ID)
             ->and($serialized)->not->toContain(AppointmentFixtures::CUSTOMER_EMAIL);
+    });
+
+    it('announces the cancellation exactly once, carrying the appointment uuid', function () {
+        ($this->cancel)();
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(AppointmentCancelled::class)
+            ->and($this->dispatched[0]->id)->toBe(AppointmentFixtures::APPOINTMENT_ID);
+    });
+
+    it('announces the cancellation only after the booking is saved', function () {
+        ($this->cancel)();
+
+        expect($this->savesBeforeDispatch)->toBe([1]);
     });
 });
 
@@ -175,6 +202,17 @@ describe('the window consulted before the entity is touched', function () {
         'window closed' => [fn () => CancellationRule::ofMinutes(120), '2026-03-10T08:30:00+00:00'],
     ]);
 
+    it('announces nothing when the window refuses', function (CancellationRule $rule, string $now) {
+        ($this->allowCancelling)($rule);
+
+        ($this->cancel)($now);
+
+        expect($this->dispatched)->toBe([]);
+    })->with([
+        'cancellation forbidden' => [fn () => CancellationRule::notAllowed(), AppointmentFixtures::NOW],
+        'window closed' => [fn () => CancellationRule::ofMinutes(120), '2026-03-10T08:30:00+00:00'],
+    ]);
+
     it('leaves the booking uncancelled when the window refuses', function () {
         ($this->allowCancelling)(CancellationRule::notAllowed());
 
@@ -246,6 +284,14 @@ describe('credentials that do not open a booking', function () {
         ));
 
         expect($this->appointments->saved)->toBe([]);
+    });
+
+    it('announces nothing when the credentials do not open a booking', function () {
+        ($this->cancel)(AppointmentFixtures::NOW, credentials: AppointmentFixtures::credentials(
+            manageToken: AppointmentFixtures::OTHER_MANAGE_TOKEN,
+        ));
+
+        expect($this->dispatched)->toBe([]);
     });
 });
 

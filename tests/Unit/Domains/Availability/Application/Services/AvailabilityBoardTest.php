@@ -9,6 +9,7 @@ use App\Domains\Availability\Contracts\BookableServices;
 use App\Domains\Availability\Contracts\BookedIntervals;
 use App\Domains\Availability\Contracts\BookingRules;
 use App\Domains\Availability\Contracts\BusinessClock;
+use App\Domains\Availability\Contracts\ExternalBusyIntervals;
 use App\Domains\Availability\Contracts\StaffSchedules;
 use App\Domains\Availability\Exceptions\AvailabilityRangeTooWide;
 use App\Domains\Availability\Exceptions\BookableServiceNotFound;
@@ -33,10 +34,15 @@ const BOARD_TUESDAY = 2;
 
 const BOARD_WEDNESDAY = 3;
 
+const BOARD_SUNDAY = 7;
+
+const BOARD_ZONE = 'Europe/Madrid';
+
 beforeEach(function () {
     $this->services = Mockery::mock(BookableServices::class);
     $this->schedules = Mockery::mock(StaffSchedules::class);
     $this->bookings = Mockery::mock(BookedIntervals::class);
+    $this->externalBusy = Mockery::mock(ExternalBusyIntervals::class);
     $this->rules = Mockery::mock(BookingRules::class);
     $this->businessClock = Mockery::mock(BusinessClock::class);
     $this->clock = new FakeClock(new DateTimeImmutable('2026-01-01T00:00:00+00:00'));
@@ -45,6 +51,7 @@ beforeEach(function () {
         $this->services,
         $this->schedules,
         $this->bookings,
+        $this->externalBusy,
         $this->rules,
         $this->businessClock,
         new SlotCalculator,
@@ -58,6 +65,7 @@ beforeEach(function () {
         array $booked = [],
         ?SlotRules $slotRules = null,
         array $staffIds = [ScheduleFixtures::STAFF_ID],
+        array $externallyBusy = [],
     ): void {
         $this->businessClock->shouldReceive('timezoneOf')->andReturn($timezone);
         $this->schedules->shouldReceive('forBusiness')
@@ -65,6 +73,7 @@ beforeEach(function () {
         $this->schedules->shouldReceive('forStaffMember')
             ->andReturn($staffHours ?? WeeklyIntervals::none());
         $this->bookings->shouldReceive('forStaffBetween')->andReturn($booked);
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn($externallyBusy);
         $this->rules->shouldReceive('forBusiness')->andReturn($slotRules ?? new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')->andReturn(
             new BookableService(BOARD_SERVICE_ID, 30, 0, $staffIds),
@@ -115,6 +124,9 @@ describe('reading the days a visitor may book', function () {
         $this->bookings->shouldReceive('forStaffBetween')->once()
             ->with(Mockery::on($record), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any())
             ->andReturn([]);
+        $this->externalBusy->shouldReceive('forStaffBetween')->once()
+            ->with(Mockery::on($record), Mockery::any(), Mockery::any(), Mockery::any())
+            ->andReturn([]);
         $this->rules->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')->once()
@@ -123,7 +135,7 @@ describe('reading the days a visitor may book', function () {
 
         ($this->read)();
 
-        expect($asked)->toBe(array_fill(0, 5, FakeBusinessContext::BUSINESS_ID));
+        expect($asked)->toBe(array_fill(0, 6, FakeBusinessContext::BUSINESS_ID));
     });
 
     it('reads the hours of the staff member the query names', function () {
@@ -133,6 +145,7 @@ describe('reading the days a visitor may book', function () {
             ->with(ScheduleFixtures::STAFF_ID)
             ->andReturn(WeeklyIntervals::none());
         $this->bookings->shouldReceive('forStaffBetween')->andReturn([]);
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')
             ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
@@ -228,6 +241,7 @@ describe('what a read is allowed to touch', function () {
         $this->schedules->shouldReceive('forBusiness')->andReturn(WeeklyIntervals::none());
         $this->schedules->shouldReceive('forStaffMember')->andReturn(WeeklyIntervals::none());
         $this->bookings->shouldReceive('forStaffBetween')->andReturn([]);
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->services->shouldReceive('describe')
             ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
         $this->rules->shouldReceive('forBusiness')->once()->andReturn(new SlotRules(0, null, 30));
@@ -241,7 +255,7 @@ describe('what a read is allowed to touch', function () {
         $writeVerbs = ['save', 'store', 'create', 'update', 'delete', 'remove', 'replace', 'attach'];
         $offenders = [];
 
-        foreach ([BookableServices::class, StaffSchedules::class, BookedIntervals::class, BookingRules::class, BusinessClock::class] as $port) {
+        foreach ([BookableServices::class, StaffSchedules::class, BookedIntervals::class, ExternalBusyIntervals::class, BookingRules::class, BusinessClock::class] as $port) {
             foreach ((new ReflectionClass($port))->getMethods() as $method) {
                 $writes = array_filter(
                     $writeVerbs,
@@ -270,6 +284,7 @@ describe('the appointment being moved', function () {
         $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')
             ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->bookings->shouldReceive('forStaffBetween')->once()
             ->with(
                 FakeBusinessContext::BUSINESS_ID,
@@ -295,6 +310,7 @@ describe('the appointment being moved', function () {
         $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')
             ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->bookings->shouldReceive('forStaffBetween')->once()
             ->with(
                 Mockery::any(),
@@ -345,6 +361,7 @@ describe('the appointment being moved', function () {
         $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')
             ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->bookings->shouldReceive('forStaffBetween')->once()
             ->with(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), Mockery::capture($excluded))
             ->andReturn([]);
@@ -358,7 +375,7 @@ describe('the appointment being moved', function () {
 
 describe('a query the board refuses', function () {
     it('validates the query before it asks any port a thing', function () {
-        foreach ([$this->businessClock, $this->schedules, $this->bookings, $this->rules, $this->services] as $port) {
+        foreach ([$this->businessClock, $this->schedules, $this->bookings, $this->externalBusy, $this->rules, $this->services] as $port) {
             $port->shouldNotReceive('timezoneOf', 'forBusiness', 'forStaffMember', 'forStaffBetween', 'describe');
         }
 
@@ -394,6 +411,7 @@ describe('a query the board refuses', function () {
         $this->schedules->shouldReceive('forBusiness')->andReturn(WeeklyIntervals::none());
         $this->schedules->shouldReceive('forStaffMember')->andReturn(WeeklyIntervals::none());
         $this->bookings->shouldReceive('forStaffBetween')->andReturn([]);
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')
             ->andThrow(BookableServiceNotFound::withId(BOARD_SERVICE_ID));
@@ -428,6 +446,7 @@ describe('the timezone the day is measured in', function () {
         $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
         $this->services->shouldReceive('describe')
             ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
+        $this->externalBusy->shouldReceive('forStaffBetween')->andReturn([]);
         $this->bookings->shouldReceive('forStaffBetween')->once()
             ->with(
                 Mockery::any(),
@@ -443,4 +462,175 @@ describe('the timezone the day is measured in', function () {
         expect($from->format(DATE_ATOM))->toBe('2026-03-10T00:00:00+01:00')
             ->and($to->format(DATE_ATOM))->toBe('2026-03-11T00:00:00+01:00');
     });
+});
+
+describe('time a connected calendar holds outside Mizita', function () {
+    beforeEach(function () {
+        $this->localStarts = static fn (array $days): array => array_map(
+            static fn (DateTimeImmutable $start): string => $start->setTimezone(new DateTimeZone(BOARD_ZONE))->format('H:i'),
+            $days[0]->starts,
+        );
+
+        $this->interval = static fn (string $startsAt, string $endsAt): BookedInterval => new BookedInterval(
+            new DateTimeImmutable($startsAt),
+            new DateTimeImmutable($endsAt),
+        );
+
+        $this->openInMadrid = function (array $booked = [], array $externallyBusy = []): void {
+            ($this->openFor)(
+                timezone: BOARD_ZONE,
+                booked: $booked,
+                externallyBusy: $externallyBusy,
+            );
+        };
+    });
+
+    it('removes every slot an external busy interval overlaps', function (string $startsAt, string $endsAt, array $expected) {
+        ($this->openInMadrid)(externallyBusy: [($this->interval)($startsAt, $endsAt)]);
+
+        expect(($this->localStarts)(($this->read)()))->toBe($expected);
+    })->with([
+        'a single slot' => ['2026-03-10T10:00:00+01:00', '2026-03-10T10:30:00+01:00', ['09:00', '09:30', '10:30']],
+        'a span across three slots' => ['2026-03-10T09:15:00+01:00', '2026-03-10T10:15:00+01:00', ['10:30']],
+        'an event reported in UTC' => ['2026-03-10T08:00:00+00:00', '2026-03-10T08:30:00+00:00', ['09:30', '10:00', '10:30']],
+    ]);
+
+    it('keeps a slot that an external interval only touches at its edge', function () {
+        ($this->openInMadrid)(externallyBusy: [($this->interval)('2026-03-10T08:30:00+01:00', '2026-03-10T09:00:00+01:00')]);
+
+        expect(($this->localStarts)(($this->read)()))->toBe(['09:00', '09:30', '10:00', '10:30']);
+    });
+
+    it('leaves the board exactly as bookings alone shape it when the calendar is free', function () {
+        ($this->openInMadrid)(
+            booked: [($this->interval)('2026-03-10T09:30:00+01:00', '2026-03-10T10:00:00+01:00')],
+            externallyBusy: [],
+        );
+
+        expect(($this->localStarts)(($this->read)()))->toBe(['09:00', '10:00', '10:30']);
+    });
+
+    it('applies booked and externally busy intervals together', function () {
+        ($this->openInMadrid)(
+            booked: [($this->interval)('2026-03-10T09:00:00+01:00', '2026-03-10T09:30:00+01:00')],
+            externallyBusy: [($this->interval)('2026-03-10T10:30:00+01:00', '2026-03-10T11:00:00+01:00')],
+        );
+
+        expect(($this->localStarts)(($this->read)()))->toBe(['09:30', '10:00']);
+    });
+});
+
+describe('the range the connected calendar is asked about', function () {
+    beforeEach(function () {
+        $this->bookedRange = [];
+        $this->externalArguments = [];
+
+        $this->businessClock->shouldReceive('timezoneOf')->andReturn(BOARD_ZONE);
+        $this->schedules->shouldReceive('forBusiness')->andReturn(WeeklyIntervals::none());
+        $this->schedules->shouldReceive('forStaffMember')->andReturn(WeeklyIntervals::none());
+        $this->rules->shouldReceive('forBusiness')->andReturn(new SlotRules(0, null, 30));
+        $this->services->shouldReceive('describe')
+            ->andReturn(new BookableService(BOARD_SERVICE_ID, 30, 0, [ScheduleFixtures::STAFF_ID]));
+        $this->bookings->shouldReceive('forStaffBetween')->once()
+            ->andReturnUsing(function (string $businessId, string $staffId, DateTimeImmutable $from, DateTimeImmutable $to): array {
+                $this->bookedRange = [$from, $to];
+
+                return [];
+            });
+        $this->externalBusy->shouldReceive('forStaffBetween')->once()
+            ->andReturnUsing(function (...$arguments): array {
+                $this->externalArguments = $arguments;
+
+                return [];
+            });
+
+        $this->readDay = fn (string $date, ?string $excludingAppointmentId = null): array => $this->board->forBusiness(
+            FakeBusinessContext::BUSINESS_ID,
+            new SlotQuery(BOARD_SERVICE_ID, ScheduleFixtures::STAFF_ID, $date, $date, $excludingAppointmentId),
+        );
+    });
+
+    it('asks about the business and staff member the query names', function () {
+        ($this->readDay)('2026-03-10');
+
+        expect($this->externalArguments[0])->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->externalArguments[1])->toBe(ScheduleFixtures::STAFF_ID);
+    });
+
+    it('asks for the same instants the bookings are read over', function () {
+        ($this->readDay)('2026-03-10');
+
+        expect($this->externalArguments[2])->toEqual($this->bookedRange[0])
+            ->and($this->externalArguments[3])->toEqual($this->bookedRange[1]);
+    });
+
+    it('measures the range from local midnight to local midnight in the business timezone', function () {
+        ($this->readDay)('2026-03-10');
+
+        expect($this->externalArguments[2]->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM))
+            ->toBe('2026-03-09T23:00:00+00:00')
+            ->and($this->externalArguments[3]->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM))
+            ->toBe('2026-03-10T23:00:00+00:00');
+    });
+
+    it('follows the offset change across a daylight saving day', function (string $date, string $from, string $to, int $hours) {
+        ($this->readDay)($date);
+
+        [, , $externalFrom, $externalTo] = $this->externalArguments;
+
+        expect($externalFrom->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM))->toBe($from)
+            ->and($externalTo->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM))->toBe($to)
+            ->and(($externalTo->getTimestamp() - $externalFrom->getTimestamp()) / 3600)->toBe($hours);
+    })->with([
+        'spring forward' => ['2026-03-29', '2026-03-28T23:00:00+00:00', '2026-03-29T22:00:00+00:00', 23],
+        'fall back' => ['2026-10-25', '2026-10-24T22:00:00+00:00', '2026-10-25T23:00:00+00:00', 25],
+    ]);
+
+    it('never hands the calendar the appointment being moved', function () {
+        ($this->readDay)('2026-03-10', BOARD_APPOINTMENT_ID);
+
+        expect($this->externalArguments)->toHaveCount(4)
+            ->and($this->externalArguments)->not->toContain(BOARD_APPOINTMENT_ID);
+    });
+});
+
+describe('an external event while an appointment is being moved', function () {
+    it('still blocks the old time when the calendar is busy there', function () {
+        ($this->openFor)(
+            timezone: BOARD_ZONE,
+            booked: [],
+            externallyBusy: [new BookedInterval(
+                new DateTimeImmutable('2026-03-10T10:00:00+01:00'),
+                new DateTimeImmutable('2026-03-10T10:30:00+01:00'),
+            )],
+        );
+
+        $starts = array_map(
+            static fn (DateTimeImmutable $start): string => $start->setTimezone(new DateTimeZone(BOARD_ZONE))->format('H:i'),
+            ($this->read)(($this->query)(BOARD_APPOINTMENT_ID))[0]->starts,
+        );
+
+        expect($starts)->toBe(['09:00', '09:30', '10:30']);
+    });
+
+    it('blocks an externally busy slot across a daylight saving change', function (string $date, int $weekday, string $startsAt, string $endsAt) {
+        ($this->openFor)(
+            timezone: BOARD_ZONE,
+            businessHours: ScheduleFixtures::weeklyIntervals([$weekday => [['09:00', '11:00']]]),
+            externallyBusy: [new BookedInterval(new DateTimeImmutable($startsAt), new DateTimeImmutable($endsAt))],
+        );
+
+        $starts = array_map(
+            static fn (DateTimeImmutable $start): string => $start->setTimezone(new DateTimeZone(BOARD_ZONE))->format('H:i'),
+            $this->board->forBusiness(
+                FakeBusinessContext::BUSINESS_ID,
+                new SlotQuery(BOARD_SERVICE_ID, ScheduleFixtures::STAFF_ID, $date, $date, BOARD_APPOINTMENT_ID),
+            )[0]->starts,
+        );
+
+        expect($starts)->toBe(['09:00', '09:30', '10:30']);
+    })->with([
+        'spring forward' => ['2026-03-29', BOARD_SUNDAY, '2026-03-29T08:00:00+00:00', '2026-03-29T08:30:00+00:00'],
+        'fall back' => ['2026-10-25', BOARD_SUNDAY, '2026-10-25T09:00:00+00:00', '2026-10-25T09:30:00+00:00'],
+    ]);
 });

@@ -262,6 +262,18 @@ return [
         'invalid_void_actor' => 'We could not identify who is voiding this transaction.',
         'invalid_money_amount' => 'That amount is not valid.',
         'currency_mismatch' => 'Those amounts are in different currencies.',
+        'calendar_connection_not_found' => 'You have no calendar connected.',
+        'calendar_already_connected' => 'Your Google Calendar is already connected.',
+        'calendar_authorization_state_invalid' => 'That Google Calendar connection link has expired. Please try connecting again.',
+        'calendar_authorization_denied' => 'Google Calendar was not connected because access was not granted.',
+        'calendar_authorization_failed' => 'We could not connect your Google Calendar. Please try again.',
+        'calendar_scope_not_granted' => 'Allow Mizita to manage the calendars it creates to connect Google Calendar.',
+        'calendar_authorization_revoked' => 'Google Calendar access was revoked. Reconnect it to keep your appointments in sync.',
+        'external_calendar_unavailable' => 'Google Calendar could not be reached right now.',
+        'invalid_calendar_connection' => 'That calendar connection is incomplete.',
+        'invalid_calendar_event_link' => 'That calendar event could not be linked to the appointment.',
+        'invalid_external_calendar_event' => 'That calendar event has no valid start and end.',
+        'invalid_busy_window' => 'That time window is not valid.',
 
     ],
 
