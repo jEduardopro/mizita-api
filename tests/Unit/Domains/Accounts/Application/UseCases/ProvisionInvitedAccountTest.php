@@ -8,8 +8,10 @@ use App\Domains\Accounts\Application\UseCases\ProvisionInvitedAccount;
 use App\Domains\Accounts\Contracts\AccountRepository;
 use App\Domains\Accounts\Contracts\PasswordHasher;
 use App\Domains\Accounts\Contracts\TemporaryPasswordGenerator;
+use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Exceptions\AccountAlreadyRegistered;
+use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Domains\Accounts\Exceptions\TemporaryPasswordTooShort;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -21,12 +23,14 @@ use Tests\Support\FixedIdGenerator;
 beforeEach(function () {
     $this->accounts = Mockery::mock(AccountRepository::class);
     $this->temporaryPasswords = Mockery::mock(TemporaryPasswordGenerator::class);
+    $this->vault = Mockery::mock(TemporaryPasswordVault::class);
     $this->hasher = Mockery::mock(PasswordHasher::class);
     $this->transactions = new FakeTransactionManager;
 
     $this->useCase = new ProvisionInvitedAccount(
         $this->accounts,
         $this->temporaryPasswords,
+        $this->vault,
         $this->hasher,
         new FixedIdGenerator(InvitationFixtures::GENERATED_ACCOUNT_ID),
         new FakeClock(InvitationFixtures::now()),
@@ -43,6 +47,7 @@ beforeEach(function () {
     $this->issuesNoPassword = function (): void {
         $this->temporaryPasswords->shouldNotReceive('generate');
         $this->hasher->shouldNotReceive('hash');
+        $this->vault->shouldNotReceive('keep');
     };
 });
 
@@ -50,6 +55,12 @@ describe('an email nobody has registered', function () {
     beforeEach(function () {
         $this->accounts->shouldReceive('findByEmail')->once()->with(InvitationFixtures::EMAIL)->andReturnNull();
         ($this->issuesTheTemporaryPassword)();
+        $this->steps = [];
+        $this->vault->shouldReceive('keep')->once()
+            ->with(InvitationFixtures::GENERATED_ACCOUNT_ID, InvitationFixtures::TEMPORARY_PASSWORD)
+            ->andReturnUsing(function (): void {
+                $this->steps[] = ['keep', $this->transactions->isRunning()];
+            });
     });
 
     it('creates the account and hands back its uuid and the plaintext temporary password', function () {
@@ -92,6 +103,17 @@ describe('an email nobody has registered', function () {
             ->and($this->transactions->runs())->toBe(1);
     });
 
+    it('keeps the plaintext for the owner to copy after the save, inside the same transaction', function () {
+        $this->accounts->shouldReceive('save')->once()->andReturnUsing(function (): void {
+            $this->steps[] = ['save', $this->transactions->isRunning()];
+        });
+
+        $this->useCase->handle(new ProvisionInvitedAccountInput(InvitationFixtures::NAME, InvitationFixtures::EMAIL));
+
+        expect($this->steps)->toBe([['save', true], ['keep', true]])
+            ->and($this->transactions->runs())->toBe(1);
+    });
+
     it('looks the email up the way it will be stored, trimmed and lowercased', function () {
         $saved = null;
         $this->accounts->shouldReceive('save')->once()->with(Mockery::capture($saved));
@@ -129,6 +151,7 @@ describe('losing the race to a concurrent registration of the same email', funct
         ($this->issuesTheTemporaryPassword)();
         $this->conflict = AccountAlreadyRegistered::withEmail(InvitationFixtures::EMAIL);
         $this->accounts->shouldReceive('save')->once()->andThrow($this->conflict);
+        $this->vault->shouldNotReceive('keep');
     });
 
     it('re-reads the winner and returns it as an existing account, withholding the password nobody stored', function () {
@@ -180,7 +203,23 @@ it('lets a generator that breaks its own length contract escape as a programmer 
     $this->temporaryPasswords->shouldReceive('generate')->once()->andThrow($bug);
     $this->hasher->shouldNotReceive('hash');
     $this->accounts->shouldNotReceive('save');
+    $this->vault->shouldNotReceive('keep');
 
     expect(fn () => $this->useCase->handle(new ProvisionInvitedAccountInput(InvitationFixtures::NAME, InvitationFixtures::EMAIL)))
         ->toThrow($bug);
+});
+
+it('answers with not found, handing back no password, when the vault cannot find the account it just saved', function () {
+    $missing = AccountNotFound::withId(InvitationFixtures::GENERATED_ACCOUNT_ID);
+    $this->accounts->shouldReceive('findByEmail')->once()->andReturnNull();
+    ($this->issuesTheTemporaryPassword)();
+    $this->accounts->shouldReceive('save')->once();
+    $this->vault->shouldReceive('keep')->once()->andThrow($missing);
+
+    $response = $this->useCase->handle(new ProvisionInvitedAccountInput(InvitationFixtures::NAME, InvitationFixtures::EMAIL));
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('account_not_found')
+        ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+        ->and($response->error()->cause())->toBe($missing);
 });

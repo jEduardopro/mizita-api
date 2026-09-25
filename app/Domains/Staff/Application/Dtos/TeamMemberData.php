@@ -23,6 +23,7 @@ final readonly class TeamMemberData
         public ?string $about,
         public StaffRole $level,
         public bool $invitationPending,
+        public bool $temporaryPasswordAvailable,
         public DateTimeImmutable $createdAt,
     ) {}
 
@@ -32,7 +33,10 @@ final readonly class TeamMemberData
         AccountSnapshot $account,
         ?PhoneNumber $phone,
         ?string $photoUrl,
+        bool $holdsTemporaryPassword,
     ): self {
+        $invitationPending = $member->hasPendingInvitation($account);
+
         return new self(
             id: $member->id,
             name: $account->name,
@@ -42,7 +46,8 @@ final readonly class TeamMemberData
             jobTitle: $profile?->jobTitle()?->value,
             about: $profile?->about()?->value,
             level: $member->role(),
-            invitationPending: $member->hasPendingInvitation($account),
+            invitationPending: $invitationPending,
+            temporaryPasswordAvailable: $invitationPending && $holdsTemporaryPassword,
             createdAt: $member->createdAt,
         );
     }

@@ -8,6 +8,7 @@ use App\Domains\Staff\Infrastructure\Http\Controllers\StaffMemberController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamInvitationController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamMemberController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamMemberPhotoController;
+use App\Domains\Staff\Infrastructure\Http\Controllers\TeamTemporaryPasswordController;
 use App\Domains\Staff\StaffServiceProvider;
 use Illuminate\Support\Facades\Route;
 
@@ -43,4 +44,8 @@ Route::delete('/staff-members/{staffMember}/photo', [TeamMemberPhotoController::
 
 Route::post('/staff-members/{staffMember}/invitation', [TeamInvitationController::class, 'store'])
     ->middleware(['permission:create_staff_member', 'throttle:'.StaffServiceProvider::INVITATION_LIMITER])
+    ->whereUuid('staffMember');
+
+Route::get('/staff-members/{staffMember}/temporary-password', [TeamTemporaryPasswordController::class, 'show'])
+    ->middleware(['permission:reveal_temporary_password', 'throttle:'.StaffServiceProvider::TEMPORARY_PASSWORD_LIMITER])
     ->whereUuid('staffMember');

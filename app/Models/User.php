@@ -17,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['uuid', 'name', 'email', 'email_verified_at', 'password', 'must_change_password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'temporary_password'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -66,6 +66,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'must_change_password' => 'boolean',
+            'temporary_password' => 'encrypted',
         ];
     }
 }

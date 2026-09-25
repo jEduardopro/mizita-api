@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -14,6 +15,10 @@ const CURRENT_PASSWORD = 'Current1!Pass';
 const STRONG_PASSWORD = 'Str0ng!Pass';
 
 const UPDATE_PASSWORD_BAG = 'updatePassword';
+
+const UPDATE_TEMPORARY_PASSWORD = 'Tq7mW2xK9pLr4ZvB8nYd';
+
+const STOPPED_AFTER_SAVING = 'The update was stopped once the account was about to be saved.';
 
 function refusedPasswordUpdate(User $user, array $input): ValidationException
 {
@@ -176,5 +181,41 @@ describe('where the refusal is reported', function () {
     })->with([
         'a missing current password' => ['passwordAccount', ['password' => STRONG_PASSWORD, 'password_confirmation' => STRONG_PASSWORD]],
         'a weak new password' => ['googleAccount', ['password' => 'password', 'password_confirmation' => 'password']],
+    ]);
+});
+
+describe('an update that is accepted', function () {
+    beforeEach(function () {
+        $this->temporaryAccount = (new User)->forceFill([
+            'password' => CURRENT_PASSWORD,
+            'must_change_password' => true,
+        ]);
+
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (Closure $work): mixed => $work());
+
+        $this->savedAttributes = null;
+
+        User::saving(function (User $account): never {
+            $this->savedAttributes = $account->getAttributes();
+
+            throw new RuntimeException(STOPPED_AFTER_SAVING);
+        });
+    });
+
+    it('discards the temporary password an owner could still copy', function (string $account) {
+        $this->{$account}->forceFill(['temporary_password' => UPDATE_TEMPORARY_PASSWORD]);
+
+        expect(fn () => (new UpdateUserPassword)->update($this->{$account}, [
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => STRONG_PASSWORD,
+        ]))
+            ->toThrow(RuntimeException::class, STOPPED_AFTER_SAVING);
+
+        expect($this->savedAttributes)->toHaveKey('temporary_password')
+            ->and($this->savedAttributes['temporary_password'])->toBeNull()
+            ->and($this->savedAttributes['must_change_password'])->toBeFalse();
+    })->with([
+        'still holding the temporary password' => 'temporaryAccount',
+        'created through Google' => 'googleAccount',
     ]);
 });

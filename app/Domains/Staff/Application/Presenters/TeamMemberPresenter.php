@@ -9,6 +9,7 @@ use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffPhoneBook;
 use App\Domains\Staff\Contracts\StaffProfilePhotos;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
+use App\Domains\Staff\Contracts\TeamTemporaryPasswords;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
@@ -22,6 +23,7 @@ final class TeamMemberPresenter
         private readonly StaffProfileRepository $profiles,
         private readonly StaffPhoneBook $phones,
         private readonly StaffProfilePhotos $photos,
+        private readonly TeamTemporaryPasswords $temporaryPasswords,
     ) {}
 
     /**
@@ -52,7 +54,9 @@ final class TeamMemberPresenter
             return [];
         }
 
-        $accounts = $this->accountsOf($members);
+        $accountIds = self::accountIdsOf($members);
+        $accounts = $this->accountsOf($accountIds);
+        $holdingTemporaryPassword = array_flip($this->temporaryPasswords->availableAmong($accountIds));
         $profiles = $this->profiles->findForStaffMembers($businessId, self::idsOf($members));
         $profileIds = self::profileIdsOf($profiles);
         $phones = $this->phones->forProfiles($profileIds);
@@ -75,6 +79,7 @@ final class TeamMemberPresenter
                 $account,
                 $profile === null ? null : ($phones[$profile->id] ?? null),
                 $profile === null ? null : ($photoUrls[$profile->id] ?? null),
+                isset($holdingTemporaryPassword[$member->accountId]),
             );
         }
 
@@ -82,16 +87,11 @@ final class TeamMemberPresenter
     }
 
     /**
-     * @param  list<StaffMember>  $members
+     * @param  list<string>  $accountIds
      * @return array<string, AccountSnapshot>
      */
-    private function accountsOf(array $members): array
+    private function accountsOf(array $accountIds): array
     {
-        $accountIds = array_values(array_unique(array_map(
-            static fn (StaffMember $member): string => $member->accountId,
-            $members,
-        )));
-
         $accounts = [];
 
         foreach ($this->accounts->describe($accountIds) as $account) {
@@ -99,6 +99,18 @@ final class TeamMemberPresenter
         }
 
         return $accounts;
+    }
+
+    /**
+     * @param  list<StaffMember>  $members
+     * @return list<string>
+     */
+    private static function accountIdsOf(array $members): array
+    {
+        return array_values(array_unique(array_map(
+            static fn (StaffMember $member): string => $member->accountId,
+            $members,
+        )));
     }
 
     /**

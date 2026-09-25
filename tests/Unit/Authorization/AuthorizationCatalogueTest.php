@@ -245,6 +245,7 @@ describe('the team permissions', function () {
             'create_staff_member',
             'edit_staff_member',
             'delete_staff_member',
+            'reveal_temporary_password',
         ]);
     });
 
@@ -255,6 +256,17 @@ describe('the team permissions', function () {
             ->and($permission['scope'])->toBe(AuthorizationScope::Business);
     });
 
+    it('keeps copying a temporary password in the business scope, under the staff module', function () {
+        $permission = mizitaCatalogueSection('permissions')['reveal_temporary_password'];
+
+        expect(mizitaModuleOf($permission))->toBe('staff')
+            ->and($permission['scope'])->toBe(AuthorizationScope::Business);
+    });
+
+    it('never lets a cloned role copy a temporary password out of the box', function (string $role) {
+        expect(mizitaGrantedPermissions(mizitaCatalogueSection('roles')[$role]))->not->toContain('reveal_temporary_password');
+    })->with(['staff', 'no_access']);
+
     it('lets the owner wildcard reach every new permission', function (string $introduced) {
         expect(mizitaGrantedPermissions(mizitaCatalogueSection('roles')['owner']))->toContain($introduced);
     })->with([
@@ -263,6 +275,7 @@ describe('the team permissions', function () {
         'edit_staff_member',
         'delete_staff_member',
         'manage_all_calendars',
+        'reveal_temporary_password',
     ]);
 });
 
@@ -284,7 +297,7 @@ describe('what the routes enforce', function () {
             );
         }
 
-        expect($enforced)->toContain('view_staff_members', 'create_staff_member', 'edit_staff_member', 'delete_staff_member');
+        expect($enforced)->toContain('view_staff_members', 'create_staff_member', 'edit_staff_member', 'delete_staff_member', 'reveal_temporary_password');
     });
 });
 

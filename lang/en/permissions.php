@@ -59,6 +59,11 @@ return [
         'description' => 'Remove someone from the business once they have no upcoming appointments.',
     ],
 
+    'reveal_temporary_password' => [
+        'label' => 'Copy temporary passwords',
+        'description' => 'Copy the temporary password of an invited team member, until they sign in for the first time.',
+    ],
+
     'view_services' => [
         'label' => 'View services',
         'description' => 'See the services the business offers, their prices and who can perform them.',

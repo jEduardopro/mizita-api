@@ -4,6 +4,7 @@ export type PermissionName =
     | 'create_staff_member'
     | 'edit_staff_member'
     | 'delete_staff_member'
+    | 'reveal_temporary_password'
     | 'manage_all_calendars'
     | 'view_services'
     | 'create_service'

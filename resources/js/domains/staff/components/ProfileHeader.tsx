@@ -7,7 +7,7 @@ type Props = {
     name: string;
     jobTitle: string | null;
     photoUrl: string | null;
-    onEdit: () => void;
+    onEdit?: () => void;
 };
 
 export function ProfileHeader({ name, jobTitle, photoUrl, onEdit }: Props) {
@@ -25,15 +25,17 @@ export function ProfileHeader({ name, jobTitle, photoUrl, onEdit }: Props) {
                 )}
             </div>
 
-            <Button
-                type="button"
-                variant="ghost"
-                onClick={onEdit}
-                aria-label={t('profile.edit')}
-                className="-mr-2 size-11 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-            >
-                <Pencil aria-hidden="true" />
-            </Button>
+            {onEdit === undefined ? null : (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onEdit}
+                    aria-label={t('profile.edit')}
+                    className="-mr-2 size-11 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                >
+                    <Pencil aria-hidden="true" />
+                </Button>
+            )}
         </header>
     );
 }

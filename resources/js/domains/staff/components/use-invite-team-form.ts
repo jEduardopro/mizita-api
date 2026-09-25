@@ -1,9 +1,8 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useServerErrors } from '@/hooks/use-server-errors';
-import { raiseSuccessToast } from '@/lib/toast';
 import { useInviteTeamMembers } from '../queries';
-import { TEAM_INVITATION_MAXIMUM_MEMBERS } from '../types';
+import { TEAM_INVITATION_MAXIMUM_MEMBERS, type TeamMember } from '../types';
 import {
     blankInvitee,
     invitationPayloadFrom,
@@ -40,7 +39,7 @@ export type InviteTeamFormController = {
 };
 
 type Params = {
-    onInvited: () => void;
+    onInvited: (members: TeamMember[]) => void;
 };
 
 function touchedId(key: string, field: RequiredInviteeField): string {
@@ -122,10 +121,7 @@ export function useInviteTeamForm({ onInvited }: Params): InviteTeamFormControll
         reset();
 
         try {
-            const members = await inviteTeamMembers.mutateAsync(invitationPayloadFrom(filled));
-
-            raiseSuccessToast(t('team.toasts.invited', { count: members.length }));
-            onInvited();
+            onInvited(await inviteTeamMembers.mutateAsync(invitationPayloadFrom(filled)));
         } catch (error) {
             capture(error, t('team.invite.unexpected'));
         }

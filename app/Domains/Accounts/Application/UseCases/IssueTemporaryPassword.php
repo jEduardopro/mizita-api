@@ -9,16 +9,20 @@ use App\Domains\Accounts\Application\Dtos\IssueTemporaryPasswordInput;
 use App\Domains\Accounts\Contracts\AccountRepository;
 use App\Domains\Accounts\Contracts\PasswordHasher;
 use App\Domains\Accounts\Contracts\TemporaryPasswordGenerator;
+use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
 use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\DomainFailure;
+use App\Shared\Contracts\TransactionManager;
 
 final class IssueTemporaryPassword
 {
     public function __construct(
         private readonly AccountRepository $accounts,
         private readonly TemporaryPasswordGenerator $temporaryPasswords,
+        private readonly TemporaryPasswordVault $vault,
         private readonly PasswordHasher $hasher,
+        private readonly TransactionManager $transactions,
     ) {}
 
     /**
@@ -52,7 +56,10 @@ final class IssueTemporaryPassword
 
         $account->issueTemporaryPassword($this->hasher->hash($temporaryPassword->value));
 
-        $this->accounts->save($account);
+        $this->transactions->run(function () use ($account, $temporaryPassword): void {
+            $this->accounts->save($account);
+            $this->vault->keep($account->id, $temporaryPassword->value);
+        });
 
         return $temporaryPassword->value;
     }

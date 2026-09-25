@@ -8,6 +8,7 @@ use App\Domains\Staff\Exceptions\InvalidTeamLevel;
 use App\Domains\Staff\Exceptions\OwnerCannotBeRemoved;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
+use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\ValueObjects\AccessTransition;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use Tests\Support\Staff\StaffFixtures;
@@ -190,6 +191,26 @@ describe('a pending invitation', function () {
         'already accepted' => [StaffRole::Member, false],
         'no access' => [StaffRole::NoAccess, true],
         'the owner' => [StaffRole::Owner, true],
+    ]);
+});
+
+describe('a temporary password an owner may copy', function () {
+    it('lets the temporary password of a pending invitation be revealed', function () {
+        $account = StaffFixtures::account(id: STAFF_ACCOUNT_ID, awaitingPasswordChange: true);
+
+        expect(fn () => staffMemberWithRole(StaffRole::Member)->ensureTemporaryPasswordRevealable($account))->not->toThrow(Throwable::class);
+    });
+
+    it('refuses to reveal a temporary password once no invitation is pending', function (StaffRole $role, bool $awaitingPasswordChange) {
+        $account = StaffFixtures::account(id: STAFF_ACCOUNT_ID, awaitingPasswordChange: $awaitingPasswordChange);
+
+        expect(fn () => staffMemberWithRole($role)->ensureTemporaryPasswordRevealable($account))
+            ->toThrow(TemporaryPasswordUnavailable::class, 'Staff member ['.STAFF_MEMBER_ID.'] has no temporary password left to reveal.');
+    })->with([
+        'already signed in' => [StaffRole::Member, false],
+        'no access' => [StaffRole::NoAccess, true],
+        'the owner' => [StaffRole::Owner, true],
+        'the owner with a password' => [StaffRole::Owner, false],
     ]);
 });
 

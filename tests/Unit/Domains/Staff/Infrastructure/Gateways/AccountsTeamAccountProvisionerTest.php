@@ -20,6 +20,7 @@ use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Infrastructure\Gateways\AccountsTeamAccountProvisioner;
 use App\Domains\Staff\ValueObjects\ProvisionedAccount;
 use App\Domains\Staff\ValueObjects\StaffRole;
+use Tests\Support\Accounts\FakeTemporaryPasswordVault;
 use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
@@ -60,11 +61,12 @@ beforeEach(function () {
     $ids = new FixedIdGenerator(StaffFixtures::SECOND_ACCOUNT_ID);
     $clock = new FakeClock(StaffFixtures::now());
     $transactions = new FakeTransactionManager;
+    $this->vault = new FakeTemporaryPasswordVault;
 
     $this->provisioner = new AccountsTeamAccountProvisioner(
-        new ProvisionInvitedAccount($this->accounts, $this->passwords, $this->hasher, $ids, $clock, $transactions),
+        new ProvisionInvitedAccount($this->accounts, $this->passwords, $this->vault, $this->hasher, $ids, $clock, $transactions),
         new ProvisionAccessLessAccount($this->accounts, $ids, $clock, $transactions),
-        new IssueTemporaryPassword($this->accounts, $this->passwords, $this->hasher),
+        new IssueTemporaryPassword($this->accounts, $this->passwords, $this->vault, $this->hasher, $transactions),
     );
 });
 
@@ -81,7 +83,8 @@ describe('provisioning a new account', function () {
             ->and($provisioned->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
             ->and($provisioned->temporaryPassword)->toBe(PROVISIONED_TEMPORARY_PASSWORD)
             ->and($saved)->toBeInstanceOf(Account::class)
-            ->and($saved->id)->toBe(StaffFixtures::SECOND_ACCOUNT_ID);
+            ->and($saved->id)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
+            ->and($this->vault->reveal(StaffFixtures::SECOND_ACCOUNT_ID))->toBe(PROVISIONED_TEMPORARY_PASSWORD);
     });
 
     it('creates an account with no password at all for a no access member', function () {
@@ -93,7 +96,8 @@ describe('provisioning a new account', function () {
         $provisioned = $this->provisioner->provision(StaffRole::NoAccess, 'Linus Pauling', 'linus@example.com');
 
         expect($provisioned->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
-            ->and($provisioned->temporaryPassword)->toBeNull();
+            ->and($provisioned->temporaryPassword)->toBeNull()
+            ->and($this->vault->kept)->toBe([]);
     });
 });
 
@@ -106,7 +110,8 @@ describe('provisioning an account that already exists', function () {
         $provisioned = $this->provisioner->provision(StaffRole::Member, 'Grace Hopper', 'grace@example.com');
 
         expect($provisioned->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
-            ->and($provisioned->temporaryPassword)->toBe(PROVISIONED_TEMPORARY_PASSWORD);
+            ->and($provisioned->temporaryPassword)->toBe(PROVISIONED_TEMPORARY_PASSWORD)
+            ->and($this->vault->reveal(StaffFixtures::SECOND_ACCOUNT_ID))->toBe(PROVISIONED_TEMPORARY_PASSWORD);
     })->with([
         'no password' => PasswordStatus::Absent,
         'a temporary password' => PasswordStatus::Temporary,
@@ -119,6 +124,8 @@ describe('provisioning an account that already exists', function () {
         $this->passwords->shouldNotReceive('generate');
 
         expect($this->provisioner->provision(StaffRole::Member, 'Grace Hopper', 'grace@example.com')->temporaryPassword)->toBeNull();
+
+        expect($this->vault->kept)->toBe([]);
     });
 
     it('never issues a password to an existing account joining with no access', function () {
@@ -130,7 +137,8 @@ describe('provisioning an account that already exists', function () {
         $provisioned = $this->provisioner->provision(StaffRole::NoAccess, 'Grace Hopper', 'grace@example.com');
 
         expect($provisioned->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
-            ->and($provisioned->temporaryPassword)->toBeNull();
+            ->and($provisioned->temporaryPassword)->toBeNull()
+            ->and($this->vault->kept)->toBe([]);
     });
 });
 
@@ -163,6 +171,8 @@ describe('issuing a temporary password', function () {
         $this->accounts->shouldReceive('save')->once();
 
         expect($this->provisioner->issueTemporaryPassword(StaffFixtures::SECOND_ACCOUNT_ID))->toBe(PROVISIONED_TEMPORARY_PASSWORD);
+
+        expect($this->vault->reveal(StaffFixtures::SECOND_ACCOUNT_ID))->toBe(PROVISIONED_TEMPORARY_PASSWORD);
     });
 
     it('issues nothing to an account that chose its own password', function () {

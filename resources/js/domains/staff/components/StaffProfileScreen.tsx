@@ -21,12 +21,13 @@ type Props = {
     profile: StaffProfileDetails;
     dialogTitle: string;
     initialPane?: StaffProfilePane;
+    readOnly?: boolean;
     editableLevel?: AssignableStaffRole;
     onSaveProfile: (payload: UpdateTeamMemberPayload) => Promise<unknown>;
     onUploadPhoto: (photo: File) => Promise<unknown>;
     onRemovePhoto: () => Promise<unknown>;
     services: ReactNode;
-    renderHoursSummary: (onEdit: () => void) => ReactNode;
+    renderHoursSummary: (onEdit?: () => void) => ReactNode;
     renderHoursPanel: (onCancel?: () => void) => ReactNode;
     accountPanes?: readonly StaffProfilePaneContent[];
 };
@@ -35,6 +36,7 @@ export function StaffProfileScreen({
     profile,
     dialogTitle,
     initialPane,
+    readOnly = false,
     editableLevel,
     onSaveProfile,
     onUploadPhoto,
@@ -46,6 +48,10 @@ export function StaffProfileScreen({
 }: Props) {
     const { t } = useTranslation('admin');
     const [dialog, setDialog] = useState<DialogState>(() => initialDialogState(initialPane));
+
+    if (readOnly) {
+        return <StaffProfileView profile={profile} hoursSummary={renderHoursSummary()} services={services} />;
+    }
 
     const openDialog = (pane: StaffProfilePane) => setDialog({ open: true, pane });
     const closeDialog = () => setDialog((current) => ({ ...current, open: false }));

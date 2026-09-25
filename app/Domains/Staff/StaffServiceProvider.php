@@ -14,6 +14,7 @@ use App\Domains\Staff\Contracts\StaffProfileRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
 use App\Domains\Staff\Contracts\TeamInvitationMailer;
 use App\Domains\Staff\Contracts\TeamRoster;
+use App\Domains\Staff\Contracts\TeamTemporaryPasswords;
 use App\Domains\Staff\Contracts\UpcomingAppointments;
 use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Infrastructure\Eloquent\EloquentStaffMemberRepository;
@@ -22,6 +23,7 @@ use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffProfileModel;
 use App\Domains\Staff\Infrastructure\Gateways\AccountsAccountDirectory;
 use App\Domains\Staff\Infrastructure\Gateways\AccountsTeamAccountProvisioner;
+use App\Domains\Staff\Infrastructure\Gateways\AccountsTeamTemporaryPasswords;
 use App\Domains\Staff\Infrastructure\Gateways\AppointmentsUpcomingAppointments;
 use App\Domains\Staff\Infrastructure\Gateways\BusinessesBusinessDirectory;
 use App\Domains\Staff\Infrastructure\Gateways\EloquentBusinessMembership;
@@ -43,6 +45,8 @@ final class StaffServiceProvider extends ServiceProvider
 {
     public const INVITATION_LIMITER = 'staff-team-invitations';
 
+    public const TEMPORARY_PASSWORD_LIMITER = 'staff-temporary-password-reveals';
+
     private const PHOTO_UPLOAD_LIMITER = 'staff-profile-photo-uploads';
 
     private const UPLOADS_PER_MINUTE = 10;
@@ -52,6 +56,10 @@ final class StaffServiceProvider extends ServiceProvider
     private const INVITATIONS_PER_MINUTE = 10;
 
     private const INVITATIONS_PER_HOUR = 60;
+
+    private const TEMPORARY_PASSWORD_REVEALS_PER_MINUTE = 10;
+
+    private const TEMPORARY_PASSWORD_REVEALS_PER_HOUR = 60;
 
     public function register(): void
     {
@@ -67,6 +75,7 @@ final class StaffServiceProvider extends ServiceProvider
         $this->app->bind(UpcomingAppointments::class, AppointmentsUpcomingAppointments::class);
         $this->app->bind(BusinessDirectory::class, BusinessesBusinessDirectory::class);
         $this->app->bind(TeamInvitationMailer::class, NotificationTeamInvitationMailer::class);
+        $this->app->bind(TeamTemporaryPasswords::class, AccountsTeamTemporaryPasswords::class);
     }
 
     public function boot(): void
@@ -78,8 +87,13 @@ final class StaffServiceProvider extends ServiceProvider
 
         Event::listen(TeamMemberInvited::class, NotifyInvitedTeamMember::class);
 
-        $this->registerPhotoUploadLimiter();
-        $this->registerInvitationLimiter();
+        self::registerPerAccountLimiter(self::PHOTO_UPLOAD_LIMITER, self::UPLOADS_PER_MINUTE, self::UPLOADS_PER_HOUR);
+        self::registerPerAccountLimiter(self::INVITATION_LIMITER, self::INVITATIONS_PER_MINUTE, self::INVITATIONS_PER_HOUR);
+        self::registerPerAccountLimiter(
+            self::TEMPORARY_PASSWORD_LIMITER,
+            self::TEMPORARY_PASSWORD_REVEALS_PER_MINUTE,
+            self::TEMPORARY_PASSWORD_REVEALS_PER_HOUR,
+        );
 
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum', 'business'])
@@ -90,19 +104,11 @@ final class StaffServiceProvider extends ServiceProvider
             ->group(__DIR__.'/Infrastructure/Http/media.php');
     }
 
-    private function registerPhotoUploadLimiter(): void
+    private static function registerPerAccountLimiter(string $name, int $perMinute, int $perHour): void
     {
-        RateLimiter::for(self::PHOTO_UPLOAD_LIMITER, static fn (Request $request): array => [
-            Limit::perMinute(self::UPLOADS_PER_MINUTE)->by('minute:'.self::limiterKeyFor($request)),
-            Limit::perHour(self::UPLOADS_PER_HOUR)->by('hour:'.self::limiterKeyFor($request)),
-        ]);
-    }
-
-    private function registerInvitationLimiter(): void
-    {
-        RateLimiter::for(self::INVITATION_LIMITER, static fn (Request $request): array => [
-            Limit::perMinute(self::INVITATIONS_PER_MINUTE)->by('minute:'.self::limiterKeyFor($request)),
-            Limit::perHour(self::INVITATIONS_PER_HOUR)->by('hour:'.self::limiterKeyFor($request)),
+        RateLimiter::for($name, static fn (Request $request): array => [
+            Limit::perMinute($perMinute)->by('minute:'.self::limiterKeyFor($request)),
+            Limit::perHour($perHour)->by('hour:'.self::limiterKeyFor($request)),
         ]);
     }
 

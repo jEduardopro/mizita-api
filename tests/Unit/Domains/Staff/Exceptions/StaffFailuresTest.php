@@ -21,6 +21,7 @@ use App\Domains\Staff\Exceptions\StaffProfileNotFound;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
 use App\Domains\Staff\Exceptions\TeamMemberAlreadyExists;
 use App\Domains\Staff\Exceptions\TeamMemberHasUpcomingAppointments;
+use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\Exceptions\UnsupportedProfilePhoto;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\CountryCode;
@@ -183,6 +184,11 @@ function staffFailures(): array
             'team_invitation_not_pending',
             DomainFailureKind::Conflict,
         ],
+        'revealing a temporary password nobody holds any more' => [
+            TemporaryPasswordUnavailable::for(StaffFixtures::MEMBER_ID),
+            'temporary_password_unavailable',
+            DomainFailureKind::Conflict,
+        ],
         'an email already on the team' => [
             TeamMemberAlreadyExists::withEmail('grace@example.com'),
             'team_member_already_exists',
@@ -293,6 +299,8 @@ it('names the member or the address each team refusal is about', function () {
         ->toBe('Staff member [m-1] owns the business and cannot be removed from it.')
         ->and(TeamMemberHasUpcomingAppointments::for('m-1')->getMessage())
         ->toBe('Staff member [m-1] still has upcoming appointments.')
+        ->and(TemporaryPasswordUnavailable::for('m-1')->getMessage())
+        ->toBe('Staff member [m-1] has no temporary password left to reveal.')
         ->and(InvalidTeamSearch::tooLong(120)->getMessage())
         ->toBe('A team search may not run past 120 characters.');
 });

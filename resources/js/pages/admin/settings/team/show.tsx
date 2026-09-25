@@ -14,24 +14,28 @@ import { StaffProfileScreen } from '@/domains/staff/components/StaffProfileScree
 import { StaffProfileSkeleton } from '@/domains/staff/components/StaffProfileSkeleton';
 import { editableLevelOf, staffProfileDetailsFrom } from '@/domains/staff/components/team-member-profile';
 import { EDIT_PANE_PARAMETER, TEAM_SETTINGS_URL } from '@/domains/staff/components/team-urls';
+import { useStaffProfileAccess } from '@/domains/staff/components/use-staff-profile-access';
 import {
     useAttachTeamMemberPhoto,
+    useMyProfile,
     useRemoveTeamMemberPhoto,
     useTeamMember,
     useUpdateTeamMember,
 } from '@/domains/staff/queries';
-import type { TeamMember } from '@/domains/staff/types';
+import type { MyProfile, TeamMember } from '@/domains/staff/types';
 import { useAuthorization } from '@/hooks/use-authorization';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { isNotFoundError } from '@/lib/http';
+import { MyProfileScreen } from '@/pages/admin/settings/profile';
 
 type ScreenProps = {
     member: TeamMember;
     initialPane: StaffProfilePane | undefined;
+    readOnly: boolean;
 };
 
-function TeamMemberScreen({ member, initialPane }: ScreenProps) {
+function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
     const schedule = useStaffSchedule(member.id);
@@ -55,6 +59,7 @@ function TeamMemberScreen({ member, initialPane }: ScreenProps) {
             profile={profile}
             dialogTitle={t('team.member.dialogTitle')}
             initialPane={initialPane}
+            readOnly={readOnly}
             editableLevel={editableLevelOf(member)}
             onSaveProfile={(payload) => updateMember.mutateAsync({ id: member.id, payload })}
             onUploadPhoto={(photo) => attachPhoto.mutateAsync({ id: member.id, photo })}
@@ -84,6 +89,18 @@ function TeamMemberScreen({ member, initialPane }: ScreenProps) {
     );
 }
 
+type ProfileProps = ScreenProps & {
+    selfProfile: MyProfile | undefined;
+};
+
+function TeamMemberProfile({ selfProfile, ...screen }: ProfileProps) {
+    if (selfProfile !== undefined) {
+        return <MyProfileScreen profile={selfProfile} initialPane={screen.initialPane} />;
+    }
+
+    return <TeamMemberScreen {...screen} />;
+}
+
 type Props = {
     staffMemberId: string;
 };
@@ -93,8 +110,12 @@ export default function ShowTeamMember({ staffMemberId }: Props) {
     const { read } = useUrlQueryState();
     const [initialPane] = useState(() => staffProfilePaneFrom(read(EDIT_PANE_PARAMETER)));
     const member = useTeamMember(staffMemberId);
+    const myProfile = useMyProfile();
+    const access = useStaffProfileAccess(staffMemberId);
 
-    const title = member.data?.name ?? t('team.member.title');
+    const selfProfile = access === 'self' ? myProfile.data : undefined;
+    const title = selfProfile?.name ?? member.data?.name ?? t('team.member.title');
+    const isResolvingAccess = member.data !== undefined && access === undefined;
 
     return (
         <AdminLayout
@@ -105,9 +126,16 @@ export default function ShowTeamMember({ staffMemberId }: Props) {
                 { label: title },
             ]}
         >
-            {member.data ? <TeamMemberScreen member={member.data} initialPane={initialPane} /> : null}
+            {member.data && access !== undefined ? (
+                <TeamMemberProfile
+                    member={member.data}
+                    selfProfile={selfProfile}
+                    initialPane={initialPane}
+                    readOnly={access === 'view'}
+                />
+            ) : null}
 
-            {member.isPending ? <StaffProfileSkeleton /> : null}
+            {member.isPending || isResolvingAccess ? <StaffProfileSkeleton /> : null}
 
             {member.isError && ! member.data ? (
                 <ProfileLoadError

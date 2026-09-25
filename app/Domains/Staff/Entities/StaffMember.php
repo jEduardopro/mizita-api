@@ -9,6 +9,7 @@ use App\Domains\Staff\Exceptions\InvalidTeamLevel;
 use App\Domains\Staff\Exceptions\OwnerCannotBeRemoved;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
+use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\ValueObjects\AccessTransition;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
 use App\Domains\Staff\ValueObjects\StaffRole;
@@ -117,6 +118,16 @@ final class StaffMember
     {
         if (! $this->hasPendingInvitation($account)) {
             throw TeamInvitationNotPending::for($this->id);
+        }
+    }
+
+    /**
+     * @throws TemporaryPasswordUnavailable
+     */
+    public function ensureTemporaryPasswordRevealable(AccountSnapshot $account): void
+    {
+        if (! $this->hasPendingInvitation($account)) {
+            throw TemporaryPasswordUnavailable::for($this->id);
         }
     }
 

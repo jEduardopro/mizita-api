@@ -15,6 +15,7 @@ function teamMemberData(
     StaffRole $level = StaffRole::Member,
     bool $withPhone = true,
     bool $invitationPending = true,
+    bool $temporaryPasswordAvailable = true,
 ): TeamMemberData {
     return new TeamMemberData(
         id: StaffFixtures::SECOND_MEMBER_ID,
@@ -26,6 +27,7 @@ function teamMemberData(
         about: $withPhone ? StaffFixtures::ABOUT : null,
         level: $level,
         invitationPending: $invitationPending,
+        temporaryPasswordAvailable: $temporaryPasswordAvailable,
         createdAt: new DateTimeImmutable('2026-03-29T01:30:00+00:00'),
     );
 }
@@ -53,6 +55,7 @@ it('serializes exactly the fields the team screen reads, wrapped in data', funct
         'about' => StaffFixtures::ABOUT,
         'level' => 'staff',
         'invitation_pending' => true,
+        'temporary_password_available' => true,
         'created_at' => '2026-03-29T01:30:00+00:00',
     ]);
 });
@@ -81,11 +84,12 @@ it('sends every level as the value the seeded role carries', function (StaffRole
 ]);
 
 it('sends null for every optional detail the member lacks', function () {
-    $member = serializedTeamMember(teamMemberData(withPhone: false, invitationPending: false));
+    $member = serializedTeamMember(teamMemberData(withPhone: false, invitationPending: false, temporaryPasswordAvailable: false));
 
     expect($member['phone'])->toBeNull()
         ->and($member['photo_url'])->toBeNull()
         ->and($member['job_title'])->toBeNull()
         ->and($member['about'])->toBeNull()
-        ->and($member['invitation_pending'])->toBeFalse();
+        ->and($member['invitation_pending'])->toBeFalse()
+        ->and($member['temporary_password_available'])->toBeFalse();
 });

@@ -75,8 +75,15 @@ export type TeamMember = {
     about: string | null;
     level: StaffRole;
     invitation_pending: boolean;
+    temporary_password_available: boolean;
     created_at: string;
 };
+
+export type TemporaryPassword = {
+    temporary_password: string;
+};
+
+export const TEMPORARY_PASSWORD_UNAVAILABLE_CODE = 'temporary_password_unavailable';
 
 export type TeamListParams = {
     page: number;

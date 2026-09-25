@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { MailPlus, MoreHorizontal, Pencil, UserMinus } from 'lucide-react';
+import { KeyRound, MailPlus, MoreHorizontal, Pencil, UserMinus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,9 @@ import { useAuthorization } from '@/hooks/use-authorization';
 import type { TeamMember } from '../types';
 import { RemoveTeamMemberDialog } from './RemoveTeamMemberDialog';
 import { teamMemberEditUrl } from './team-urls';
+import { useCopyTemporaryPassword } from './use-copy-temporary-password';
 import { useResendInvitation } from './use-resend-invitation';
+import { canEditStaffProfile, useStaffProfileAccess } from './use-staff-profile-access';
 
 const MENU_ITEM_SIZE = 'min-h-11 md:min-h-8';
 
@@ -27,12 +29,15 @@ export function TeamMemberRowActions({ member }: Props) {
     const { can } = useAuthorization();
     const [confirmingRemoval, setConfirmingRemoval] = useState(false);
     const invitation = useResendInvitation(member.id);
+    const access = useStaffProfileAccess(member.id);
+    const temporaryPassword = useCopyTemporaryPassword(member.id);
 
-    const canEdit = can('edit_staff_member');
+    const canEdit = canEditStaffProfile(access);
     const canResend = can('create_staff_member') && member.invitation_pending;
+    const canCopyPassword = can('reveal_temporary_password') && member.temporary_password_available;
     const canRemove = can('delete_staff_member') && member.level !== 'owner';
 
-    if (! canEdit && ! canResend && ! canRemove) {
+    if (! canEdit && ! canResend && ! canCopyPassword && ! canRemove) {
         return null;
     }
 
@@ -51,7 +56,7 @@ export function TeamMemberRowActions({ member }: Props) {
                     </Button>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuContent align="end" className="w-60">
                     {canEdit ? (
                         <DropdownMenuItem asChild className={MENU_ITEM_SIZE}>
                             <Link href={teamMemberEditUrl(member.id, 'profile')}>
@@ -72,7 +77,18 @@ export function TeamMemberRowActions({ member }: Props) {
                         </DropdownMenuItem>
                     ) : null}
 
-                    {(canEdit || canResend) && canRemove ? <DropdownMenuSeparator /> : null}
+                    {canCopyPassword ? (
+                        <DropdownMenuItem
+                            disabled={temporaryPassword.isCopying}
+                            onSelect={temporaryPassword.copy}
+                            className={MENU_ITEM_SIZE}
+                        >
+                            <KeyRound aria-hidden="true" />
+                            {t('team.actions.copyTemporaryPassword')}
+                        </DropdownMenuItem>
+                    ) : null}
+
+                    {(canEdit || canResend || canCopyPassword) && canRemove ? <DropdownMenuSeparator /> : null}
 
                     {canRemove ? (
                         <DropdownMenuItem

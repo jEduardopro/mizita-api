@@ -44,6 +44,11 @@ return [
             'module' => 'staff',
         ],
 
+        'reveal_temporary_password' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'staff',
+        ],
+
         'view_services' => [
             'scope' => AuthorizationScope::Business,
             'module' => 'services',

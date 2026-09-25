@@ -6,6 +6,7 @@ import type {
     StaffMember,
     TeamListParams,
     TeamMember,
+    TemporaryPassword,
     UpdateMyProfilePayload,
     UpdateTeamMemberPayload,
 } from './types';
@@ -100,6 +101,12 @@ export async function removeTeamMemberPhoto(id: string): Promise<TeamMember> {
 
 export async function resendTeamInvitation(id: string): Promise<void> {
     await api.post(`${teamMemberUrl(id)}/invitation`);
+}
+
+export async function revealTemporaryPassword(id: string): Promise<string> {
+    const { data } = await api.get<{ data: TemporaryPassword }>(`${teamMemberUrl(id)}/temporary-password`);
+
+    return data.data.temporary_password;
 }
 
 export async function removeTeamMember(id: string): Promise<void> {

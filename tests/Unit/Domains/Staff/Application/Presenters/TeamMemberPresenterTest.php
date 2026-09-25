@@ -14,6 +14,7 @@ use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
@@ -37,8 +38,9 @@ beforeEach(function () {
     );
     $this->phones = (new FakeStaffPhoneBook)->store(StaffFixtures::PROFILE_ID, PhoneNumbers::mexican());
     $this->photos = (new FakeStaffProfilePhotos)->store(FakeBusinessContext::BUSINESS_ID, StaffFixtures::PROFILE_ID, StaffFixtures::PHOTO_URL);
+    $this->temporaryPasswords = new FakeTeamTemporaryPasswords;
 
-    $this->presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos);
+    $this->presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords);
 
     $this->owner = StaffFixtures::member();
     $this->invitee = StaffFixtures::member(
@@ -63,6 +65,7 @@ describe('describing one member', function () {
             ->and($data->about)->toBe(StaffFixtures::ABOUT)
             ->and($data->level)->toBe(StaffRole::Owner)
             ->and($data->invitationPending)->toBeFalse()
+            ->and($data->temporaryPasswordAvailable)->toBeFalse()
             ->and($data->createdAt)->toEqual(StaffFixtures::now());
     });
 
@@ -87,7 +90,7 @@ describe('describing one member', function () {
 
     it('describes a member with no profile with no description, no phone and no photo', function () {
         $this->profiles = new FakeStaffProfileRepository;
-        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos);
+        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords);
 
         $data = $presenter->describe($this->owner);
 
@@ -134,6 +137,52 @@ describe('describing many members', function () {
 
         expect($described)->toHaveCount(1)
             ->and($described[0]->id)->toBe(StaffFixtures::MEMBER_ID);
+    });
+});
+
+describe('the temporary password an owner may copy', function () {
+    it('offers it for an invited member whose account still holds one', function () {
+        $this->temporaryPasswords->holds(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+
+        expect($this->presenter->describe($this->invitee)->temporaryPasswordAvailable)->toBeTrue();
+    });
+
+    it('does not offer it for an invited member whose account holds none', function () {
+        expect($this->presenter->describe($this->invitee)->temporaryPasswordAvailable)->toBeFalse();
+    });
+
+    it('does not offer it for a member with no pending invitation, even when the account still holds one', function () {
+        $this->temporaryPasswords->holds(StaffFixtures::ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+
+        expect($this->presenter->describe($this->owner)->temporaryPasswordAvailable)->toBeFalse();
+    });
+
+    it('asks which accounts hold one once for the whole batch, by account uuid', function () {
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->owner, $this->invitee]);
+
+        expect($this->temporaryPasswords->batchReads)->toBe([[StaffFixtures::ACCOUNT_ID, StaffFixtures::SECOND_ACCOUNT_ID]]);
+    });
+
+    it('asks about an account shared by two members only once', function () {
+        $twin = StaffFixtures::member(id: StaffFixtures::THIRD_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::Member);
+
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->invitee, $twin]);
+
+        expect($this->temporaryPasswords->batchReads)->toBe([[StaffFixtures::SECOND_ACCOUNT_ID]]);
+    });
+
+    it('never reveals a password while describing the team', function () {
+        $this->temporaryPasswords->holds(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->owner, $this->invitee]);
+
+        expect($this->temporaryPasswords->reveals)->toBe([]);
+    });
+
+    it('asks nothing for no members', function () {
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, []);
+
+        expect($this->temporaryPasswords->batchReads)->toBe([]);
     });
 });
 

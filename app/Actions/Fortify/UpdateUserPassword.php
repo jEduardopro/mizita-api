@@ -39,6 +39,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
             $user->forceFill([
                 'password' => Hash::make($input['password']),
                 'must_change_password' => false,
+                'temporary_password' => null,
             ])->save();
 
             $user->tokens()->delete();

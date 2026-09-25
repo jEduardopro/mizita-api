@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
+use App\Domains\Accounts\Infrastructure\Passwords\EncryptedTemporaryPasswordVault;
+use App\Domains\Staff\Application\Dtos\RevealedTemporaryPassword;
 use App\Domains\Staff\Application\Dtos\SendTeamInvitationInput;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Events\TeamMemberInvited;
@@ -20,4 +23,7 @@ it('redacts the temporary password from every stack trace that passes through it
     'the input of the use case that mails it' => [SendTeamInvitationInput::class, '__construct'],
     'the entity building the event' => [StaffMember::class, 'invitationFor'],
     'the notification carrying it' => [TemporaryPasswordInvitation::class, '__construct'],
+    'the vault port keeping it' => [TemporaryPasswordVault::class, 'keep'],
+    'the encrypted vault keeping it' => [EncryptedTemporaryPasswordVault::class, 'keep'],
+    'the password revealed to the owner' => [RevealedTemporaryPassword::class, '__construct'],
 ]);

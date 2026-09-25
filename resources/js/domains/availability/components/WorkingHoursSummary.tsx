@@ -19,7 +19,7 @@ type Props = {
     loadFailed: boolean;
     onRetry: () => void;
     timezone: string | null;
-    onEdit: () => void;
+    onEdit?: () => void;
 };
 
 export function WorkingHoursSummary({ schedule, loadFailed, onRetry, timezone, onEdit }: Props) {
@@ -80,15 +80,17 @@ export function WorkingHoursSummary({ schedule, loadFailed, onRetry, timezone, o
                     </Button>
                 </CollapsibleTrigger>
 
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={onEdit}
-                    aria-label={t('workingHours.summary.edit')}
-                    className={ICON_BUTTON}
-                >
-                    <Pencil aria-hidden="true" />
-                </Button>
+                {onEdit === undefined ? null : (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onEdit}
+                        aria-label={t('workingHours.summary.edit')}
+                        className={ICON_BUTTON}
+                    >
+                        <Pencil aria-hidden="true" />
+                    </Button>
+                )}
             </div>
 
             <CollapsibleContent>

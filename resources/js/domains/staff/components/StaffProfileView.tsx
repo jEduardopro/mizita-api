@@ -23,15 +23,18 @@ function profileTabFrom(value: string): ProfileTab {
 
 type Props = {
     profile: StaffProfileDetails;
-    onEdit: (pane: StaffProfilePane) => void;
+    onEdit?: (pane: StaffProfilePane) => void;
     hoursSummary: ReactNode;
     services: ReactNode;
-    hours: ReactNode;
+    hours?: ReactNode;
 };
 
 export function StaffProfileView({ profile, onEdit, hoursSummary, services, hours }: Props) {
     const { t } = useTranslation('admin');
     const [tab, setTab] = useState<ProfileTab>('about');
+
+    const editProfile = onEdit === undefined ? undefined : () => onEdit('profile');
+    const visibleTabs = PROFILE_TABS.filter((profileTab) => profileTab !== 'hours' || hours !== undefined);
 
     const panels: Record<ProfileTab, ReactNode> = {
         about: (
@@ -41,8 +44,8 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                 about={profile.about}
                 roleLabel={t(ROLE_LABEL_KEYS[profile.role])}
                 hoursSummary={hoursSummary}
-                onAddPhone={() => onEdit('profile')}
-                onAddAbout={() => onEdit('profile')}
+                onAddPhone={editProfile}
+                onAddAbout={editProfile}
             />
         ),
         services,
@@ -59,7 +62,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                 name={profile.name}
                 jobTitle={profile.job_title}
                 photoUrl={profile.photo_url}
-                onEdit={() => onEdit('profile')}
+                onEdit={editProfile}
             />
 
             <Tabs value={tab} onValueChange={(next) => setTab(profileTabFrom(next))} className="gap-5">
@@ -67,7 +70,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                     variant="line"
                     className="-mx-5 flex w-auto justify-start gap-4 overflow-x-auto border-b border-border px-5 pb-[5px] [scrollbar-width:none] group-data-horizontal/tabs:h-auto sm:mx-0 sm:w-full sm:px-0 [&::-webkit-scrollbar]:hidden"
                 >
-                    {PROFILE_TABS.map((profileTab) => (
+                    {visibleTabs.map((profileTab) => (
                         <TabsTrigger
                             key={profileTab}
                             value={profileTab}
@@ -78,7 +81,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                     ))}
                 </TabsList>
 
-                {PROFILE_TABS.map((profileTab) => (
+                {visibleTabs.map((profileTab) => (
                     <TabsContent key={profileTab} value={profileTab}>
                         {panels[profileTab]}
                     </TabsContent>

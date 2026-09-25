@@ -30,6 +30,7 @@ final class TeamMemberResource extends JsonResource
             'about' => $this->resource->about,
             'level' => $this->resource->level->value,
             'invitation_pending' => $this->resource->invitationPending,
+            'temporary_password_available' => $this->resource->temporaryPasswordAvailable,
             'created_at' => $this->resource->createdAt->format(DateTimeInterface::ATOM),
         ];
     }

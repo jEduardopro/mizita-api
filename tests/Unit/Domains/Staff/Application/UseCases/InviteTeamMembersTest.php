@@ -27,6 +27,7 @@ use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
 use Tests\Support\Staff\FakeTeamRoster;
+use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
 use Tests\Support\Staff\StaffJournal;
 
@@ -68,7 +69,7 @@ beforeEach(function () {
         $this->profiles,
         $this->roster,
         $this->provisioner,
-        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos),
+        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords),
         $business ?? new FakeBusinessContext,
         new FixedIdGenerator(
             StaffFixtures::SECOND_MEMBER_ID,

@@ -8,19 +8,29 @@ use App\Domains\Accounts\Application\UseCases\IssueTemporaryPassword;
 use App\Domains\Accounts\Contracts\AccountRepository;
 use App\Domains\Accounts\Contracts\PasswordHasher;
 use App\Domains\Accounts\Contracts\TemporaryPasswordGenerator;
+use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Accounts\InvitationFixtures;
+use Tests\Support\FakeTransactionManager;
 
 beforeEach(function () {
     $this->accounts = Mockery::mock(AccountRepository::class);
     $this->temporaryPasswords = Mockery::mock(TemporaryPasswordGenerator::class);
+    $this->vault = Mockery::mock(TemporaryPasswordVault::class);
     $this->hasher = Mockery::mock(PasswordHasher::class);
+    $this->transactions = new FakeTransactionManager;
 
-    $this->useCase = new IssueTemporaryPassword($this->accounts, $this->temporaryPasswords, $this->hasher);
+    $this->useCase = new IssueTemporaryPassword(
+        $this->accounts,
+        $this->temporaryPasswords,
+        $this->vault,
+        $this->hasher,
+        $this->transactions,
+    );
 
     $this->input = new IssueTemporaryPasswordInput(InvitationFixtures::EXISTING_ACCOUNT_ID);
 
@@ -28,6 +38,7 @@ beforeEach(function () {
         $this->temporaryPasswords->shouldNotReceive('generate');
         $this->hasher->shouldNotReceive('hash');
         $this->accounts->shouldNotReceive('save');
+        $this->vault->shouldNotReceive('keep');
     };
 });
 
@@ -37,6 +48,12 @@ describe('an account that may be issued a temporary password', function () {
         $this->hasher->shouldReceive('hash')->once()
             ->with(InvitationFixtures::TEMPORARY_PASSWORD)
             ->andReturn(InvitationFixtures::TEMPORARY_PASSWORD_HASH);
+        $this->steps = [];
+        $this->vault->shouldReceive('keep')->once()
+            ->with(InvitationFixtures::EXISTING_ACCOUNT_ID, InvitationFixtures::TEMPORARY_PASSWORD)
+            ->andReturnUsing(function (): void {
+                $this->steps[] = ['keep', $this->transactions->isRunning()];
+            });
     });
 
     it('hands back the plaintext temporary password', function (PasswordStatus $status) {
@@ -69,6 +86,18 @@ describe('an account that may be issued a temporary password', function () {
         'with no password yet' => PasswordStatus::Absent,
         'with a temporary password never changed' => PasswordStatus::Temporary,
     ]);
+
+    it('keeps the plaintext for the owner to copy after the save, inside one transaction', function () {
+        $this->accounts->shouldReceive('findById')->once()->andReturn(InvitationFixtures::storedAccount(PasswordStatus::Temporary));
+        $this->accounts->shouldReceive('save')->once()->andReturnUsing(function (): void {
+            $this->steps[] = ['save', $this->transactions->isRunning()];
+        });
+
+        $this->useCase->handle($this->input);
+
+        expect($this->steps)->toBe([['save', true], ['keep', true]])
+            ->and($this->transactions->runs())->toBe(1);
+    });
 });
 
 it('issues nothing to an account holding a password it chose, answering with no password', function () {
@@ -80,7 +109,8 @@ it('issues nothing to an account holding a password it chose, answering with no 
 
     expect($response->succeeded())->toBeTrue()
         ->and($response->value())->toBeInstanceOf(IssuedTemporaryPasswordData::class)
-        ->and($response->value()->temporaryPassword)->toBeNull();
+        ->and($response->value()->temporaryPassword)->toBeNull()
+        ->and($this->transactions->runs())->toBe(0);
 });
 
 it('issues nothing to an account that signs in with Google, answering with no password', function (PasswordStatus $status) {
@@ -92,7 +122,8 @@ it('issues nothing to an account that signs in with Google, answering with no pa
 
     expect($response->succeeded())->toBeTrue()
         ->and($response->value())->toBeInstanceOf(IssuedTemporaryPasswordData::class)
-        ->and($response->value()->temporaryPassword)->toBeNull();
+        ->and($response->value()->temporaryPassword)->toBeNull()
+        ->and($this->transactions->runs())->toBe(0);
 })->with([
     'with no password' => PasswordStatus::Absent,
     'with a temporary password never changed' => PasswordStatus::Temporary,
@@ -133,6 +164,7 @@ it('lets a programmer error escape rather than dressing it as a domain failure',
     $this->temporaryPasswords->shouldReceive('generate')->once()->andReturn(InvitationFixtures::temporaryPassword());
     $this->hasher->shouldReceive('hash')->once()->andReturn(InvitationFixtures::TEMPORARY_PASSWORD_HASH);
     $this->accounts->shouldReceive('save')->once()->andThrow($bug);
+    $this->vault->shouldNotReceive('keep');
 
     expect(fn () => $this->useCase->handle($this->input))->toThrow($bug);
 });

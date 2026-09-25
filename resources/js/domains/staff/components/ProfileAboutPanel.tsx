@@ -28,14 +28,26 @@ function InfoRow({ icon: Icon, label, children }: InfoRowProps) {
     );
 }
 
+function inlineActionFor(label: string, onClick: (() => void) | undefined): ReactNode {
+    if (onClick === undefined) {
+        return null;
+    }
+
+    return (
+        <button type="button" onClick={onClick} className={INLINE_ACTION}>
+            {label}
+        </button>
+    );
+}
+
 type Props = {
     phone: ProfilePhone | null;
     email: string;
     about: string | null;
     roleLabel: string;
     hoursSummary: ReactNode;
-    onAddPhone: () => void;
-    onAddAbout: () => void;
+    onAddPhone?: () => void;
+    onAddAbout?: () => void;
 };
 
 export function ProfileAboutPanel({
@@ -49,19 +61,29 @@ export function ProfileAboutPanel({
 }: Props) {
     const { t } = useTranslation('admin');
 
+    const phoneValue =
+        phone === null ? (
+            inlineActionFor(t('profile.about.addPhone'), onAddPhone)
+        ) : (
+            <a href={`tel:${phone.e164}`} className="w-fit underline-offset-4 hover:underline">
+                {formatPhoneNumber(phone)}
+            </a>
+        );
+
+    const aboutValue =
+        about === null ? (
+            inlineActionFor(t('profile.about.addAbout'), onAddAbout)
+        ) : (
+            <p className="py-2 whitespace-pre-line text-pretty">{about}</p>
+        );
+
     return (
         <dl className="grid max-w-2xl gap-2">
-            <InfoRow icon={Phone} label={t('profile.about.phone')}>
-                {phone === null ? (
-                    <button type="button" onClick={onAddPhone} className={INLINE_ACTION}>
-                        {t('profile.about.addPhone')}
-                    </button>
-                ) : (
-                    <a href={`tel:${phone.e164}`} className="w-fit underline-offset-4 hover:underline">
-                        {formatPhoneNumber(phone)}
-                    </a>
-                )}
-            </InfoRow>
+            {phoneValue === null ? null : (
+                <InfoRow icon={Phone} label={t('profile.about.phone')}>
+                    {phoneValue}
+                </InfoRow>
+            )}
 
             <InfoRow icon={Mail} label={t('profile.about.email')}>
                 <a href={`mailto:${email}`} className="w-fit break-all underline-offset-4 hover:underline">
@@ -73,15 +95,11 @@ export function ProfileAboutPanel({
                 {hoursSummary}
             </InfoRow>
 
-            <InfoRow icon={CircleUserRound} label={t('profile.about.about')}>
-                {about === null ? (
-                    <button type="button" onClick={onAddAbout} className={INLINE_ACTION}>
-                        {t('profile.about.addAbout')}
-                    </button>
-                ) : (
-                    <p className="py-2 whitespace-pre-line text-pretty">{about}</p>
-                )}
-            </InfoRow>
+            {aboutValue === null ? null : (
+                <InfoRow icon={CircleUserRound} label={t('profile.about.about')}>
+                    {aboutValue}
+                </InfoRow>
+            )}
 
             <InfoRow icon={Lock} label={t('profile.about.role')}>
                 <span className="inline-flex w-fit items-center gap-1.5 text-muted-foreground">

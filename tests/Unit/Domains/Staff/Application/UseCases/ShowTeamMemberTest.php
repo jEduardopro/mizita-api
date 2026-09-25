@@ -16,6 +16,7 @@ use Tests\Support\Staff\FakeStaffMemberRepository;
 use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
@@ -31,10 +32,11 @@ beforeEach(function () {
     );
     $this->phones = (new FakeStaffPhoneBook)->store(StaffFixtures::SECOND_PROFILE_ID, PhoneNumbers::american());
     $this->photos = (new FakeStaffProfilePhotos)->store(FakeBusinessContext::BUSINESS_ID, StaffFixtures::SECOND_PROFILE_ID, StaffFixtures::PHOTO_URL);
+    $this->temporaryPasswords = (new FakeTeamTemporaryPasswords)->holds(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
 
     $this->build = fn (?FakeBusinessContext $business = null): ShowTeamMember => new ShowTeamMember(
         $this->members,
-        new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos),
+        new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords),
         $business ?? new FakeBusinessContext,
     );
 
@@ -55,6 +57,7 @@ it('answers with the member, field by field', function () {
         ->and($data->about)->toBe(StaffFixtures::ABOUT)
         ->and($data->level)->toBe(StaffRole::Member)
         ->and($data->invitationPending)->toBeTrue()
+        ->and($data->temporaryPasswordAvailable)->toBeTrue()
         ->and($data->createdAt)->toEqual(StaffFixtures::now());
 });
 

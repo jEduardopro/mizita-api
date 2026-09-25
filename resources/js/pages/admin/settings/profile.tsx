@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ManageAccountPane } from '@/domains/accounts/components/ManageAccountPane';
 import { SignInSecurityPane } from '@/domains/accounts/components/SignInSecurityPane';
@@ -10,9 +11,11 @@ import { BRAND_SETTINGS_URL } from '@/domains/businesses/components/settings-url
 import { useBusinessTimezone, useCalendarSettings } from '@/domains/businesses/queries';
 import { StaffServicesSection } from '@/domains/services/components/StaffServicesSection';
 import { ProfileLoadError } from '@/domains/staff/components/ProfileLoadError';
+import { staffProfilePaneFrom, type StaffProfilePane } from '@/domains/staff/components/profile-panes';
 import { ROLE_LABEL_KEYS } from '@/domains/staff/components/profile-role';
 import { StaffProfileScreen } from '@/domains/staff/components/StaffProfileScreen';
 import { StaffProfileSkeleton } from '@/domains/staff/components/StaffProfileSkeleton';
+import { EDIT_PANE_PARAMETER } from '@/domains/staff/components/team-urls';
 import {
     useAttachMyProfilePhoto,
     useMyProfile,
@@ -22,14 +25,16 @@ import {
 } from '@/domains/staff/queries';
 import type { MyProfile } from '@/domains/staff/types';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { isNotFoundError } from '@/lib/http';
 
-type ScreenProps = {
+type MyProfileScreenProps = {
     profile: MyProfile;
+    initialPane?: StaffProfilePane;
 };
 
-function MyProfileScreen({ profile }: ScreenProps) {
+export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
     const schedule = useMySchedule();
@@ -52,6 +57,7 @@ function MyProfileScreen({ profile }: ScreenProps) {
         <StaffProfileScreen
             profile={profile}
             dialogTitle={t('profile.dialog.title')}
+            initialPane={initialPane}
             onSaveProfile={updateProfile.mutateAsync}
             onUploadPhoto={attachPhoto.mutateAsync}
             onRemovePhoto={() => removePhoto.mutateAsync()}
@@ -97,6 +103,8 @@ function MyProfileScreen({ profile }: ScreenProps) {
 export default function Profile() {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
+    const { read } = useUrlQueryState();
+    const [initialPane] = useState(() => staffProfilePaneFrom(read(EDIT_PANE_PARAMETER)));
     const profile = useMyProfile();
 
     const breadcrumbs = can('view_business_settings')
@@ -105,7 +113,7 @@ export default function Profile() {
 
     return (
         <AdminLayout title={t('profile.title')} breadcrumbs={breadcrumbs}>
-            {profile.data ? <MyProfileScreen profile={profile.data} /> : null}
+            {profile.data ? <MyProfileScreen profile={profile.data} initialPane={initialPane} /> : null}
 
             {profile.isPending ? <StaffProfileSkeleton /> : null}
 

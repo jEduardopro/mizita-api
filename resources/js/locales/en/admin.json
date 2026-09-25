@@ -999,7 +999,7 @@
             },
             "message": {
                 "label": "Custom message",
-                "helper": "Share the details customers need to know \u2014 about changes to bookings, refunds and more \u2014 before they confirm their booking.",
+                "helper": "Share the details customers need to know — about changes to bookings, refunds and more — before they confirm their booking.",
                 "placeholder": "Write your policy or share a link"
             },
             "display": {
@@ -1173,6 +1173,7 @@
             "more": "More actions for {{name}}",
             "edit": "Edit",
             "resend": "Resend invitation",
+            "copyTemporaryPassword": "Copy temporary password",
             "remove": "Remove"
         },
         "empty": {
@@ -1191,7 +1192,7 @@
             "removeMember": "Remove team member {{number}}",
             "addMore": "Add more",
             "limit": "You can add up to {{maximum}} people at once.",
-            "note": "Team members with access will be emailed an invitation with a temporary password.",
+            "note": "Team members with access will be emailed an invitation with a temporary password. You can also copy it and hand it over yourself until they sign in for the first time.",
             "name": {
                 "label": "Full name",
                 "placeholder": "e.g. Ada Lovelace",
@@ -1208,6 +1209,23 @@
             "submit": "Add",
             "submitting": "Adding…",
             "unexpected": "We could not add your team members. Try again."
+        },
+        "invited": {
+            "title_one": "Team member added",
+            "title_other": "{{count}} team members added",
+            "body": "Their invitations are on their way by email. To hand it over yourself, copy their temporary password: it stays available until they sign in for the first time and choose their own.",
+            "copy": "Copy password",
+            "copyAgain": "Copy again",
+            "done": "Done",
+            "noPassword": {
+                "noAccess": "No access: they don’t sign in, so there is no password.",
+                "ownPassword": "Already had an account: they sign in with their own password."
+            }
+        },
+        "temporaryPassword": {
+            "copied": "Temporary password copied",
+            "copyFailed": "Your browser didn’t allow copying the temporary password. Try again.",
+            "revealFailed": "We could not get the temporary password. Try again."
         },
         "member": {
             "title": "Team member",

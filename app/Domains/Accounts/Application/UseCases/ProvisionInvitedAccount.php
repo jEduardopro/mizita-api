@@ -9,6 +9,7 @@ use App\Domains\Accounts\Application\Dtos\ProvisionInvitedAccountInput;
 use App\Domains\Accounts\Contracts\AccountRepository;
 use App\Domains\Accounts\Contracts\PasswordHasher;
 use App\Domains\Accounts\Contracts\TemporaryPasswordGenerator;
+use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Exceptions\AccountAlreadyRegistered;
 use App\Shared\Application\UseCaseResponse;
@@ -22,6 +23,7 @@ final class ProvisionInvitedAccount
     public function __construct(
         private readonly AccountRepository $accounts,
         private readonly TemporaryPasswordGenerator $temporaryPasswords,
+        private readonly TemporaryPasswordVault $vault,
         private readonly PasswordHasher $hasher,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
@@ -68,7 +70,10 @@ final class ProvisionInvitedAccount
         );
 
         try {
-            $this->transactions->run(fn () => $this->accounts->save($account));
+            $this->transactions->run(function () use ($account, $temporaryPassword): void {
+                $this->accounts->save($account);
+                $this->vault->keep($account->id, $temporaryPassword->value);
+            });
         } catch (AccountAlreadyRegistered $conflict) {
             return $this->adoptConcurrentRegistration($input->email, $conflict);
         }

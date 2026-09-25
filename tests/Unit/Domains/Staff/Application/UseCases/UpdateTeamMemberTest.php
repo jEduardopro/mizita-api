@@ -26,6 +26,7 @@ use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
 use Tests\Support\Staff\StaffJournal;
 
@@ -80,7 +81,7 @@ beforeEach(function () {
         $this->accounts,
         $this->provisioner,
         $this->phones,
-        new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos),
+        new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos, new FakeTeamTemporaryPasswords),
         $this->parser,
         $business ?? new FakeBusinessContext,
         $this->transactions,

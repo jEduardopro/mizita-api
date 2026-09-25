@@ -999,7 +999,7 @@
             },
             "message": {
                 "label": "Mensaje personalizado",
-                "helper": "Comparta los detalles que necesita saber \u2014sobre modificación de reservas, reembolsos y mucho más\u2014 antes de que los clientes confirmen sus reservas.",
+                "helper": "Comparta los detalles que necesita saber —sobre modificación de reservas, reembolsos y mucho más— antes de que los clientes confirmen sus reservas.",
                 "placeholder": "Escriba su política o comparta un enlace"
             },
             "display": {
@@ -1173,6 +1173,7 @@
             "more": "Más acciones para {{name}}",
             "edit": "Editar",
             "resend": "Reenviar la invitación",
+            "copyTemporaryPassword": "Copiar contraseña temporal",
             "remove": "Quitar"
         },
         "empty": {
@@ -1191,7 +1192,7 @@
             "removeMember": "Quitar el miembro {{number}}",
             "addMore": "Añadir más",
             "limit": "Puedes añadir hasta {{maximum}} personas a la vez.",
-            "note": "Los miembros con acceso recibirán por correo una invitación con una contraseña temporal.",
+            "note": "Los miembros con acceso recibirán por correo una invitación con una contraseña temporal. También podrás copiarla para dársela tú, hasta que inicien sesión por primera vez.",
             "name": {
                 "label": "Nombre completo",
                 "placeholder": "p. ej. Ada Lovelace",
@@ -1208,6 +1209,23 @@
             "submit": "Añadir",
             "submitting": "Añadiendo…",
             "unexpected": "No hemos podido añadir a los miembros. Inténtalo otra vez."
+        },
+        "invited": {
+            "title_one": "Miembro añadido",
+            "title_other": "{{count}} miembros añadidos",
+            "body": "Ya les hemos enviado la invitación por correo. Si prefieres dársela tú, copia su contraseña temporal: podrás hacerlo hasta que inicien sesión por primera vez, cuando elegirán la suya.",
+            "copy": "Copiar contraseña",
+            "copyAgain": "Copiar otra vez",
+            "done": "Listo",
+            "noPassword": {
+                "noAccess": "Sin acceso: no inicia sesión, así que no tiene contraseña.",
+                "ownPassword": "Ya tenía cuenta: entra con su propia contraseña."
+            }
+        },
+        "temporaryPassword": {
+            "copied": "Contraseña temporal copiada",
+            "copyFailed": "Tu navegador no ha permitido copiar la contraseña temporal. Inténtalo otra vez.",
+            "revealFailed": "No hemos podido obtener la contraseña temporal. Inténtalo otra vez."
         },
         "member": {
             "title": "Miembro del equipo",

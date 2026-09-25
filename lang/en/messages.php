@@ -112,6 +112,7 @@ return [
         'owner_cannot_be_removed' => 'The owner cannot be removed from the business.',
         'team_member_has_upcoming_appointments' => 'This team member still has upcoming appointments. Reassign or cancel them first.',
         'team_invitation_not_pending' => 'This team member has no pending invitation to resend.',
+        'temporary_password_unavailable' => 'The temporary password is no longer available: this team member has already signed in or has no pending invitation.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.

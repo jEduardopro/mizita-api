@@ -55,6 +55,11 @@ return [
         'description' => 'Dar de baja a alguien del negocio cuando ya no tiene citas próximas.',
     ],
 
+    'reveal_temporary_password' => [
+        'label' => 'Copiar contraseñas temporales',
+        'description' => 'Copiar la contraseña temporal de una persona invitada al equipo, hasta que inicie sesión por primera vez.',
+    ],
+
     'view_services' => [
         'label' => 'Ver los servicios',
         'description' => 'Ver los servicios que ofrece el negocio, sus precios y quién puede realizarlos.',

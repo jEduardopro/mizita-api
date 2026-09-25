@@ -1,7 +1,8 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import type { CheckboxListOption } from '@/components/form/CheckboxListField';
 import { currentUserKeys } from '@/hooks/use-current-user';
+import { errorCodeFrom, isNotFoundError } from '@/lib/http';
 import {
     attachMyProfilePhoto,
     attachTeamMemberPhoto,
@@ -14,10 +15,17 @@ import {
     removeTeamMember,
     removeTeamMemberPhoto,
     resendTeamInvitation,
+    revealTemporaryPassword,
     updateMyProfile,
     updateTeamMember,
 } from './api';
-import type { MyProfile, TeamListParams, TeamMember, UpdateTeamMemberPayload } from './types';
+import {
+    TEMPORARY_PASSWORD_UNAVAILABLE_CODE,
+    type MyProfile,
+    type TeamListParams,
+    type TeamMember,
+    type UpdateTeamMemberPayload,
+} from './types';
 
 const DIRECTORY_LIFETIME_MS = 5 * 60 * 1000;
 
@@ -65,6 +73,13 @@ export function useMyProfile() {
     });
 }
 
+function invalidateTeamMemberViews(queryClient: QueryClient, staffMemberId: string): Promise<unknown> {
+    return Promise.all([
+        queryClient.invalidateQueries({ queryKey: staffKeys.teams() }),
+        queryClient.invalidateQueries({ queryKey: staffKeys.teamMember(staffMemberId) }),
+    ]);
+}
+
 function useMyProfileMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<MyProfile>) {
     const queryClient = useQueryClient();
 
@@ -72,6 +87,8 @@ function useMyProfileMutation<TVariables>(mutationFn: (variables: TVariables) =>
         mutationFn,
         onSuccess: (profile) => {
             queryClient.setQueryData(staffKeys.myProfile(), profile);
+
+            return invalidateTeamMemberViews(queryClient, profile.staff_member_id);
         },
     });
 }
@@ -87,6 +104,7 @@ export function useUpdateMyProfile() {
             return Promise.all([
                 queryClient.invalidateQueries({ queryKey: currentUserKeys.all }),
                 queryClient.invalidateQueries({ queryKey: staffKeys.list() }),
+                invalidateTeamMemberViews(queryClient, profile.staff_member_id),
             ]);
         },
     });
@@ -165,7 +183,32 @@ export function useRemoveTeamMemberPhoto() {
 }
 
 export function useResendTeamInvitation() {
-    return useMutation({ mutationFn: resendTeamInvitation });
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: resendTeamInvitation,
+        onSuccess: (_result, id) => invalidateTeamMemberViews(queryClient, id),
+    });
+}
+
+function isStaleTemporaryPassword(error: unknown): boolean {
+    return errorCodeFrom(error) === TEMPORARY_PASSWORD_UNAVAILABLE_CODE || isNotFoundError(error);
+}
+
+export function useRevealTemporaryPassword() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: revealTemporaryPassword,
+        gcTime: 0,
+        onError: async (error, id) => {
+            if (! isStaleTemporaryPassword(error)) {
+                return;
+            }
+
+            await invalidateTeamMemberViews(queryClient, id);
+        },
+    });
 }
 
 export function useRemoveTeamMember() {

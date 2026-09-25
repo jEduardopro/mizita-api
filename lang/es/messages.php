@@ -112,6 +112,7 @@ return [
         'owner_cannot_be_removed' => 'No se puede quitar al propietario del negocio.',
         'team_member_has_upcoming_appointments' => 'Esta persona todavía tiene citas próximas. Reasígnalas o cancélalas primero.',
         'team_invitation_not_pending' => 'Esta persona no tiene ninguna invitación pendiente para reenviar.',
+        'temporary_password_unavailable' => 'La contraseña temporal ya no está disponible: esta persona ya inició sesión o no tiene una invitación pendiente.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.
