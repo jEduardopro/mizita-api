@@ -1,4 +1,11 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+    hashKey,
+    keepPreviousData,
+    useMutation,
+    useQuery,
+    useQueryClient,
+    type QueryClient,
+} from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import type { CheckboxListOption } from '@/components/form/CheckboxListField';
 import { currentUserKeys } from '@/hooks/use-current-user';
@@ -6,6 +13,7 @@ import { errorCodeFrom, isNotFoundError } from '@/lib/http';
 import {
     attachMyProfilePhoto,
     attachTeamMemberPhoto,
+    checkTeamMemberRemoval,
     getMyProfile,
     getTeamMember,
     inviteTeamMembers,
@@ -211,8 +219,30 @@ export function useRevealTemporaryPassword() {
     });
 }
 
+export function useCheckTeamMemberRemoval() {
+    return useMutation({
+        mutationFn: (id: string) => checkTeamMemberRemoval(id),
+        gcTime: 0,
+    });
+}
+
 export function useRemoveTeamMember() {
-    return useTeamMutation((id: string) => removeTeamMember(id));
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: removeTeamMember,
+        onSuccess: (_result, id) => {
+            const removedMemberKey = staffKeys.teamMember(id);
+            const removedMemberHash = hashKey(removedMemberKey);
+
+            queryClient.removeQueries({ queryKey: removedMemberKey, type: 'inactive' });
+
+            return queryClient.invalidateQueries({
+                queryKey: staffKeys.all,
+                predicate: (query) => query.queryHash !== removedMemberHash,
+            });
+        },
+    });
 }
 
 export function useRefreshMyProfile(): () => void {

@@ -12,6 +12,7 @@ use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
 use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\ValueObjects\AccessTransition;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
+use App\Domains\Staff\ValueObjects\RemovalBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use DateTimeImmutable;
 use SensitiveParameter;
@@ -101,9 +102,18 @@ final class StaffMember
      */
     public function ensureRemovable(): void
     {
-        if ($this->role === StaffRole::Owner) {
+        if ($this->removalBlocker() === RemovalBlocker::Owner) {
             throw OwnerCannotBeRemoved::for($this->id);
         }
+    }
+
+    public function removalBlocker(): ?RemovalBlocker
+    {
+        if ($this->role === StaffRole::Owner) {
+            return RemovalBlocker::Owner;
+        }
+
+        return null;
     }
 
     public function hasPendingInvitation(AccountSnapshot $account): bool

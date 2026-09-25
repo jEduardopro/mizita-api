@@ -11,18 +11,21 @@ import {
     AlertDialogMedia,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formMessageFrom } from '@/lib/http';
+import { errorCodeFrom, formMessageFrom } from '@/lib/http';
 import { raiseErrorToast, raiseSuccessToast } from '@/lib/toast';
 import { useRemoveTeamMember } from '../queries';
+import { TEAM_MEMBER_HAS_UPCOMING_APPOINTMENTS_CODE } from '../types';
 
 type Props = {
     memberId: string;
     name: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onBlocked: () => void;
+    onRemoved?: () => void;
 };
 
-export function RemoveTeamMemberDialog({ memberId, name, open, onOpenChange }: Props) {
+export function RemoveTeamMemberDialog({ memberId, name, open, onOpenChange, onBlocked, onRemoved }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
     const removeTeamMember = useRemoveTeamMember();
@@ -32,7 +35,14 @@ export function RemoveTeamMemberDialog({ memberId, name, open, onOpenChange }: P
             await removeTeamMember.mutateAsync(memberId);
             raiseSuccessToast(t('team.toasts.removed'));
             onOpenChange(false);
+            onRemoved?.();
         } catch (error) {
+            if (errorCodeFrom(error) === TEAM_MEMBER_HAS_UPCOMING_APPOINTMENTS_CODE) {
+                onBlocked();
+
+                return;
+            }
+
             raiseErrorToast(formMessageFrom(error, t('team.errors.removeFailed')));
         }
     }

@@ -41,6 +41,11 @@
             "pickDate": "Elige una fecha",
             "changeView": "Cambiar la vista"
         },
+        "staffPicker": {
+            "toggle": "Elegir calendario",
+            "yourCalendar": "Tu calendario",
+            "team": "Equipo"
+        },
         "appointment": {
             "create": {
                 "title": "Nueva cita"
@@ -1174,7 +1179,8 @@
             "edit": "Editar",
             "resend": "Reenviar la invitación",
             "copyTemporaryPassword": "Copiar contraseña temporal",
-            "remove": "Quitar"
+            "remove": "Remover del equipo",
+            "removeMember": "Remover del equipo"
         },
         "empty": {
             "search": {
@@ -1232,24 +1238,31 @@
             "dialogTitle": "Perfil del miembro del equipo",
             "notFound": {
                 "title": "No encontramos a este miembro del equipo",
-                "body": "Puede que lo hayan quitado del equipo. Vuelve a tu equipo para ver quién forma parte."
+                "body": "Puede que lo hayan removido del equipo. Vuelve a tu equipo para ver quién forma parte."
             },
             "loadError": {
                 "title": "No pudimos cargar a este miembro del equipo"
             }
         },
         "remove": {
-            "title": "¿Quitar de tu equipo?",
+            "title": "¿Remover de tu equipo?",
             "body": "«{{name}}» sale de tu equipo y ya no se le podrán reservar citas."
+        },
+        "removeBlocked": {
+            "title": "No se puede remover del equipo",
+            "body": "Cancela o reasigna sus citas próximas para poder removerlo del equipo.",
+            "acknowledge": "Entendido"
         },
         "toasts": {
             "invited_one": "Miembro añadido",
             "invited_other": "{{count}} miembros añadidos",
-            "removed": "Miembro quitado",
+            "removed": "Miembro removido del equipo",
             "invitationResent": "Invitación reenviada"
         },
         "errors": {
-            "removeFailed": "No hemos podido quitar a este miembro. Inténtalo otra vez.",
+            "removeFailed": "No hemos podido remover a este miembro del equipo. Inténtalo otra vez.",
+            "removalCheckFailed": "No hemos podido comprobar si se puede remover a este miembro del equipo. Inténtalo otra vez.",
+            "ownerCannotBeRemoved": "El propietario del negocio no se puede remover del equipo.",
             "resendFailed": "No hemos podido reenviar la invitación. Inténtalo otra vez."
         }
     }

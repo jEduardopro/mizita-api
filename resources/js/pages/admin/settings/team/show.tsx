@@ -12,6 +12,7 @@ import { ProfileLoadError } from '@/domains/staff/components/ProfileLoadError';
 import { staffProfilePaneFrom, type StaffProfilePane } from '@/domains/staff/components/profile-panes';
 import { StaffProfileScreen } from '@/domains/staff/components/StaffProfileScreen';
 import { StaffProfileSkeleton } from '@/domains/staff/components/StaffProfileSkeleton';
+import { TeamMemberProfileMenu } from '@/domains/staff/components/TeamMemberProfileMenu';
 import { editableLevelOf, staffProfileDetailsFrom } from '@/domains/staff/components/team-member-profile';
 import { EDIT_PANE_PARAMETER, TEAM_SETTINGS_URL } from '@/domains/staff/components/team-urls';
 import { useStaffProfileAccess } from '@/domains/staff/components/use-staff-profile-access';
@@ -54,6 +55,9 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
         <BusinessHoursNotice businessSettingsHref={BRAND_SETTINGS_URL} />
     ) : null;
 
+    const canRemove = can('delete_staff_member') && member.level !== 'owner';
+    const removalMenu = canRemove ? <TeamMemberProfileMenu memberId={member.id} name={member.name} /> : undefined;
+
     return (
         <StaffProfileScreen
             profile={profile}
@@ -85,6 +89,7 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
                     notice={hoursNotice}
                 />
             )}
+            headerActions={removalMenu}
         />
     );
 }

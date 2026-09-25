@@ -10,6 +10,7 @@ use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
 use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\ValueObjects\AccessTransition;
+use App\Domains\Staff\ValueObjects\RemovalBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use Tests\Support\Staff\StaffFixtures;
 
@@ -160,6 +161,25 @@ describe('removing a member', function () {
         expect(fn () => staffMemberWithRole(StaffRole::Owner)->ensureRemovable())
             ->toThrow(OwnerCannotBeRemoved::class, 'Staff member ['.STAFF_MEMBER_ID.'] owns the business and cannot be removed from it.');
     });
+
+    it('names ownership as what blocks removing the owner', function () {
+        expect(staffMemberWithRole(StaffRole::Owner)->removalBlocker())->toBe(RemovalBlocker::Owner);
+    });
+
+    it('names nothing blocking the removal of anyone but the owner', function (StaffRole $role) {
+        expect(staffMemberWithRole($role)->removalBlocker())->toBeNull();
+    })->with([
+        'staff' => StaffRole::Member,
+        'no access' => StaffRole::NoAccess,
+    ]);
+
+    it('never names upcoming appointments, which only a collaborator can know', function (StaffRole $role) {
+        expect(staffMemberWithRole($role)->removalBlocker())->not->toBe(RemovalBlocker::UpcomingAppointments);
+    })->with([
+        'owner' => StaffRole::Owner,
+        'staff' => StaffRole::Member,
+        'no access' => StaffRole::NoAccess,
+    ]);
 });
 
 describe('a pending invitation', function () {

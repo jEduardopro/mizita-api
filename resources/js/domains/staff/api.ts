@@ -6,6 +6,7 @@ import type {
     StaffMember,
     TeamListParams,
     TeamMember,
+    TeamMemberRemoval,
     TemporaryPassword,
     UpdateMyProfilePayload,
     UpdateTeamMemberPayload,
@@ -107,6 +108,12 @@ export async function revealTemporaryPassword(id: string): Promise<string> {
     const { data } = await api.get<{ data: TemporaryPassword }>(`${teamMemberUrl(id)}/temporary-password`);
 
     return data.data.temporary_password;
+}
+
+export async function checkTeamMemberRemoval(id: string, signal?: AbortSignal): Promise<TeamMemberRemoval> {
+    const { data } = await api.get<{ data: TeamMemberRemoval }>(`${teamMemberUrl(id)}/removal`, { signal });
+
+    return data.data;
 }
 
 export async function removeTeamMember(id: string): Promise<void> {

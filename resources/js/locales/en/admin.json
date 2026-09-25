@@ -41,6 +41,11 @@
             "pickDate": "Choose a date",
             "changeView": "Change view"
         },
+        "staffPicker": {
+            "toggle": "Choose calendar",
+            "yourCalendar": "Your calendar",
+            "team": "Team"
+        },
         "appointment": {
             "create": {
                 "title": "New appointment"
@@ -1174,7 +1179,8 @@
             "edit": "Edit",
             "resend": "Resend invitation",
             "copyTemporaryPassword": "Copy temporary password",
-            "remove": "Remove"
+            "remove": "Remove from team",
+            "removeMember": "Remove from team"
         },
         "empty": {
             "search": {
@@ -1242,6 +1248,11 @@
             "title": "Remove from your team?",
             "body": "“{{name}}” leaves your team and can no longer be booked."
         },
+        "removeBlocked": {
+            "title": "Can’t remove team member",
+            "body": "Cancel or reassign their upcoming appointments to remove this team member.",
+            "acknowledge": "Got it"
+        },
         "toasts": {
             "invited_one": "Team member added",
             "invited_other": "{{count}} team members added",
@@ -1250,6 +1261,8 @@
         },
         "errors": {
             "removeFailed": "We could not remove this team member. Try again.",
+            "removalCheckFailed": "We could not check whether this team member can be removed. Try again.",
+            "ownerCannotBeRemoved": "The business owner can’t be removed from the team.",
             "resendFailed": "We could not resend the invitation. Try again."
         }
     }

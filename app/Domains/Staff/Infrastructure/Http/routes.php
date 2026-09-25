@@ -8,6 +8,7 @@ use App\Domains\Staff\Infrastructure\Http\Controllers\StaffMemberController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamInvitationController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamMemberController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamMemberPhotoController;
+use App\Domains\Staff\Infrastructure\Http\Controllers\TeamMemberRemovalController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamTemporaryPasswordController;
 use App\Domains\Staff\StaffServiceProvider;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,10 @@ Route::patch('/staff-members/{staffMember}', [TeamMemberController::class, 'upda
     ->whereUuid('staffMember');
 
 Route::delete('/staff-members/{staffMember}', [TeamMemberController::class, 'destroy'])
+    ->middleware('permission:delete_staff_member')
+    ->whereUuid('staffMember');
+
+Route::get('/staff-members/{staffMember}/removal', [TeamMemberRemovalController::class, 'show'])
     ->middleware('permission:delete_staff_member')
     ->whereUuid('staffMember');
 

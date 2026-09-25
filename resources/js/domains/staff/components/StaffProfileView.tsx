@@ -27,9 +27,10 @@ type Props = {
     hoursSummary: ReactNode;
     services: ReactNode;
     hours?: ReactNode;
+    headerActions?: ReactNode;
 };
 
-export function StaffProfileView({ profile, onEdit, hoursSummary, services, hours }: Props) {
+export function StaffProfileView({ profile, onEdit, hoursSummary, services, hours, headerActions }: Props) {
     const { t } = useTranslation('admin');
     const [tab, setTab] = useState<ProfileTab>('about');
 
@@ -63,6 +64,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                 jobTitle={profile.job_title}
                 photoUrl={profile.photo_url}
                 onEdit={editProfile}
+                actions={headerActions}
             />
 
             <Tabs value={tab} onValueChange={(next) => setTab(profileTabFrom(next))} className="gap-5">

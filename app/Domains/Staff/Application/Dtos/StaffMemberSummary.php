@@ -15,15 +15,17 @@ final readonly class StaffMemberSummary
         public string $name,
         public string $email,
         public StaffRole $role,
+        public ?string $photoUrl,
     ) {}
 
-    public static function fromEntity(StaffMember $member, AccountSnapshot $account): self
+    public static function fromEntity(StaffMember $member, AccountSnapshot $account, ?string $photoUrl): self
     {
         return new self(
             id: $member->id,
             name: $account->name,
             email: $account->email,
             role: $member->role(),
+            photoUrl: $photoUrl,
         );
     }
 }

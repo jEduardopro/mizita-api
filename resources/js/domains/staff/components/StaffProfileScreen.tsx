@@ -30,6 +30,7 @@ type Props = {
     renderHoursSummary: (onEdit?: () => void) => ReactNode;
     renderHoursPanel: (onCancel?: () => void) => ReactNode;
     accountPanes?: readonly StaffProfilePaneContent[];
+    headerActions?: ReactNode;
 };
 
 export function StaffProfileScreen({
@@ -45,12 +46,20 @@ export function StaffProfileScreen({
     renderHoursSummary,
     renderHoursPanel,
     accountPanes = [],
+    headerActions,
 }: Props) {
     const { t } = useTranslation('admin');
     const [dialog, setDialog] = useState<DialogState>(() => initialDialogState(initialPane));
 
     if (readOnly) {
-        return <StaffProfileView profile={profile} hoursSummary={renderHoursSummary()} services={services} />;
+        return (
+            <StaffProfileView
+                profile={profile}
+                hoursSummary={renderHoursSummary()}
+                services={services}
+                headerActions={headerActions}
+            />
+        );
     }
 
     const openDialog = (pane: StaffProfilePane) => setDialog({ open: true, pane });
@@ -69,6 +78,7 @@ export function StaffProfileScreen({
                 hoursSummary={renderHoursSummary(() => openDialog('hours'))}
                 services={services}
                 hours={renderHoursPanel()}
+                headerActions={headerActions}
             />
 
             <StaffProfileDialog

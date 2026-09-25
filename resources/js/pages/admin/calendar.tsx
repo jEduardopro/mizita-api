@@ -1,5 +1,5 @@
 import { TriangleAlert } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dateFromIso, isoFromDate } from '@/components/form/date-format';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,22 @@ import {
     type AppointmentCalendarHandle,
     type CalendarViewName,
 } from '@/domains/appointments/components/AppointmentCalendar';
+import { appointmentsOfStaffMember } from '@/domains/appointments/components/appointments-of-staff-member';
 import { AppointmentDetailsPopover } from '@/domains/appointments/components/AppointmentDetailsPopover';
 import { CalendarToolbar } from '@/domains/appointments/components/CalendarToolbar';
 import { DeleteAppointmentDialog } from '@/domains/appointments/components/DeleteAppointmentDialog';
 import { NewAppointmentDialog } from '@/domains/appointments/components/NewAppointmentDialog';
 import { useAppointments, useRefreshAppointments } from '@/domains/appointments/queries';
 import type { Appointment, AppointmentRange } from '@/domains/appointments/types';
+import { useCalendarSchedule } from '@/domains/availability/queries';
+import type { ScheduleRule } from '@/domains/availability/types';
 import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
 import { useCalendarSettings } from '@/domains/businesses/queries';
-import type { ScheduleRule } from '@/domains/businesses/types';
 import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
 import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
+import { StaffCalendarPanel } from '@/domains/staff/components/StaffCalendarPanel';
+import { StaffCalendarToggle } from '@/domains/staff/components/StaffCalendarToggle';
+import { useStaffCalendarSelection } from '@/domains/staff/components/use-staff-calendar-selection';
 import { useAuthorization } from '@/hooks/use-authorization';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -83,15 +88,35 @@ export default function Calendar() {
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
     const [appointmentToCharge, setAppointmentToCharge] = useState<Appointment | null>(null);
+    const [staffPanelOpen, setStaffPanelOpen] = useState(false);
 
     const { data: calendarSettings, isPending: isSettingsPending } = useCalendarSettings();
     const timezone = calendarSettings?.timezone ?? browserTimezone();
     const currencyCode = calendarSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
-    const schedule = calendarSettings?.schedule ?? EMPTY_SCHEDULE;
     const canCreateAppointment = can('create_appointment');
 
     const { data: appointments, isError, refetch } = useAppointments(range);
     const refreshAppointments = useRefreshAppointments();
+
+    const staffCalendar = useStaffCalendarSelection();
+    const shownStaffMemberId = staffCalendar.available ? staffCalendar.selectedStaffMember.id : null;
+    const isResolvingStaffCalendar = staffCalendar.isResolving;
+
+    const { data: calendarSchedule, isPending: isSchedulePending } = useCalendarSchedule(shownStaffMemberId);
+    const schedule = calendarSchedule?.schedule ?? EMPTY_SCHEDULE;
+    const isCalendarPending = isSettingsPending || isResolvingStaffCalendar || isSchedulePending;
+
+    const shownAppointments = useMemo(() => {
+        if (isResolvingStaffCalendar || appointments === undefined) {
+            return EMPTY_APPOINTMENTS;
+        }
+
+        if (shownStaffMemberId === null) {
+            return appointments;
+        }
+
+        return appointmentsOfStaffMember(appointments, shownStaffMemberId);
+    }, [appointments, isResolvingStaffCalendar, shownStaffMemberId]);
 
     const handleRangeChange = useCallback((next: AppointmentRange) => setRange(next), []);
 
@@ -139,45 +164,68 @@ export default function Calendar() {
                     selectedDate={dateFromIso(selectedDate) ?? new Date()}
                     onSelectDate={(date) => calendarRef.current?.goToDate(isoFromDate(date))}
                     timezone={timezone}
+                    leading={
+                        staffCalendar.available ? (
+                            <StaffCalendarToggle
+                                selectedStaffMemberName={staffCalendar.selectedStaffMember.name}
+                                isOwnCalendarSelected={staffCalendar.isOwnCalendarSelected}
+                                expanded={staffPanelOpen}
+                                onToggle={() => setStaffPanelOpen((open) => ! open)}
+                            />
+                        ) : undefined
+                    }
                 />
 
-                <div className="relative min-h-0 flex-1">
-                    {isSettingsPending ? (
-                        <Skeleton className="h-full w-full rounded-none" />
-                    ) : (
-                        <AppointmentCalendar
-                            ref={calendarRef}
-                            className="h-full"
-                            appointments={appointments ?? EMPTY_APPOINTMENTS}
-                            timezone={timezone}
-                            locale={i18n.language}
-                            schedule={schedule}
-                            initialView={view}
-                            onRangeChange={handleRangeChange}
-                            onSelectedDateChange={handleSelectedDateChange}
-                            onClickSlot={canCreateAppointment ? handleClickSlot : undefined}
-                            onClickAppointment={handleClickAppointment}
+                <div className="flex min-h-0 flex-1">
+                    {staffCalendar.available ? (
+                        <StaffCalendarPanel
+                            open={staffPanelOpen}
+                            onOpenChange={setStaffPanelOpen}
+                            ownStaffMember={staffCalendar.ownStaffMember}
+                            teamMembers={staffCalendar.teamMembers}
+                            selectedStaffMemberId={staffCalendar.selectedStaffMember.id}
+                            onSelect={staffCalendar.select}
                         />
-                    )}
-
-                    {isError ? (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
-                            <div className="grid max-w-sm justify-items-center gap-3 text-center">
-                                <TriangleAlert className="size-6 text-muted-foreground" aria-hidden="true" />
-
-                                <p className="text-sm font-medium">{t('calendar.errors.load')}</p>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => void refetch()}
-                                    className="h-10 px-4"
-                                >
-                                    {tCommon('actions.tryAgain')}
-                                </Button>
-                            </div>
-                        </div>
                     ) : null}
+
+                    <div className="relative min-h-0 min-w-0 flex-1">
+                        {isCalendarPending ? (
+                            <Skeleton className="h-full w-full rounded-none" />
+                        ) : (
+                            <AppointmentCalendar
+                                ref={calendarRef}
+                                className="h-full"
+                                appointments={shownAppointments}
+                                timezone={timezone}
+                                locale={i18n.language}
+                                schedule={schedule}
+                                initialView={view}
+                                onRangeChange={handleRangeChange}
+                                onSelectedDateChange={handleSelectedDateChange}
+                                onClickSlot={canCreateAppointment ? handleClickSlot : undefined}
+                                onClickAppointment={handleClickAppointment}
+                            />
+                        )}
+
+                        {isError ? (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
+                                <div className="grid max-w-sm justify-items-center gap-3 text-center">
+                                    <TriangleAlert className="size-6 text-muted-foreground" aria-hidden="true" />
+
+                                    <p className="text-sm font-medium">{t('calendar.errors.load')}</p>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => void refetch()}
+                                        className="h-10 px-4"
+                                    >
+                                        {tCommon('actions.tryAgain')}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </div>
 

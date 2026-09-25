@@ -13,6 +13,7 @@ import {
     isAppointmentCalendarEvent,
 } from './appointment-events';
 import { SLOT_MINUTES } from './appointment-slots';
+import { createBackgroundEventsPlugin } from './background-events-plugin';
 import { businessHoursBackgroundEvents, type BusinessScheduleRule } from './business-hours';
 import { CalendarHourLabel, type CalendarGridStep } from './CalendarHourLabel';
 import { MonthGridEventContent } from './MonthGridEventContent';
@@ -83,7 +84,11 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
         const { resolvedAppearance } = useAppearance();
         const controls = useMemo(() => createCalendarControlsPlugin(), []);
         const currentTime = useMemo(() => createCurrentTimePlugin({ fullWeekWidth: true }), []);
-        const plugins = useMemo(() => [controls, currentTime], [controls, currentTime]);
+        const backgroundEventsPlugin = useMemo(() => createBackgroundEventsPlugin(), []);
+        const plugins = useMemo(
+            () => [controls, currentTime, backgroundEventsPlugin],
+            [controls, currentTime, backgroundEventsPlugin],
+        );
 
         const weekGridHour = useMemo(
             () =>
@@ -163,6 +168,14 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
         useEffect(() => {
             calendarApp?.events.set(appointmentsToEvents(appointments, timezone));
         }, [calendarApp, appointments, timezone]);
+
+        useEffect(() => {
+            if (! calendarApp) {
+                return;
+            }
+
+            backgroundEventsPlugin.set(backgroundEvents);
+        }, [calendarApp, backgroundEventsPlugin, backgroundEvents]);
 
         useEffect(() => {
             if (! calendarApp) {

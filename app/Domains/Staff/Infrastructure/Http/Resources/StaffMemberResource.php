@@ -23,6 +23,7 @@ final class StaffMemberResource extends JsonResource
             'name' => $this->resource->name,
             'email' => $this->resource->email,
             'role' => $this->resource->role->value,
+            'photo_url' => $this->resource->photoUrl,
         ];
     }
 }

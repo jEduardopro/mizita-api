@@ -1,9 +1,13 @@
 import type { PhoneCountryCode } from '@/lib/phone';
 
+export type StaffRole = 'owner' | 'staff' | 'no_access';
+
 export type StaffMember = {
     id: string;
     name: string;
     email: string;
+    role: StaffRole;
+    photo_url: string | null;
 };
 
 export const PROFILE_NAME_MAX_LENGTH = 255;
@@ -17,8 +21,6 @@ export const PROFILE_PHONE_MAX_LENGTH = 24;
 export const PROFILE_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 export const PROFILE_PHOTO_MAXIMUM_BYTES = 2 * 1024 * 1024;
-
-export type StaffRole = 'owner' | 'staff' | 'no_access';
 
 export const ASSIGNABLE_STAFF_ROLES = ['staff', 'no_access'] as const;
 
@@ -84,6 +86,15 @@ export type TemporaryPassword = {
 };
 
 export const TEMPORARY_PASSWORD_UNAVAILABLE_CODE = 'temporary_password_unavailable';
+
+export type TeamMemberRemovalBlocker = 'owner' | 'upcoming_appointments';
+
+export type TeamMemberRemoval = {
+    removable: boolean;
+    blocker: TeamMemberRemovalBlocker | null;
+};
+
+export const TEAM_MEMBER_HAS_UPCOMING_APPOINTMENTS_CODE = 'team_member_has_upcoming_appointments';
 
 export type TeamListParams = {
     page: number;

@@ -18,18 +18,33 @@ function serializedStaffMember(StaffMemberSummary $member): array
     return (array) StaffMemberResource::make($member)->response()->getData(true)['data'];
 }
 
-it('serializes exactly the four fields the selector reads', function () {
+it('serializes exactly the five fields the selector reads', function () {
     expect(serializedStaffMember(new StaffMemberSummary(
         id: StaffFixtures::MEMBER_ID,
         name: 'Ada Lovelace',
         email: 'ada@example.com',
         role: StaffRole::Owner,
+        photoUrl: StaffFixtures::PHOTO_URL,
     )))->toBe([
         'id' => StaffFixtures::MEMBER_ID,
         'name' => 'Ada Lovelace',
         'email' => 'ada@example.com',
         'role' => 'owner',
+        'photo_url' => StaffFixtures::PHOTO_URL,
     ]);
+});
+
+it('keeps the photo url on the wire as null when the member has no photo', function () {
+    $member = serializedStaffMember(new StaffMemberSummary(
+        id: StaffFixtures::MEMBER_ID,
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        role: StaffRole::Owner,
+        photoUrl: null,
+    ));
+
+    expect($member)->toHaveKey('photo_url')
+        ->and($member['photo_url'])->toBeNull();
 });
 
 it('sends the role as the value the seeded role carries', function () {
@@ -38,6 +53,7 @@ it('sends the role as the value the seeded role carries', function () {
         name: 'Grace Hopper',
         email: 'grace@example.com',
         role: StaffRole::Member,
+        photoUrl: null,
     ))['role'])->toBe('staff');
 });
 
@@ -47,6 +63,7 @@ it('never puts the business or the account behind a membership on the wire', fun
         name: 'Ada Lovelace',
         email: 'ada@example.com',
         role: StaffRole::Owner,
+        photoUrl: null,
     ));
 
     expect($member)->not->toHaveKey('business_id')

@@ -1,4 +1,5 @@
 import { Pencil } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ProfileAvatar } from './ProfileAvatar';
@@ -8,10 +9,13 @@ type Props = {
     jobTitle: string | null;
     photoUrl: string | null;
     onEdit?: () => void;
+    actions?: ReactNode;
 };
 
-export function ProfileHeader({ name, jobTitle, photoUrl, onEdit }: Props) {
+export function ProfileHeader({ name, jobTitle, photoUrl, onEdit, actions }: Props) {
     const { t } = useTranslation('admin');
+
+    const hasControls = onEdit !== undefined || actions !== undefined;
 
     return (
         <header className="flex items-start gap-4">
@@ -25,17 +29,23 @@ export function ProfileHeader({ name, jobTitle, photoUrl, onEdit }: Props) {
                 )}
             </div>
 
-            {onEdit === undefined ? null : (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={onEdit}
-                    aria-label={t('profile.edit')}
-                    className="-mr-2 size-11 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-                >
-                    <Pencil aria-hidden="true" />
-                </Button>
-            )}
+            {hasControls ? (
+                <div className="-mr-2 flex shrink-0 items-center">
+                    {onEdit === undefined ? null : (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={onEdit}
+                            aria-label={t('profile.edit')}
+                            className="size-11 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                        >
+                            <Pencil aria-hidden="true" />
+                        </Button>
+                    )}
+
+                    {actions}
+                </div>
+            ) : null}
         </header>
     );
 }

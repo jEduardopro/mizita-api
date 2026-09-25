@@ -1,6 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { KeyRound, MailPlus, MoreHorizontal, Pencil, UserMinus } from 'lucide-react';
-import { useState } from 'react';
+import { KeyRound, LoaderCircle, MailPlus, MoreHorizontal, Pencil, UserMinus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,10 +12,12 @@ import {
 import { useAuthorization } from '@/hooks/use-authorization';
 import type { TeamMember } from '../types';
 import { RemoveTeamMemberDialog } from './RemoveTeamMemberDialog';
+import { TeamMemberRemovalBlockedDialog } from './TeamMemberRemovalBlockedDialog';
 import { teamMemberEditUrl } from './team-urls';
 import { useCopyTemporaryPassword } from './use-copy-temporary-password';
 import { useResendInvitation } from './use-resend-invitation';
 import { canEditStaffProfile, useStaffProfileAccess } from './use-staff-profile-access';
+import { useTeamMemberRemoval } from './use-team-member-removal';
 
 const MENU_ITEM_SIZE = 'min-h-11 md:min-h-8';
 
@@ -27,7 +28,7 @@ type Props = {
 export function TeamMemberRowActions({ member }: Props) {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
-    const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+    const removal = useTeamMemberRemoval(member.id);
     const invitation = useResendInvitation(member.id);
     const access = useStaffProfileAccess(member.id);
     const temporaryPassword = useCopyTemporaryPassword(member.id);
@@ -50,9 +51,14 @@ export function TeamMemberRowActions({ member }: Props) {
                         variant="ghost"
                         size="icon"
                         aria-label={t('team.actions.more', { name: member.name })}
+                        aria-busy={removal.isChecking}
                         className="size-11 md:size-9"
                     >
-                        <MoreHorizontal aria-hidden="true" />
+                        {removal.isChecking ? (
+                            <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" />
+                        ) : (
+                            <MoreHorizontal aria-hidden="true" />
+                        )}
                     </Button>
                 </DropdownMenuTrigger>
 
@@ -93,7 +99,8 @@ export function TeamMemberRowActions({ member }: Props) {
                     {canRemove ? (
                         <DropdownMenuItem
                             variant="destructive"
-                            onSelect={() => setConfirmingRemoval(true)}
+                            disabled={removal.isChecking}
+                            onSelect={removal.start}
                             className={MENU_ITEM_SIZE}
                         >
                             <UserMinus aria-hidden="true" />
@@ -104,12 +111,20 @@ export function TeamMemberRowActions({ member }: Props) {
             </DropdownMenu>
 
             {canRemove ? (
-                <RemoveTeamMemberDialog
-                    memberId={member.id}
-                    name={member.name}
-                    open={confirmingRemoval}
-                    onOpenChange={setConfirmingRemoval}
-                />
+                <>
+                    <RemoveTeamMemberDialog
+                        memberId={member.id}
+                        name={member.name}
+                        open={removal.dialog === 'confirm'}
+                        onOpenChange={removal.handleOpenChange}
+                        onBlocked={removal.showBlocked}
+                    />
+
+                    <TeamMemberRemovalBlockedDialog
+                        open={removal.dialog === 'blocked'}
+                        onOpenChange={removal.handleOpenChange}
+                    />
+                </>
             ) : null}
         </div>
     );

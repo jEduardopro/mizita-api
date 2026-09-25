@@ -109,7 +109,7 @@ return [
         'team_member_already_exists' => 'Ya hay alguien en tu equipo con ese correo electrónico.',
         'invalid_team_search' => 'Esa búsqueda es demasiado larga.',
         'owner_level_is_fixed' => 'No se puede cambiar el nivel de permisos del propietario.',
-        'owner_cannot_be_removed' => 'No se puede quitar al propietario del negocio.',
+        'owner_cannot_be_removed' => 'No se puede remover al propietario del negocio del equipo.',
         'team_member_has_upcoming_appointments' => 'Esta persona todavía tiene citas próximas. Reasígnalas o cancélalas primero.',
         'team_invitation_not_pending' => 'Esta persona no tiene ninguna invitación pendiente para reenviar.',
         'temporary_password_unavailable' => 'La contraseña temporal ya no está disponible: esta persona ya inició sesión o no tiene una invitación pendiente.',

@@ -2,7 +2,7 @@ import { enUS } from 'date-fns/locale/en-US';
 import { es } from 'date-fns/locale/es';
 import { Check, ChevronLeft, ChevronRight, Columns3, Grid3x3, PanelTop } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Locale } from 'react-day-picker';
 import { useTranslation } from 'react-i18next';
 import { cn } from 'cn';
@@ -72,6 +72,7 @@ type Props = {
     selectedDate: Date;
     onSelectDate: (date: Date) => void;
     timezone: string;
+    leading?: ReactNode;
 };
 
 export function CalendarToolbar({
@@ -84,6 +85,7 @@ export function CalendarToolbar({
     selectedDate,
     onSelectDate,
     timezone,
+    leading,
 }: Props) {
     const { t, i18n } = useTranslation('admin');
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -102,7 +104,11 @@ export function CalendarToolbar({
 
     return (
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:flex-nowrap sm:gap-3 sm:px-4">
-            <div className="hidden sm:block" aria-hidden="true" />
+            {leading === undefined ? (
+                <div className="hidden sm:block" aria-hidden="true" />
+            ) : (
+                <div className="flex max-w-full min-w-0 items-center">{leading}</div>
+            )}
 
             <div className="flex items-center gap-1">
                 <Tooltip>
