@@ -34,6 +34,8 @@ final class PaymentFixtures
 
     public const SECOND_APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a2';
 
+    public const OTHER_MEMBER_APPOINTMENT_ID = '01930000-0000-7000-8000-0000000000a3';
+
     public const SERVICE_ID = '01930000-0000-7000-8000-0000000000c1';
 
     public const SERVICE_NAME = 'Classic Haircut';
@@ -59,6 +61,10 @@ final class PaymentFixtures
     public const ACTOR_ID = '01930000-0000-7000-8000-00000000ac01';
 
     public const OTHER_ACTOR_ID = '01930000-0000-7000-8000-00000000ac02';
+
+    public const STAFF_MEMBER_ID = '01930000-0000-7000-8000-00000000de01';
+
+    public const OTHER_STAFF_MEMBER_ID = '01930000-0000-7000-8000-00000000de02';
 
     public const UNKNOWN_ID = '01930000-0000-7000-8000-000000000999';
 
@@ -104,8 +110,9 @@ final class PaymentFixtures
         string $id = self::APPOINTMENT_ID,
         string $serviceId = self::SERVICE_ID,
         bool $cancelled = false,
+        string $staffMemberId = self::STAFF_MEMBER_ID,
     ): AppointmentSnapshot {
-        return new AppointmentSnapshot($id, $serviceId, $cancelled);
+        return new AppointmentSnapshot($id, $serviceId, $cancelled, $staffMemberId);
     }
 
     public static function paymentMethod(

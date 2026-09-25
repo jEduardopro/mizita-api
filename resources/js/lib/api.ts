@@ -1,5 +1,6 @@
+import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { responseBodyFrom, warningsFrom } from '@/lib/http';
+import { isPasswordChangeRequiredError, responseBodyFrom, warningsFrom } from '@/lib/http';
 import { currentLocale } from '@/lib/i18n';
 import { raiseWarningToasts } from '@/lib/toast';
 
@@ -21,7 +22,21 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-function rejectWithWarnings(error: unknown): Promise<never> {
+const PASSWORD_CHANGE_URL = '/password/change';
+
+function redirectToPasswordChange(): void {
+    if (window.location.pathname === PASSWORD_CHANGE_URL) {
+        return;
+    }
+
+    router.visit(PASSWORD_CHANGE_URL, { replace: true });
+}
+
+function rejectFailedResponse(error: unknown): Promise<never> {
+    if (isPasswordChangeRequiredError(error)) {
+        redirectToPasswordChange();
+    }
+
     raiseWarningToasts(warningsFrom(responseBodyFrom(error)));
 
     return Promise.reject(error);
@@ -31,4 +46,4 @@ api.interceptors.response.use((response) => {
     raiseWarningToasts(warningsFrom(response.data));
 
     return response;
-}, rejectWithWarnings);
+}, rejectFailedResponse);

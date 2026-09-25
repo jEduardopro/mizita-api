@@ -100,3 +100,41 @@ describe('describe', function () {
             ->and($profile->createdAt)->toEqual(StaffFixtures::now());
     });
 });
+
+describe('changing one field at a time', function () {
+    it('changes the job title and keeps the description', function () {
+        $profile = StaffFixtures::profile();
+
+        $profile->changeJobTitle(JobTitle::fromNullable('Colorista'));
+
+        expect($profile->jobTitle()?->value)->toBe('Colorista')
+            ->and($profile->about()?->value)->toBe(StaffFixtures::ABOUT);
+    });
+
+    it('clears the job title and keeps the description', function () {
+        $profile = StaffFixtures::profile();
+
+        $profile->changeJobTitle(null);
+
+        expect($profile->jobTitle())->toBeNull()
+            ->and($profile->about()?->value)->toBe(StaffFixtures::ABOUT);
+    });
+
+    it('changes the description and keeps the job title', function () {
+        $profile = StaffFixtures::profile();
+
+        $profile->changeAbout(About::fromNullable('Especialista en rubios.'));
+
+        expect($profile->about()?->value)->toBe('Especialista en rubios.')
+            ->and($profile->jobTitle()?->value)->toBe(StaffFixtures::JOB_TITLE);
+    });
+
+    it('clears the description and keeps the job title', function () {
+        $profile = StaffFixtures::profile();
+
+        $profile->changeAbout(null);
+
+        expect($profile->about())->toBeNull()
+            ->and($profile->jobTitle()?->value)->toBe(StaffFixtures::JOB_TITLE);
+    });
+});

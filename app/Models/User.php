@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['uuid', 'name', 'email', 'email_verified_at', 'password'])]
+#[Fillable(['uuid', 'name', 'email', 'email_verified_at', 'password', 'must_change_password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,6 +29,11 @@ class User extends Authenticatable
     public function uniqueIds(): array
     {
         return ['uuid'];
+    }
+
+    public function mustChangePassword(): bool
+    {
+        return $this->must_change_password === true;
     }
 
     /**
@@ -60,6 +65,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
         ];
     }
 }

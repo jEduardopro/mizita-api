@@ -18,7 +18,21 @@ export const PROFILE_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'
 
 export const PROFILE_PHOTO_MAXIMUM_BYTES = 2 * 1024 * 1024;
 
-export type StaffRole = 'owner' | 'staff';
+export type StaffRole = 'owner' | 'staff' | 'no_access';
+
+export const ASSIGNABLE_STAFF_ROLES = ['staff', 'no_access'] as const;
+
+export type AssignableStaffRole = (typeof ASSIGNABLE_STAFF_ROLES)[number];
+
+export const DEFAULT_ASSIGNABLE_STAFF_ROLE: AssignableStaffRole = 'staff';
+
+export const TEAM_SORT_FIELDS = ['name', 'created_at'] as const;
+
+export type TeamSortField = (typeof TEAM_SORT_FIELDS)[number];
+
+export const TEAM_INVITATION_MAXIMUM_MEMBERS = 20;
+
+export const TEAM_MEMBER_EMAIL_MAX_LENGTH = 255;
 
 export type ProfilePhone = {
     country_code: string;
@@ -49,6 +63,41 @@ export type UpdateMyProfilePayload = {
     job_title: string | null;
     about: string | null;
     phone: ProfilePhonePayload | null;
+};
+
+export type TeamMember = {
+    id: string;
+    name: string;
+    email: string;
+    phone: ProfilePhone | null;
+    photo_url: string | null;
+    job_title: string | null;
+    about: string | null;
+    level: StaffRole;
+    invitation_pending: boolean;
+    created_at: string;
+};
+
+export type TeamListParams = {
+    page: number;
+    per_page: number;
+    sort: TeamSortField;
+    direction: 'asc' | 'desc';
+    search?: string;
+};
+
+export type TeamInvitee = {
+    name: string;
+    email: string;
+    level: AssignableStaffRole;
+};
+
+export type InviteTeamMembersPayload = {
+    members: TeamInvitee[];
+};
+
+export type UpdateTeamMemberPayload = UpdateMyProfilePayload & {
+    level?: AssignableStaffRole;
 };
 
 export type StaffProfileDetails = Pick<

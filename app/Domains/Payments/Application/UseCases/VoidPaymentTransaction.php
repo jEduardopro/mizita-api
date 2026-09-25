@@ -7,8 +7,13 @@ namespace App\Domains\Payments\Application\UseCases;
 use App\Domains\Payments\Application\Dtos\PaymentData;
 use App\Domains\Payments\Application\Dtos\VoidPaymentTransactionInput;
 use App\Domains\Payments\Application\Presenters\PaymentPresenter;
+use App\Domains\Payments\Contracts\AppointmentDirectory;
+use App\Domains\Payments\Contracts\CalendarAccess;
 use App\Domains\Payments\Contracts\PaymentRepository;
 use App\Domains\Payments\Entities\Payment;
+use App\Domains\Payments\Exceptions\PaymentAppointmentNotFound;
+use App\Domains\Payments\Exceptions\PaymentNotFound;
+use App\Domains\Payments\ValueObjects\CalendarScope;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
@@ -20,6 +25,8 @@ final class VoidPaymentTransaction
 {
     public function __construct(
         private readonly PaymentRepository $payments,
+        private readonly AppointmentDirectory $appointments,
+        private readonly CalendarAccess $calendars,
         private readonly PaymentPresenter $presenter,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
@@ -36,9 +43,10 @@ final class VoidPaymentTransaction
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
+            $scope = $this->calendars->scopeFor($businessId, $input->actorAccountId);
 
             $payment = $this->transactions->run(
-                fn (): Payment => $this->voidTransaction($input, $businessId),
+                fn (): Payment => $this->voidTransaction($input, $businessId, $scope),
             );
 
             return UseCaseResponse::success($this->presenter->describe($businessId, $payment));
@@ -47,9 +55,13 @@ final class VoidPaymentTransaction
         }
     }
 
-    private function voidTransaction(VoidPaymentTransactionInput $input, string $businessId): Payment
-    {
+    private function voidTransaction(
+        VoidPaymentTransactionInput $input,
+        string $businessId,
+        CalendarScope $scope,
+    ): Payment {
         $payment = $this->payments->lockForBusiness($businessId, $input->paymentId);
+        $this->ensurePaymentIsInScope($businessId, $scope, $payment);
 
         $payment->voidTransaction(
             $this->ids->next(),
@@ -61,5 +73,22 @@ final class VoidPaymentTransaction
         $this->payments->save($payment);
 
         return $payment;
+    }
+
+    /**
+     * @throws PaymentAppointmentNotFound
+     * @throws PaymentNotFound
+     */
+    private function ensurePaymentIsInScope(string $businessId, CalendarScope $scope, Payment $payment): void
+    {
+        if (! $scope->isRestricted()) {
+            return;
+        }
+
+        $appointment = $this->appointments->describe($businessId, $payment->appointmentId);
+
+        if (! $scope->covers($appointment)) {
+            throw PaymentNotFound::withId($payment->id);
+        }
     }
 }

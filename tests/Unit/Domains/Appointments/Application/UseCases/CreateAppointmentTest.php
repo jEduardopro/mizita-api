@@ -14,6 +14,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakeCustomerDirectory;
 use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
@@ -48,6 +49,7 @@ beforeEach(function () {
         ->add(AppointmentFixtures::OTHER_BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
     $this->payments = new FakePaymentLedger($this->journal);
+    $this->calendars = FakeCalendarAccess::everyone();
 
     $this->dispatched = [];
     $this->events = Mockery::mock(Dispatcher::class);
@@ -68,6 +70,7 @@ beforeEach(function () {
         new FakeClock(AppointmentFixtures::now()),
         $business ?? new FakeBusinessContext,
         $this->events,
+        $this->calendars,
     );
 
     $this->useCase = ($this->build)();
@@ -172,7 +175,7 @@ describe('the business it belongs to', function () {
     it('asks every neighbour about the business in context, never about one the payload names', function () {
         $this->useCase->handle(CreateAppointmentInput::fromRequest(AppointmentFixtures::createPayload([
             'business_id' => AppointmentFixtures::OTHER_BUSINESS_ID,
-        ])));
+        ]), AppointmentFixtures::ACCOUNT_ID));
 
         expect($this->appointments->saved[0]->businessId)->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and(array_unique(array_column($this->services->reads, 'businessId')))
@@ -295,5 +298,97 @@ describe('refusing to book', function () {
     it('refuses an appointment that runs longer than a day', function () {
         expect(($this->create)(endsAt: '2026-03-11T09:01:00+00:00')->error()->code)
             ->toBe('invalid_appointment_schedule');
+    });
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    beforeEach(function () {
+        $this->staff->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot(
+            id: AppointmentFixtures::SECOND_STAFF_ID,
+            name: AppointmentFixtures::SECOND_STAFF_NAME,
+        ));
+        $this->calendars = FakeCalendarAccess::ownedBy(AppointmentFixtures::STAFF_ID);
+        $this->useCase = ($this->build)();
+    });
+
+    it('books an appointment on their own calendar', function () {
+        $data = ($this->create)()->value();
+
+        expect($data->staffMember->id)->toBe(AppointmentFixtures::STAFF_ID)
+            ->and($this->appointments->saved)->toHaveCount(1)
+            ->and($this->appointments->saved[0]->staffMemberId())->toBe(AppointmentFixtures::STAFF_ID);
+    });
+
+    it('refuses to book on the calendar of another team member', function () {
+        $response = ($this->create)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('appointment_staff_not_permitted')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden);
+    });
+
+    it('saves and announces nothing when it refuses another team member', function () {
+        ($this->create)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($this->appointments->saved)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('refuses another team member before it asks any neighbour', function () {
+        ($this->create)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($this->journal->entries)->toBe([]);
+    });
+
+    it('refuses another team member even when the service does not exist', function () {
+        $response = ($this->create)(
+            staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+            serviceId: AppointmentFixtures::UNKNOWN_ID,
+        );
+
+        expect($response->error()->code)->toBe('appointment_staff_not_permitted');
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    it('asks for the scope of the account on the input, in the business in context', function () {
+        ($this->create)();
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => AppointmentFixtures::ACCOUNT_ID,
+        ]]);
+    });
+
+    it('lets a caller who keeps every calendar book on another team member', function () {
+        $this->staff->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot(
+            id: AppointmentFixtures::SECOND_STAFF_ID,
+            name: AppointmentFixtures::SECOND_STAFF_NAME,
+        ));
+
+        $data = ($this->create)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID)->value();
+
+        expect($data->staffMember->id)->toBe(AppointmentFixtures::SECOND_STAFF_ID);
+    });
+
+    it('refuses an account that is no member of the business, and books nothing', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+        $this->useCase = ($this->build)();
+
+        $response = ($this->create)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('business_not_accessible')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->journal->entries)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('refuses a malformed account before it asks for any scope', function () {
+        $response = ($this->create)(accountId: 'not-a-uuid');
+
+        expect($response->error()->code)->toBe('business_not_accessible')
+            ->and($this->calendars->lookups)->toBe([])
+            ->and($this->journal->entries)->toBe([]);
     });
 });

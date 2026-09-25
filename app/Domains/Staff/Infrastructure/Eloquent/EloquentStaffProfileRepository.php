@@ -47,6 +47,47 @@ final class EloquentStaffProfileRepository implements StaffProfileRepository
         return $this->mapper->toEntity($model, $businessId, $staffMemberId);
     }
 
+    /**
+     * @param  list<string>  $staffMemberIds
+     * @return array<string, StaffProfile>
+     */
+    public function findForStaffMembers(string $businessId, array $staffMemberIds): array
+    {
+        if ($staffMemberIds === []) {
+            return [];
+        }
+
+        $businessKey = $this->businessKeys->teamKeyFor($businessId);
+
+        $models = StaffProfileModel::query()
+            ->with('staffMember')
+            ->where('business_id', $businessKey)
+            ->whereIn(
+                'staff_member_id',
+                static fn (QueryBuilder $query) => $query
+                    ->select('id')
+                    ->from(self::STAFF_MEMBERS_TABLE)
+                    ->where('business_id', $businessKey)
+                    ->whereIn('uuid', $staffMemberIds)
+                    ->whereNull('deleted_at'),
+            )
+            ->get();
+
+        $profiles = [];
+
+        foreach ($models as $model) {
+            $staffMemberId = $model->staffMember?->uuid;
+
+            if ($staffMemberId === null) {
+                continue;
+            }
+
+            $profiles[$staffMemberId] = $this->mapper->toEntity($model, $businessId, $staffMemberId);
+        }
+
+        return $profiles;
+    }
+
     public function save(StaffProfile $profile): void
     {
         $businessKey = $this->businessKeys->teamKeyFor($profile->businessId);

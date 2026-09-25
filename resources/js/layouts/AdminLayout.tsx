@@ -8,7 +8,7 @@ import { AppSidebar } from '@/components/admin/shell/AppSidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NewAppointmentLauncher } from '@/domains/appointments/components/NewAppointmentLauncher';
-import { useBusinessSettings } from '@/domains/businesses/queries';
+import { useCalendarSettings } from '@/domains/businesses/queries';
 import { CreateCustomerDialog } from '@/domains/customers/components/CreateCustomerDialog';
 import { CustomerCreationProvider } from '@/hooks/use-customer-creation';
 import { useFlashToast } from '@/hooks/use-flash-toast';
@@ -33,7 +33,7 @@ export function AdminLayout({
     children,
 }: Props) {
     const { sidebarOpen } = usePage().props;
-    const { data: businessSettings } = useBusinessSettings();
+    const { data: calendarSettings } = useCalendarSettings();
 
     useFlashToast();
 
@@ -53,7 +53,7 @@ export function AdminLayout({
                                 actions={
                                     newAppointment ? (
                                         <NewAppointmentLauncher
-                                            timezone={businessSettings?.timezone}
+                                            timezone={calendarSettings?.timezone}
                                         />
                                     ) : undefined
                                 }

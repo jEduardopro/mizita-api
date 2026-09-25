@@ -6,12 +6,19 @@ use App\Domains\Appointments\Application\Dtos\CreateAppointmentInput;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
+use App\Domains\Appointments\Exceptions\CalendarNotAccessible;
 use App\Domains\Appointments\Exceptions\InvalidAppointmentNotes;
 use App\Domains\Appointments\Exceptions\InvalidAppointmentSchedule;
 use App\Domains\Appointments\ValueObjects\AppointmentNotes;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\FakeBusinessContext;
+
+function createAppointmentInputFrom(array $payload, string $accountId = AppointmentFixtures::ACCOUNT_ID): CreateAppointmentInput
+{
+    return CreateAppointmentInput::fromRequest($payload, $accountId);
+}
 
 function payloadForCreateAppointmentInput(array $overrides = []): array
 {
@@ -63,7 +70,7 @@ dataset('written instants no clock could read', MALFORMED_INSTANTS);
 
 describe('reading a payload', function () {
     it('assembles itself from a body the form request would have passed', function () {
-        $input = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput());
+        $input = createAppointmentInputFrom(payloadForCreateAppointmentInput());
 
         expect($input->customerId)->toBe('01930000-0000-7000-8000-0000000000c1')
             ->and($input->serviceId)->toBe('01930000-0000-7000-8000-0000000000f1')
@@ -74,7 +81,7 @@ describe('reading a payload', function () {
     });
 
     it('survives a body with every key missing, because a caller who skipped the form request has none', function () {
-        $input = CreateAppointmentInput::fromRequest([]);
+        $input = createAppointmentInputFrom([]);
 
         expect($input->customerId)->toBe('')
             ->and($input->serviceId)->toBe('')
@@ -85,12 +92,12 @@ describe('reading a payload', function () {
     });
 
     it('turns a body with every key missing into a domain failure rather than a PHP error', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest([])->validate())
+        expect(fn () => createAppointmentInputFrom([])->validate())
             ->toThrow(AppointmentCustomerNotFound::class);
     });
 
     it('reads a required value that is not a string as nothing rather than casting it', function (mixed $value) {
-        $input = CreateAppointmentInput::fromRequest([
+        $input = createAppointmentInputFrom([
             'customer_id' => $value,
             'service_id' => $value,
             'staff_member_id' => $value,
@@ -109,7 +116,7 @@ describe('reading a payload', function () {
     ]);
 
     it('reads an optional value that is not a string as none at all', function (array $payload, string $field) {
-        expect(CreateAppointmentInput::fromRequest($payload)->{$field})->toBeNull();
+        expect(createAppointmentInputFrom($payload)->{$field})->toBeNull();
     })->with([
         'an end as an array' => [['ends_at' => ['2026-03-02T11:00:00Z']], 'endsAt'],
         'an end as a number' => [['ends_at' => 1772449200], 'endsAt'],
@@ -119,7 +126,7 @@ describe('reading a payload', function () {
     ]);
 
     it('reads an optional value that says nothing as none at all', function (string $key, string $blank, string $field) {
-        expect(CreateAppointmentInput::fromRequest([$key => $blank])->{$field})->toBeNull();
+        expect(createAppointmentInputFrom([$key => $blank])->{$field})->toBeNull();
     })->with([
         'an empty end' => ['ends_at', '', 'endsAt'],
         'a blank end' => ['ends_at', '   ', 'endsAt'],
@@ -129,7 +136,7 @@ describe('reading a payload', function () {
     ]);
 
     it('holds the text it was handed without normalising it, because the value objects trim on the way in', function () {
-        $input = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $input = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '  2026-03-02T10:00:00Z  ',
             'notes' => '  Prefers the afternoon.  ',
         ]));
@@ -141,39 +148,39 @@ describe('reading a payload', function () {
 
 describe('the business the caller may never name', function () {
     it('carries no business at all, because the tenant comes from the context and never from the body', function () {
-        $input = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $input = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'business_id' => FakeBusinessContext::BUSINESS_ID,
         ]));
 
         expect(array_keys(get_object_vars($input)))
-            ->toBe(['customerId', 'serviceId', 'staffMemberId', 'startsAt', 'endsAt', 'notes']);
+            ->toBe(['customerId', 'serviceId', 'staffMemberId', 'startsAt', 'endsAt', 'notes', 'accountId']);
     });
 
     it('drops a business the caller smuggled into the body rather than refusing the booking', function () {
-        $smuggled = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $smuggled = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'business_id' => 'a business that is not the caller own',
         ]));
 
         expect(fn () => $smuggled->validate())->not->toThrow(Throwable::class)
-            ->and($smuggled)->toEqual(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput()));
+            ->and($smuggled)->toEqual(createAppointmentInputFrom(payloadForCreateAppointmentInput()));
     });
 });
 
 describe('validating the participants', function () {
     it('accepts a payload every rule agrees with', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput())->validate())
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput())->validate())
             ->not->toThrow(Throwable::class);
     });
 
     it('accepts a booking that names nothing but the required facts', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'ends_at' => null,
             'notes' => null,
         ]))->validate())->not->toThrow(Throwable::class);
     });
 
     it('accepts a customer uuid however it is cased', function (string $id) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'customer_id' => $id,
         ]))->validate())->not->toThrow(Throwable::class);
     })->with([
@@ -183,25 +190,25 @@ describe('validating the participants', function () {
     ]);
 
     it('refuses a customer no booking could ever name, before any repository is asked', function (string $id) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'customer_id' => $id,
         ]))->validate())->toThrow(AppointmentCustomerNotFound::class);
     })->with('ids no appointment participant could ever have');
 
     it('refuses a service no booking could ever name, before any catalogue is asked', function (string $id) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'service_id' => $id,
         ]))->validate())->toThrow(AppointmentServiceNotFound::class);
     })->with('ids no appointment participant could ever have');
 
     it('refuses a team member no booking could ever name, before any directory is asked', function (string $id) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'staff_member_id' => $id,
         ]))->validate())->toThrow(AppointmentStaffNotFound::class);
     })->with('ids no appointment participant could ever have');
 
     it('names the customer first when every participant is wrong at once', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest([
+        expect(fn () => createAppointmentInputFrom([
             'customer_id' => '',
             'service_id' => '',
             'staff_member_id' => '',
@@ -210,14 +217,14 @@ describe('validating the participants', function () {
     });
 
     it('judges the service before the team member', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'service_id' => '',
             'staff_member_id' => '',
         ]))->validate())->toThrow(AppointmentServiceNotFound::class);
     });
 
     it('judges the team member before the schedule', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'staff_member_id' => '',
             'starts_at' => 'tomorrow',
         ]))->validate())->toThrow(AppointmentStaffNotFound::class);
@@ -226,19 +233,19 @@ describe('validating the participants', function () {
 
 describe('validating the schedule', function () {
     it('refuses a start no clock could read', function (string $startsAt) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => $startsAt,
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
     })->with('instants no clock could read');
 
     it('refuses an end no clock could read', function (string $endsAt) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'ends_at' => $endsAt,
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
     })->with('written instants no clock could read');
 
     it('reads an end the client left blank as no end at all, to be derived from the service', function (string $endsAt) {
-        $input = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['ends_at' => $endsAt]));
+        $input = createAppointmentInputFrom(payloadForCreateAppointmentInput(['ends_at' => $endsAt]));
 
         expect($input->endsAt)->toBeNull()
             ->and(fn () => $input->validate())->not->toThrow(Throwable::class)
@@ -249,7 +256,7 @@ describe('validating the schedule', function () {
     ]);
 
     it('accepts an instant however its zone is written', function (string $startsAt) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => $startsAt,
             'ends_at' => null,
         ]))->validate())->not->toThrow(Throwable::class);
@@ -262,20 +269,20 @@ describe('validating the schedule', function () {
     ]);
 
     it('accepts a booking with no end, because the service duration decides it', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'ends_at' => null,
         ]))->validate())->not->toThrow(Throwable::class);
     });
 
     it('refuses a booking that ends before it starts', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-03-02T11:00:00Z',
             'ends_at' => '2026-03-02T10:00:00Z',
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
     });
 
     it('refuses a booking that ends the instant it starts', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-03-02T10:00:00Z',
             'ends_at' => '2026-03-02T10:00:00+00:00',
         ]))->validate())->toThrow(InvalidAppointmentSchedule::class);
@@ -284,31 +291,31 @@ describe('validating the schedule', function () {
 
 describe('validating the notes', function () {
     it('accepts notes as long as the value object allows', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'notes' => str_repeat('a', AppointmentNotes::MAXIMUM_LENGTH),
         ]))->validate())->not->toThrow(Throwable::class);
     });
 
     it('refuses notes one character past what the value object allows', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'notes' => str_repeat('a', AppointmentNotes::MAXIMUM_LENGTH + 1),
         ]))->validate())->toThrow(InvalidAppointmentNotes::class);
     });
 
     it('measures the notes after trimming them, exactly as the value object will', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'notes' => '  '.str_repeat('a', AppointmentNotes::MAXIMUM_LENGTH).'  ',
         ]))->validate())->not->toThrow(Throwable::class);
     });
 
     it('counts the characters of the notes rather than their bytes', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'notes' => str_repeat('á', AppointmentNotes::MAXIMUM_LENGTH),
         ]))->validate())->not->toThrow(Throwable::class);
     });
 
     it('skips the notes rules altogether when the caller wrote none', function (mixed $notes) {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'notes' => $notes,
         ]))->validate())->not->toThrow(Throwable::class);
     })->with(['missing' => null, 'empty' => '', 'blank' => '   ']);
@@ -319,7 +326,7 @@ describe('the failure a caller is handed', function () {
         $refusal = null;
 
         try {
-            CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['customer_id' => 'nobody']))->validate();
+            createAppointmentInputFrom(payloadForCreateAppointmentInput(['customer_id' => 'nobody']))->validate();
         } catch (AppointmentCustomerNotFound $caught) {
             $refusal = $caught;
         }
@@ -333,7 +340,7 @@ describe('the failure a caller is handed', function () {
         $refusal = null;
 
         try {
-            CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['service_id' => 'nothing']))->validate();
+            createAppointmentInputFrom(payloadForCreateAppointmentInput(['service_id' => 'nothing']))->validate();
         } catch (AppointmentServiceNotFound $caught) {
             $refusal = $caught;
         }
@@ -347,7 +354,7 @@ describe('the failure a caller is handed', function () {
         $refusal = null;
 
         try {
-            CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['staff_member_id' => 'nobody']))->validate();
+            createAppointmentInputFrom(payloadForCreateAppointmentInput(['staff_member_id' => 'nobody']))->validate();
         } catch (AppointmentStaffNotFound $caught) {
             $refusal = $caught;
         }
@@ -361,7 +368,7 @@ describe('the failure a caller is handed', function () {
         $refusal = null;
 
         try {
-            CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['starts_at' => 'tomorrow']))->validate();
+            createAppointmentInputFrom(payloadForCreateAppointmentInput(['starts_at' => 'tomorrow']))->validate();
         } catch (InvalidAppointmentSchedule $caught) {
             $refusal = $caught;
         }
@@ -375,7 +382,7 @@ describe('the failure a caller is handed', function () {
         $refusal = null;
 
         try {
-            CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+            createAppointmentInputFrom(payloadForCreateAppointmentInput([
                 'notes' => str_repeat('a', AppointmentNotes::MAXIMUM_LENGTH + 1),
             ]))->validate();
         } catch (InvalidAppointmentNotes $caught) {
@@ -390,7 +397,7 @@ describe('the failure a caller is handed', function () {
 
 describe('turning itself into what the use case books', function () {
     it('hands the entity the instant the caller typed, moved to the timezone the column stores', function () {
-        $startsAt = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $startsAt = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-03-02T11:00:00+01:00',
         ]))->toStartsAt();
 
@@ -399,46 +406,46 @@ describe('turning itself into what the use case books', function () {
     });
 
     it('hands the entity the end the caller typed', function () {
-        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput())->toEndsAt())
+        expect(createAppointmentInputFrom(payloadForCreateAppointmentInput())->toEndsAt())
             ->toEqual(new DateTimeImmutable('2026-03-02T11:00:00+00:00'));
     });
 
     it('hands the entity no end when the caller gave none, so the service duration decides', function (mixed $endsAt) {
-        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['ends_at' => $endsAt]))->toEndsAt())
+        expect(createAppointmentInputFrom(payloadForCreateAppointmentInput(['ends_at' => $endsAt]))->toEndsAt())
             ->toBeNull();
     })->with(['missing' => null, 'empty' => '', 'blank' => '   ']);
 
     it('hands the entity the notes trimmed', function () {
-        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'notes' => '  Prefers the afternoon.  ',
         ]))->toNotes()?->value)->toBe('Prefers the afternoon.');
     });
 
     it('hands the entity no notes when the caller wrote none', function () {
-        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput(['notes' => null]))->toNotes())
+        expect(createAppointmentInputFrom(payloadForCreateAppointmentInput(['notes' => null]))->toNotes())
             ->toBeNull();
     });
 
     it('refuses rather than handing the entity an instant it invented', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-13-01T10:00:00Z',
         ]))->toStartsAt())->toThrow(InvalidAppointmentSchedule::class);
     });
 
     it('refuses a day the calendar lacks rather than rolling it into the next month', function () {
-        expect(fn () => CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-02-30T10:00:00Z',
         ]))->toStartsAt())->toThrow(InvalidAppointmentSchedule::class);
     });
 
     it('accepts the twenty ninth of February in a leap year', function () {
-        expect(CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        expect(createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2028-02-29T10:00:00Z',
         ]))->toStartsAt())->toEqual(new DateTimeImmutable('2028-02-29T10:00:00+00:00'));
     });
 
     it('reads a spring forward booking as the absolute instant its offset names', function () {
-        $startsAt = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $startsAt = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-03-29T03:30:00+02:00',
         ]))->toStartsAt();
 
@@ -446,16 +453,51 @@ describe('turning itself into what the use case books', function () {
     });
 
     it('tells the two fall back readings of the same local time apart by their offset', function () {
-        $firstPass = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $firstPass = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-10-25T02:30:00+02:00',
         ]))->toStartsAt();
 
-        $secondPass = CreateAppointmentInput::fromRequest(payloadForCreateAppointmentInput([
+        $secondPass = createAppointmentInputFrom(payloadForCreateAppointmentInput([
             'starts_at' => '2026-10-25T02:30:00+01:00',
         ]))->toStartsAt();
 
         expect($firstPass)->toEqual(new DateTimeImmutable('2026-10-25T00:30:00+00:00'))
             ->and($secondPass)->toEqual(new DateTimeImmutable('2026-10-25T01:30:00+00:00'))
             ->and($firstPass)->not->toEqual($secondPass);
+    });
+});
+
+describe('the account the caller was authenticated as', function () {
+    it('takes the account from the parameter, never from a key the caller could set', function () {
+        $input = createAppointmentInputFrom(payloadForCreateAppointmentInput([
+            'account_id' => AppointmentFixtures::SECOND_ACCOUNT_ID,
+            'accountId' => AppointmentFixtures::SECOND_ACCOUNT_ID,
+        ]));
+
+        expect($input->accountId)->toBe(AppointmentFixtures::ACCOUNT_ID);
+    });
+
+    it('accepts a well formed account uuid', function () {
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput())->validate())
+            ->not->toThrow(Throwable::class);
+    });
+
+    it('refuses an account that is no uuid', function (string $accountId) {
+        expect(fn () => createAppointmentInputFrom(payloadForCreateAppointmentInput(), $accountId)->validate())
+            ->toThrow(CalendarNotAccessible::class);
+    })->with('ids no appointment participant could ever have');
+
+    it('refuses a malformed account with a forbidden failure the transport can classify', function () {
+        $failure = null;
+
+        try {
+            createAppointmentInputFrom(payloadForCreateAppointmentInput(), 'nobody')->validate();
+        } catch (CalendarNotAccessible $refused) {
+            $failure = $refused;
+        }
+
+        expect($failure)->toBeInstanceOf(DomainFailure::class)
+            ->and($failure?->errorCode())->toBe('business_not_accessible')
+            ->and($failure?->kind())->toBe(DomainFailureKind::Forbidden);
     });
 });

@@ -3,20 +3,27 @@ import { useTranslation } from 'react-i18next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
+export type ProfileLoadErrorMessages = {
+    notFoundTitle: string;
+    notFoundBody: string;
+    loadErrorTitle: string;
+};
+
 type Props = {
     notFound: boolean;
     onRetry: () => void;
+    messages: ProfileLoadErrorMessages;
 };
 
-export function ProfileLoadError({ notFound, onRetry }: Props) {
+export function ProfileLoadError({ notFound, onRetry, messages }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
 
     if (notFound) {
         return (
             <Alert className="max-w-lg gap-2 p-4">
-                <AlertTitle>{t('profile.notFound.title')}</AlertTitle>
-                <AlertDescription>{t('profile.notFound.body')}</AlertDescription>
+                <AlertTitle>{messages.notFoundTitle}</AlertTitle>
+                <AlertDescription>{messages.notFoundBody}</AlertDescription>
             </Alert>
         );
     }
@@ -25,7 +32,7 @@ export function ProfileLoadError({ notFound, onRetry }: Props) {
         <Alert className="grid max-w-lg gap-3 p-4">
             <TriangleAlert aria-hidden="true" />
 
-            <AlertTitle>{t('profile.loadError.title')}</AlertTitle>
+            <AlertTitle>{messages.loadErrorTitle}</AlertTitle>
 
             <AlertDescription>{t('profile.loadError.body')}</AlertDescription>
 

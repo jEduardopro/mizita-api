@@ -83,7 +83,7 @@ final class FakeAccountDirectory implements AccountDirectory
         $account = $this->accounts[$accountId] ?? throw StaffMemberNotFound::forAccount($accountId);
 
         $this->renames[] = ['accountId' => $accountId, 'name' => $name];
-        $this->accounts[$accountId] = new AccountSnapshot($account->id, trim($name), $account->email, $account->hasPassword);
+        $this->accounts[$accountId] = new AccountSnapshot($account->id, trim($name), $account->email, $account->hasPassword, $account->awaitingPasswordChange);
     }
 
     public function callCount(): int

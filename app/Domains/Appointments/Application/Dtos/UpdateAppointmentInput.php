@@ -8,6 +8,7 @@ use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
+use App\Domains\Appointments\Exceptions\CalendarNotAccessible;
 use App\Domains\Appointments\Exceptions\InvalidAppointmentNotes;
 use App\Domains\Appointments\Exceptions\InvalidAppointmentSchedule;
 use App\Domains\Appointments\ValueObjects\AppointmentNotes;
@@ -25,12 +26,13 @@ final readonly class UpdateAppointmentInput
         public string $startsAt,
         public ?string $endsAt,
         public ?string $notes,
+        public string $accountId,
     ) {}
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function fromRequest(array $payload, string $appointmentId): self
+    public static function fromRequest(array $payload, string $appointmentId, string $accountId): self
     {
         return new self(
             appointmentId: $appointmentId,
@@ -40,6 +42,7 @@ final readonly class UpdateAppointmentInput
             startsAt: self::textOrEmpty($payload['starts_at'] ?? null),
             endsAt: self::textOrNull($payload['ends_at'] ?? null),
             notes: self::textOrNull($payload['notes'] ?? null),
+            accountId: $accountId,
         );
     }
 
@@ -50,6 +53,7 @@ final readonly class UpdateAppointmentInput
      * @throws AppointmentStaffNotFound
      * @throws InvalidAppointmentSchedule
      * @throws InvalidAppointmentNotes
+     * @throws CalendarNotAccessible
      */
     public function validate(): void
     {
@@ -59,6 +63,7 @@ final readonly class UpdateAppointmentInput
         $this->validateStaffMemberId();
         $this->validateSchedule();
         $this->validateNotes();
+        $this->validateAccountId();
     }
 
     /**
@@ -136,5 +141,12 @@ final readonly class UpdateAppointmentInput
     private function validateNotes(): void
     {
         $this->toNotes();
+    }
+
+    private function validateAccountId(): void
+    {
+        if (! Identifier::isWellFormed($this->accountId)) {
+            throw CalendarNotAccessible::forAccount($this->accountId);
+        }
     }
 }

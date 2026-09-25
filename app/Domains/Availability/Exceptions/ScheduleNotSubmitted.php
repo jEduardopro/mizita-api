@@ -15,6 +15,11 @@ final class ScheduleNotSubmitted extends DomainException implements DomainFailur
         return new self("Account [{$accountId}] asked to replace its schedule without submitting one.");
     }
 
+    public static function forStaffMember(string $staffMemberId): self
+    {
+        return new self("Staff member [{$staffMemberId}] was asked to have its schedule replaced without one being submitted.");
+    }
+
     public function errorCode(): string
     {
         return 'schedule_not_submitted';

@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\UpdateAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
@@ -18,7 +19,9 @@ use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
+use App\Domains\Appointments\Exceptions\AppointmentStaffNotPermitted;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
+use App\Domains\Appointments\ValueObjects\CalendarScope;
 use App\Domains\Appointments\ValueObjects\ServiceSnapshot;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
@@ -36,6 +39,7 @@ final class UpdateAppointment
         private readonly AppointmentPresenter $presenter,
         private readonly BusinessContext $business,
         private readonly Clock $clock,
+        private readonly CalendarAccess $calendars,
     ) {}
 
     /**
@@ -47,9 +51,10 @@ final class UpdateAppointment
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
-            $appointment = $this->appointments->findForBusiness($businessId, $input->appointmentId);
+            $scope = $this->calendars->scopeFor($businessId, $input->accountId);
+            $appointment = $this->appointments->findWithinScope($businessId, $input->appointmentId, $scope);
 
-            $this->apply($input, $appointment, $businessId);
+            $this->apply($input, $appointment, $businessId, $scope);
 
             return UseCaseResponse::success($this->presenter->describe($businessId, $appointment));
         } catch (DomainFailure $failure) {
@@ -64,9 +69,16 @@ final class UpdateAppointment
      * @throws AppointmentOverlaps
      * @throws AppointmentAlreadyCancelled
      * @throws AppointmentAlreadyStarted
+     * @throws AppointmentStaffNotPermitted
      */
-    private function apply(UpdateAppointmentInput $input, Appointment $appointment, string $businessId): void
-    {
+    private function apply(
+        UpdateAppointmentInput $input,
+        Appointment $appointment,
+        string $businessId,
+        CalendarScope $scope,
+    ): void {
+        $scope->ensureMayAssign($input->staffMemberId);
+
         $service = $this->services->describe($businessId, $input->serviceId);
 
         $this->customers->describe($businessId, $input->customerId);

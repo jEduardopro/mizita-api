@@ -87,6 +87,55 @@ describe('an account created through Google, with no password yet', function () 
     });
 });
 
+describe('an account still holding the temporary password it was issued', function () {
+    beforeEach(function () {
+        $this->temporaryAccount = (new User)->forceFill([
+            'password' => CURRENT_PASSWORD,
+            'must_change_password' => true,
+        ]);
+    });
+
+    it('does not ask for the temporary password it was handed', function () {
+        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => 'Different1!Pass',
+        ]);
+
+        expect(array_keys($refusal->errors()))->toBe(['password']);
+    });
+
+    it('ignores a current password it was sent anyway, even a wrong one', function () {
+        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+            'current_password' => 'Wr0ng!Pass',
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => 'Different1!Pass',
+        ]);
+
+        expect(array_keys($refusal->errors()))->toBe(['password']);
+    });
+
+    it('still holds the new password to the strength rule', function () {
+        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        expect(array_keys($refusal->errors()))->toBe(['password'])
+            ->and($refusal->errorBag)->toBe(UPDATE_PASSWORD_BAG);
+    });
+
+    it('asks for the current password again once the flag is cleared', function () {
+        $this->temporaryAccount->forceFill(['must_change_password' => false]);
+
+        $refusal = refusedPasswordUpdate($this->temporaryAccount, [
+            'password' => STRONG_PASSWORD,
+            'password_confirmation' => STRONG_PASSWORD,
+        ]);
+
+        expect(array_keys($refusal->errors()))->toBe(['current_password']);
+    });
+});
+
 describe('the new password', function () {
     it('rejects a password that misses the strength rule', function (string $weak) {
         $refusal = refusedPasswordUpdate($this->googleAccount, [

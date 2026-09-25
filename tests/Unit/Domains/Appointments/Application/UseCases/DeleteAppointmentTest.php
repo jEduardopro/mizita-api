@@ -8,6 +8,7 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\FakeBusinessContext;
 
@@ -15,11 +16,13 @@ beforeEach(function () {
     $this->journal = new AppointmentJournal;
     $this->appointments = new FakeAppointmentRepository($this->journal);
     $this->payments = new FakePaymentLedger($this->journal);
+    $this->calendars = FakeCalendarAccess::everyone();
 
     $this->build = fn (string $businessId = FakeBusinessContext::BUSINESS_ID): DeleteAppointment => new DeleteAppointment(
         $this->appointments,
         $this->payments,
         new FakeBusinessContext($businessId),
+        $this->calendars,
     );
 
     $this->delete = fn (?string $appointmentId = null, string $businessId = FakeBusinessContext::BUSINESS_ID) => (
@@ -48,10 +51,14 @@ describe('deleting an appointment nobody has paid for', function () {
         ]]);
     });
 
-    it('checks the ledger before it deletes anything', function () {
+    it('finds the appointment within scope, then checks the ledger, before it deletes anything', function () {
         ($this->delete)();
 
-        expect($this->journal->entries)->toBe(['payments.hasPaymentFor', 'appointments.delete']);
+        expect($this->journal->entries)->toBe([
+            'appointments.findWithinScope',
+            'payments.hasPaymentFor',
+            'appointments.delete',
+        ]);
     });
 
     it('scopes both the ledger check and the delete to the business the caller operates in', function () {
@@ -60,7 +67,7 @@ describe('deleting an appointment nobody has paid for', function () {
         expect($this->payments->paymentChecks)->toBe([[
             'businessId' => FakeBusinessContext::BUSINESS_ID,
             'appointmentId' => AppointmentFixtures::APPOINTMENT_ID,
-        ]])->and($this->appointments->businessIdsSeen)->toBe([FakeBusinessContext::BUSINESS_ID]);
+        ]])->and(array_unique($this->appointments->businessIdsSeen))->toBe([FakeBusinessContext::BUSINESS_ID]);
     });
 
     it('takes the business from the context, never from the payload', function () {
@@ -168,6 +175,95 @@ describe('an appointment the caller may not reach', function () {
         ));
 
         expect(($this->delete)()->error()->code)->toBe('appointment_not_found')
+            ->and($this->appointments->deleted)->toBe([]);
+    });
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    beforeEach(function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(AppointmentFixtures::STAFF_ID);
+
+        $this->appointments->store(
+            AppointmentFixtures::appointment(),
+            AppointmentFixtures::appointment(
+                id: AppointmentFixtures::SECOND_APPOINTMENT_ID,
+                staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+            ),
+        );
+    });
+
+    it('deletes an appointment on their own calendar', function () {
+        $response = ($this->delete)();
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->appointments->deleted)->toBe([[
+                'businessId' => FakeBusinessContext::BUSINESS_ID,
+                'id' => AppointmentFixtures::APPOINTMENT_ID,
+            ]]);
+    });
+
+    it('answers not found for an appointment on the calendar of another team member', function () {
+        $response = ($this->delete)(AppointmentFixtures::SECOND_APPOINTMENT_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('appointment_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($this->appointments->deleted)->toBe([]);
+    });
+
+    it('never asks the ledger about an appointment outside their calendar', function () {
+        ($this->delete)(AppointmentFixtures::SECOND_APPOINTMENT_ID);
+
+        expect($this->payments->paymentChecks)->toBe([])
+            ->and($this->journal->entries)->toBe(['appointments.findWithinScope']);
+    });
+
+    it('answers not found rather than revealing a payment on another team member appointment', function () {
+        $this->payments->add(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::SECOND_APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(),
+        );
+
+        expect(($this->delete)(AppointmentFixtures::SECOND_APPOINTMENT_ID)->error()->code)
+            ->toBe('appointment_not_found');
+    });
+
+    it('still refuses to delete their own appointment once it has been charged', function () {
+        $this->payments->add(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+            AppointmentFixtures::paymentSnapshot(),
+        );
+
+        expect(($this->delete)()->error()->code)->toBe('appointment_has_payment')
+            ->and($this->appointments->deleted)->toBe([]);
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    beforeEach(function () {
+        $this->appointments->store(AppointmentFixtures::appointment());
+    });
+
+    it('asks for the scope of the account on the input, in the business in context', function () {
+        ($this->delete)();
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => AppointmentFixtures::ACCOUNT_ID,
+        ]]);
+    });
+
+    it('refuses an account that is no member of the business before it reads anything', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+
+        $response = ($this->delete)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('business_not_accessible')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->journal->entries)->toBe([])
             ->and($this->appointments->deleted)->toBe([]);
     });
 });

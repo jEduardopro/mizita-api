@@ -598,10 +598,6 @@
     "profile": {
         "title": "Tu perfil",
         "edit": "Editar tu perfil",
-        "roles": {
-            "owner": "Propietario",
-            "staff": "Personal"
-        },
         "tabs": {
             "about": "Acerca de",
             "services": "Servicios",
@@ -1142,6 +1138,101 @@
     },
     "team": {
         "title": "Tu equipo",
-        "description": "Las personas que trabajan contigo en tu negocio."
+        "description": "Las personas que trabajan contigo en tu negocio.",
+        "notProvided": "Sin dato",
+        "invitationPending": "Invitación pendiente",
+        "columns": {
+            "name": "Nombre",
+            "email": "Correo",
+            "phone": "Teléfono",
+            "level": "Nivel de permisos",
+            "actions": "Acciones"
+        },
+        "table": {
+            "caption": "Miembros de tu equipo"
+        },
+        "search": {
+            "label": "Buscar en tu equipo",
+            "placeholder": "Busca por nombre o correo"
+        },
+        "levels": {
+            "owner": {
+                "label": "Propietario"
+            },
+            "staff": {
+                "label": "Estándar",
+                "description": "Puede ver y gestionar su propio calendario"
+            },
+            "noAccess": {
+                "label": "Sin acceso",
+                "description": "No puede iniciar sesión; su calendario lo gestionan quienes tienen permisos avanzados"
+            }
+        },
+        "actions": {
+            "invite": "Añadir miembros",
+            "more": "Más acciones para {{name}}",
+            "edit": "Editar",
+            "resend": "Reenviar la invitación",
+            "remove": "Quitar"
+        },
+        "empty": {
+            "search": {
+                "title": "Ningún miembro coincide",
+                "body": "Nada coincide con «{{search}}». Prueba con otro nombre o correo."
+            },
+            "first": {
+                "title": "De momento solo estás tú",
+                "body": "Añade a las personas que trabajan contigo para organizar sus calendarios."
+            }
+        },
+        "invite": {
+            "title": "Añadir miembros",
+            "member": "Miembro {{number}}",
+            "removeMember": "Quitar el miembro {{number}}",
+            "addMore": "Añadir más",
+            "limit": "Puedes añadir hasta {{maximum}} personas a la vez.",
+            "note": "Los miembros con acceso recibirán por correo una invitación con una contraseña temporal.",
+            "name": {
+                "label": "Nombre completo",
+                "placeholder": "p. ej. Ada Lovelace",
+                "required": "El nombre completo es obligatorio"
+            },
+            "email": {
+                "label": "Correo",
+                "placeholder": "ada@ejemplo.com",
+                "required": "El correo es obligatorio"
+            },
+            "level": {
+                "label": "Nivel de permisos"
+            },
+            "submit": "Añadir",
+            "submitting": "Añadiendo…",
+            "unexpected": "No hemos podido añadir a los miembros. Inténtalo otra vez."
+        },
+        "member": {
+            "title": "Miembro del equipo",
+            "dialogTitle": "Perfil del miembro del equipo",
+            "notFound": {
+                "title": "No encontramos a este miembro del equipo",
+                "body": "Puede que lo hayan quitado del equipo. Vuelve a tu equipo para ver quién forma parte."
+            },
+            "loadError": {
+                "title": "No pudimos cargar a este miembro del equipo"
+            }
+        },
+        "remove": {
+            "title": "¿Quitar de tu equipo?",
+            "body": "«{{name}}» sale de tu equipo y ya no se le podrán reservar citas."
+        },
+        "toasts": {
+            "invited_one": "Miembro añadido",
+            "invited_other": "{{count}} miembros añadidos",
+            "removed": "Miembro quitado",
+            "invitationResent": "Invitación reenviada"
+        },
+        "errors": {
+            "removeFailed": "No hemos podido quitar a este miembro. Inténtalo otra vez.",
+            "resendFailed": "No hemos podido reenviar la invitación. Inténtalo otra vez."
+        }
     }
 }

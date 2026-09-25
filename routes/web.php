@@ -3,6 +3,8 @@
 use App\Domains\PublicCatalog\Application\Dtos\ConfirmBusinessPageInput;
 use App\Domains\PublicCatalog\Application\UseCases\ConfirmBusinessPage;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
+use App\Http\Middleware\RequireFreshPassword;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +19,12 @@ Route::get('/onboarding', fn () => Inertia::render('admin/onboarding'))
     ->middleware(['auth', 'onboarding'])
     ->name('onboarding');
 
+Route::get('/password/change', fn (Request $request) => $request->user()->mustChangePassword()
+    ? Inertia::render('auth/change-password')
+    : redirect()->route('calendar'))
+    ->middleware('auth')
+    ->name(RequireFreshPassword::CHANGE_PASSWORD_ROUTE);
+
 Route::permanentRedirect('/dashboard', '/calendar')->name('dashboard');
 
 Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
@@ -30,6 +38,7 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/customers/{customer}/edit', fn (string $customer) => Inertia::render('admin/customers/edit', ['customerId' => $customer]))->name('customers.edit');
     Route::get('/settings/profile', fn () => Inertia::render('admin/settings/profile'))->name('settings.profile');
     Route::get('/settings/team', fn () => Inertia::render('admin/settings/team'))->name('settings.team');
+    Route::get('/settings/team/{staffMember}', fn (string $staffMember) => Inertia::render('admin/settings/team/show', ['staffMemberId' => $staffMember]))->whereUuid('staffMember')->name('settings.team.show');
     Route::get('/settings/business', fn () => Inertia::render('admin/settings/business'))->name('settings.business');
     Route::get('/settings/booking', fn () => Inertia::render('admin/settings/booking'))->name('settings.booking');
 });

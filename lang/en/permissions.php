@@ -39,9 +39,24 @@ return [
         'description' => 'Change the brand, contact details, location, opening hours and links of the business.',
     ],
 
-    'manage_staff' => [
-        'label' => 'Manage staff',
-        'description' => 'Invite people to the business, change what they are allowed to do, and remove them.',
+    'view_staff_members' => [
+        'label' => 'View the team',
+        'description' => 'See who works at the business, their contact details and their permission level.',
+    ],
+
+    'create_staff_member' => [
+        'label' => 'Invite team members',
+        'description' => 'Invite people to join the business and send their invitation again.',
+    ],
+
+    'edit_staff_member' => [
+        'label' => 'Edit team members',
+        'description' => 'Change a team member\'s name, photo, phone, role description and permission level.',
+    ],
+
+    'delete_staff_member' => [
+        'label' => 'Remove team members',
+        'description' => 'Remove someone from the business once they have no upcoming appointments.',
     ],
 
     'view_services' => [
@@ -102,6 +117,11 @@ return [
     'delete_appointment' => [
         'label' => 'Delete appointments',
         'description' => 'Remove an appointment from the calendar.',
+    ],
+
+    'manage_all_calendars' => [
+        'label' => 'Manage every calendar',
+        'description' => 'See and change the appointments of every team member, not only your own.',
     ],
 
     'view_payments' => [

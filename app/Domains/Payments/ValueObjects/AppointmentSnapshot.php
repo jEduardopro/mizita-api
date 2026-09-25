@@ -10,5 +10,6 @@ final readonly class AppointmentSnapshot
         public string $id,
         public string $serviceId,
         public bool $cancelled,
+        public string $staffMemberId,
     ) {}
 }

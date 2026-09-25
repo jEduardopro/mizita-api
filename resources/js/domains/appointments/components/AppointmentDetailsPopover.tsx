@@ -3,14 +3,17 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useAuthorization } from '@/hooks/use-authorization';
 import { isPaid } from './appointment-payment-status';
 import { isCancelled } from './appointment-status';
-import { AppointmentDetailsActions } from './AppointmentDetailsActions';
+import { APPOINTMENT_ACTION_PERMISSIONS, AppointmentDetailsActions } from './AppointmentDetailsActions';
 import { AppointmentDetailsBody } from './AppointmentDetailsBody';
 import { AppointmentDetailsTabs } from './AppointmentDetailsTabs';
 import { AppointmentPaidBadge } from './AppointmentPaidBadge';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import type { Appointment } from '../types';
+
+const CHARGE_PERMISSIONS = ['create_payment', 'view_payments'] as const;
 
 type Props = {
     appointment: Appointment | null;
@@ -30,8 +33,9 @@ type ChargeActionProps = {
 
 function AppointmentChargeAction({ appointment, onCharge }: ChargeActionProps) {
     const { t } = useTranslation('admin');
+    const { canAll } = useAuthorization();
 
-    if (isCancelled(appointment) || isPaid(appointment)) {
+    if (! canAll(CHARGE_PERMISSIONS) || isCancelled(appointment) || isPaid(appointment)) {
         return null;
     }
 
@@ -61,6 +65,8 @@ function AppointmentDetailsSheetBody({
     onCharge,
     renderPaymentPanel,
 }: SheetBodyProps) {
+    const { can } = useAuthorization();
+
     const details = (
         <AppointmentDetailsBody
             appointment={appointment}
@@ -73,7 +79,7 @@ function AppointmentDetailsSheetBody({
         />
     );
 
-    if (renderPaymentPanel === undefined) {
+    if (renderPaymentPanel === undefined || ! can('view_payments')) {
         return (
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
                 {details}
@@ -101,6 +107,7 @@ export function AppointmentDetailsPopover({
     renderPaymentPanel,
 }: Props) {
     const { t } = useTranslation('admin');
+    const { canAny } = useAuthorization();
     const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
 
     const cancelled = appointment !== null && isCancelled(appointment);
@@ -142,7 +149,7 @@ export function AppointmentDetailsPopover({
                         </p>
                     ) : null}
 
-                    {appointment !== null ? (
+                    {appointment !== null && canAny(APPOINTMENT_ACTION_PERMISSIONS) ? (
                         <SheetFooter>
                             <AppointmentDetailsActions
                                 appointment={appointment}

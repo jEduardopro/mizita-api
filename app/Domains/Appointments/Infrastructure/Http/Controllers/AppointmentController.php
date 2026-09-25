@@ -22,6 +22,7 @@ use App\Domains\Appointments\Infrastructure\Http\Requests\UpdateAppointmentReque
 use App\Domains\Appointments\Infrastructure\Http\Resources\AppointmentResource;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponder;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -33,8 +34,13 @@ final class AppointmentController extends Controller
         ListAppointments $listAppointments,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
-            $response = $listAppointments->handle(ListAppointmentsInput::fromRequest($request->validated()));
+            $response = $listAppointments->handle(
+                ListAppointmentsInput::fromRequest($request->validated(), $account->uuid),
+            );
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());
@@ -55,8 +61,13 @@ final class AppointmentController extends Controller
         CreateAppointment $createAppointment,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
-            $response = $createAppointment->handle(CreateAppointmentInput::fromRequest($request->validated()));
+            $response = $createAppointment->handle(
+                CreateAppointmentInput::fromRequest($request->validated(), $account->uuid),
+            );
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());
@@ -78,8 +89,11 @@ final class AppointmentController extends Controller
         ShowAppointment $showAppointment,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
-            $response = $showAppointment->handle(new ShowAppointmentInput($appointment));
+            $response = $showAppointment->handle(new ShowAppointmentInput($appointment, $account->uuid));
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());
@@ -101,9 +115,12 @@ final class AppointmentController extends Controller
         UpdateAppointment $updateAppointment,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
             $response = $updateAppointment->handle(
-                UpdateAppointmentInput::fromRequest($request->validated(), $appointment),
+                UpdateAppointmentInput::fromRequest($request->validated(), $appointment, $account->uuid),
             );
 
             if ($response->failed()) {
@@ -126,8 +143,11 @@ final class AppointmentController extends Controller
         CancelAppointment $cancelAppointment,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
-            $response = $cancelAppointment->handle(new CancelAppointmentInput($appointment));
+            $response = $cancelAppointment->handle(new CancelAppointmentInput($appointment, $account->uuid));
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());
@@ -149,8 +169,11 @@ final class AppointmentController extends Controller
         DeleteAppointment $deleteAppointment,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
-            $response = $deleteAppointment->handle(new DeleteAppointmentInput($appointment));
+            $response = $deleteAppointment->handle(new DeleteAppointmentInput($appointment, $account->uuid));
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());

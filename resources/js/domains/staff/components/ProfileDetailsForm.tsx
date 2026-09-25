@@ -14,10 +14,13 @@ import {
     PROFILE_JOB_TITLE_MAX_LENGTH,
     PROFILE_NAME_MAX_LENGTH,
     PROFILE_PHONE_MAX_LENGTH,
-    type UpdateMyProfilePayload,
+    type AssignableStaffRole,
+    type UpdateTeamMemberPayload,
 } from '../types';
 import { LockedEmailField } from './LockedEmailField';
 import type { ProfileFormSource } from './profile-form-values';
+import { PROFILE_SECTION_DIVIDED, PROFILE_SECTION_HEADING } from './profile-section';
+import { ProfileLevelSection } from './ProfileLevelSection';
 import { useProfileForm } from './use-profile-form';
 
 const COUNTRY_NAME_KEYS = {
@@ -25,19 +28,19 @@ const COUNTRY_NAME_KEYS = {
     US: 'profile.form.phone.countries.US',
 } as const satisfies Record<PhoneCountryCode, string>;
 
-const SECTION_HEADING = 'text-sm font-semibold text-foreground';
-
 type Props = {
     profile: ProfileFormSource;
     email: string;
-    onSave: (payload: UpdateMyProfilePayload) => Promise<unknown>;
+    editableLevel?: AssignableStaffRole;
+    onSave: (payload: UpdateTeamMemberPayload) => Promise<unknown>;
     onCancel: () => void;
 };
 
-export function ProfileDetailsForm({ profile, email, onSave, onCancel }: Props) {
+export function ProfileDetailsForm({ profile, email, editableLevel, onSave, onCancel }: Props) {
     const { t } = useTranslation('admin');
     const density = useFormDensity();
-    const form = useProfileForm({ profile, onSave });
+    const form = useProfileForm({ profile, editableLevel, onSave });
+    const level = form.values.level;
 
     const aboutMessage = fieldMessage({ id: 'profile-about', error: form.errorFor('about') });
 
@@ -58,7 +61,7 @@ export function ProfileDetailsForm({ profile, email, onSave, onCancel }: Props) 
         <form onSubmit={form.submit} className="flex min-h-0 flex-1 flex-col">
             <SettingsPaneBody className="grid content-start gap-6 pt-2 md:pt-5">
                 <section aria-labelledby="profile-details-heading" className="grid max-w-xl gap-5">
-                    <h3 id="profile-details-heading" className={SECTION_HEADING}>
+                    <h3 id="profile-details-heading" className={PROFILE_SECTION_HEADING}>
                         {t('profile.form.details')}
                     </h3>
 
@@ -112,8 +115,8 @@ export function ProfileDetailsForm({ profile, email, onSave, onCancel }: Props) 
                     />
                 </section>
 
-                <section className="grid max-w-xl gap-3 border-t border-border pt-6">
-                    <Label htmlFor="profile-about" className={SECTION_HEADING}>
+                <section className={PROFILE_SECTION_DIVIDED}>
+                    <Label htmlFor="profile-about" className={PROFILE_SECTION_HEADING}>
                         {t('profile.form.about.label')}
                     </Label>
 
@@ -130,6 +133,14 @@ export function ProfileDetailsForm({ profile, email, onSave, onCancel }: Props) 
 
                     <FieldMessage message={aboutMessage} />
                 </section>
+
+                {level === null ? null : (
+                    <ProfileLevelSection
+                        value={level}
+                        onChange={(next) => form.update('level', next)}
+                        error={form.errorFor('level')}
+                    />
+                )}
             </SettingsPaneBody>
 
             <SettingsPaneFooter>

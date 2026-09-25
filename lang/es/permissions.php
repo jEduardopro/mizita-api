@@ -35,9 +35,24 @@ return [
         'description' => 'Cambiar la marca, los datos de contacto, la ubicación, los horarios y los enlaces del negocio.',
     ],
 
-    'manage_staff' => [
-        'label' => 'Gestionar al personal',
-        'description' => 'Invitar personas al negocio, cambiar lo que pueden hacer y darlas de baja.',
+    'view_staff_members' => [
+        'label' => 'Ver el equipo',
+        'description' => 'Ver quién trabaja en el negocio, sus datos de contacto y su nivel de permisos.',
+    ],
+
+    'create_staff_member' => [
+        'label' => 'Invitar al equipo',
+        'description' => 'Invitar personas a unirse al negocio y volver a enviarles la invitación.',
+    ],
+
+    'edit_staff_member' => [
+        'label' => 'Editar al equipo',
+        'description' => 'Cambiar el nombre, la foto, el teléfono, la descripción del puesto y el nivel de permisos de una persona del equipo.',
+    ],
+
+    'delete_staff_member' => [
+        'label' => 'Quitar personas del equipo',
+        'description' => 'Dar de baja a alguien del negocio cuando ya no tiene citas próximas.',
     ],
 
     'view_services' => [
@@ -98,6 +113,11 @@ return [
     'delete_appointment' => [
         'label' => 'Eliminar citas',
         'description' => 'Quitar una cita de la agenda.',
+    ],
+
+    'manage_all_calendars' => [
+        'label' => 'Gestionar todas las agendas',
+        'description' => 'Ver y cambiar las citas de todas las personas del equipo, no solo las propias.',
     ],
 
     'view_payments' => [

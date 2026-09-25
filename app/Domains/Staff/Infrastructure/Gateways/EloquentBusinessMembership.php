@@ -9,6 +9,7 @@ use App\Domains\Staff\Infrastructure\Permissions\StaffRoleAssignments;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Models\User;
 use App\Shared\Contracts\BusinessMembership;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
 
 final class EloquentBusinessMembership implements BusinessMembership
@@ -34,6 +35,10 @@ final class EloquentBusinessMembership implements BusinessMembership
             ->leftJoin($roles, $roles.'.id', '=', $assignments.'.role_id')
             ->whereNull('businesses.deleted_at')
             ->where('users.uuid', $accountId)
+            ->where(static function (Builder $grantingAccess) use ($roles): void {
+                $grantingAccess->whereNull($roles.'.name')
+                    ->orWhere($roles.'.name', '<>', StaffRole::NoAccess->value);
+            })
             ->orderByRaw('case '.$roles.'.name when ? then 0 else 1 end', [StaffRole::Owner->value])
             ->orderBy('staff_members.created_at')
             ->pluck('businesses.uuid')

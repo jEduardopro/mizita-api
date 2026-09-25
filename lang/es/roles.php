@@ -25,8 +25,13 @@ return [
     ],
 
     'staff' => [
-        'label' => 'Personal',
+        'label' => 'Estándar',
         'description' => 'Trabaja en el negocio y opera su agenda. Cada negocio decide qué puede hacer este rol.',
+    ],
+
+    'no_access' => [
+        'label' => 'Sin acceso',
+        'description' => 'Forma parte del equipo y se le pueden agendar citas, pero no puede entrar al negocio.',
     ],
 
 ];

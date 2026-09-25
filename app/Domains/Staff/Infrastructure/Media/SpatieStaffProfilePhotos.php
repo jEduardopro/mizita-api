@@ -25,9 +25,32 @@ final class SpatieStaffProfilePhotos implements StaffProfilePhotos
             return null;
         }
 
-        $url = $model->getFirstMediaUrl(StaffProfileModel::PHOTO_COLLECTION);
+        return self::urlOrNull($model);
+    }
 
-        return $url === '' ? null : $url;
+    /**
+     * @param  list<string>  $profileIds
+     * @return array<string, string>
+     */
+    public function urlsFor(string $businessId, array $profileIds): array
+    {
+        if ($profileIds === []) {
+            return [];
+        }
+
+        $urls = [];
+
+        $models = self::ofBusiness($businessId)->with('media')->whereIn('uuid', $profileIds)->get();
+
+        foreach ($models as $model) {
+            $url = self::urlOrNull($model);
+
+            if ($url !== null) {
+                $urls[$model->uuid] = $url;
+            }
+        }
+
+        return $urls;
     }
 
     public function replace(string $businessId, string $profileId, string $sourcePath, string $fileName): void
@@ -42,6 +65,13 @@ final class SpatieStaffProfilePhotos implements StaffProfilePhotos
     {
         $this->modelOrFail($businessId, $profileId)
             ->clearMediaCollection(StaffProfileModel::PHOTO_COLLECTION);
+    }
+
+    private static function urlOrNull(StaffProfileModel $model): ?string
+    {
+        $url = $model->getFirstMediaUrl(StaffProfileModel::PHOTO_COLLECTION);
+
+        return $url === '' ? null : $url;
     }
 
     private function modelOrFail(string $businessId, string $profileId): StaffProfileModel

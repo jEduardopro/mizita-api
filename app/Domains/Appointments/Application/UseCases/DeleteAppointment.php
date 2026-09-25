@@ -6,6 +6,7 @@ namespace App\Domains\Appointments\Application\UseCases;
 
 use App\Domains\Appointments\Application\Dtos\DeleteAppointmentInput;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\PaymentLedger;
 use App\Domains\Appointments\Exceptions\AppointmentHasPayment;
 use App\Shared\Application\UseCaseResponse;
@@ -18,6 +19,7 @@ final class DeleteAppointment
         private readonly AppointmentRepository $appointments,
         private readonly PaymentLedger $payments,
         private readonly BusinessContext $business,
+        private readonly CalendarAccess $calendars,
     ) {}
 
     /**
@@ -29,10 +31,12 @@ final class DeleteAppointment
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
+            $scope = $this->calendars->scopeFor($businessId, $input->accountId);
+            $appointment = $this->appointments->findWithinScope($businessId, $input->appointmentId, $scope);
 
-            $this->guardAgainstRecordedPayment($businessId, $input->appointmentId);
+            $this->guardAgainstRecordedPayment($businessId, $appointment->id);
 
-            $this->appointments->delete($businessId, $input->appointmentId);
+            $this->appointments->delete($businessId, $appointment->id);
 
             return UseCaseResponse::success();
         } catch (DomainFailure $failure) {

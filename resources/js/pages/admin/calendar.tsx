@@ -16,10 +16,11 @@ import { NewAppointmentDialog } from '@/domains/appointments/components/NewAppoi
 import { useAppointments, useRefreshAppointments } from '@/domains/appointments/queries';
 import type { Appointment, AppointmentRange } from '@/domains/appointments/types';
 import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
-import { useBusinessSettings } from '@/domains/businesses/queries';
+import { useCalendarSettings } from '@/domains/businesses/queries';
 import type { ScheduleRule } from '@/domains/businesses/types';
 import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
 import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
+import { useAuthorization } from '@/hooks/use-authorization';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { centsFromDecimalString } from '@/lib/money';
@@ -66,6 +67,7 @@ export default function Calendar() {
     const { t, i18n } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
     const isDesktop = useIsDesktop();
+    const { can } = useAuthorization();
     const calendarRef = useRef<AppointmentCalendarHandle>(null);
 
     const [view, setView] = useState<CalendarViewName>(() => (isDesktop ? 'week' : 'day'));
@@ -82,10 +84,11 @@ export default function Calendar() {
     const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
     const [appointmentToCharge, setAppointmentToCharge] = useState<Appointment | null>(null);
 
-    const { data: businessSettings, isPending: isSettingsPending } = useBusinessSettings();
-    const timezone = businessSettings?.timezone ?? browserTimezone();
-    const currencyCode = businessSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
-    const schedule = businessSettings?.schedule ?? EMPTY_SCHEDULE;
+    const { data: calendarSettings, isPending: isSettingsPending } = useCalendarSettings();
+    const timezone = calendarSettings?.timezone ?? browserTimezone();
+    const currencyCode = calendarSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
+    const schedule = calendarSettings?.schedule ?? EMPTY_SCHEDULE;
+    const canCreateAppointment = can('create_appointment');
 
     const { data: appointments, isError, refetch } = useAppointments(range);
     const refreshAppointments = useRefreshAppointments();
@@ -152,7 +155,7 @@ export default function Calendar() {
                             initialView={view}
                             onRangeChange={handleRangeChange}
                             onSelectedDateChange={handleSelectedDateChange}
-                            onClickSlot={handleClickSlot}
+                            onClickSlot={canCreateAppointment ? handleClickSlot : undefined}
                             onClickAppointment={handleClickAppointment}
                         />
                     )}
@@ -178,14 +181,16 @@ export default function Calendar() {
                 </div>
             </div>
 
-            <NewAppointmentDialog
-                mode="create"
-                open={createDialog.open}
-                onOpenChange={(open) => setCreateDialog((current) => ({ ...current, open }))}
-                appointment={null}
-                timezone={timezone}
-                prefillStartsAt={createDialog.prefillStartsAt}
-            />
+            {canCreateAppointment ? (
+                <NewAppointmentDialog
+                    mode="create"
+                    open={createDialog.open}
+                    onOpenChange={(open) => setCreateDialog((current) => ({ ...current, open }))}
+                    appointment={null}
+                    timezone={timezone}
+                    prefillStartsAt={createDialog.prefillStartsAt}
+                />
+            ) : null}
 
             <NewAppointmentDialog
                 mode="edit"

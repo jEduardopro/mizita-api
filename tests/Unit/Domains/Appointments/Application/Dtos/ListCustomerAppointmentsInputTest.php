@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Appointments\Application\Dtos\ListCustomerAppointmentsInput;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
+use App\Domains\Appointments\Exceptions\CalendarNotAccessible;
 use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
 use App\Shared\ValueObjects\DomainFailureKind;
 use App\Shared\ValueObjects\Pagination;
@@ -14,6 +15,7 @@ describe('the payload it reads', function () {
         $input = ListCustomerAppointmentsInput::fromRequest(
             ['page' => 3, 'per_page' => 25],
             AppointmentFixtures::CUSTOMER_ID,
+            AppointmentFixtures::ACCOUNT_ID,
         );
 
         expect($input->page)->toBe(3)
@@ -21,7 +23,11 @@ describe('the payload it reads', function () {
     });
 
     it('survives a payload that never passed through the form request', function (array $payload) {
-        $input = ListCustomerAppointmentsInput::fromRequest($payload, AppointmentFixtures::CUSTOMER_ID);
+        $input = ListCustomerAppointmentsInput::fromRequest(
+            $payload,
+            AppointmentFixtures::CUSTOMER_ID,
+            AppointmentFixtures::ACCOUNT_ID,
+        );
 
         expect($input->page)->toBeNull()
             ->and($input->perPage)->toBeNull()
@@ -38,6 +44,7 @@ describe('the payload it reads', function () {
         $input = ListCustomerAppointmentsInput::fromRequest(
             ['page' => '2', 'per_page' => '15'],
             AppointmentFixtures::CUSTOMER_ID,
+            AppointmentFixtures::ACCOUNT_ID,
         );
 
         expect($input->page)->toBe(2)
@@ -48,6 +55,7 @@ describe('the payload it reads', function () {
         $input = ListCustomerAppointmentsInput::fromRequest(
             ['customer_id' => AppointmentFixtures::SECOND_CUSTOMER_ID],
             AppointmentFixtures::CUSTOMER_ID,
+            AppointmentFixtures::ACCOUNT_ID,
         );
 
         expect($input->customerId)->toBe(AppointmentFixtures::CUSTOMER_ID);
@@ -82,6 +90,42 @@ describe('the customer it validates', function () {
 
         expect($failure?->errorCode())->toBe('appointment_customer_not_found')
             ->and($failure?->kind())->toBe(DomainFailureKind::NotFound);
+    });
+});
+
+describe('the account it validates', function () {
+    it('takes the account from the parameter, never from a key the caller could set', function () {
+        $input = ListCustomerAppointmentsInput::fromRequest(
+            ['account_id' => AppointmentFixtures::SECOND_ACCOUNT_ID],
+            AppointmentFixtures::CUSTOMER_ID,
+            AppointmentFixtures::ACCOUNT_ID,
+        );
+
+        expect($input->accountId)->toBe(AppointmentFixtures::ACCOUNT_ID);
+    });
+
+    it('refuses an account that is no uuid', function (string $accountId) {
+        expect(fn () => AppointmentFixtures::listCustomerInput(accountId: $accountId)->validate())
+            ->toThrow(CalendarNotAccessible::class);
+    })->with([
+        'empty' => '',
+        'spaces' => '   ',
+        'a word' => 'not-a-uuid',
+        'an integer key' => '42',
+        'a uuid with a trailing space' => AppointmentFixtures::ACCOUNT_ID.' ',
+    ]);
+
+    it('refuses a malformed account as forbidden', function () {
+        $failure = null;
+
+        try {
+            AppointmentFixtures::listCustomerInput(accountId: 'not-a-uuid')->validate();
+        } catch (CalendarNotAccessible $refused) {
+            $failure = $refused;
+        }
+
+        expect($failure?->errorCode())->toBe('business_not_accessible')
+            ->and($failure?->kind())->toBe(DomainFailureKind::Forbidden);
     });
 });
 

@@ -12,6 +12,7 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakeCustomerDirectory;
 use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
@@ -56,6 +57,7 @@ beforeEach(function () {
         );
 
     $this->payments = new FakePaymentLedger($this->journal);
+    $this->calendars = FakeCalendarAccess::everyone();
 
     $this->build = fn (string $now = AppointmentFixtures::NOW): UpdateAppointment => new UpdateAppointment(
         $this->appointments,
@@ -65,6 +67,7 @@ beforeEach(function () {
         new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         new FakeBusinessContext,
         new FakeClock(AppointmentFixtures::instant($now)),
+        $this->calendars,
     );
 
     $this->store = fn (Appointment $appointment): Appointment => tap(
@@ -282,14 +285,14 @@ describe('what the use case refuses before it touches the entity', function () {
 });
 
 describe('the clock it is built with', function () {
-    it('takes a clock as its last collaborator, so time is never read off the wall', function () {
+    it('takes a clock among its collaborators, so time is never read off the wall', function () {
         $parameters = (new ReflectionMethod(UpdateAppointment::class, '__construct'))->getParameters();
         $types = array_map(
             static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
             $parameters,
         );
 
-        expect(end($types))->toBe(Clock::class)
+        expect($types)->toContain(Clock::class)
             ->and(array_filter($types, static fn (string $type): bool => ! interface_exists($type) && ! class_exists($type)))
             ->toBe([]);
     });
@@ -297,5 +300,124 @@ describe('the clock it is built with', function () {
     it('no longer reaches for an unguarded reschedule on the entity', function () {
         expect(method_exists(Appointment::class, 'reschedule'))->toBeFalse()
             ->and(method_exists(Appointment::class, 'rescheduleTo'))->toBeTrue();
+    });
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    beforeEach(function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(AppointmentFixtures::STAFF_ID);
+
+        ($this->store)(AppointmentFixtures::appointment());
+        ($this->store)(AppointmentFixtures::appointment(
+            id: AppointmentFixtures::SECOND_APPOINTMENT_ID,
+            staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+        ));
+
+        $this->updateSecond = fn (...$overrides) => ($this->update)(
+            AppointmentFixtures::NOW,
+            ...['appointmentId' => AppointmentFixtures::SECOND_APPOINTMENT_ID, ...$overrides],
+        );
+    });
+
+    it('moves an appointment on their own calendar', function () {
+        $response = ($this->update)(
+            AppointmentFixtures::NOW,
+            startsAt: '2026-03-11T15:00:00+00:00',
+            endsAt: '2026-03-11T16:00:00+00:00',
+        );
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->appointments->saved)->toHaveCount(1)
+            ->and($this->appointments->saved[0]->id)->toBe(AppointmentFixtures::APPOINTMENT_ID);
+    });
+
+    it('answers not found for an appointment on the calendar of another team member', function () {
+        $response = ($this->updateSecond)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('appointment_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($this->appointments->saved)->toBe([]);
+    });
+
+    it('answers not found rather than letting them take over another team member appointment', function () {
+        $response = ($this->updateSecond)(staffMemberId: AppointmentFixtures::STAFF_ID);
+
+        $stored = $this->appointments->findForBusiness(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::SECOND_APPOINTMENT_ID,
+        );
+
+        expect($response->error()->code)->toBe('appointment_not_found')
+            ->and($stored->staffMemberId())->toBe(AppointmentFixtures::SECOND_STAFF_ID)
+            ->and($this->appointments->saved)->toBe([]);
+    });
+
+    it('refuses to hand their own appointment to another team member', function () {
+        $response = ($this->update)(AppointmentFixtures::NOW, staffMemberId: AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('appointment_staff_not_permitted')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->appointments->saved)->toBe([]);
+    });
+
+    it('refuses the hand over before it asks any neighbour, and leaves the stored appointment alone', function () {
+        ($this->update)(
+            AppointmentFixtures::NOW,
+            staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+            startsAt: '2026-03-11T15:00:00+00:00',
+            endsAt: '2026-03-11T16:00:00+00:00',
+        );
+
+        $entries = $this->journal->entries;
+        $stored = $this->appointments->findForBusiness(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+        );
+
+        expect($entries)->toBe(['appointments.findWithinScope'])
+            ->and($stored->staffMemberId())->toBe(AppointmentFixtures::STAFF_ID)
+            ->and($stored->slot()->startsAt)->toEqual(AppointmentFixtures::instant(AppointmentFixtures::STARTS_AT));
+    });
+
+    it('looks the appointment up within the scope the caller was granted', function () {
+        ($this->update)();
+
+        expect($this->appointments->scopesSeen)->toHaveCount(1)
+            ->and($this->appointments->scopesSeen[0]->restrictedStaffMemberId())->toBe(AppointmentFixtures::STAFF_ID);
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    beforeEach(function () {
+        ($this->store)(AppointmentFixtures::appointment());
+    });
+
+    it('asks for the scope of the account on the input, in the business in context', function () {
+        ($this->update)(AppointmentFixtures::NOW, accountId: AppointmentFixtures::SECOND_ACCOUNT_ID);
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => AppointmentFixtures::SECOND_ACCOUNT_ID,
+        ]]);
+    });
+
+    it('lets a caller who keeps every calendar hand the appointment to another team member', function () {
+        $data = ($this->update)(AppointmentFixtures::NOW, staffMemberId: AppointmentFixtures::SECOND_STAFF_ID)->value();
+
+        expect($data->staffMember->id)->toBe(AppointmentFixtures::SECOND_STAFF_ID);
+    });
+
+    it('refuses an account that is no member of the business before it reads the appointment', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+
+        $response = ($this->update)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('business_not_accessible')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->journal->entries)->toBe([])
+            ->and($this->appointments->saved)->toBe([]);
     });
 });

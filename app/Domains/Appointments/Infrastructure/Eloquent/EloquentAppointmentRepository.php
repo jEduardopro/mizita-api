@@ -15,9 +15,11 @@ use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\Infrastructure\Eloquent\Mappers\AppointmentMapper;
 use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Appointments\ValueObjects\CalendarRange;
+use App\Domains\Appointments\ValueObjects\CalendarScope;
 use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
 use App\Shared\Contracts\BusinessTeamKey;
 use App\Shared\ValueObjects\Paginated;
+use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\QueryException;
@@ -55,9 +57,9 @@ final class EloquentAppointmentRepository implements AppointmentRepository
     /**
      * @return list<Appointment>
      */
-    public function search(string $businessId, CalendarRange $range): array
+    public function search(string $businessId, CalendarRange $range, CalendarScope $scope): array
     {
-        $models = $this->ofBusiness($businessId)
+        $models = $this->withinScope($this->ofBusiness($businessId), $scope)
             ->with(self::PARTICIPANT_RELATIONS)
             ->where('starts_at', '<', $range->to->format(DATE_ATOM))
             ->where('ends_at', '>', $range->from->format(DATE_ATOM))
@@ -74,9 +76,12 @@ final class EloquentAppointmentRepository implements AppointmentRepository
     /**
      * @return Paginated<Appointment>
      */
-    public function bookedForCustomer(string $businessId, CustomerAppointmentQuery $query): Paginated
-    {
-        $matching = $this->ofBusiness($businessId)
+    public function bookedForCustomer(
+        string $businessId,
+        CustomerAppointmentQuery $query,
+        CalendarScope $scope,
+    ): Paginated {
+        $matching = $this->withinScope($this->ofBusiness($businessId), $scope)
             ->whereIn(
                 'customer_id',
                 static fn (QueryBuilder $customers) => $customers
@@ -108,6 +113,28 @@ final class EloquentAppointmentRepository implements AppointmentRepository
     public function findForBusiness(string $businessId, string $id): Appointment
     {
         return $this->mapper->toEntity($this->modelOrFail($businessId, $id), $businessId);
+    }
+
+    public function findWithinScope(string $businessId, string $id, CalendarScope $scope): Appointment
+    {
+        $model = $this->withinScope($this->ofBusiness($businessId), $scope)
+            ->with(self::PARTICIPANT_RELATIONS)
+            ->where('uuid', $id)
+            ->first();
+
+        if ($model === null) {
+            throw AppointmentNotFound::withId($id);
+        }
+
+        return $this->mapper->toEntity($model, $businessId);
+    }
+
+    public function hasUpcomingForStaffMember(string $businessId, string $staffMemberId, DateTimeImmutable $now): bool
+    {
+        return $this->ofStaffMember($this->ofBusiness($businessId), $staffMemberId)
+            ->whereNull('cancelled_at')
+            ->where('ends_at', '>', $now->format(DATE_ATOM))
+            ->exists();
     }
 
     public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment
@@ -194,6 +221,36 @@ final class EloquentAppointmentRepository implements AppointmentRepository
                 ->select('id')
                 ->from(self::BUSINESSES_TABLE)
                 ->where('uuid', $businessId),
+        );
+    }
+
+    /**
+     * @param  Builder<AppointmentModel>  $query
+     * @return Builder<AppointmentModel>
+     */
+    private function withinScope(Builder $query, CalendarScope $scope): Builder
+    {
+        $staffMemberId = $scope->restrictedStaffMemberId();
+
+        if ($staffMemberId === null) {
+            return $query;
+        }
+
+        return $this->ofStaffMember($query, $staffMemberId);
+    }
+
+    /**
+     * @param  Builder<AppointmentModel>  $query
+     * @return Builder<AppointmentModel>
+     */
+    private function ofStaffMember(Builder $query, string $staffMemberId): Builder
+    {
+        return $query->whereIn(
+            'staff_member_id',
+            static fn (QueryBuilder $members) => $members
+                ->select('id')
+                ->from(self::STAFF_MEMBERS_TABLE)
+                ->where('uuid', $staffMemberId),
         );
     }
 

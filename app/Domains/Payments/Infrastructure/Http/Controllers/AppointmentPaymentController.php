@@ -27,8 +27,11 @@ final class AppointmentPaymentController extends Controller
         ShowAppointmentPayment $showAppointmentPayment,
         ApiResponder $responder,
     ): JsonResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+
         try {
-            $response = $showAppointmentPayment->handle(new ShowAppointmentPaymentInput($appointment));
+            $response = $showAppointmentPayment->handle(new ShowAppointmentPaymentInput($appointment, $actor->uuid));
 
             if ($response->failed()) {
                 return $responder->failure($response->error(), $response->warnings());

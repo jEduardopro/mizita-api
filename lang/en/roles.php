@@ -25,8 +25,13 @@ return [
     ],
 
     'staff' => [
-        'label' => 'Staff',
+        'label' => 'Standard',
         'description' => 'Works at the business and operates its agenda. Each business decides what this role is allowed to do.',
+    ],
+
+    'no_access' => [
+        'label' => 'No access',
+        'description' => 'Is part of the team and can be booked, but cannot sign in to the business.',
     ],
 
 ];

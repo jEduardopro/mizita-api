@@ -8,6 +8,7 @@ import {
     createBusiness,
     fetchMyBusinesses,
     getBusinessSettings,
+    getCalendarSettings,
     removeBookingPageBanner,
     removeBusinessLogo,
     removeGalleryImage,
@@ -26,6 +27,7 @@ export const businessKeys = {
     nameAvailabilityFor: (name: string) => [...businessKeys.nameAvailability(), name] as const,
     mine: () => [...businessKeys.all, 'mine'] as const,
     settings: () => [...businessKeys.all, 'settings'] as const,
+    calendarSettings: () => [...businessKeys.all, 'calendar-settings'] as const,
 };
 
 export function useMyBusinesses() {
@@ -92,6 +94,20 @@ export function useBusinessSettings() {
         queryKey: businessKeys.settings(),
         queryFn: ({ signal }) => getBusinessSettings(signal),
     });
+}
+
+export function useCalendarSettings() {
+    return useQuery({
+        queryKey: businessKeys.calendarSettings(),
+        queryFn: ({ signal }) => getCalendarSettings(signal),
+    });
+}
+
+export function useBusinessTimezone(): string | null {
+    const { data: calendarSettings } = useCalendarSettings();
+    const { data: businesses } = useMyBusinesses();
+
+    return calendarSettings?.timezone ?? businesses?.[0]?.timezone ?? null;
 }
 
 function useBusinessSettingsMutation<TVariables, TData>(

@@ -124,6 +124,12 @@ export type BusinessSettings = {
     contact_fields: ContactFieldsSettings;
 };
 
+export type CalendarSettings = {
+    timezone: string;
+    currency_code: string;
+    schedule: ScheduleRule[];
+};
+
 export type BrandSectionPayload = {
     name: string;
     slug: string;

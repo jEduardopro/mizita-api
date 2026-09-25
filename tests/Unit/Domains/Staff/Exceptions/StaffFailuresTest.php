@@ -4,13 +4,23 @@ declare(strict_types=1);
 
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
 use App\Domains\Staff\Exceptions\AccountAlreadyOwnsBusiness;
+use App\Domains\Staff\Exceptions\DuplicateTeamInvitationEmail;
 use App\Domains\Staff\Exceptions\InvalidProfileAbout;
 use App\Domains\Staff\Exceptions\InvalidProfileJobTitle;
 use App\Domains\Staff\Exceptions\InvalidProfileName;
 use App\Domains\Staff\Exceptions\InvalidProfilePhone;
+use App\Domains\Staff\Exceptions\InvalidTeamInvitation;
+use App\Domains\Staff\Exceptions\InvalidTeamLevel;
+use App\Domains\Staff\Exceptions\InvalidTeamMemberEmail;
+use App\Domains\Staff\Exceptions\InvalidTeamSearch;
+use App\Domains\Staff\Exceptions\OwnerCannotBeRemoved;
+use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\ProfilePhotoTooLarge;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\StaffProfileNotFound;
+use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
+use App\Domains\Staff\Exceptions\TeamMemberAlreadyExists;
+use App\Domains\Staff\Exceptions\TeamMemberHasUpcomingAppointments;
 use App\Domains\Staff\Exceptions\UnsupportedProfilePhoto;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\CountryCode;
@@ -103,6 +113,86 @@ function staffFailures(): array
             'unsupported_profile_photo',
             DomainFailureKind::Invalid,
         ],
+        'an invitation with nobody in it' => [
+            InvalidTeamInvitation::empty(),
+            'invalid_team_invitation',
+            DomainFailureKind::Invalid,
+        ],
+        'an invitation past the batch limit' => [
+            InvalidTeamInvitation::tooManyMembers(20),
+            'invalid_team_invitation',
+            DomainFailureKind::Invalid,
+        ],
+        'the same email twice in a batch' => [
+            DuplicateTeamInvitationEmail::for('grace@example.com'),
+            'duplicate_team_invitation_email',
+            DomainFailureKind::Invalid,
+        ],
+        'a level nobody can be given' => [
+            InvalidTeamLevel::unknown('admin'),
+            'invalid_team_level',
+            DomainFailureKind::Invalid,
+        ],
+        'the owner level offered to an invitee' => [
+            InvalidTeamLevel::ownerNotAssignable(),
+            'invalid_team_level',
+            DomainFailureKind::Invalid,
+        ],
+        'an empty invitee email' => [
+            InvalidTeamMemberEmail::empty(),
+            'invalid_team_member_email',
+            DomainFailureKind::Invalid,
+        ],
+        'an invitee email past the limit' => [
+            InvalidTeamMemberEmail::tooLong(255),
+            'invalid_team_member_email',
+            DomainFailureKind::Invalid,
+        ],
+        'a malformed invitee email' => [
+            InvalidTeamMemberEmail::malformed('grace'),
+            'invalid_team_member_email',
+            DomainFailureKind::Invalid,
+        ],
+        'an invitee email the account refused' => [
+            InvalidTeamMemberEmail::rejectedByAccount(new RuntimeException('refused')),
+            'invalid_team_member_email',
+            DomainFailureKind::Invalid,
+        ],
+        'a team search past the limit' => [
+            InvalidTeamSearch::tooLong(120),
+            'invalid_team_search',
+            DomainFailureKind::Invalid,
+        ],
+        'a change to the owner level' => [
+            OwnerLevelIsFixed::for(StaffFixtures::MEMBER_ID),
+            'owner_level_is_fixed',
+            DomainFailureKind::Conflict,
+        ],
+        'removing the owner' => [
+            OwnerCannotBeRemoved::for(StaffFixtures::MEMBER_ID),
+            'owner_cannot_be_removed',
+            DomainFailureKind::Conflict,
+        ],
+        'removing a member with appointments ahead' => [
+            TeamMemberHasUpcomingAppointments::for(StaffFixtures::MEMBER_ID),
+            'team_member_has_upcoming_appointments',
+            DomainFailureKind::Conflict,
+        ],
+        'resending an invitation nobody is waiting on' => [
+            TeamInvitationNotPending::for(StaffFixtures::MEMBER_ID),
+            'team_invitation_not_pending',
+            DomainFailureKind::Conflict,
+        ],
+        'an email already on the team' => [
+            TeamMemberAlreadyExists::withEmail('grace@example.com'),
+            'team_member_already_exists',
+            DomainFailureKind::Invalid,
+        ],
+        'an account already on the team' => [
+            TeamMemberAlreadyExists::forAccount(StaffFixtures::ACCOUNT_ID, new RuntimeException('unique violation')),
+            'team_member_already_exists',
+            DomainFailureKind::Invalid,
+        ],
     ];
 }
 
@@ -185,4 +275,24 @@ it('tells a phone country it cannot dial apart from a number it cannot dial ther
 it('tells a missing member apart from a member with no profile', function () {
     expect(StaffMemberNotFound::withId('m-1')->errorCode())
         ->not->toBe(StaffProfileNotFound::forStaffMember('m-1')->errorCode());
+});
+
+it('keeps the cause when the account side or the database is what refused a team member', function () {
+    $cause = new RuntimeException('unique violation');
+
+    expect(TeamMemberAlreadyExists::forAccount(StaffFixtures::ACCOUNT_ID, $cause)->getPrevious())->toBe($cause)
+        ->and(InvalidTeamMemberEmail::rejectedByAccount($cause)->getPrevious())->toBe($cause);
+});
+
+it('names the member or the address each team refusal is about', function () {
+    expect(TeamMemberAlreadyExists::withEmail('grace@example.com')->getMessage())
+        ->toBe('[grace@example.com] is already a member of this business.')
+        ->and(TeamMemberAlreadyExists::forAccount('a-1', new RuntimeException)->getMessage())
+        ->toBe('Account [a-1] is already a member of this business.')
+        ->and(OwnerCannotBeRemoved::for('m-1')->getMessage())
+        ->toBe('Staff member [m-1] owns the business and cannot be removed from it.')
+        ->and(TeamMemberHasUpcomingAppointments::for('m-1')->getMessage())
+        ->toBe('Staff member [m-1] still has upcoming appointments.')
+        ->and(InvalidTeamSearch::tooLong(120)->getMessage())
+        ->toBe('A team search may not run past 120 characters.');
 });

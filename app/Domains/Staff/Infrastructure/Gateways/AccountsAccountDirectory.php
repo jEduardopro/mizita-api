@@ -35,6 +35,7 @@ final class AccountsAccountDirectory implements AccountDirectory
         }
 
         $holdingPassword = array_flip($this->accounts->idsHoldingPassword($accountIds));
+        $awaitingPasswordChange = array_flip($this->accounts->idsAwaitingPasswordChange($accountIds));
 
         return array_map(
             static fn (Account $account): AccountSnapshot => new AccountSnapshot(
@@ -42,6 +43,7 @@ final class AccountsAccountDirectory implements AccountDirectory
                 name: $account->name(),
                 email: $account->email(),
                 hasPassword: isset($holdingPassword[$account->id]),
+                awaitingPasswordChange: isset($awaitingPasswordChange[$account->id]),
             ),
             $accounts,
         );

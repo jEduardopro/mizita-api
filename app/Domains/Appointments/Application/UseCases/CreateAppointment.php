@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\CreateAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
@@ -17,7 +18,9 @@ use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
+use App\Domains\Appointments\Exceptions\AppointmentStaffNotPermitted;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
+use App\Domains\Appointments\ValueObjects\CalendarScope;
 use App\Domains\Appointments\ValueObjects\ServiceSnapshot;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
@@ -39,6 +42,7 @@ final class CreateAppointment
         private readonly Clock $clock,
         private readonly BusinessContext $business,
         private readonly Dispatcher $events,
+        private readonly CalendarAccess $calendars,
     ) {}
 
     /**
@@ -50,7 +54,8 @@ final class CreateAppointment
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
-            $appointment = $this->book($input, $businessId);
+            $scope = $this->calendars->scopeFor($businessId, $input->accountId);
+            $appointment = $this->book($input, $businessId, $scope);
             $booked = $this->presenter->describe($businessId, $appointment);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
@@ -66,9 +71,12 @@ final class CreateAppointment
      * @throws AppointmentCustomerNotFound
      * @throws AppointmentStaffNotFound
      * @throws AppointmentOverlaps
+     * @throws AppointmentStaffNotPermitted
      */
-    private function book(CreateAppointmentInput $input, string $businessId): Appointment
+    private function book(CreateAppointmentInput $input, string $businessId, CalendarScope $scope): Appointment
     {
+        $scope->ensureMayAssign($input->staffMemberId);
+
         $service = $this->services->describe($businessId, $input->serviceId);
 
         $this->ensureParticipantsAreKnown($businessId, $input->customerId, $input->staffMemberId);

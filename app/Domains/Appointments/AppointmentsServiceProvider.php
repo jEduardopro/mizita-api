@@ -6,6 +6,7 @@ namespace App\Domains\Appointments;
 
 use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Contracts\BookableSlots;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ManageTokenFactory;
@@ -19,6 +20,7 @@ use App\Domains\Appointments\Infrastructure\Gateways\BookingPoliciesCancellation
 use App\Domains\Appointments\Infrastructure\Gateways\CustomersCustomerDirectory;
 use App\Domains\Appointments\Infrastructure\Gateways\PaymentsPaymentLedger;
 use App\Domains\Appointments\Infrastructure\Gateways\ServicesServiceCatalog;
+use App\Domains\Appointments\Infrastructure\Gateways\StaffCalendarAccess;
 use App\Domains\Appointments\Infrastructure\Gateways\StaffStaffDirectory;
 use App\Domains\Appointments\Infrastructure\RandomManageTokenFactory;
 use App\Domains\Appointments\Infrastructure\RandomReferenceCodeGenerator;
@@ -38,6 +40,7 @@ final class AppointmentsServiceProvider extends ServiceProvider
         $this->app->bind(ReferenceCodeGenerator::class, RandomReferenceCodeGenerator::class);
         $this->app->bind(ManageTokenFactory::class, RandomManageTokenFactory::class);
         $this->app->bind(PaymentLedger::class, PaymentsPaymentLedger::class);
+        $this->app->bind(CalendarAccess::class, StaffCalendarAccess::class);
     }
 
     public function boot(): void

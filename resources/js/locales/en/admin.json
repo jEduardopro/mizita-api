@@ -598,10 +598,6 @@
     "profile": {
         "title": "Your profile",
         "edit": "Edit your profile",
-        "roles": {
-            "owner": "Owner",
-            "staff": "Staff"
-        },
         "tabs": {
             "about": "About",
             "services": "Services",
@@ -1142,6 +1138,101 @@
     },
     "team": {
         "title": "Your team",
-        "description": "The people who work with you at your business."
+        "description": "The people who work with you at your business.",
+        "notProvided": "Not set",
+        "invitationPending": "Invitation pending",
+        "columns": {
+            "name": "Name",
+            "email": "Email",
+            "phone": "Phone",
+            "level": "Permission level",
+            "actions": "Actions"
+        },
+        "table": {
+            "caption": "Your team members"
+        },
+        "search": {
+            "label": "Search your team",
+            "placeholder": "Search by name or email"
+        },
+        "levels": {
+            "owner": {
+                "label": "Owner"
+            },
+            "staff": {
+                "label": "Standard",
+                "description": "Able to view and manage their own calendar"
+            },
+            "noAccess": {
+                "label": "No access",
+                "description": "Unable to log in, calendar managed by enhanced permission holders"
+            }
+        },
+        "actions": {
+            "invite": "Add team members",
+            "more": "More actions for {{name}}",
+            "edit": "Edit",
+            "resend": "Resend invitation",
+            "remove": "Remove"
+        },
+        "empty": {
+            "search": {
+                "title": "No team member matches",
+                "body": "Nothing matches “{{search}}”. Try another name or email."
+            },
+            "first": {
+                "title": "It is just you for now",
+                "body": "Add the people who work with you so you can plan their calendars."
+            }
+        },
+        "invite": {
+            "title": "Add team members",
+            "member": "Team member {{number}}",
+            "removeMember": "Remove team member {{number}}",
+            "addMore": "Add more",
+            "limit": "You can add up to {{maximum}} people at once.",
+            "note": "Team members with access will be emailed an invitation with a temporary password.",
+            "name": {
+                "label": "Full name",
+                "placeholder": "e.g. Ada Lovelace",
+                "required": "Full name is required"
+            },
+            "email": {
+                "label": "Email",
+                "placeholder": "ada@example.com",
+                "required": "Email is required"
+            },
+            "level": {
+                "label": "Permission level"
+            },
+            "submit": "Add",
+            "submitting": "Adding…",
+            "unexpected": "We could not add your team members. Try again."
+        },
+        "member": {
+            "title": "Team member",
+            "dialogTitle": "Team member profile",
+            "notFound": {
+                "title": "We couldn’t find this team member",
+                "body": "They may have been removed from the team. Go back to your team to see who’s on it."
+            },
+            "loadError": {
+                "title": "We couldn’t load this team member"
+            }
+        },
+        "remove": {
+            "title": "Remove from your team?",
+            "body": "“{{name}}” leaves your team and can no longer be booked."
+        },
+        "toasts": {
+            "invited_one": "Team member added",
+            "invited_other": "{{count}} team members added",
+            "removed": "Team member removed",
+            "invitationResent": "Invitation sent again"
+        },
+        "errors": {
+            "removeFailed": "We could not remove this team member. Try again.",
+            "resendFailed": "We could not resend the invitation. Try again."
+        }
     }
 }

@@ -1,67 +1,61 @@
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsDialog } from '@/components/admin/settings/SettingsDialog';
-import type { StaffProfileDetails, UpdateMyProfilePayload } from '../types';
+import type { AssignableStaffRole, StaffProfileDetails, UpdateTeamMemberPayload } from '../types';
 import { ProfileDetailsForm } from './ProfileDetailsForm';
 import { ProfileDialogIdentity } from './ProfileDialogIdentity';
-import { PANE_ICONS, PANE_LABEL_KEYS, STAFF_PROFILE_PANES, type StaffProfilePane } from './profile-panes';
+import {
+    PANE_ICONS,
+    PANE_LABEL_KEYS,
+    type StaffProfilePane,
+    type StaffProfilePaneContent,
+} from './profile-panes';
+
+const PROFILE_PANE: StaffProfilePane = 'profile';
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    title: string;
     pane: StaffProfilePane;
     onPaneChange: (pane: StaffProfilePane) => void;
     profile: StaffProfileDetails;
-    onSaveProfile: (payload: UpdateMyProfilePayload) => Promise<unknown>;
+    editableLevel?: AssignableStaffRole;
+    onSaveProfile: (payload: UpdateTeamMemberPayload) => Promise<unknown>;
     onUploadPhoto: (photo: File) => Promise<unknown>;
     onRemovePhoto: () => Promise<unknown>;
-    hoursPane: ReactNode;
-    securityPane: ReactNode;
-    accountPane: ReactNode;
+    panes: readonly StaffProfilePaneContent[];
 };
 
 export function StaffProfileDialog({
     open,
     onOpenChange,
+    title,
     pane,
     onPaneChange,
     profile,
+    editableLevel,
     onSaveProfile,
     onUploadPhoto,
     onRemovePhoto,
-    hoursPane,
-    securityPane,
-    accountPane,
+    panes,
 }: Props) {
     const { t } = useTranslation('admin');
 
-    const items = STAFF_PROFILE_PANES.map((id) => ({
+    const paneIds: StaffProfilePane[] = [PROFILE_PANE, ...panes.map((supplementary) => supplementary.id)];
+
+    const items = paneIds.map((id) => ({
         id,
         label: t(PANE_LABEL_KEYS[id]),
         icon: PANE_ICONS[id],
     }));
 
-    const panes: Record<StaffProfilePane, ReactNode> = {
-        profile: (
-            <section aria-label={t(PANE_LABEL_KEYS.profile)} className="flex min-h-0 flex-1 flex-col">
-                <ProfileDetailsForm
-                    profile={profile}
-                    email={profile.email}
-                    onSave={onSaveProfile}
-                    onCancel={() => onOpenChange(false)}
-                />
-            </section>
-        ),
-        hours: hoursPane,
-        security: securityPane,
-        account: accountPane,
-    };
+    const supplementaryPane = panes.find((supplementary) => supplementary.id === pane);
 
     return (
         <SettingsDialog
             open={open}
             onOpenChange={onOpenChange}
-            title={t('profile.dialog.title')}
+            title={title}
             closeLabel={t('profile.dialog.close')}
             navLabel={t('profile.dialog.nav')}
             identity={
@@ -74,10 +68,22 @@ export function StaffProfileDialog({
                 />
             }
             items={items}
-            activeId={pane}
+            activeId={supplementaryPane === undefined ? PROFILE_PANE : pane}
             onActiveChange={onPaneChange}
         >
-            {panes[pane]}
+            {supplementaryPane === undefined ? (
+                <section aria-label={t(PANE_LABEL_KEYS.profile)} className="flex min-h-0 flex-1 flex-col">
+                    <ProfileDetailsForm
+                        profile={profile}
+                        email={profile.email}
+                        editableLevel={editableLevel}
+                        onSave={onSaveProfile}
+                        onCancel={() => onOpenChange(false)}
+                    />
+                </section>
+            ) : (
+                supplementaryPane.content
+            )}
         </SettingsDialog>
     );
 }

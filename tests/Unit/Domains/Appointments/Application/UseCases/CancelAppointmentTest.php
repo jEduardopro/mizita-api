@@ -14,6 +14,7 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakeCustomerDirectory;
 use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
@@ -33,12 +34,14 @@ beforeEach(function () {
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
     $this->payments = new FakePaymentLedger($this->journal);
+    $this->calendars = FakeCalendarAccess::everyone();
 
     $this->build = fn (string $now = AppointmentFixtures::NOW): CancelAppointment => new CancelAppointment(
         $this->appointments,
         new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         new FakeBusinessContext,
         new FakeClock(AppointmentFixtures::instant($now)),
+        $this->calendars,
     );
 
     $this->cancel = fn (string $now = AppointmentFixtures::NOW, ?string $appointmentId = null) => ($this->build)($now)
@@ -242,5 +245,77 @@ describe('an appointment the caller may not reach', function () {
 
         expect($response->error()->code)->toBe('appointment_not_found')
             ->and($this->journal->entries)->toBe([]);
+    });
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    beforeEach(function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(AppointmentFixtures::STAFF_ID);
+        $this->staff->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot(
+            id: AppointmentFixtures::SECOND_STAFF_ID,
+            name: AppointmentFixtures::SECOND_STAFF_NAME,
+        ));
+
+        $this->appointments->store(
+            AppointmentFixtures::appointment(),
+            AppointmentFixtures::appointment(
+                id: AppointmentFixtures::SECOND_APPOINTMENT_ID,
+                staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+            ),
+        );
+    });
+
+    it('cancels an appointment on their own calendar', function () {
+        $data = ($this->cancel)()->value();
+
+        expect($data->id)->toBe(AppointmentFixtures::APPOINTMENT_ID)
+            ->and($data->status)->toBe(AppointmentStatus::Cancelled);
+    });
+
+    it('answers not found for an appointment on the calendar of another team member', function () {
+        $response = ($this->cancel)(AppointmentFixtures::NOW, AppointmentFixtures::SECOND_APPOINTMENT_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('appointment_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($this->appointments->saved)->toBe([]);
+    });
+
+    it('leaves the appointment of another team member booked', function () {
+        ($this->cancel)(AppointmentFixtures::NOW, AppointmentFixtures::SECOND_APPOINTMENT_ID);
+
+        $stored = $this->appointments->findForBusiness(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::SECOND_APPOINTMENT_ID,
+        );
+
+        expect($stored->isCancelled())->toBeFalse();
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    beforeEach(function () {
+        $this->appointments->store(AppointmentFixtures::appointment());
+    });
+
+    it('asks for the scope of the account on the input, in the business in context', function () {
+        ($this->build)()->handle(AppointmentFixtures::cancelInput(accountId: AppointmentFixtures::SECOND_ACCOUNT_ID));
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => AppointmentFixtures::SECOND_ACCOUNT_ID,
+        ]]);
+    });
+
+    it('refuses an account that is no member of the business before it reads anything', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+
+        $response = ($this->cancel)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('business_not_accessible')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->journal->entries)->toBe([])
+            ->and($this->appointments->saved)->toBe([]);
     });
 });

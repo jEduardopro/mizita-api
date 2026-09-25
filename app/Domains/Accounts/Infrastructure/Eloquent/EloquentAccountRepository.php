@@ -9,6 +9,8 @@ use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Exceptions\AccountAlreadyRegistered;
 use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Domains\Accounts\Infrastructure\Eloquent\Mappers\AccountMapper;
+use App\Domains\Accounts\Infrastructure\Eloquent\Models\SocialIdentityModel;
+use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -26,7 +28,7 @@ final class EloquentAccountRepository implements AccountRepository
             throw AccountNotFound::withId($id);
         }
 
-        return $this->mapper->toEntity($model);
+        return $this->toEntity($model);
     }
 
     public function findByEmail(string $email): ?Account
@@ -35,7 +37,7 @@ final class EloquentAccountRepository implements AccountRepository
             ->whereRaw('lower(email) = ?', [mb_strtolower(trim($email))])
             ->first();
 
-        return $model === null ? null : $this->mapper->toEntity($model);
+        return $model === null ? null : $this->toEntity($model);
     }
 
     /**
@@ -53,13 +55,17 @@ final class EloquentAccountRepository implements AccountRepository
             ->get()
             ->keyBy('uuid');
 
+        $linkedProviders = $this->linkedSocialProvidersByAccountKey(
+            $modelsById->map(static fn (User $model): int => (int) $model->getKey())->values()->all(),
+        );
+
         $accounts = [];
 
         foreach ($ids as $id) {
             $model = $modelsById->get($id);
 
             if ($model instanceof User) {
-                $accounts[] = $this->mapper->toEntity($model);
+                $accounts[] = $this->mapper->toEntity($model, $linkedProviders[(int) $model->getKey()] ?? []);
             }
         }
 
@@ -85,6 +91,25 @@ final class EloquentAccountRepository implements AccountRepository
             ->all();
     }
 
+    /**
+     * @param  list<string>  $accountIds
+     * @return list<string>
+     */
+    public function idsAwaitingPasswordChange(array $accountIds): array
+    {
+        if ($accountIds === []) {
+            return [];
+        }
+
+        return User::query()
+            ->whereIn('uuid', $accountIds)
+            ->where('must_change_password', true)
+            ->pluck('uuid')
+            ->map(static fn (mixed $uuid): string => (string) $uuid)
+            ->values()
+            ->all();
+    }
+
     public function save(Account $account): void
     {
         try {
@@ -95,5 +120,38 @@ final class EloquentAccountRepository implements AccountRepository
         } catch (UniqueConstraintViolationException $violation) {
             throw AccountAlreadyRegistered::withEmail($account->email(), $violation);
         }
+    }
+
+    private function toEntity(User $model): Account
+    {
+        $accountKey = (int) $model->getKey();
+
+        return $this->mapper->toEntity(
+            $model,
+            $this->linkedSocialProvidersByAccountKey([$accountKey])[$accountKey] ?? [],
+        );
+    }
+
+    /**
+     * @param  list<int>  $accountKeys
+     * @return array<int, list<SocialProvider>>
+     */
+    private function linkedSocialProvidersByAccountKey(array $accountKeys): array
+    {
+        if ($accountKeys === []) {
+            return [];
+        }
+
+        $identities = SocialIdentityModel::query()
+            ->whereIn('account_id', $accountKeys)
+            ->get(['account_id', 'provider']);
+
+        $linkedProviders = [];
+
+        foreach ($identities as $identity) {
+            $linkedProviders[(int) $identity->account_id][] = $identity->provider;
+        }
+
+        return $linkedProviders;
     }
 }

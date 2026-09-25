@@ -24,7 +24,22 @@ return [
             'module' => 'business',
         ],
 
-        'manage_staff' => [
+        'view_staff_members' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'staff',
+        ],
+
+        'create_staff_member' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'staff',
+        ],
+
+        'edit_staff_member' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'staff',
+        ],
+
+        'delete_staff_member' => [
             'scope' => AuthorizationScope::Business,
             'module' => 'staff',
         ],
@@ -89,6 +104,11 @@ return [
             'module' => 'appointments',
         ],
 
+        'manage_all_calendars' => [
+            'scope' => AuthorizationScope::Business,
+            'module' => 'appointments',
+        ],
+
         'view_payments' => [
             'scope' => AuthorizationScope::Business,
             'module' => 'payments',
@@ -118,7 +138,24 @@ return [
         'staff' => [
             'scope' => AuthorizationScope::Business,
             'template' => true,
-            'permissions' => ['view_services'],
+            'permissions' => [
+                'view_services',
+                'view_appointments',
+                'create_appointment',
+                'edit_appointment',
+                'delete_appointment',
+                'view_customers',
+                'create_customer',
+                'edit_customer',
+                'view_payments',
+                'create_payment',
+            ],
+        ],
+
+        'no_access' => [
+            'scope' => AuthorizationScope::Business,
+            'template' => true,
+            'permissions' => [],
         ],
 
     ],

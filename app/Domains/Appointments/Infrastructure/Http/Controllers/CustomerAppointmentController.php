@@ -11,6 +11,7 @@ use App\Domains\Appointments\Infrastructure\Http\Resources\AppointmentResource;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponder;
 use App\Http\Responses\PaginatedCollection;
+use App\Models\User;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -22,9 +23,12 @@ final class CustomerAppointmentController extends Controller
         ListCustomerAppointments $listCustomerAppointments,
         ApiResponder $responder,
     ): Response {
+        /** @var User $account */
+        $account = $request->user();
+
         try {
             $response = $listCustomerAppointments->handle(
-                ListCustomerAppointmentsInput::fromRequest($request->validated(), $customer),
+                ListCustomerAppointmentsInput::fromRequest($request->validated(), $customer, $account->uuid),
             );
 
             if ($response->failed()) {

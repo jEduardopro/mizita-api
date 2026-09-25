@@ -69,6 +69,27 @@ final class FakeStaffProfilePhotos implements StaffProfilePhotos
         return $this->urls[self::keyFor($businessId, $profileId)] ?? null;
     }
 
+    /**
+     * @param  list<string>  $profileIds
+     * @return array<string, string>
+     */
+    public function urlsFor(string $businessId, array $profileIds): array
+    {
+        $urls = [];
+
+        foreach ($profileIds as $profileId) {
+            $this->reads[] = ['businessId' => $businessId, 'profileId' => $profileId];
+
+            $url = $this->urls[self::keyFor($businessId, $profileId)] ?? null;
+
+            if ($url !== null) {
+                $urls[$profileId] = $url;
+            }
+        }
+
+        return $urls;
+    }
+
     public function replace(string $businessId, string $profileId, string $sourcePath, string $fileName): void
     {
         $this->failUnlessKnown($businessId, $profileId);

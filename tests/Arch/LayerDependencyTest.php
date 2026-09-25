@@ -111,12 +111,16 @@ arch('registers the first owner without a business context, because that row is 
     ->expect('App\Domains\Staff\Application\UseCases\RegisterBusinessOwner')
     ->not->toUse('App\Shared\Contracts\BusinessContext');
 
+arch('sends a team invitation without a business context, because it runs from a listener that may be outside any request')
+    ->expect('App\Domains\Staff\Application\UseCases\SendTeamInvitation')
+    ->not->toUse('App\Shared\Contracts\BusinessContext');
+
 it('takes the tenant from the business context in every other staff use case', function () {
     $useCases = glob(dirname(__DIR__, 2).'/app/Domains/Staff/Application/UseCases/*.php') ?: [];
 
     $withoutContext = array_values(array_filter(
         $useCases,
-        static fn (string $file): bool => basename($file) !== 'RegisterBusinessOwner.php'
+        static fn (string $file): bool => ! in_array(basename($file), ['RegisterBusinessOwner.php', 'SendTeamInvitation.php'], true)
             && ! str_contains((string) file_get_contents($file), 'App\Shared\Contracts\BusinessContext'),
     ));
 

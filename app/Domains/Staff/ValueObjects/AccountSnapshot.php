@@ -11,5 +11,6 @@ final readonly class AccountSnapshot
         public string $name,
         public string $email,
         public bool $hasPassword,
+        public bool $awaitingPasswordChange = false,
     ) {}
 }

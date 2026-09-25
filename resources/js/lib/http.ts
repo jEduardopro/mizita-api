@@ -7,6 +7,10 @@ const NOT_FOUND_STATUS = 404;
 
 const TOO_MANY_REQUESTS_STATUS = 429;
 
+const FORBIDDEN_STATUS = 403;
+
+const PASSWORD_CHANGE_REQUIRED_CODE = 'password_change_required';
+
 export type FieldErrors = Record<string, string>;
 
 function propertyOf(source: unknown, key: string): unknown {
@@ -68,6 +72,13 @@ export function isNotFoundError(error: unknown): boolean {
 
 export function isRateLimitedError(error: unknown): boolean {
     return httpStatusFrom(error) === TOO_MANY_REQUESTS_STATUS;
+}
+
+export function isPasswordChangeRequiredError(error: unknown): boolean {
+    return (
+        httpStatusFrom(error) === FORBIDDEN_STATUS &&
+        errorCodeFrom(error) === PASSWORD_CHANGE_REQUIRED_CODE
+    );
 }
 
 export function httpStatusFrom(error: unknown): number | undefined {

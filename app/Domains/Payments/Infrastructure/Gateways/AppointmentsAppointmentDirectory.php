@@ -28,6 +28,7 @@ final class AppointmentsAppointmentDirectory implements AppointmentDirectory
             id: $appointment->id,
             serviceId: $appointment->serviceId(),
             cancelled: $appointment->isCancelled(),
+            staffMemberId: $appointment->staffMemberId(),
         );
     }
 }

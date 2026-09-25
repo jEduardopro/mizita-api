@@ -27,9 +27,17 @@ final class StaffFixtures
 
     public const SECOND_ACCOUNT_ID = '01930000-0000-7000-8000-0000000000a2';
 
+    public const THIRD_ACCOUNT_ID = '01930000-0000-7000-8000-0000000000a3';
+
     public const PROFILE_ID = '01930000-0000-7000-8000-0000000000e1';
 
     public const SECOND_PROFILE_ID = '01930000-0000-7000-8000-0000000000e2';
+
+    public const THIRD_PROFILE_ID = '01930000-0000-7000-8000-0000000000e3';
+
+    public const TEMPORARY_PASSWORD = 'Tmp-Pa55word!';
+
+    public const BUSINESS_NAME = 'Barbería Ñuñoa';
 
     public const OTHER_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b2';
 
@@ -83,7 +91,8 @@ final class StaffFixtures
         string $name = 'Ada Lovelace',
         string $email = 'ada@example.com',
         bool $hasPassword = true,
+        bool $awaitingPasswordChange = false,
     ): AccountSnapshot {
-        return new AccountSnapshot($id, $name, $email, $hasPassword);
+        return new AccountSnapshot($id, $name, $email, $hasPassword, $awaitingPasswordChange);
     }
 }

@@ -1,8 +1,16 @@
 import { Clock, Lock, UserRound, Wrench, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 export const STAFF_PROFILE_PANES = ['profile', 'hours', 'security', 'account'] as const;
 
 export type StaffProfilePane = (typeof STAFF_PROFILE_PANES)[number];
+
+export type SupplementaryProfilePane = Exclude<StaffProfilePane, 'profile'>;
+
+export type StaffProfilePaneContent = {
+    id: SupplementaryProfilePane;
+    content: ReactNode;
+};
 
 export const PANE_LABEL_KEYS = {
     profile: 'profile.dialog.panes.profile',
@@ -17,3 +25,7 @@ export const PANE_ICONS: Record<StaffProfilePane, LucideIcon> = {
     security: Lock,
     account: Wrench,
 };
+
+export function staffProfilePaneFrom(value: string | null): StaffProfilePane | undefined {
+    return STAFF_PROFILE_PANES.find((pane) => pane === value);
+}

@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\ListCustomerAppointmentsInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
@@ -21,6 +22,7 @@ final class ListCustomerAppointments
         private readonly CustomerDirectory $customers,
         private readonly AppointmentPresenter $presenter,
         private readonly BusinessContext $business,
+        private readonly CalendarAccess $calendars,
     ) {}
 
     /**
@@ -35,7 +37,8 @@ final class ListCustomerAppointments
 
             $this->customers->describe($businessId, $input->customerId);
 
-            $booked = $this->appointments->bookedForCustomer($businessId, $input->toQuery());
+            $scope = $this->calendars->scopeFor($businessId, $input->accountId);
+            $booked = $this->appointments->bookedForCustomer($businessId, $input->toQuery(), $scope);
 
             return UseCaseResponse::success($this->presenter->describePage($businessId, $booked));
         } catch (DomainFailure $failure) {

@@ -4,6 +4,7 @@ import type {
     Business,
     BusinessNameAvailability,
     BusinessSettings,
+    CalendarSettings,
     CreateBusinessPayload,
     ReorderGalleryPayload,
     UpdateBusinessSettingsPayload,
@@ -37,6 +38,14 @@ export async function createBusiness(payload: CreateBusinessPayload): Promise<Bu
 
 export async function getBusinessSettings(signal?: AbortSignal): Promise<BusinessSettings> {
     const { data } = await api.get<{ data: BusinessSettings }>('/business/settings', { signal });
+
+    return data.data;
+}
+
+export async function getCalendarSettings(signal?: AbortSignal): Promise<CalendarSettings> {
+    const { data } = await api.get<{ data: CalendarSettings }>('/business/calendar-settings', {
+        signal,
+    });
 
     return data.data;
 }

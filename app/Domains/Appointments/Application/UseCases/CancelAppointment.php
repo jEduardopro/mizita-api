@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\CancelAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\ValueObjects\Canceller;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
@@ -21,6 +22,7 @@ final class CancelAppointment
         private readonly AppointmentPresenter $presenter,
         private readonly BusinessContext $business,
         private readonly Clock $clock,
+        private readonly CalendarAccess $calendars,
     ) {}
 
     /**
@@ -32,7 +34,8 @@ final class CancelAppointment
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
-            $appointment = $this->appointments->findForBusiness($businessId, $input->appointmentId);
+            $scope = $this->calendars->scopeFor($businessId, $input->accountId);
+            $appointment = $this->appointments->findWithinScope($businessId, $input->appointmentId, $scope);
 
             $appointment->cancel(Canceller::Business, $this->clock->now());
 

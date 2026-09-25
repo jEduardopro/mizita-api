@@ -23,6 +23,15 @@ final class StaffRoleAssignments
         $this->withTeam($businessKey, static fn () => $account->syncRoles($role->value));
     }
 
+    public function revoke(User $account, int $businessKey): void
+    {
+        DB::table(self::ASSIGNMENTS_TABLE)
+            ->where('model_type', $account->getMorphClass())
+            ->where('model_id', $account->getKey())
+            ->where(self::TEAM_COLUMN, $businessKey)
+            ->delete();
+    }
+
     public function roleFor(User $account, int $businessKey): ?StaffRole
     {
         $name = $this->assignmentsOf($account)

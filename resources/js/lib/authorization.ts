@@ -1,6 +1,10 @@
 export type PermissionName =
     | 'manage_business'
-    | 'manage_staff'
+    | 'view_staff_members'
+    | 'create_staff_member'
+    | 'edit_staff_member'
+    | 'delete_staff_member'
+    | 'manage_all_calendars'
     | 'view_services'
     | 'create_service'
     | 'edit_service'
@@ -14,9 +18,12 @@ export type PermissionName =
     | 'view_appointments'
     | 'create_appointment'
     | 'edit_appointment'
-    | 'delete_appointment';
+    | 'delete_appointment'
+    | 'view_payments'
+    | 'create_payment'
+    | 'void_payment_transaction';
 
-export type RoleName = 'owner' | 'staff';
+export type RoleName = 'owner' | 'staff' | 'no_access';
 
 export type PermissionCheckMode = 'all' | 'any';
 

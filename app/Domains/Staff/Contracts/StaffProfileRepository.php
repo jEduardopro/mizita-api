@@ -16,6 +16,12 @@ interface StaffProfileRepository
     public function findForStaffMember(string $businessId, string $staffMemberId): StaffProfile;
 
     /**
+     * @param  list<string>  $staffMemberIds
+     * @return array<string, StaffProfile>
+     */
+    public function findForStaffMembers(string $businessId, array $staffMemberIds): array;
+
+    /**
      * @throws StaffMemberNotFound
      */
     public function save(StaffProfile $profile): void;

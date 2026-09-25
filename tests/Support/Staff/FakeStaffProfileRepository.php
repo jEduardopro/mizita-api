@@ -66,6 +66,23 @@ final class FakeStaffProfileRepository implements StaffProfileRepository
         throw StaffProfileNotFound::forStaffMember($staffMemberId);
     }
 
+    /**
+     * @param  list<string>  $staffMemberIds
+     * @return array<string, StaffProfile>
+     */
+    public function findForStaffMembers(string $businessId, array $staffMemberIds): array
+    {
+        $found = [];
+
+        foreach ($this->profiles as $profile) {
+            if ($profile->businessId === $businessId && in_array($profile->staffMemberId, $staffMemberIds, true)) {
+                $found[$profile->staffMemberId] = self::copyOf($profile);
+            }
+        }
+
+        return $found;
+    }
+
     public function save(StaffProfile $profile): void
     {
         $this->journal->record('profiles.save');

@@ -6,7 +6,7 @@ import { NewAppointmentDialog } from '@/domains/appointments/components/NewAppoi
 import { useRefreshAppointments } from '@/domains/appointments/queries';
 import type { Appointment } from '@/domains/appointments/types';
 import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
-import { useBusinessSettings } from '@/domains/businesses/queries';
+import { useCalendarSettings } from '@/domains/businesses/queries';
 import { CustomerAboutPanel } from '@/domains/customers/components/CustomerAboutPanel';
 import { CustomerLoadError } from '@/domains/customers/components/CustomerLoadError';
 import { CustomerNotesPanel } from '@/domains/customers/components/CustomerNotesPanel';
@@ -33,14 +33,14 @@ type Props = {
 export default function ShowCustomer({ customerId }: Props) {
     const { t } = useTranslation('admin');
     const customer = useCustomer(customerId);
-    const { data: businessSettings } = useBusinessSettings();
+    const { data: calendarSettings } = useCalendarSettings();
     const { tab, setTab } = useCustomerShowTab();
     const [booking, setBooking] = useState(false);
     const [appointmentToCharge, setAppointmentToCharge] = useState<Appointment | null>(null);
     const refreshAppointments = useRefreshAppointments();
 
-    const timezone = businessSettings?.timezone ?? resolvedTimezone();
-    const currencyCode = businessSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
+    const timezone = calendarSettings?.timezone ?? resolvedTimezone();
+    const currencyCode = calendarSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
     const title = customer.data?.name ?? t('customers.show.title');
 
     const renderPaymentPanel = useCallback(

@@ -66,6 +66,9 @@ return [
         'invalid_account_name' => 'Ese nombre no es válido.',
         'invalid_provider_user_id' => 'No hemos podido identificar esa cuenta de inicio de sesión.',
         'social_identity_already_linked' => 'Esa cuenta de inicio de sesión ya está vinculada a otra cuenta.',
+        'password_change_required' => 'Necesitas establecer una nueva contraseña antes de continuar.',
+        'account_holds_own_password' => 'Esta cuenta ya tiene su propia contraseña.',
+        'account_signs_in_with_social_identity' => 'Esta cuenta ya inicia sesión con un proveedor vinculado.',
 
         // Business onboarding. The wording never repeats the name, slug or
         // timezone that was rejected - the caller already knows what it sent.
@@ -99,6 +102,16 @@ return [
         'invalid_profile_phone' => 'Ese no es un número de teléfono válido para el país seleccionado.',
         'profile_photo_too_large' => 'Esa foto es demasiado grande. Usa una de menos de 2 MB.',
         'unsupported_profile_photo' => 'Ese archivo no es una foto compatible. Usa un JPG, PNG o WebP.',
+        'invalid_team_member_email' => 'Ese correo electrónico no es válido.',
+        'invalid_team_invitation' => 'Añade entre 1 y 20 personas por invitación.',
+        'invalid_team_level' => 'Ese nivel de permisos no está disponible.',
+        'duplicate_team_invitation_email' => 'El mismo correo electrónico aparece más de una vez en esta invitación.',
+        'team_member_already_exists' => 'Ya hay alguien en tu equipo con ese correo electrónico.',
+        'invalid_team_search' => 'Esa búsqueda es demasiado larga.',
+        'owner_level_is_fixed' => 'No se puede cambiar el nivel de permisos del propietario.',
+        'owner_cannot_be_removed' => 'No se puede quitar al propietario del negocio.',
+        'team_member_has_upcoming_appointments' => 'Esta persona todavía tiene citas próximas. Reasígnalas o cancélalas primero.',
+        'team_invitation_not_pending' => 'Esta persona no tiene ninguna invitación pendiente para reenviar.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.
@@ -167,6 +180,7 @@ return [
         'invalid_booking_page_theme' => 'Ese tema no es uno de los que puede tener una página de reservas.',
 
         'appointment_not_found' => 'No hemos encontrado esa cita.',
+        'appointment_staff_not_permitted' => 'Solo puedes gestionar las citas de tu propio calendario.',
         'appointment_service_not_found' => 'Ese servicio no es uno de los que ofrece este negocio.',
         'appointment_customer_not_found' => 'Ese cliente no es uno de este negocio.',
         'appointment_staff_not_found' => 'Esa persona del equipo no es de este negocio.',

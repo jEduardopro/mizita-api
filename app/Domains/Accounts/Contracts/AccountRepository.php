@@ -30,6 +30,12 @@ interface AccountRepository
     public function idsHoldingPassword(array $ids): array;
 
     /**
+     * @param  list<string>  $accountIds
+     * @return list<string>
+     */
+    public function idsAwaitingPasswordChange(array $accountIds): array;
+
+    /**
      * @throws AccountAlreadyRegistered
      */
     public function save(Account $account): void;

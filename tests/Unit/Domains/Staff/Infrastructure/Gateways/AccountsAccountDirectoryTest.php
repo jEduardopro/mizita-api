@@ -40,6 +40,7 @@ function accountDirectoryRefusalFrom(callable $work): ?Throwable
 
 beforeEach(function () {
     $this->accounts = Mockery::mock(AccountRepository::class);
+    $this->accounts->shouldReceive('idsAwaitingPasswordChange')->andReturn([])->byDefault();
     $this->directory = new AccountsAccountDirectory($this->accounts, new RenameAccount($this->accounts));
 });
 
@@ -60,7 +61,25 @@ describe('describing accounts', function () {
             ->and($snapshots[0]->name)->toBe('Ada Lovelace')
             ->and($snapshots[0]->email)->toBe('ada@example.com')
             ->and($snapshots[0]->hasPassword)->toBeTrue()
-            ->and(array_keys(get_object_vars($snapshots[0])))->toBe(['id', 'name', 'email', 'hasPassword']);
+            ->and($snapshots[0]->awaitingPasswordChange)->toBeFalse()
+            ->and(array_keys(get_object_vars($snapshots[0])))->toBe(['id', 'name', 'email', 'hasPassword', 'awaitingPasswordChange']);
+    });
+
+    it('marks the account still holding the temporary password it was invited with', function () {
+        $this->accounts->shouldReceive('findManyByIds')->once()->andReturn([
+            anAccount(),
+            anAccount(id: StaffFixtures::SECOND_ACCOUNT_ID, name: 'Grace Hopper', email: 'grace@example.com'),
+        ]);
+        $this->accounts->shouldReceive('idsHoldingPassword')->once()
+            ->andReturn([StaffFixtures::ACCOUNT_ID, StaffFixtures::SECOND_ACCOUNT_ID]);
+        $this->accounts->shouldReceive('idsAwaitingPasswordChange')->once()
+            ->with([StaffFixtures::ACCOUNT_ID, StaffFixtures::SECOND_ACCOUNT_ID])
+            ->andReturn([StaffFixtures::SECOND_ACCOUNT_ID]);
+
+        $snapshots = $this->directory->describe([StaffFixtures::ACCOUNT_ID, StaffFixtures::SECOND_ACCOUNT_ID]);
+
+        expect($snapshots[0]->awaitingPasswordChange)->toBeFalse()
+            ->and($snapshots[1]->awaitingPasswordChange)->toBeTrue();
     });
 
     it('tells an account holding a password apart from one that signs in only through google', function () {
@@ -120,6 +139,7 @@ describe('describing accounts', function () {
     it('describes nothing, and asks nothing about passwords, when the repository found nothing', function () {
         $this->accounts->shouldReceive('findManyByIds')->once()->with([])->andReturn([]);
         $this->accounts->shouldNotReceive('idsHoldingPassword');
+        $this->accounts->shouldNotReceive('idsAwaitingPasswordChange');
 
         expect($this->directory->describe([]))->toBe([]);
     });

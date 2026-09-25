@@ -10,10 +10,14 @@ use App\Domains\Payments\Application\Dtos\PaymentData;
 use App\Domains\Payments\Application\Presenters\PaymentPresenter;
 use App\Domains\Payments\Contracts\AppointmentDirectory;
 use App\Domains\Payments\Contracts\BusinessProfile;
+use App\Domains\Payments\Contracts\CalendarAccess;
 use App\Domains\Payments\Contracts\PaymentMethodCatalog;
 use App\Domains\Payments\Contracts\PaymentRepository;
 use App\Domains\Payments\Contracts\ServiceCatalog;
 use App\Domains\Payments\Entities\Payment;
+use App\Domains\Payments\Exceptions\PaymentAccountNotFound;
+use App\Domains\Payments\Exceptions\PaymentAppointmentNotFound;
+use App\Domains\Payments\ValueObjects\AppointmentSnapshot;
 use App\Domains\Payments\ValueObjects\Money;
 use App\Domains\Payments\ValueObjects\PaymentBreakdown;
 use App\Domains\Payments\ValueObjects\PaymentItemName;
@@ -31,6 +35,7 @@ final class CreateAppointmentPayment
     public function __construct(
         private readonly PaymentRepository $payments,
         private readonly AppointmentDirectory $appointments,
+        private readonly CalendarAccess $calendars,
         private readonly ServiceCatalog $services,
         private readonly BusinessProfile $businesses,
         private readonly PaymentMethodCatalog $paymentMethods,
@@ -64,7 +69,7 @@ final class CreateAppointmentPayment
     private function collect(CreateAppointmentPaymentInput $input, string $businessId): Payment
     {
         $currency = $this->businesses->currencyFor($businessId);
-        $appointment = $this->appointments->describe($businessId, $input->appointmentId);
+        $appointment = $this->appointmentInScope($businessId, $input);
         $service = $this->services->describe($businessId, $appointment->serviceId, $currency);
         $now = $this->clock->now();
 
@@ -84,6 +89,22 @@ final class CreateAppointmentPayment
         $this->payments->save($payment);
 
         return $payment;
+    }
+
+    /**
+     * @throws PaymentAccountNotFound
+     * @throws PaymentAppointmentNotFound
+     */
+    private function appointmentInScope(string $businessId, CreateAppointmentPaymentInput $input): AppointmentSnapshot
+    {
+        $scope = $this->calendars->scopeFor($businessId, $input->actorAccountId);
+        $appointment = $this->appointments->describe($businessId, $input->appointmentId);
+
+        if (! $scope->covers($appointment)) {
+            throw PaymentAppointmentNotFound::withId($input->appointmentId);
+        }
+
+        return $appointment;
     }
 
     /**

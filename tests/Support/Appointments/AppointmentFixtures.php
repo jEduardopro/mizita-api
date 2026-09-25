@@ -64,6 +64,10 @@ final class AppointmentFixtures
 
     public const UNKNOWN_ID = '01930000-0000-7000-8000-00000000ffff';
 
+    public const ACCOUNT_ID = '01930000-0000-7000-8000-00000000ac01';
+
+    public const SECOND_ACCOUNT_ID = '01930000-0000-7000-8000-00000000ac02';
+
     public const CUSTOMER_NAME = 'Ada Lovelace';
 
     public const CUSTOMER_EMAIL = 'ada@example.com';
@@ -300,6 +304,7 @@ final class AppointmentFixtures
         string $startsAt = self::STARTS_AT,
         ?string $endsAt = self::ENDS_AT,
         ?string $notes = self::NOTES,
+        string $accountId = self::ACCOUNT_ID,
     ): CreateAppointmentInput {
         return new CreateAppointmentInput(
             customerId: $customerId,
@@ -308,6 +313,7 @@ final class AppointmentFixtures
             startsAt: $startsAt,
             endsAt: $endsAt,
             notes: $notes,
+            accountId: $accountId,
         );
     }
 
@@ -336,6 +342,7 @@ final class AppointmentFixtures
         string $startsAt = self::STARTS_AT,
         ?string $endsAt = self::ENDS_AT,
         ?string $notes = self::NOTES,
+        string $accountId = self::ACCOUNT_ID,
     ): UpdateAppointmentInput {
         return new UpdateAppointmentInput(
             appointmentId: $appointmentId,
@@ -345,41 +352,51 @@ final class AppointmentFixtures
             startsAt: $startsAt,
             endsAt: $endsAt,
             notes: $notes,
+            accountId: $accountId,
         );
     }
 
     public static function listInput(
         string $from = self::RANGE_FROM,
         string $to = self::RANGE_TO,
+        string $accountId = self::ACCOUNT_ID,
     ): ListAppointmentsInput {
-        return new ListAppointmentsInput(from: $from, to: $to);
+        return new ListAppointmentsInput(from: $from, to: $to, accountId: $accountId);
     }
 
     public static function listCustomerInput(
         string $customerId = self::CUSTOMER_ID,
         ?int $page = null,
         ?int $perPage = null,
+        string $accountId = self::ACCOUNT_ID,
     ): ListCustomerAppointmentsInput {
         return new ListCustomerAppointmentsInput(
             customerId: $customerId,
             page: $page,
             perPage: $perPage,
+            accountId: $accountId,
         );
     }
 
-    public static function showInput(string $appointmentId = self::APPOINTMENT_ID): ShowAppointmentInput
-    {
-        return new ShowAppointmentInput(appointmentId: $appointmentId);
+    public static function showInput(
+        string $appointmentId = self::APPOINTMENT_ID,
+        string $accountId = self::ACCOUNT_ID,
+    ): ShowAppointmentInput {
+        return new ShowAppointmentInput(appointmentId: $appointmentId, accountId: $accountId);
     }
 
-    public static function deleteInput(string $appointmentId = self::APPOINTMENT_ID): DeleteAppointmentInput
-    {
-        return new DeleteAppointmentInput(appointmentId: $appointmentId);
+    public static function deleteInput(
+        string $appointmentId = self::APPOINTMENT_ID,
+        string $accountId = self::ACCOUNT_ID,
+    ): DeleteAppointmentInput {
+        return new DeleteAppointmentInput(appointmentId: $appointmentId, accountId: $accountId);
     }
 
-    public static function cancelInput(string $appointmentId = self::APPOINTMENT_ID): CancelAppointmentInput
-    {
-        return new CancelAppointmentInput(appointmentId: $appointmentId);
+    public static function cancelInput(
+        string $appointmentId = self::APPOINTMENT_ID,
+        string $accountId = self::ACCOUNT_ID,
+    ): CancelAppointmentInput {
+        return new CancelAppointmentInput(appointmentId: $appointmentId, accountId: $accountId);
     }
 
     public static function guestDetails(

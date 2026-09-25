@@ -56,7 +56,7 @@ type Props = {
     className?: string;
     onRangeChange: (range: AppointmentRange) => void;
     onSelectedDateChange: (date: string, view: CalendarViewName) => void;
-    onClickSlot: (startsAt: string) => void;
+    onClickSlot?: (startsAt: string) => void;
     onClickAppointment: (appointment: Appointment) => void;
 };
 
@@ -143,7 +143,7 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
                             roundingMode: 'floor',
                         });
 
-                        callbacksRef.current.onClickSlot(snapped.toInstant().toString());
+                        callbacksRef.current.onClickSlot?.(snapped.toInstant().toString());
                     },
                     onEventClick: (event) => {
                         if (isAppointmentCalendarEvent(event)) {
@@ -228,7 +228,9 @@ export const AppointmentCalendar = forwardRef<AppointmentCalendarHandle, Props>(
             <div ref={wrapperRef} className={cn('h-full', className)}>
                 <ScheduleXCalendar calendarApp={calendarApp} customComponents={customComponents} />
 
-                <SlotHoverPreview containerRef={wrapperRef} locale={locale} />
+                {onClickSlot === undefined ? null : (
+                    <SlotHoverPreview containerRef={wrapperRef} locale={locale} />
+                )}
             </div>
         );
     },

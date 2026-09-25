@@ -59,6 +59,16 @@ final class StaffProfile
         $this->about = $about;
     }
 
+    public function changeJobTitle(?JobTitle $jobTitle): void
+    {
+        $this->jobTitle = $jobTitle;
+    }
+
+    public function changeAbout(?About $about): void
+    {
+        $this->about = $about;
+    }
+
     public function jobTitle(): ?JobTitle
     {
         return $this->jobTitle;

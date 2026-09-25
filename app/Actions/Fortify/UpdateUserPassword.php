@@ -38,6 +38,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
         DB::transaction(function () use ($user, $input): void {
             $user->forceFill([
                 'password' => Hash::make($input['password']),
+                'must_change_password' => false,
             ])->save();
 
             $user->tokens()->delete();
@@ -53,7 +54,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
      */
     private function currentPasswordRules(User $user): array
     {
-        if ($user->getAuthPassword() === null) {
+        if ($user->getAuthPassword() === null || $user->mustChangePassword()) {
             return [];
         }
 

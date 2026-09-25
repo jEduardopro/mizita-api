@@ -44,6 +44,13 @@ final class StaffMemberModelFactory extends Factory
         );
     }
 
+    public function noAccess(): self
+    {
+        return $this->afterCreating(
+            fn (StaffMemberModel $member) => $this->assign($member, StaffRole::NoAccess),
+        );
+    }
+
     private function assign(StaffMemberModel $member, StaffRole $role): void
     {
         $account = $member->account()->sole();

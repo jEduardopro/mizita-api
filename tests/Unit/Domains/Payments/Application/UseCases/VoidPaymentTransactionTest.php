@@ -15,6 +15,8 @@ use Tests\Support\FakeBusinessContext;
 use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
+use Tests\Support\Payments\FakeAppointmentDirectory;
+use Tests\Support\Payments\FakeCalendarAccess;
 use Tests\Support\Payments\FakePaymentMethodCatalog;
 use Tests\Support\Payments\FakePaymentRepository;
 use Tests\Support\Payments\PaymentFixtures;
@@ -46,8 +48,14 @@ beforeEach(function () {
         PaymentFixtures::paymentMethod(PaymentFixtures::CARD_METHOD_ID, 'card', 2),
     );
 
+    $this->appointments = (new FakeAppointmentDirectory($this->journal))
+        ->add(FakeBusinessContext::BUSINESS_ID, PaymentFixtures::appointmentSnapshot());
+    $this->calendars = FakeCalendarAccess::everyone();
+
     $this->build = fn (?FakeBusinessContext $business = null): VoidPaymentTransaction => new VoidPaymentTransaction(
         $this->payments,
+        $this->appointments,
+        $this->calendars,
         new PaymentPresenter($this->paymentMethods),
         $this->ids,
         new FakeClock(PaymentFixtures::instant($this->voidedAt)),
@@ -266,6 +274,83 @@ describe('refusing to void', function () {
                 'businessId' => PaymentFixtures::OTHER_BUSINESS_ID,
                 'paymentId' => PaymentFixtures::PAYMENT_ID,
             ]])
+            ->and($this->payments->saved)->toBe([]);
+    });
+});
+
+describe('a caller who keeps every calendar', function () {
+    it('never asks the appointment directory whose calendar the payment is on', function () {
+        ($this->void)();
+
+        expect($this->appointments->reads)->toBe([]);
+    });
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    it('voids a transaction on a payment of their own calendar', function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(PaymentFixtures::STAFF_MEMBER_ID);
+
+        $data = ($this->void)()->value();
+
+        expect($data->transactions)->toHaveCount(3)
+            ->and($data->transactions[2]->type)->toBe(PaymentTransactionType::Void);
+    });
+
+    it('checks the calendar of the locked payment before it voids anything', function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(PaymentFixtures::STAFF_MEMBER_ID);
+
+        ($this->void)();
+
+        expect($this->journal->entries)->toBe([
+            'payments.lockForBusiness',
+            'appointments.describe',
+            'payments.save',
+            'paymentMethods.describeMany',
+        ]);
+    });
+
+    it('answers not found for a payment on the calendar of another team member', function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(PaymentFixtures::OTHER_STAFF_MEMBER_ID);
+
+        $response = ($this->void)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('payment_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('writes nothing to a payment on the calendar of another team member', function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(PaymentFixtures::OTHER_STAFF_MEMBER_ID);
+
+        ($this->void)();
+
+        expect($this->payments->saved)->toBe([])
+            ->and($this->journal->entries)->not->toContain('payments.save')
+            ->and($this->payments->findForBusiness(FakeBusinessContext::BUSINESS_ID, PaymentFixtures::PAYMENT_ID)->transactions())
+            ->toHaveCount(2);
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    it('asks for the scope of the actor, in the business in context', function () {
+        ($this->void)(actorAccountId: PaymentFixtures::OTHER_ACTOR_ID);
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => PaymentFixtures::OTHER_ACTOR_ID,
+        ]]);
+    });
+
+    it('refuses an actor that is no member of the business before it locks anything', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+
+        $response = ($this->void)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('payment_account_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($this->payments->locks)->toBe([])
+            ->and($this->transactions->runs())->toBe(0)
             ->and($this->payments->saved)->toBe([]);
     });
 });

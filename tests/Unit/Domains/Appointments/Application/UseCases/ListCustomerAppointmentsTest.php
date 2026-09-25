@@ -13,6 +13,7 @@ use App\Shared\ValueObjects\Pagination;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakeCustomerDirectory;
 use Tests\Support\Appointments\FakePaymentLedger;
 use Tests\Support\Appointments\FakeServiceCatalog;
@@ -33,12 +34,14 @@ beforeEach(function () {
         ->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot());
 
     $this->payments = new FakePaymentLedger($this->journal);
+    $this->calendars = FakeCalendarAccess::everyone();
 
     $this->build = fn (?FakeBusinessContext $business = null): ListCustomerAppointments => new ListCustomerAppointments(
         $this->appointments,
         $this->customers,
         new AppointmentPresenter($this->services, $this->customers, $this->staff, $this->payments),
         $business ?? new FakeBusinessContext,
+        $this->calendars,
     );
 
     $this->list = fn (?int $page = null, ?int $perPage = null, ?string $customerId = null) => ($this->build)()
@@ -326,4 +329,88 @@ it('describes the whole page in one call per neighbour, never one per row', func
         ->and($this->staff->batchReads)->toHaveCount(1)
         ->and($this->staff->reads)->toBe([])
         ->and($this->customers->batchReads)->toHaveCount(1);
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    beforeEach(function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(AppointmentFixtures::STAFF_ID);
+        $this->staff->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot(
+            id: AppointmentFixtures::SECOND_STAFF_ID,
+            name: AppointmentFixtures::SECOND_STAFF_NAME,
+        ));
+
+        $this->appointments->store(
+            AppointmentFixtures::appointment(),
+            AppointmentFixtures::appointment(
+                id: AppointmentFixtures::SECOND_APPOINTMENT_ID,
+                staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+                startsAt: '2026-04-10T09:00:00+00:00',
+                endsAt: '2026-04-10T10:00:00+00:00',
+            ),
+            AppointmentFixtures::appointment(
+                id: AppointmentFixtures::THIRD_APPOINTMENT_ID,
+                startsAt: '2026-05-10T09:00:00+00:00',
+                endsAt: '2026-05-10T10:00:00+00:00',
+            ),
+        );
+    });
+
+    it('answers with the history the customer has on their own calendar only', function () {
+        $page = ($this->list)()->value();
+
+        expect(array_map(static fn (AppointmentData $data): string => $data->id, $page->items))->toBe([
+            AppointmentFixtures::THIRD_APPOINTMENT_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+        ]);
+    });
+
+    it('leaves out every row booked with another team member', function () {
+        $page = ($this->list)()->value();
+
+        expect(array_map(static fn (AppointmentData $data): string => $data->staffMember->id, $page->items))
+            ->not->toContain(AppointmentFixtures::SECOND_STAFF_ID);
+    });
+
+    it('counts only the rows the caller may see, so the total leaks nothing either', function () {
+        $page = ($this->list)(page: 1, perPage: 1)->value();
+
+        expect($page->total)->toBe(2)
+            ->and($page->lastPage())->toBe(2);
+    });
+
+    it('hands the repository the scope the caller was granted', function () {
+        ($this->list)();
+
+        expect($this->appointments->scopesSeen)->toHaveCount(1)
+            ->and($this->appointments->scopesSeen[0]->restrictedStaffMemberId())->toBe(AppointmentFixtures::STAFF_ID);
+    });
+
+    it('answers the whole history to a caller who keeps every calendar', function () {
+        $this->calendars = FakeCalendarAccess::everyone();
+
+        expect(($this->list)()->value()->total)->toBe(3);
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    it('asks for the scope of the account on the input, in the business in context', function () {
+        ($this->build)()->handle(AppointmentFixtures::listCustomerInput(accountId: AppointmentFixtures::SECOND_ACCOUNT_ID));
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => AppointmentFixtures::SECOND_ACCOUNT_ID,
+        ]]);
+    });
+
+    it('refuses an account that is no member of the business and reads no history', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+        $this->appointments->store(AppointmentFixtures::appointment());
+
+        $response = ($this->list)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('business_not_accessible')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->appointments->customerQueries)->toBe([]);
+    });
 });

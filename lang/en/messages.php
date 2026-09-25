@@ -66,6 +66,9 @@ return [
         'invalid_account_name' => 'That name is not valid.',
         'invalid_provider_user_id' => 'We could not identify that sign in account.',
         'social_identity_already_linked' => 'That sign in account is already linked to another account.',
+        'password_change_required' => 'You need to set a new password before continuing.',
+        'account_holds_own_password' => 'This account already has its own password.',
+        'account_signs_in_with_social_identity' => 'This account already signs in with a linked provider.',
 
         // Business onboarding. The wording never repeats the name, slug or
         // timezone that was rejected - the caller already knows what it sent.
@@ -99,6 +102,16 @@ return [
         'invalid_profile_phone' => 'That is not a valid phone number for the selected country.',
         'profile_photo_too_large' => 'That photo is too large. Please use one under 2 MB.',
         'unsupported_profile_photo' => 'That file is not a photo we support. Please use a JPG, PNG or WebP.',
+        'invalid_team_member_email' => 'That email address is not valid.',
+        'invalid_team_invitation' => 'Add between 1 and 20 people per invitation.',
+        'invalid_team_level' => 'That permission level is not available.',
+        'duplicate_team_invitation_email' => 'The same email address appears more than once in this invitation.',
+        'team_member_already_exists' => 'Someone with that email address is already on your team.',
+        'invalid_team_search' => 'That search is too long.',
+        'owner_level_is_fixed' => 'The owner\'s permission level cannot be changed.',
+        'owner_cannot_be_removed' => 'The owner cannot be removed from the business.',
+        'team_member_has_upcoming_appointments' => 'This team member still has upcoming appointments. Reassign or cancel them first.',
+        'team_invitation_not_pending' => 'This team member has no pending invitation to resend.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.
@@ -167,6 +180,7 @@ return [
         'invalid_booking_page_theme' => 'That theme is not one a booking page may be given.',
 
         'appointment_not_found' => 'We could not find that appointment.',
+        'appointment_staff_not_permitted' => 'You can only manage appointments on your own calendar.',
         'appointment_service_not_found' => 'That service is not one this business offers.',
         'appointment_customer_not_found' => 'That customer is not one of this business.',
         'appointment_staff_not_found' => 'That team member is not one of this business.',

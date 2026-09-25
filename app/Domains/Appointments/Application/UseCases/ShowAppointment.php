@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\ShowAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\DomainFailure;
@@ -18,6 +19,7 @@ final class ShowAppointment
         private readonly AppointmentRepository $appointments,
         private readonly AppointmentPresenter $presenter,
         private readonly BusinessContext $business,
+        private readonly CalendarAccess $calendars,
     ) {}
 
     /**
@@ -29,7 +31,8 @@ final class ShowAppointment
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
-            $appointment = $this->appointments->findForBusiness($businessId, $input->appointmentId);
+            $scope = $this->calendars->scopeFor($businessId, $input->accountId);
+            $appointment = $this->appointments->findWithinScope($businessId, $input->appointmentId, $scope);
 
             return UseCaseResponse::success($this->presenter->describe($businessId, $appointment));
         } catch (DomainFailure $failure) {

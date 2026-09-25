@@ -7,6 +7,7 @@ use App\Domains\Availability\Exceptions\InvalidWeekday;
 use App\Domains\Availability\Exceptions\OverlappingScheduleIntervals;
 use App\Domains\Availability\Exceptions\ScheduleIntervalInverted;
 use App\Domains\Availability\Exceptions\ScheduleNotSubmitted;
+use App\Domains\Availability\Exceptions\StaffMemberNotFound;
 use App\Domains\Availability\Exceptions\StaffMembershipNotFound;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -46,6 +47,21 @@ function availabilityFailures(): array
             ScheduleNotSubmitted::forAccount('01930000-0000-7000-8000-0000000000a1'),
             'schedule_not_submitted',
             DomainFailureKind::Invalid,
+        ],
+        'a staff member replacement with no schedule' => [
+            ScheduleNotSubmitted::forStaffMember('01930000-0000-7000-8000-0000000000d1'),
+            'schedule_not_submitted',
+            DomainFailureKind::Invalid,
+        ],
+        'a staff member id nobody has' => [
+            StaffMemberNotFound::withId('01930000-0000-7000-8000-0000000000d1'),
+            'staff_member_not_found',
+            DomainFailureKind::NotFound,
+        ],
+        'a staff member of another business' => [
+            StaffMemberNotFound::inBusiness('01930000-0000-7000-8000-0000000000d1', '01930000-0000-7000-8000-0000000000b1'),
+            'staff_member_not_found',
+            DomainFailureKind::NotFound,
         ],
         'an account that is no staff member of the business' => [
             StaffMembershipNotFound::forAccount('01930000-0000-7000-8000-0000000000a1', '01930000-0000-7000-8000-0000000000b1'),
@@ -99,6 +115,12 @@ it('says what it turned down and nothing more', function () {
         ->toBe('A schedule interval must end after it starts, got [18:00] to [09:00].')
         ->and(ScheduleNotSubmitted::forAccount('account-uuid')->getMessage())
         ->toBe('Account [account-uuid] asked to replace its schedule without submitting one.')
+        ->and(ScheduleNotSubmitted::forStaffMember('staff-uuid')->getMessage())
+        ->toBe('Staff member [staff-uuid] was asked to have its schedule replaced without one being submitted.')
+        ->and(StaffMemberNotFound::withId('staff-uuid')->getMessage())
+        ->toBe('Staff member [staff-uuid] was not found.')
+        ->and(StaffMemberNotFound::inBusiness('staff-uuid', 'business-uuid')->getMessage())
+        ->toBe('Staff member [staff-uuid] does not belong to business [business-uuid].')
         ->and(StaffMembershipNotFound::forAccount('account-uuid', 'business-uuid')->getMessage())
         ->toBe('Account [account-uuid] is not a staff member of business [business-uuid].');
 });
@@ -111,6 +133,7 @@ it('gives each refusal an error code of its own', function () {
         ScheduleIntervalInverted::between('18:00', '09:00')->errorCode(),
         ScheduleNotSubmitted::forAccount('account-uuid')->errorCode(),
         StaffMembershipNotFound::forAccount('account-uuid', 'business-uuid')->errorCode(),
+        StaffMemberNotFound::withId('staff-uuid')->errorCode(),
     ];
 
     expect(array_unique($codes))->toHaveCount(count($codes));

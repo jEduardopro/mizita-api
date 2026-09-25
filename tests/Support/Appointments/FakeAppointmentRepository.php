@@ -8,8 +8,10 @@ use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\Exceptions\AppointmentNotFound;
 use App\Domains\Appointments\ValueObjects\CalendarRange;
+use App\Domains\Appointments\ValueObjects\CalendarScope;
 use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
 use App\Shared\ValueObjects\Paginated;
+use DateTimeImmutable;
 use Throwable;
 
 final class FakeAppointmentRepository implements AppointmentRepository
@@ -51,6 +53,16 @@ final class FakeAppointmentRepository implements AppointmentRepository
      */
     public array $customerQueries = [];
 
+    /**
+     * @var list<CalendarScope>
+     */
+    public array $scopesSeen = [];
+
+    /**
+     * @var list<array{businessId: string, staffMemberId: string, now: string}>
+     */
+    public array $upcomingChecks = [];
+
     public function __construct(
         public readonly AppointmentJournal $journal = new AppointmentJournal,
     ) {}
@@ -74,10 +86,11 @@ final class FakeAppointmentRepository implements AppointmentRepository
     /**
      * @return list<Appointment>
      */
-    public function search(string $businessId, CalendarRange $range): array
+    public function search(string $businessId, CalendarRange $range, CalendarScope $scope): array
     {
         $this->journal->record('appointments.search');
         $this->businessIdsSeen[] = $businessId;
+        $this->scopesSeen[] = $scope;
         $this->searches[] = [
             'businessId' => $businessId,
             'from' => $range->from->format(DATE_ATOM),
@@ -86,8 +99,12 @@ final class FakeAppointmentRepository implements AppointmentRepository
 
         return array_values(array_filter(
             $this->appointments,
-            static function (Appointment $appointment) use ($businessId, $range): bool {
+            static function (Appointment $appointment) use ($businessId, $range, $scope): bool {
                 if ($appointment->businessId !== $businessId) {
+                    return false;
+                }
+
+                if (! $scope->permits($appointment->staffMemberId())) {
                     return false;
                 }
 
@@ -101,13 +118,17 @@ final class FakeAppointmentRepository implements AppointmentRepository
     /**
      * @return Paginated<Appointment>
      */
-    public function bookedForCustomer(string $businessId, CustomerAppointmentQuery $query): Paginated
-    {
+    public function bookedForCustomer(
+        string $businessId,
+        CustomerAppointmentQuery $query,
+        CalendarScope $scope,
+    ): Paginated {
         $this->journal->record('appointments.bookedForCustomer');
         $this->businessIdsSeen[] = $businessId;
         $this->customerQueries[] = $query;
+        $this->scopesSeen[] = $scope;
 
-        $booked = $this->bookedOf($businessId, $query->customerId);
+        $booked = $this->bookedOf($businessId, $query->customerId, $scope);
 
         usort(
             $booked,
@@ -125,12 +146,13 @@ final class FakeAppointmentRepository implements AppointmentRepository
     /**
      * @return list<Appointment>
      */
-    private function bookedOf(string $businessId, string $customerId): array
+    private function bookedOf(string $businessId, string $customerId, CalendarScope $scope): array
     {
         return array_values(array_filter(
             $this->appointments,
             static fn (Appointment $appointment): bool => $appointment->businessId === $businessId
                 && $appointment->customerId() === $customerId
+                && $scope->permits($appointment->staffMemberId())
                 && ! $appointment->isCancelled(),
         ));
     }
@@ -142,6 +164,44 @@ final class FakeAppointmentRepository implements AppointmentRepository
 
         return $this->appointments[$this->keyFor($businessId, $id)]
             ?? throw AppointmentNotFound::withId($id);
+    }
+
+    public function findWithinScope(string $businessId, string $id, CalendarScope $scope): Appointment
+    {
+        $this->journal->record('appointments.findWithinScope');
+        $this->businessIdsSeen[] = $businessId;
+        $this->scopesSeen[] = $scope;
+
+        $appointment = $this->appointments[$this->keyFor($businessId, $id)] ?? null;
+
+        if ($appointment === null || ! $scope->permits($appointment->staffMemberId())) {
+            throw AppointmentNotFound::withId($id);
+        }
+
+        return $appointment;
+    }
+
+    public function hasUpcomingForStaffMember(string $businessId, string $staffMemberId, DateTimeImmutable $now): bool
+    {
+        $this->journal->record('appointments.hasUpcomingForStaffMember');
+        $this->businessIdsSeen[] = $businessId;
+        $this->upcomingChecks[] = [
+            'businessId' => $businessId,
+            'staffMemberId' => $staffMemberId,
+            'now' => $now->format(DATE_ATOM),
+        ];
+
+        foreach ($this->appointments as $appointment) {
+            if ($appointment->businessId !== $businessId || $appointment->staffMemberId() !== $staffMemberId) {
+                continue;
+            }
+
+            if (! $appointment->isCancelled() && $appointment->slot()->endsAt > $now) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function findByReferenceCode(string $businessId, string $referenceCode): ?Appointment

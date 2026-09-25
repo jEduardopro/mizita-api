@@ -74,7 +74,7 @@ const navItems: NavItem[] = [
             {
                 href: '/settings/team',
                 labelKey: 'nav.team',
-                permission: 'manage_staff',
+                permission: 'view_staff_members',
             },
             {
                 href: '/settings/booking',

@@ -57,6 +57,7 @@ it('lets every domain exception a request can reach classify itself', function (
 
     expect($exceptions)->not->toBeEmpty()
         ->and($plain)->toBe([
+            'App\Domains\Accounts\Exceptions\TemporaryPasswordTooShort',
             'App\Domains\Industries\Exceptions\IndustryAlreadyActive',
             'App\Domains\Industries\Exceptions\IndustryAlreadyInactive',
             'App\Domains\Industries\Exceptions\InvalidIndustryKey',

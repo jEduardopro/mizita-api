@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domains\Staff\Infrastructure\Permissions\SeededStaffRole;
+use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\ValueObjects\AuthorizationScope;
 use PHPUnit\Framework\Assert;
 
@@ -182,8 +183,108 @@ describe('the staff role', function () {
         expect(mizitaCatalogueSection('roles')['staff']['template'])->toBeTrue();
     });
 
-    it('grants exactly what the catalogue declares, which is all a re-seed can ever put on a clone', function () {
-        expect(mizitaCatalogueSection('roles')['staff']['permissions'])->toBe(['view_services']);
+    it('starts a clone with the agenda, the customers and the payments a member works with', function () {
+        expect(mizitaCatalogueSection('roles')['staff']['permissions'])->toBe([
+            'view_services',
+            'view_appointments',
+            'create_appointment',
+            'edit_appointment',
+            'delete_appointment',
+            'view_customers',
+            'create_customer',
+            'edit_customer',
+            'view_payments',
+            'create_payment',
+        ]);
+    });
+});
+
+describe('the no access role', function () {
+    it('exists only as a per-business clone', function () {
+        expect(mizitaCatalogueSection('roles')['no_access']['template'])->toBeTrue();
+    });
+
+    it('lives in the business scope like every other staff role', function () {
+        expect(mizitaCatalogueSection('roles')['no_access']['scope'])->toBe(AuthorizationScope::Business);
+    });
+
+    it('grants nothing at all', function () {
+        expect(mizitaCatalogueSection('roles')['no_access']['permissions'])->toBe([]);
+    });
+});
+
+describe('the set of roles', function () {
+    it('names exactly the roles the staff vocabulary can read back from the table', function () {
+        expect(array_keys(mizitaCatalogueSection('roles')))
+            ->toBe(array_map(static fn (StaffRole $role): string => $role->value, StaffRole::cases()));
+    });
+
+    it('keeps the owner as the only role that is not cloned per business', function () {
+        $global = array_keys(array_filter(
+            mizitaCatalogueSection('roles'),
+            static fn (array $role): bool => $role['template'] === false,
+        ));
+
+        expect($global)->toBe(['owner']);
+    });
+});
+
+describe('the team permissions', function () {
+    it('retires manage_staff for good', function () {
+        expect(mizitaCatalogueSection('permissions'))->not->toHaveKey('manage_staff');
+    });
+
+    it('splits team management into one permission per action', function () {
+        $staffModule = array_keys(array_filter(
+            mizitaCatalogueSection('permissions'),
+            static fn (array $permission): bool => mizitaModuleOf($permission) === 'staff',
+        ));
+
+        expect($staffModule)->toBe([
+            'view_staff_members',
+            'create_staff_member',
+            'edit_staff_member',
+            'delete_staff_member',
+        ]);
+    });
+
+    it('groups the right to manage every calendar with the appointments', function () {
+        $permission = mizitaCatalogueSection('permissions')['manage_all_calendars'];
+
+        expect(mizitaModuleOf($permission))->toBe('appointments')
+            ->and($permission['scope'])->toBe(AuthorizationScope::Business);
+    });
+
+    it('lets the owner wildcard reach every new permission', function (string $introduced) {
+        expect(mizitaGrantedPermissions(mizitaCatalogueSection('roles')['owner']))->toContain($introduced);
+    })->with([
+        'view_staff_members',
+        'create_staff_member',
+        'edit_staff_member',
+        'delete_staff_member',
+        'manage_all_calendars',
+    ]);
+});
+
+describe('what the routes enforce', function () {
+    it('names only permissions the catalogue defines', function () {
+        $defined = array_keys(mizitaCatalogueSection('permissions'));
+        $routeFiles = glob(dirname(__DIR__, 3).'/app/Domains/*/Infrastructure/Http/routes.php') ?: [];
+
+        $enforced = [];
+
+        foreach ($routeFiles as $routeFile) {
+            preg_match_all('/[\'"]permission:([a-z_]+)[\'"]/', (string) file_get_contents($routeFile), $matches);
+            $enforced = [...$enforced, ...$matches[1]];
+
+            Assert::assertSame(
+                [],
+                array_values(array_diff($matches[1], $defined)),
+                "{$routeFile} guards a route with a permission the catalogue does not define",
+            );
+        }
+
+        expect($enforced)->toContain('view_staff_members', 'create_staff_member', 'edit_staff_member', 'delete_staff_member');
     });
 });
 

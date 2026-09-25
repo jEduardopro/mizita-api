@@ -19,6 +19,7 @@ use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\Payments\FakeAppointmentDirectory;
 use Tests\Support\Payments\FakeBusinessProfile;
+use Tests\Support\Payments\FakeCalendarAccess;
 use Tests\Support\Payments\FakePaymentMethodCatalog;
 use Tests\Support\Payments\FakePaymentRepository;
 use Tests\Support\Payments\FakeServiceCatalog;
@@ -39,7 +40,12 @@ beforeEach(function () {
             id: PaymentFixtures::SECOND_APPOINTMENT_ID,
             serviceId: PaymentFixtures::UNKNOWN_ID,
         ))
+        ->add(FakeBusinessContext::BUSINESS_ID, PaymentFixtures::appointmentSnapshot(
+            id: PaymentFixtures::OTHER_MEMBER_APPOINTMENT_ID,
+            staffMemberId: PaymentFixtures::OTHER_STAFF_MEMBER_ID,
+        ))
         ->add(PaymentFixtures::OTHER_BUSINESS_ID, PaymentFixtures::appointmentSnapshot());
+    $this->calendars = FakeCalendarAccess::everyone();
 
     $this->services = (new FakeServiceCatalog($this->journal))
         ->add(
@@ -59,6 +65,7 @@ beforeEach(function () {
     $this->build = fn (int $addOns = 0, ?FakeBusinessContext $business = null): CreateAppointmentPayment => new CreateAppointmentPayment(
         $this->payments,
         $this->appointments,
+        $this->calendars,
         $this->services,
         $this->businesses,
         $this->paymentMethods,
@@ -491,6 +498,63 @@ describe('refusing to charge', function () {
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('appointment_already_has_payment')
             ->and($response->error()->kind)->toBe(DomainFailureKind::Conflict)
+            ->and($this->payments->saved)->toBe([]);
+    });
+});
+
+describe('a caller who keeps only their own calendar', function () {
+    beforeEach(function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(PaymentFixtures::STAFF_MEMBER_ID);
+    });
+
+    it('charges an appointment on their own calendar', function () {
+        $data = ($this->create)()->value();
+
+        expect($data->appointmentId)->toBe(PaymentFixtures::APPOINTMENT_ID)
+            ->and($this->payments->saved)->toHaveCount(1);
+    });
+
+    it('answers not found for an appointment on the calendar of another team member', function () {
+        $response = ($this->create)(appointmentId: PaymentFixtures::OTHER_MEMBER_APPOINTMENT_ID);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('payment_appointment_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('opens no payment and prices nothing for an appointment it refused', function () {
+        ($this->create)(appointmentId: PaymentFixtures::OTHER_MEMBER_APPOINTMENT_ID);
+
+        expect($this->payments->saved)->toBe([])
+            ->and($this->services->reads)->toBe([])
+            ->and($this->journal->entries)->not->toContain('payments.save');
+    });
+});
+
+describe('the calendar the caller is allowed to keep', function () {
+    it('asks for the scope of the actor, in the business in context', function () {
+        ($this->create)(actorAccountId: PaymentFixtures::OTHER_ACTOR_ID);
+
+        expect($this->calendars->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'accountId' => PaymentFixtures::OTHER_ACTOR_ID,
+        ]]);
+    });
+
+    it('lets a caller who keeps every calendar charge an appointment of any team member', function () {
+        $data = ($this->create)(appointmentId: PaymentFixtures::OTHER_MEMBER_APPOINTMENT_ID)->value();
+
+        expect($data->appointmentId)->toBe(PaymentFixtures::OTHER_MEMBER_APPOINTMENT_ID);
+    });
+
+    it('refuses an actor that is no member of the business and opens no payment', function () {
+        $this->calendars = FakeCalendarAccess::refusing();
+
+        $response = ($this->create)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('payment_account_not_found')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
             ->and($this->payments->saved)->toBe([]);
     });
 });

@@ -8,6 +8,7 @@ use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\ValueObjects\StaffRole;
+use Throwable;
 
 final class FakeStaffMemberRepository implements StaffMemberRepository
 {
@@ -22,9 +23,25 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
     public array $accountLookups = [];
 
     /**
+     * @var list<array{businessId: string, id: string}>
+     */
+    public array $businessLookups = [];
+
+    /**
      * @var list<StaffMember>
      */
     public array $saved = [];
+
+    /**
+     * @var list<array{businessId: string, id: string}>
+     */
+    public array $deleted = [];
+
+    private ?Throwable $saveRefusal = null;
+
+    private int $savesBeforeRefusal = 0;
+
+    private ?Throwable $deleteRefusal = null;
 
     public function __construct(
         private readonly StaffJournal $journal = new StaffJournal,
@@ -39,9 +56,34 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
         return $this;
     }
 
+    public function refuseSaveWith(Throwable $refusal, int $afterSaves = 0): self
+    {
+        $this->saveRefusal = $refusal;
+        $this->savesBeforeRefusal = $afterSaves;
+
+        return $this;
+    }
+
+    public function refuseDeleteWith(Throwable $refusal): self
+    {
+        $this->deleteRefusal = $refusal;
+
+        return $this;
+    }
+
+    public function stored(string $id): ?StaffMember
+    {
+        return isset($this->members[$id]) ? self::copyOf($this->members[$id]) : null;
+    }
+
     public function save(StaffMember $member): void
     {
         $this->journal->record('members.save');
+
+        if ($this->saveRefusal !== null && count($this->saved) >= $this->savesBeforeRefusal) {
+            throw $this->saveRefusal;
+        }
+
         $this->saved[] = $member;
         $this->members[$member->id] = $member;
     }
@@ -49,6 +91,19 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
     public function findById(string $id): StaffMember
     {
         return $this->members[$id] ?? throw StaffMemberNotFound::withId($id);
+    }
+
+    public function findForBusiness(string $businessId, string $id): StaffMember
+    {
+        $this->businessLookups[] = ['businessId' => $businessId, 'id' => $id];
+
+        $member = $this->members[$id] ?? null;
+
+        if ($member === null || $member->businessId !== $businessId) {
+            throw StaffMemberNotFound::withId($id);
+        }
+
+        return self::copyOf($member);
     }
 
     public function findForAccount(string $businessId, string $accountId): StaffMember
@@ -96,5 +151,34 @@ final class FakeStaffMemberRepository implements StaffMemberRepository
         }
 
         return false;
+    }
+
+    public function delete(string $businessId, string $id): void
+    {
+        $this->journal->record('members.delete');
+
+        if ($this->deleteRefusal !== null) {
+            throw $this->deleteRefusal;
+        }
+
+        $member = $this->members[$id] ?? null;
+
+        if ($member === null || $member->businessId !== $businessId) {
+            throw StaffMemberNotFound::withId($id);
+        }
+
+        $this->deleted[] = ['businessId' => $businessId, 'id' => $id];
+        unset($this->members[$id]);
+    }
+
+    private static function copyOf(StaffMember $member): StaffMember
+    {
+        return StaffMember::restore(
+            id: $member->id,
+            businessId: $member->businessId,
+            accountId: $member->accountId,
+            role: $member->role(),
+            createdAt: $member->createdAt,
+        );
     }
 }

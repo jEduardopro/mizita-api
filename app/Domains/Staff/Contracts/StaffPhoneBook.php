@@ -10,5 +10,16 @@ interface StaffPhoneBook
 {
     public function forProfile(string $profileId): ?PhoneNumber;
 
+    /**
+     * @param  list<string>  $profileIds
+     * @return array<string, PhoneNumber>
+     */
+    public function forProfiles(array $profileIds): array;
+
+    /**
+     * @return list<string>
+     */
+    public function profileIdsMatchingNumber(string $fragment): array;
+
     public function replaceForProfile(string $profileId, ?PhoneNumber $phone): void;
 }
