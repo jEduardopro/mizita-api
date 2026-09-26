@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ChevronsUpDown, LogOut, Palette, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,6 +21,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMyProfile } from '@/domains/staff/queries';
 import { useCurrentUser, type CurrentUser } from '@/hooks/use-current-user';
 import { useLogOut } from '@/hooks/use-log-out';
 import { initialsFrom } from '@/lib/initials';
@@ -38,12 +39,14 @@ function menuSide(isMobile: boolean, isCollapsed: boolean): MenuSide {
 
 type IdentityProps = {
     user: CurrentUser;
+    photoUrl: string | null;
 };
 
-function AccountIdentity({ user }: IdentityProps) {
+function AccountIdentity({ user, photoUrl }: IdentityProps) {
     return (
         <>
             <Avatar className="size-8 rounded-md">
+                {photoUrl ? <AvatarImage src={photoUrl} alt="" className="rounded-md" /> : null}
                 <AvatarFallback className="rounded-md text-xs font-semibold">
                     {initialsFrom(user.name)}
                 </AvatarFallback>
@@ -75,6 +78,8 @@ export function AccountMenu() {
     const { t: tCommon } = useTranslation('common');
     const { isMobile, state } = useSidebar();
     const { data: user } = useCurrentUser();
+    const { data: profile } = useMyProfile();
+    const photoUrl = profile?.photo_url ?? null;
     const logOut = useLogOut();
 
     return (
@@ -87,7 +92,7 @@ export function AccountMenu() {
                             aria-label={t('account.menu')}
                             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
-                            {user ? <AccountIdentity user={user} /> : <AccountIdentitySkeleton />}
+                            {user ? <AccountIdentity user={user} photoUrl={photoUrl} /> : <AccountIdentitySkeleton />}
 
                             <ChevronsUpDown className="ml-auto size-4 opacity-60" />
                         </SidebarMenuButton>
@@ -102,7 +107,7 @@ export function AccountMenu() {
                         {user ? (
                             <>
                                 <DropdownMenuLabel className="flex items-center gap-2 py-2 font-normal">
-                                    <AccountIdentity user={user} />
+                                    <AccountIdentity user={user} photoUrl={photoUrl} />
                                 </DropdownMenuLabel>
 
                                 <DropdownMenuSeparator />
