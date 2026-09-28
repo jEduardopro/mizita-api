@@ -17,7 +17,9 @@ use Tests\Support\Businesses\OnboardingFixtures;
 use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
+use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
     $this->registeredMemberId = '01930000-0000-7000-8000-0000000000c9';
@@ -28,6 +30,7 @@ beforeEach(function () {
     $this->registrar = new StaffOwnerRegistrar(new RegisterBusinessOwner(
         $this->staffMembers,
         $this->profiles,
+        new FakeAccountDirectory(StaffFixtures::account(id: OnboardingFixtures::OWNER_ACCOUNT_ID, name: 'José Pablo Núñez')),
         new FixedIdGenerator($this->registeredMemberId, $this->registeredProfileId),
         new FakeClock(OnboardingFixtures::now()),
         new FakeTransactionManager,
@@ -72,6 +75,15 @@ describe('registering the owner of a brand new business', function () {
         expect($staffMemberId)->not->toBe($this->registeredProfileId)
             ->and($this->profiles->saved[0]->staffMemberId)->toBe($staffMemberId)
             ->and($this->profiles->saved[0]->businessId)->toBe(OnboardingFixtures::GENERATED_BUSINESS_ID);
+    });
+
+    it('gives the owner profile a booking slug built from the account name', function () {
+        $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
+        $this->staffMembers->shouldReceive('save')->once();
+
+        ($this->register)();
+
+        expect($this->profiles->saved[0]->bookingSlug()?->value)->toBe('jose-pablo-nunez');
     });
 
     it('hands back the events the staff use case raised', function () {

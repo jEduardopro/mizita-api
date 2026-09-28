@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Staff\Contracts;
 
 use App\Domains\Staff\Entities\StaffProfile;
+use App\Domains\Staff\Exceptions\BookingSlugAlreadyTaken;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\StaffProfileNotFound;
 
@@ -23,6 +24,7 @@ interface StaffProfileRepository
 
     /**
      * @throws StaffMemberNotFound
+     * @throws BookingSlugAlreadyTaken
      */
     public function save(StaffProfile $profile): void;
 }

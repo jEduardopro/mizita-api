@@ -176,6 +176,10 @@
             "showAll": "Show all photos",
             "close": "Close photos",
             "openPhoto": "View photo {{position}}",
+            "previous": "Previous photo",
+            "next": "Next photo",
+            "counter": "{{position}} / {{total}}",
+            "position": "Photo {{position}} of {{total}}",
             "more_one": "+{{count}} photo",
             "more_other": "+{{count}} photos"
         },
@@ -200,7 +204,8 @@
             "progress": "Step {{current}} of {{total}}",
             "service": {
                 "title": "Choose a service",
-                "description": "Pick what you would like to book."
+                "description": "Pick what you would like to book.",
+                "pinnedTitle": "Select a service"
             },
             "staff": {
                 "title": "Choose who attends you",
@@ -295,6 +300,19 @@
                 "availability": "We could not load the free times.",
                 "booking": "We could not confirm your booking. Try again.",
                 "tooMany": "Too many tries. Wait a minute and send it again."
+            },
+            "pinned": {
+                "share": "Share link",
+                "shareTitle": "Book with {{name}} at {{business}}",
+                "copied": "Link copied",
+                "copyFailed": "We could not copy the link.",
+                "readMore": "Read more",
+                "readLess": "Read less",
+                "unavailable": {
+                    "title": "No availability",
+                    "description": "{{name}} has nothing to book right now.",
+                    "action": "See all services"
+                }
             }
         },
         "manage": {
@@ -336,6 +354,9 @@
             "windowMinutes_one": "{{count}} minute",
             "windowMinutes_other": "{{count}} minutes",
             "windowParts": "{{hours}} and {{minutes}}"
+        },
+        "team": {
+            "bookWith": "Book with {{name}}"
         }
     }
 }

@@ -103,6 +103,7 @@ final class FakeStaffProfileRepository implements StaffProfileRepository
             staffMemberId: $profile->staffMemberId,
             jobTitle: $profile->jobTitle(),
             about: $profile->about(),
+            bookingSlug: $profile->bookingSlug(),
             createdAt: $profile->createdAt,
         );
     }

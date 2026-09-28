@@ -1,11 +1,13 @@
 import { cn } from 'cn';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { GalleryImage } from '@/lib/booking-brand';
-import { BookingGalleryLightbox } from './BookingGalleryLightbox';
+import { BookingGalleryViewer } from './BookingGalleryViewer';
+import { useGalleryViewer } from './use-gallery-viewer';
 
 const MOSAIC_LIMIT = 5;
+
+const FIRST_PHOTO_INDEX = 0;
 
 type Props = {
     images: GalleryImage[];
@@ -15,7 +17,7 @@ type Props = {
 
 export function BookingGallery({ images, businessName, themeScope }: Props) {
     const { t } = useTranslation('public');
-    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const { openAt, viewerState } = useGalleryViewer();
 
     const mosaic = images.slice(0, MOSAIC_LIMIT);
     const hiddenCount = images.length - mosaic.length;
@@ -38,7 +40,7 @@ export function BookingGallery({ images, businessName, themeScope }: Props) {
                         >
                             <button
                                 type="button"
-                                onClick={() => setIsLightboxOpen(true)}
+                                onClick={() => openAt(index)}
                                 className={cn(
                                     'group relative block size-full overflow-hidden rounded-xl bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                                     isLead ? 'aspect-[16/10] sm:aspect-auto' : 'aspect-square',
@@ -69,18 +71,17 @@ export function BookingGallery({ images, businessName, themeScope }: Props) {
             <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsLightboxOpen(true)}
+                onClick={() => openAt(FIRST_PHOTO_INDEX)}
                 className="h-11 px-4"
             >
                 {t('booking.gallery.showAll')}
             </Button>
 
-            <BookingGalleryLightbox
+            <BookingGalleryViewer
                 images={images}
                 businessName={businessName}
                 themeScope={themeScope}
-                open={isLightboxOpen}
-                onOpenChange={setIsLightboxOpen}
+                {...viewerState}
             />
         </div>
     );

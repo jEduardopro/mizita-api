@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Support\Staff;
 
+use App\Domains\Staff\Application\Presenters\BookingLinkPresenter;
+use App\Domains\Staff\Application\Services\BookingReadinessAssessor;
+use App\Domains\Staff\Contracts\BusinessSlugs;
+use App\Domains\Staff\Contracts\ServiceAssignments;
+use App\Domains\Staff\Contracts\WorkingHours;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
+use App\Domains\Staff\Services\BookingLinks;
 use App\Domains\Staff\ValueObjects\About;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
+use App\Domains\Staff\ValueObjects\BookingSlug;
 use App\Domains\Staff\ValueObjects\JobTitle;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use DateTimeImmutable;
@@ -51,9 +58,29 @@ final class StaffFixtures
 
     public const PHOTO_URL = 'https://cdn.mizita.test/staff/ada.webp';
 
+    public const BUSINESS_SLUG = 'barberia-nunoa';
+
+    public const BOOKING_BASE_URL = 'https://mizita.test';
+
+    public const BOOKING_SLUG = 'ada-lovelace';
+
+    public const BOOKING_URL = self::BOOKING_BASE_URL.'/'.self::BUSINESS_SLUG.'/equipo/'.self::BOOKING_SLUG;
+
     public static function now(): DateTimeImmutable
     {
         return new DateTimeImmutable(self::NOW);
+    }
+
+    public static function bookingLinkPresenter(
+        ServiceAssignments $services = new FakeServiceAssignments,
+        WorkingHours $workingHours = new FakeWorkingHours,
+        BusinessSlugs $businesses = new FakeBusinessSlugs,
+    ): BookingLinkPresenter {
+        return new BookingLinkPresenter(
+            new BookingReadinessAssessor($services, $workingHours),
+            $businesses,
+            new BookingLinks(self::BOOKING_BASE_URL),
+        );
     }
 
     public static function member(
@@ -79,6 +106,7 @@ final class StaffFixtures
         ?string $jobTitle = self::JOB_TITLE,
         ?string $about = self::ABOUT,
         ?DateTimeImmutable $createdAt = null,
+        ?string $bookingSlug = null,
     ): StaffProfile {
         return StaffProfile::restore(
             id: $id,
@@ -86,6 +114,7 @@ final class StaffFixtures
             staffMemberId: $staffMemberId,
             jobTitle: $jobTitle === null ? null : JobTitle::restore($jobTitle),
             about: $about === null ? null : About::restore($about),
+            bookingSlug: $bookingSlug === null ? null : BookingSlug::restore($bookingSlug),
             createdAt: $createdAt ?? self::now(),
         );
     }

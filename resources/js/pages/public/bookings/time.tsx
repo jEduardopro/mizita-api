@@ -94,7 +94,7 @@ export default function BookingTimeStep({ slug }: Props) {
                     accent={brandColorClasses[page.brand.accent_color]}
                     buttonShape={page.brand.button_shape}
                     onMonthChange={setChosenMonth}
-                    onSelect={(startsAt) => flow.goTo('details', { at: startsAt })}
+                    onSelect={(startsAt) => flow.advance({ at: startsAt })}
                 />
             )}
         </BookingFlowLayout>

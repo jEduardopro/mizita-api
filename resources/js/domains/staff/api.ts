@@ -1,8 +1,10 @@
 import { api } from '@/lib/api';
 import type { Paginated } from '@/types/api';
 import type {
+    ChangeStaffBookingSlugPayload,
     InviteTeamMembersPayload,
     MyProfile,
+    StaffBookingLink,
     StaffMember,
     TeamListParams,
     TeamMember,
@@ -18,6 +20,10 @@ const TEAM_URL = '/staff-members';
 
 function teamMemberUrl(id: string): string {
     return `${TEAM_URL}/${id}`;
+}
+
+function bookingLinkUrl(id: string): string {
+    return `${teamMemberUrl(id)}/booking-link`;
 }
 
 function photoBodyFrom(photo: File): FormData {
@@ -118,4 +124,19 @@ export async function checkTeamMemberRemoval(id: string, signal?: AbortSignal): 
 
 export async function removeTeamMember(id: string): Promise<void> {
     await api.delete(teamMemberUrl(id));
+}
+
+export async function generateStaffBookingLink(id: string): Promise<StaffBookingLink> {
+    const { data } = await api.post<{ data: StaffBookingLink }>(bookingLinkUrl(id));
+
+    return data.data;
+}
+
+export async function changeStaffBookingSlug(
+    id: string,
+    payload: ChangeStaffBookingSlugPayload,
+): Promise<StaffBookingLink> {
+    const { data } = await api.put<{ data: StaffBookingLink }>(bookingLinkUrl(id), payload);
+
+    return data.data;
 }

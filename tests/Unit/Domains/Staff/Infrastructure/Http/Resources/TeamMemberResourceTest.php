@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Domains\Staff\Application\Dtos\BookingLinkData;
+use App\Domains\Staff\Application\Dtos\BookingLinkStatus;
 use App\Domains\Staff\Application\Dtos\TeamMemberData;
 use App\Domains\Staff\Infrastructure\Http\Resources\TeamMemberResource;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use Tests\Support\PhoneNumbers;
 use Tests\Support\Staff\StaffFixtures;
@@ -16,6 +19,7 @@ function teamMemberData(
     bool $withPhone = true,
     bool $invitationPending = true,
     bool $temporaryPasswordAvailable = true,
+    ?BookingLinkStatus $bookingLink = null,
 ): TeamMemberData {
     return new TeamMemberData(
         id: StaffFixtures::SECOND_MEMBER_ID,
@@ -25,6 +29,10 @@ function teamMemberData(
         photoUrl: $withPhone ? StaffFixtures::PHOTO_URL : null,
         jobTitle: $withPhone ? StaffFixtures::JOB_TITLE : null,
         about: $withPhone ? StaffFixtures::ABOUT : null,
+        bookingLink: $bookingLink ?? new BookingLinkStatus(
+            new BookingLinkData(StaffFixtures::BOOKING_SLUG, StaffFixtures::BOOKING_URL),
+            [],
+        ),
         level: $level,
         invitationPending: $invitationPending,
         temporaryPasswordAvailable: $temporaryPasswordAvailable,
@@ -53,6 +61,9 @@ it('serializes exactly the fields the team screen reads, wrapped in data', funct
         'photo_url' => StaffFixtures::PHOTO_URL,
         'job_title' => StaffFixtures::JOB_TITLE,
         'about' => StaffFixtures::ABOUT,
+        'booking_slug' => StaffFixtures::BOOKING_SLUG,
+        'booking_url' => StaffFixtures::BOOKING_URL,
+        'booking_link_blockers' => [],
         'level' => 'staff',
         'invitation_pending' => true,
         'temporary_password_available' => true,
@@ -92,4 +103,34 @@ it('sends null for every optional detail the member lacks', function () {
         ->and($member['about'])->toBeNull()
         ->and($member['invitation_pending'])->toBeFalse()
         ->and($member['temporary_password_available'])->toBeFalse();
+});
+
+describe('the booking link', function () {
+    it('sends null for the slug and the url of a member with no link yet', function () {
+        $member = serializedTeamMember(teamMemberData(bookingLink: new BookingLinkStatus(null, [])));
+
+        expect($member)->toHaveKeys(['booking_slug', 'booking_url'])
+            ->and($member['booking_slug'])->toBeNull()
+            ->and($member['booking_url'])->toBeNull();
+    });
+
+    it('sends every blocker as its stable code, in the order it was assessed', function () {
+        $member = serializedTeamMember(teamMemberData(bookingLink: new BookingLinkStatus(
+            null,
+            [BookingLinkBlocker::NoServices, BookingLinkBlocker::NoWorkingHours],
+        )));
+
+        expect($member['booking_link_blockers'])->toBe(['no_services', 'no_working_hours']);
+    });
+
+    it('sends the blockers as a list even when a link already exists', function () {
+        $member = serializedTeamMember(teamMemberData(bookingLink: new BookingLinkStatus(
+            new BookingLinkData(StaffFixtures::BOOKING_SLUG, StaffFixtures::BOOKING_URL),
+            [BookingLinkBlocker::NoServices],
+        )));
+
+        expect($member['booking_slug'])->toBe(StaffFixtures::BOOKING_SLUG)
+            ->and($member['booking_url'])->toBe(StaffFixtures::BOOKING_URL)
+            ->and($member['booking_link_blockers'])->toBe(['no_services']);
+    });
 });

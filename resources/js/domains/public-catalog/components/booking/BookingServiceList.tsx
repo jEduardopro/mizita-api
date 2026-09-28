@@ -1,4 +1,5 @@
 import { PackageOpen } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { brandColorClasses, type BrandColor, type ButtonShape } from '@/lib/booking-brand';
 import type { PublicService } from '../../types';
@@ -12,7 +13,22 @@ type Props = {
     accentColor: BrandColor;
     buttonShape: ButtonShape;
     onSelect(serviceId: string): void;
+    emptyState?: ReactNode;
 };
+
+function NoServicesAvailable() {
+    const { t } = useTranslation('public');
+
+    return (
+        <div className="grid justify-items-center gap-3 rounded-xl border border-dashed border-border px-5 py-12 text-center">
+            <PackageOpen aria-hidden="true" className="size-6 text-muted-foreground" />
+
+            <p className="max-w-sm text-sm text-pretty text-muted-foreground">
+                {t('booking.flow.empty.services')}
+            </p>
+        </div>
+    );
+}
 
 export function BookingServiceList({
     slug,
@@ -22,19 +38,10 @@ export function BookingServiceList({
     accentColor,
     buttonShape,
     onSelect,
+    emptyState = <NoServicesAvailable />,
 }: Props) {
-    const { t } = useTranslation('public');
-
     if (services.length === 0) {
-        return (
-            <div className="grid justify-items-center gap-3 rounded-xl border border-dashed border-border px-5 py-12 text-center">
-                <PackageOpen aria-hidden="true" className="size-6 text-muted-foreground" />
-
-                <p className="max-w-sm text-sm text-pretty text-muted-foreground">
-                    {t('booking.flow.empty.services')}
-                </p>
-            </div>
-        );
+        return emptyState;
     }
 
     const accent = brandColorClasses[accentColor];

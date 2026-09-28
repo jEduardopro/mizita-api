@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
 use App\Domains\Staff\Exceptions\AccountAlreadyOwnsBusiness;
+use App\Domains\Staff\Exceptions\BookingLinkAlreadyExists;
+use App\Domains\Staff\Exceptions\BookingLinkNotFound;
+use App\Domains\Staff\Exceptions\BookingSlugAlreadyTaken;
 use App\Domains\Staff\Exceptions\DuplicateTeamInvitationEmail;
+use App\Domains\Staff\Exceptions\InvalidBookingSlug;
 use App\Domains\Staff\Exceptions\InvalidProfileAbout;
 use App\Domains\Staff\Exceptions\InvalidProfileJobTitle;
 use App\Domains\Staff\Exceptions\InvalidProfileName;
@@ -16,6 +20,7 @@ use App\Domains\Staff\Exceptions\InvalidTeamSearch;
 use App\Domains\Staff\Exceptions\OwnerCannotBeRemoved;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\ProfilePhotoTooLarge;
+use App\Domains\Staff\Exceptions\StaffMemberCannotReceiveBookings;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\StaffProfileNotFound;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
@@ -199,6 +204,36 @@ function staffFailures(): array
             'team_member_already_exists',
             DomainFailureKind::Invalid,
         ],
+        'nobody booking under a slug' => [
+            StaffMemberNotFound::withBookingSlug(StaffFixtures::BOOKING_SLUG),
+            'staff_member_not_found',
+            DomainFailureKind::NotFound,
+        ],
+        'a second booking link for the same member' => [
+            BookingLinkAlreadyExists::forStaffMember(StaffFixtures::MEMBER_ID),
+            'booking_link_already_exists',
+            DomainFailureKind::Conflict,
+        ],
+        'editing a booking link never generated' => [
+            BookingLinkNotFound::forStaffMember(StaffFixtures::MEMBER_ID),
+            'booking_link_not_found',
+            DomainFailureKind::NotFound,
+        ],
+        'a booking slug another member holds' => [
+            BookingSlugAlreadyTaken::for(StaffFixtures::BOOKING_SLUG),
+            'booking_slug_taken',
+            DomainFailureKind::Conflict,
+        ],
+        'a malformed booking slug' => [
+            InvalidBookingSlug::forValue('Ada Lovelace'),
+            'invalid_booking_slug',
+            DomainFailureKind::Invalid,
+        ],
+        'a member with no services or no hours' => [
+            StaffMemberCannotReceiveBookings::forStaffMember(StaffFixtures::MEMBER_ID),
+            'staff_member_cannot_receive_bookings',
+            DomainFailureKind::Invalid,
+        ],
     ];
 }
 
@@ -303,4 +338,11 @@ it('names the member or the address each team refusal is about', function () {
         ->toBe('Staff member [m-1] has no temporary password left to reveal.')
         ->and(InvalidTeamSearch::tooLong(120)->getMessage())
         ->toBe('A team search may not run past 120 characters.');
+});
+
+it('keeps the unique violation as the cause of a slug the database refused', function () {
+    $cause = new RuntimeException('unique violation');
+
+    expect(BookingSlugAlreadyTaken::for(StaffFixtures::BOOKING_SLUG, $cause)->getPrevious())->toBe($cause)
+        ->and(BookingSlugAlreadyTaken::for(StaffFixtures::BOOKING_SLUG)->getPrevious())->toBeNull();
 });

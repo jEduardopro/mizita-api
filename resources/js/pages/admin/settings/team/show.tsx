@@ -19,6 +19,7 @@ import { useStaffProfileAccess } from '@/domains/staff/components/use-staff-prof
 import {
     useAttachTeamMemberPhoto,
     useMyProfile,
+    useRefreshBookingLinkReadiness,
     useRemoveTeamMemberPhoto,
     useTeamMember,
     useUpdateTeamMember,
@@ -46,6 +47,7 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
     const updateMember = useUpdateTeamMember();
     const attachPhoto = useAttachTeamMemberPhoto();
     const removePhoto = useRemoveTeamMemberPhoto();
+    const refreshBookingLinkReadiness = useRefreshBookingLinkReadiness(member.id);
     const profile = useMemo(() => staffProfileDetailsFrom(member), [member]);
 
     const businessSchedule = businessScheduleFor(schedule.data, calendarSettings?.schedule);
@@ -54,9 +56,6 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
     const hoursNotice = can('view_business_settings') ? (
         <BusinessHoursNotice businessSettingsHref={BRAND_SETTINGS_URL} />
     ) : null;
-
-    const canRemove = can('delete_staff_member') && member.level !== 'owner';
-    const removalMenu = canRemove ? <TeamMemberProfileMenu memberId={member.id} name={member.name} /> : undefined;
 
     return (
         <StaffProfileScreen
@@ -68,7 +67,14 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
             onSaveProfile={(payload) => updateMember.mutateAsync({ id: member.id, payload })}
             onUploadPhoto={(photo) => attachPhoto.mutateAsync({ id: member.id, photo })}
             onRemovePhoto={() => removePhoto.mutateAsync(member.id)}
-            services={<StaffServicesSection staffMemberId={member.id} />}
+            services={
+                <StaffServicesSection
+                    staffMemberId={member.id}
+                    staffName={member.name}
+                    staffBookingUrl={member.booking_url}
+                    onAssignmentsChange={refreshBookingLinkReadiness}
+                />
+            }
             renderHoursSummary={(onEdit) => (
                 <WorkingHoursSummary
                     schedule={schedule.data?.schedule}
@@ -84,12 +90,19 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
                     loadFailed={schedule.isError}
                     onRetry={retrySchedule}
                     businessSchedule={businessSchedule}
-                    onSave={replaceSchedule.mutateAsync}
+                    onSave={(payload) => replaceSchedule.mutateAsync(payload).then(refreshBookingLinkReadiness)}
                     onCancel={onCancel}
                     notice={hoursNotice}
                 />
             )}
-            headerActions={removalMenu}
+            headerActions={
+                <TeamMemberProfileMenu
+                    memberId={member.id}
+                    name={member.name}
+                    level={member.level}
+                    bookingUrl={member.booking_url}
+                />
+            }
         />
     );
 }

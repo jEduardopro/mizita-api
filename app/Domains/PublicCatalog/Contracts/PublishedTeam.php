@@ -11,5 +11,5 @@ interface PublishedTeam
     /**
      * @return list<PublicTeamMember>
      */
-    public function forBusiness(string $businessId): array;
+    public function forBusiness(string $businessId, string $businessSlug): array;
 }

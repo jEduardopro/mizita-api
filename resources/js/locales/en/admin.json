@@ -709,7 +709,8 @@
             "hours": "Working hours",
             "about": "About",
             "addAbout": "Add a description",
-            "role": "Permission level"
+            "role": "Permission level",
+            "bookingLink": "Booking link"
         },
         "notFound": {
             "title": "We couldn’t find your profile",
@@ -772,6 +773,33 @@
             "saving": "Saving…",
             "saved": "Profile saved",
             "unexpected": "We couldn’t save your profile. Try again."
+        },
+        "bookingLink": {
+            "generate": "Generate link",
+            "generating": "Generating link…",
+            "generated": "Link generated",
+            "generateFailed": "We could not generate the link. Try again.",
+            "none": "No booking link",
+            "opensInNewTab": "(opens in a new tab)",
+            "copy": "Copy link",
+            "copyFailed": "We could not copy the link. Copy it by hand from the profile.",
+            "edit": "Edit link",
+            "blockers": {
+                "noServices": "Assign at least one service to generate the link.",
+                "noWorkingHours": "Set working hours to generate the link.",
+                "both": "Assign at least one service and set working hours to generate the link."
+            },
+            "dialog": {
+                "title": "Edit link",
+                "description": "Anyone holding the previous link will no longer be able to book with it.",
+                "slug": "End of the link",
+                "preview": "Link preview",
+                "save": "Save link",
+                "saving": "Saving…",
+                "saved": "Link saved",
+                "saveFailed": "We could not save the link. Try again.",
+                "taken": "Someone else on your team already uses that link. Try another one."
+            }
         }
     },
     "onboarding": {
@@ -1175,7 +1203,10 @@
             "empty": "No services left to add",
             "results": "Available services",
             "optionsError": "We couldn’t load the services."
-        }
+        },
+        "copyLink": "Copy link for {{service}}",
+        "linkUnavailable": "Generate {{name}}’s link first",
+        "copyFailed": "We could not copy the link. Try again."
     },
     "security": {
         "title": "Sign-in and security",
@@ -1419,7 +1450,8 @@
             "resend": "Resend invitation",
             "copyTemporaryPassword": "Copy temporary password",
             "remove": "Remove from team",
-            "removeMember": "Remove from team"
+            "removeMember": "Remove from team",
+            "copyLink": "Copy link"
         },
         "empty": {
             "search": {

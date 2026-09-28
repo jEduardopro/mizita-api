@@ -84,7 +84,6 @@ dataset('keys a visitor may never see', [
     'role',
     'active',
     'buffer_minutes',
-    'booking_url',
     'color',
     'created_at',
 ]);
@@ -134,6 +133,9 @@ describe('what a visitor is allowed to see', function () {
             'image_url',
             'staff_ids',
             'team',
+            'photo_url',
+            'job_title',
+            'booking_url',
             'location',
             'street',
             'city',
@@ -205,7 +207,8 @@ describe('the client contract', function () {
         expect(array_keys($serialized['schedule'][0]))->toBe(['weekday', 'starts_at', 'ends_at'])
             ->and(array_keys($serialized['services'][0]))
             ->toBe(['id', 'name', 'slug', 'description', 'duration_minutes', 'price', 'image_url', 'staff_ids'])
-            ->and(array_keys($serialized['team'][0]))->toBe(['id', 'name'])
+            ->and(array_keys($serialized['team'][0]))
+            ->toBe(['id', 'name', 'photo_url', 'job_title', 'about', 'booking_url'])
             ->and(array_keys($serialized['brand']['gallery'][0]))->toBe(['id', 'url'])
             ->and(array_keys($serialized['contact']['links'][0]))->toBe(['platform', 'url']);
     });
@@ -251,7 +254,14 @@ describe('the client contract', function () {
                 ],
             ],
             'team' => [
-                ['id' => PublicCatalogFixtures::TEAM_MEMBER_ID, 'name' => 'Ada Lovelace'],
+                [
+                    'id' => PublicCatalogFixtures::TEAM_MEMBER_ID,
+                    'name' => 'Ada Lovelace',
+                    'photo_url' => PublicCatalogFixtures::TEAM_PHOTO_URL,
+                    'job_title' => PublicCatalogFixtures::TEAM_JOB_TITLE,
+                    'about' => PublicCatalogFixtures::TEAM_ABOUT,
+                    'booking_url' => PublicCatalogFixtures::TEAM_BOOKING_URL,
+                ],
             ],
             'location' => [
                 'street' => 'Avenida Insurgentes Sur 1602',
@@ -423,6 +433,41 @@ describe('the last date a visitor may still book', function () {
     it('is a calendar date, never an instant', function () {
         expect(serializedPublicBusinessPage(PublicCatalogFixtures::page(lastBookableDate: '2026-12-31')))
             ->toMatchArray(['last_bookable_date' => '2026-12-31']);
+    });
+});
+
+describe('the team a visitor sees', function () {
+    it('sends null rather than dropping the key for every detail a member left empty', function () {
+        $member = serializedPublicBusinessPage(PublicCatalogFixtures::page(team: [
+            PublicCatalogFixtures::teamMember(photoUrl: null, jobTitle: null, about: null, bookingUrl: null),
+        ]))['team'][0];
+
+        expect($member)->toBe([
+            'id' => PublicCatalogFixtures::TEAM_MEMBER_ID,
+            'name' => 'Ada Lovelace',
+            'photo_url' => null,
+            'job_title' => null,
+            'about' => null,
+            'booking_url' => null,
+        ]);
+    });
+
+    it('carries no contact detail or account data of a member, only what the public header shows', function (string $forbidden) {
+        $member = serializedPublicBusinessPage()['team'][0];
+
+        expect(array_keys($member))->not->toContain($forbidden);
+    })->with(['email', 'phone', 'account_id', 'role', 'staff_member_id', 'booking_slug', 'profile_id']);
+
+    it('keeps a booking url on the team rows alone, never on a service row', function () {
+        expect(array_keys(serializedPublicBusinessPage()['services'][0]))->not->toContain('booking_url');
+    });
+
+    it('keeps unicode and line breaks in what a member wrote about themselves', function () {
+        $about = "Colorista en Ñuñoa.\nMañanas y tardes.";
+
+        expect(serializedPublicBusinessPage(PublicCatalogFixtures::page(team: [
+            PublicCatalogFixtures::teamMember(about: $about, jobTitle: 'Peluquera sénior'),
+        ]))['team'][0])->toMatchArray(['about' => $about, 'job_title' => 'Peluquera sénior']);
     });
 });
 

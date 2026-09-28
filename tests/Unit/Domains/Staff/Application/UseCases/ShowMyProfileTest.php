@@ -6,16 +6,19 @@ use App\Domains\Staff\Application\Dtos\MyProfileData;
 use App\Domains\Staff\Application\Dtos\ShowMyProfileInput;
 use App\Domains\Staff\Application\Presenters\MyProfilePresenter;
 use App\Domains\Staff\Application\UseCases\ShowMyProfile;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseError;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\PhoneNumbers;
 use Tests\Support\Staff\FakeAccountDirectory;
+use Tests\Support\Staff\FakeServiceAssignments;
 use Tests\Support\Staff\FakeStaffMemberRepository;
 use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\FakeWorkingHours;
 use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
@@ -24,11 +27,13 @@ beforeEach(function () {
     $this->accounts = new FakeAccountDirectory(StaffFixtures::account());
     $this->phones = new FakeStaffPhoneBook;
     $this->photos = new FakeStaffProfilePhotos;
+    $this->services = new FakeServiceAssignments;
+    $this->workingHours = new FakeWorkingHours;
 
     $this->build = fn (?FakeBusinessContext $business = null): ShowMyProfile => new ShowMyProfile(
         $this->members,
         $this->profiles,
-        new MyProfilePresenter($this->accounts, $this->phones, $this->photos),
+        new MyProfilePresenter($this->accounts, $this->phones, $this->photos, StaffFixtures::bookingLinkPresenter($this->services, $this->workingHours)),
         $business ?? new FakeBusinessContext,
     );
 
@@ -212,5 +217,44 @@ describe('refusals', function () {
 
         expect($error->code)->toBe('staff_member_not_found')
             ->and($error->kind)->toBe(DomainFailureKind::NotFound);
+    });
+});
+
+describe('the booking link on the caller profile', function () {
+    beforeEach(function () {
+        $this->members->store(StaffFixtures::member());
+    });
+
+    it('carries the link of a caller who has one', function () {
+        $this->profiles->store(StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG));
+        $this->services->offering(FakeBusinessContext::BUSINESS_ID, StaffFixtures::MEMBER_ID);
+        $this->workingHours->working(FakeBusinessContext::BUSINESS_ID, StaffFixtures::MEMBER_ID);
+
+        $link = ($this->show)()->value()->bookingLink;
+
+        expect($link->link?->slug)->toBe(StaffFixtures::BOOKING_SLUG)
+            ->and($link->link?->url)->toBe(StaffFixtures::BOOKING_URL)
+            ->and($link->blockers)->toBe([]);
+    });
+
+    it('carries no link and what still blocks one for a caller who has none', function () {
+        $this->profiles->store(StaffFixtures::profile());
+        $this->services->offering(FakeBusinessContext::BUSINESS_ID, StaffFixtures::MEMBER_ID);
+
+        $link = ($this->show)()->value()->bookingLink;
+
+        expect($link->link)->toBeNull()
+            ->and($link->blockers)->toBe([BookingLinkBlocker::NoWorkingHours]);
+    });
+
+    it('assesses the caller in the business in context', function () {
+        $this->profiles->store(StaffFixtures::profile());
+
+        ($this->show)();
+
+        expect($this->services->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'staffMemberIds' => [StaffFixtures::MEMBER_ID],
+        ]]);
     });
 });

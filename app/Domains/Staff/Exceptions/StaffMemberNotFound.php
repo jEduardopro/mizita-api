@@ -21,6 +21,11 @@ final class StaffMemberNotFound extends RuntimeException implements DomainFailur
         return new self("Account [{$accountId}] is not a staff member of this business.", 0, $previous);
     }
 
+    public static function withBookingSlug(string $bookingSlug): self
+    {
+        return new self("No staff member books under [{$bookingSlug}] in this business.");
+    }
+
     public function errorCode(): string
     {
         return 'staff_member_not_found';

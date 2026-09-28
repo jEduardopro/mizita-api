@@ -26,6 +26,7 @@ function mappedStaffProfileRow(array $overrides = []): StaffProfileModel
         'staff_member_id' => STAFF_PROFILE_MAPPER_MEMBER_KEY,
         'job_title' => StaffFixtures::JOB_TITLE,
         'about' => StaffFixtures::ABOUT,
+        'booking_slug' => StaffFixtures::BOOKING_SLUG,
         'created_at' => StaffFixtures::now(),
         ...$overrides,
     ], true);
@@ -45,7 +46,18 @@ describe('writing a row', function () {
             'staff_member_id' => STAFF_PROFILE_MAPPER_MEMBER_KEY,
             'job_title' => StaffFixtures::JOB_TITLE,
             'about' => StaffFixtures::ABOUT,
+            'booking_slug' => null,
         ]);
+    });
+
+    it('writes the booking slug the profile carries', function () {
+        $attributes = $this->mapper->toAttributes(
+            StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG),
+            STAFF_PROFILE_MAPPER_BUSINESS_KEY,
+            STAFF_PROFILE_MAPPER_MEMBER_KEY,
+        );
+
+        expect($attributes['booking_slug'])->toBe(StaffFixtures::BOOKING_SLUG);
     });
 
     it('writes the business and the member as the int keys it was handed, never as the uuids the entity carries', function () {
@@ -94,6 +106,7 @@ describe('reading a row', function () {
             ->and($profile->staffMemberId)->toBe(StaffFixtures::MEMBER_ID)
             ->and($profile->jobTitle()?->value)->toBe(StaffFixtures::JOB_TITLE)
             ->and($profile->about()?->value)->toBe(StaffFixtures::ABOUT)
+            ->and($profile->bookingSlug()?->value)->toBe(StaffFixtures::BOOKING_SLUG)
             ->and($profile->createdAt)->toBeInstanceOf(DateTimeImmutable::class)
             ->and($profile->createdAt->getTimestamp())->toBe(StaffFixtures::now()->getTimestamp());
     });
@@ -117,21 +130,34 @@ describe('reading a row', function () {
             ->and($profile->about())->toBeNull();
     });
 
+    it('reads a null booking slug as a profile with no booking link yet', function () {
+        $profile = $this->mapper->toEntity(
+            mappedStaffProfileRow(['booking_slug' => null]),
+            FakeBusinessContext::BUSINESS_ID,
+            StaffFixtures::MEMBER_ID,
+        );
+
+        expect($profile->bookingSlug())->toBeNull();
+    });
+
     it('loads a stored value the creation rules would now refuse, untouched', function () {
         $legacyTitle = str_repeat('a', 130);
 
+        $legacySlug = 'Legacy_Slug';
+
         $profile = $this->mapper->toEntity(
-            mappedStaffProfileRow(['job_title' => $legacyTitle, 'about' => '  padded  ']),
+            mappedStaffProfileRow(['job_title' => $legacyTitle, 'about' => '  padded  ', 'booking_slug' => $legacySlug]),
             FakeBusinessContext::BUSINESS_ID,
             StaffFixtures::MEMBER_ID,
         );
 
         expect($profile->jobTitle()?->value)->toBe($legacyTitle)
-            ->and($profile->about()?->value)->toBe('  padded  ');
+            ->and($profile->about()?->value)->toBe('  padded  ')
+            ->and($profile->bookingSlug()?->value)->toBe($legacySlug);
     });
 
     it('round trips a profile through a row without losing anything', function () {
-        $original = StaffFixtures::profile();
+        $original = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
         $attributes = $this->mapper->toAttributes($original, STAFF_PROFILE_MAPPER_BUSINESS_KEY, STAFF_PROFILE_MAPPER_MEMBER_KEY);
 
         $restored = $this->mapper->toEntity(
@@ -142,6 +168,7 @@ describe('reading a row', function () {
 
         expect($restored->id)->toBe($original->id)
             ->and($restored->jobTitle()?->value)->toBe($original->jobTitle()?->value)
-            ->and($restored->about()?->value)->toBe($original->about()?->value);
+            ->and($restored->about()?->value)->toBe($original->about()?->value)
+            ->and($restored->bookingSlug()?->value)->toBe(StaffFixtures::BOOKING_SLUG);
     });
 });

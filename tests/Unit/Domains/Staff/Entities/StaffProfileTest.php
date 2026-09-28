@@ -3,7 +3,13 @@
 declare(strict_types=1);
 
 use App\Domains\Staff\Entities\StaffProfile;
+use App\Domains\Staff\Exceptions\BookingLinkAlreadyExists;
+use App\Domains\Staff\Exceptions\BookingLinkNotFound;
+use App\Domains\Staff\Exceptions\StaffMemberCannotReceiveBookings;
 use App\Domains\Staff\ValueObjects\About;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
+use App\Domains\Staff\ValueObjects\BookingReadiness;
+use App\Domains\Staff\ValueObjects\BookingSlug;
 use App\Domains\Staff\ValueObjects\JobTitle;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\Staff\StaffFixtures;
@@ -22,6 +28,7 @@ describe('create', function () {
             ->and($profile->staffMemberId)->toBe(StaffFixtures::MEMBER_ID)
             ->and($profile->jobTitle())->toBeNull()
             ->and($profile->about())->toBeNull()
+            ->and($profile->bookingSlug())->toBeNull()
             ->and($profile->createdAt)->toEqual(StaffFixtures::now());
     });
 
@@ -42,6 +49,7 @@ describe('restore', function () {
             staffMemberId: StaffFixtures::MEMBER_ID,
             jobTitle: JobTitle::restore(StaffFixtures::JOB_TITLE),
             about: About::restore(StaffFixtures::ABOUT),
+            bookingSlug: BookingSlug::restore(StaffFixtures::BOOKING_SLUG),
             createdAt: $createdAt,
         );
 
@@ -50,6 +58,7 @@ describe('restore', function () {
             ->and($profile->staffMemberId)->toBe(StaffFixtures::MEMBER_ID)
             ->and($profile->jobTitle()?->value)->toBe(StaffFixtures::JOB_TITLE)
             ->and($profile->about()?->value)->toBe(StaffFixtures::ABOUT)
+            ->and($profile->bookingSlug()?->value)->toBe(StaffFixtures::BOOKING_SLUG)
             ->and($profile->createdAt)->toEqual($createdAt);
     });
 
@@ -57,7 +66,106 @@ describe('restore', function () {
         $profile = StaffFixtures::profile(jobTitle: null, about: null);
 
         expect($profile->jobTitle())->toBeNull()
-            ->and($profile->about())->toBeNull();
+            ->and($profile->about())->toBeNull()
+            ->and($profile->bookingSlug())->toBeNull();
+    });
+});
+
+describe('createForOwner', function () {
+    it('creates an undescribed profile that already carries its booking slug', function () {
+        $profile = StaffProfile::createForOwner(
+            id: StaffFixtures::PROFILE_ID,
+            businessId: FakeBusinessContext::BUSINESS_ID,
+            staffMemberId: StaffFixtures::MEMBER_ID,
+            bookingSlug: BookingSlug::fromName('Ada Lovelace'),
+            now: StaffFixtures::now(),
+        );
+
+        expect($profile->id)->toBe(StaffFixtures::PROFILE_ID)
+            ->and($profile->businessId)->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($profile->staffMemberId)->toBe(StaffFixtures::MEMBER_ID)
+            ->and($profile->jobTitle())->toBeNull()
+            ->and($profile->about())->toBeNull()
+            ->and($profile->bookingSlug()?->value)->toBe('ada-lovelace')
+            ->and($profile->createdAt)->toEqual(StaffFixtures::now());
+    });
+});
+
+describe('assignBookingSlug', function () {
+    beforeEach(function () {
+        $this->ready = BookingReadiness::blockedBy();
+    });
+
+    it('takes the slug when the member is ready and has none yet', function () {
+        $profile = StaffFixtures::profile();
+
+        $profile->assignBookingSlug(BookingSlug::fromString('ada'), $this->ready);
+
+        expect($profile->bookingSlug()?->value)->toBe('ada');
+    });
+
+    it('refuses a second link, keeping the first', function () {
+        $profile = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
+
+        expect(fn () => $profile->assignBookingSlug(BookingSlug::fromString('ada-2'), $this->ready))
+            ->toThrow(BookingLinkAlreadyExists::class, 'Staff member ['.StaffFixtures::MEMBER_ID.'] already has a booking link.')
+            ->and($profile->bookingSlug()?->value)->toBe(StaffFixtures::BOOKING_SLUG);
+    });
+
+    it('refuses a member that cannot receive bookings yet, taking nothing', function (array $blockers) {
+        $profile = StaffFixtures::profile();
+
+        expect(fn () => $profile->assignBookingSlug(BookingSlug::fromString('ada'), BookingReadiness::blockedBy(...$blockers)))
+            ->toThrow(StaffMemberCannotReceiveBookings::class)
+            ->and($profile->bookingSlug())->toBeNull();
+    })->with([
+        'no services' => [[BookingLinkBlocker::NoServices]],
+        'no working hours' => [[BookingLinkBlocker::NoWorkingHours]],
+        'neither' => [[BookingLinkBlocker::NoServices, BookingLinkBlocker::NoWorkingHours]],
+    ]);
+
+    it('reports an existing link before a blocker, so a linked member who lost their hours still hears about the link', function () {
+        $profile = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
+
+        expect(fn () => $profile->assignBookingSlug(
+            BookingSlug::fromString('ada-2'),
+            BookingReadiness::blockedBy(BookingLinkBlocker::NoServices, BookingLinkBlocker::NoWorkingHours),
+        ))->toThrow(BookingLinkAlreadyExists::class);
+    });
+});
+
+describe('changeBookingSlug', function () {
+    it('replaces the slug of a member who already has a link', function () {
+        $profile = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
+
+        $profile->changeBookingSlug(BookingSlug::fromString('ada-la-barbera'));
+
+        expect($profile->bookingSlug()?->value)->toBe('ada-la-barbera');
+    });
+
+    it('accepts the slug it already carries', function () {
+        $profile = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
+
+        $profile->changeBookingSlug(BookingSlug::fromString(StaffFixtures::BOOKING_SLUG));
+
+        expect($profile->bookingSlug()?->value)->toBe(StaffFixtures::BOOKING_SLUG);
+    });
+
+    it('refuses to edit a link that was never generated, so an edit cannot skip the readiness check', function () {
+        $profile = StaffFixtures::profile();
+
+        expect(fn () => $profile->changeBookingSlug(BookingSlug::fromString('ada')))
+            ->toThrow(BookingLinkNotFound::class, 'Staff member ['.StaffFixtures::MEMBER_ID.'] has no booking link yet.')
+            ->and($profile->bookingSlug())->toBeNull();
+    });
+
+    it('leaves the description untouched', function () {
+        $profile = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
+
+        $profile->changeBookingSlug(BookingSlug::fromString('ada'));
+
+        expect($profile->jobTitle()?->value)->toBe(StaffFixtures::JOB_TITLE)
+            ->and($profile->about()?->value)->toBe(StaffFixtures::ABOUT);
     });
 });
 
@@ -89,12 +197,13 @@ describe('describe', function () {
             ->and($profile->about())->toBeNull();
     });
 
-    it('leaves the identity, the business and the creation instant untouched', function () {
-        $profile = StaffFixtures::profile();
+    it('leaves the identity, the business, the booking slug and the creation instant untouched', function () {
+        $profile = StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG);
 
         $profile->describe(null, null);
 
-        expect($profile->id)->toBe(StaffFixtures::PROFILE_ID)
+        expect($profile->bookingSlug()?->value)->toBe(StaffFixtures::BOOKING_SLUG)
+            ->and($profile->id)->toBe(StaffFixtures::PROFILE_ID)
             ->and($profile->businessId)->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and($profile->staffMemberId)->toBe(StaffFixtures::MEMBER_ID)
             ->and($profile->createdAt)->toEqual(StaffFixtures::now());

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Staff\Infrastructure\Http\Resources;
 
 use App\Domains\Staff\Application\Dtos\MyProfileData;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Shared\ValueObjects\PhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,6 +29,12 @@ final class MyProfileResource extends JsonResource
             'about' => $this->resource->about,
             'phone' => self::describePhone($this->resource->phone),
             'photo_url' => $this->resource->photoUrl,
+            'booking_slug' => $this->resource->bookingLink->link?->slug,
+            'booking_url' => $this->resource->bookingLink->link?->url,
+            'booking_link_blockers' => array_map(
+                static fn (BookingLinkBlocker $blocker): string => $blocker->value,
+                $this->resource->bookingLink->blockers,
+            ),
             'role' => $this->resource->role->value,
             'has_password' => $this->resource->hasPassword,
         ];

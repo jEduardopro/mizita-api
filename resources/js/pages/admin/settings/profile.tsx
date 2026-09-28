@@ -19,6 +19,7 @@ import { EDIT_PANE_PARAMETER } from '@/domains/staff/components/team-urls';
 import {
     useAttachMyProfilePhoto,
     useMyProfile,
+    useRefreshBookingLinkReadiness,
     useRefreshMyProfile,
     useRemoveMyProfilePhoto,
     useUpdateMyProfile,
@@ -45,6 +46,7 @@ export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) 
     const attachPhoto = useAttachMyProfilePhoto();
     const removePhoto = useRemoveMyProfilePhoto();
     const refreshProfile = useRefreshMyProfile();
+    const refreshBookingLinkReadiness = useRefreshBookingLinkReadiness(profile.staff_member_id);
 
     const businessSchedule = businessScheduleFor(schedule.data, calendarSettings?.schedule);
     const retrySchedule = () => void schedule.refetch();
@@ -61,7 +63,14 @@ export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) 
             onSaveProfile={updateProfile.mutateAsync}
             onUploadPhoto={attachPhoto.mutateAsync}
             onRemovePhoto={() => removePhoto.mutateAsync()}
-            services={<StaffServicesSection staffMemberId={profile.staff_member_id} />}
+            services={
+                <StaffServicesSection
+                    staffMemberId={profile.staff_member_id}
+                    staffName={profile.name}
+                    staffBookingUrl={profile.booking_url}
+                    onAssignmentsChange={refreshBookingLinkReadiness}
+                />
+            }
             renderHoursSummary={(onEdit) => (
                 <WorkingHoursSummary
                     schedule={schedule.data?.schedule}
@@ -77,7 +86,7 @@ export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) 
                     loadFailed={schedule.isError}
                     onRetry={retrySchedule}
                     businessSchedule={businessSchedule}
-                    onSave={replaceSchedule.mutateAsync}
+                    onSave={(payload) => replaceSchedule.mutateAsync(payload).then(refreshBookingLinkReadiness)}
                     onCancel={onCancel}
                     notice={hoursNotice}
                 />

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Staff\Infrastructure\Http\Resources;
 
 use App\Domains\Staff\Application\Dtos\TeamMemberData;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Shared\ValueObjects\PhoneNumber;
 use DateTimeInterface;
 use Illuminate\Http\Request;
@@ -28,6 +29,12 @@ final class TeamMemberResource extends JsonResource
             'photo_url' => $this->resource->photoUrl,
             'job_title' => $this->resource->jobTitle,
             'about' => $this->resource->about,
+            'booking_slug' => $this->resource->bookingLink->link?->slug,
+            'booking_url' => $this->resource->bookingLink->link?->url,
+            'booking_link_blockers' => array_map(
+                static fn (BookingLinkBlocker $blocker): string => $blocker->value,
+                $this->resource->bookingLink->blockers,
+            ),
             'level' => $this->resource->level->value,
             'invitation_pending' => $this->resource->invitationPending,
             'temporary_password_available' => $this->resource->temporaryPasswordAvailable,

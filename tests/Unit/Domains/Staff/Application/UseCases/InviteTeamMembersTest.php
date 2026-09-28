@@ -69,7 +69,7 @@ beforeEach(function () {
         $this->profiles,
         $this->roster,
         $this->provisioner,
-        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords),
+        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
         new FixedIdGenerator(
             StaffFixtures::SECOND_MEMBER_ID,

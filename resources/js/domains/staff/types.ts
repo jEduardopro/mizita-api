@@ -36,6 +36,19 @@ export const TEAM_INVITATION_MAXIMUM_MEMBERS = 20;
 
 export const TEAM_MEMBER_EMAIL_MAX_LENGTH = 255;
 
+export type BookingLinkBlocker = 'no_services' | 'no_working_hours';
+
+export type StaffBookingLink = {
+    booking_slug: string;
+    booking_url: string;
+};
+
+export type ChangeStaffBookingSlugPayload = {
+    slug: string;
+};
+
+export const BOOKING_SLUG_REJECTION_CODES = ['booking_slug_taken', 'invalid_booking_slug'] as const;
+
 export type ProfilePhone = {
     country_code: string;
     national_number: string;
@@ -53,6 +66,9 @@ export type MyProfile = {
     photo_url: string | null;
     role: StaffRole;
     has_password: boolean;
+    booking_slug: string | null;
+    booking_url: string | null;
+    booking_link_blockers: BookingLinkBlocker[];
 };
 
 export type ProfilePhonePayload = {
@@ -78,6 +94,9 @@ export type TeamMember = {
     level: StaffRole;
     invitation_pending: boolean;
     temporary_password_available: boolean;
+    booking_slug: string | null;
+    booking_url: string | null;
+    booking_link_blockers: BookingLinkBlocker[];
     created_at: string;
 };
 
@@ -120,5 +139,15 @@ export type UpdateTeamMemberPayload = UpdateMyProfilePayload & {
 
 export type StaffProfileDetails = Pick<
     MyProfile,
-    'name' | 'email' | 'job_title' | 'about' | 'phone' | 'photo_url' | 'role'
+    | 'staff_member_id'
+    | 'name'
+    | 'email'
+    | 'job_title'
+    | 'about'
+    | 'phone'
+    | 'photo_url'
+    | 'role'
+    | 'booking_slug'
+    | 'booking_url'
+    | 'booking_link_blockers'
 >;

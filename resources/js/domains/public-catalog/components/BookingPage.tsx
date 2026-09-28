@@ -40,7 +40,13 @@ export function BookingPage({ page, openServiceSlug }: Props) {
             />
 
             <main className="flex-1">
-                <BookingHero bannerUrl={page.brand.banner_url} accent={accent} />
+                <BookingHero
+                    bannerUrl={page.brand.banner_url}
+                    gallery={page.brand.gallery}
+                    businessName={page.name}
+                    themeScope={themeScope}
+                    accent={accent}
+                />
 
                 <div className="relative z-10 mx-auto -mt-4 grid w-full max-w-5xl gap-8 px-5 pb-16 sm:-mt-8 sm:px-8 sm:pb-24 lg:-mt-12 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10">
                     <div className="min-w-0 lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1 lg:self-start">

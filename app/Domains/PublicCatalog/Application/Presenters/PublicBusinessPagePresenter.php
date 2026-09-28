@@ -42,7 +42,7 @@ final class PublicBusinessPagePresenter
     public function describe(string $slug): PublicBusinessPageData
     {
         $profile = $this->businesses->findBySlug($slug);
-        $team = $this->team->forBusiness($profile->id);
+        $team = $this->team->forBusiness(businessId: $profile->id, businessSlug: $profile->slug);
 
         return new PublicBusinessPageData(
             profile: $profile,

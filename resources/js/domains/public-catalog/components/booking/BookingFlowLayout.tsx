@@ -4,7 +4,6 @@ import { ArrowLeft, Store } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { brandColorClasses, THEME_SCOPES } from '@/lib/booking-brand';
-import { BOOKING_STEPS } from './booking-steps';
 import { BookingBusinessCard } from './BookingBusinessCard';
 import { BookingStepHeading } from './BookingStepHeading';
 import { BookingSummary } from './BookingSummary';
@@ -14,20 +13,22 @@ type Props = {
     flow: ReadyBookingFlow;
     title: string;
     description?: string;
+    intro?: ReactNode;
+    actions?: ReactNode;
     children: ReactNode;
 };
 
 const FULL_PROGRESS = 100;
 
-export function BookingFlowLayout({ flow, title, description, children }: Props) {
+export function BookingFlowLayout({ flow, title, description, intro, actions, children }: Props) {
     const { t } = useTranslation('public');
 
     const { page } = flow;
     const accent = brandColorClasses[page.brand.accent_color];
     const themeScope = THEME_SCOPES[page.brand.theme];
 
-    const position = BOOKING_STEPS.indexOf(flow.step) + 1;
-    const total = BOOKING_STEPS.length;
+    const position = flow.steps.indexOf(flow.step) + 1;
+    const total = flow.steps.length;
     const progress = t('booking.flow.progress', { current: position, total });
     const hasSelections = flow.service !== null;
 
@@ -61,6 +62,10 @@ export function BookingFlowLayout({ flow, title, description, children }: Props)
                     <span className="truncate font-heading text-sm font-medium tracking-[-0.01em]">
                         {page.name}
                     </span>
+
+                    {actions === undefined ? null : (
+                        <div className="-mr-2.5 ml-auto flex shrink-0 items-center">{actions}</div>
+                    )}
                 </div>
 
                 <div
@@ -101,6 +106,8 @@ export function BookingFlowLayout({ flow, title, description, children }: Props)
                     </aside>
 
                     <div className="grid min-w-0 gap-6 lg:col-start-1 lg:row-start-1">
+                        {intro}
+
                         <BookingStepHeading
                             eyebrow={progress}
                             title={title}

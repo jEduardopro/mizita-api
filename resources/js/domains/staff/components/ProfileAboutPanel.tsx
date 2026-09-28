@@ -1,11 +1,9 @@
-import { ChevronDown, CircleUserRound, Clock, Lock, Mail, Phone, type LucideIcon } from 'lucide-react';
+import { ChevronDown, CircleUserRound, Clock, Lock, Mail, Phone, QrCode, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatPhoneNumber } from '@/lib/phone';
 import type { ProfilePhone } from '../types';
-
-const INLINE_ACTION =
-    'inline-flex min-h-11 items-center text-left underline underline-offset-4 outline-none hover:text-foreground focus-visible:rounded-sm focus-visible:ring-3 focus-visible:ring-ring/50 md:min-h-9';
+import { INLINE_ACTION } from './inline-action';
 
 type InfoRowProps = {
     icon: LucideIcon;
@@ -46,6 +44,7 @@ type Props = {
     about: string | null;
     roleLabel: string;
     hoursSummary: ReactNode;
+    bookingLink: ReactNode;
     onAddPhone?: () => void;
     onAddAbout?: () => void;
 };
@@ -56,6 +55,7 @@ export function ProfileAboutPanel({
     about,
     roleLabel,
     hoursSummary,
+    bookingLink,
     onAddPhone,
     onAddAbout,
 }: Props) {
@@ -93,6 +93,10 @@ export function ProfileAboutPanel({
 
             <InfoRow icon={Clock} label={t('profile.about.hours')}>
                 {hoursSummary}
+            </InfoRow>
+
+            <InfoRow icon={QrCode} label={t('profile.about.bookingLink')}>
+                {bookingLink}
             </InfoRow>
 
             {aboutValue === null ? null : (

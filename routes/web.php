@@ -2,6 +2,8 @@
 
 use App\Domains\PublicCatalog\Application\Dtos\ConfirmBusinessPageInput;
 use App\Domains\PublicCatalog\Application\UseCases\ConfirmBusinessPage;
+use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicServiceBookingLinkController;
+use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicStaffBookingLinkController;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use App\Http\Middleware\RequireFreshPassword;
 use Illuminate\Http\Request;
@@ -47,6 +49,7 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
 $bookingPageSlug = PublicCatalogServiceProvider::BOOKING_PAGE_SLUG_PATTERN;
 $serviceSlug = PublicCatalogServiceProvider::SERVICE_PAGE_SLUG_PATTERN;
 $referenceCode = PublicCatalogServiceProvider::REFERENCE_CODE_PATTERN;
+$linkSlug = PublicCatalogServiceProvider::SLUG_PATTERN;
 
 Route::get('/{slug}/book', fn (string $slug) => Inertia::render('public/bookings/service', ['slug' => $slug]))
     ->where('slug', $bookingPageSlug)->name('booking-flow.service');
@@ -78,13 +81,14 @@ Route::get('/{slug}', function (string $slug, ConfirmBusinessPage $confirmBusine
     return Inertia::render('public/businesses/show', ['slug' => $page->value()->slug]);
 })->where('slug', $bookingPageSlug)->name('booking-page');
 
-Route::get('/{slug}/{service}', function (string $slug, string $service, ConfirmBusinessPage $confirmBusinessPage) {
-    $page = $confirmBusinessPage->handle(new ConfirmBusinessPageInput($slug));
+Route::get('/{slug}/equipo/{staffSlug}', [PublicStaffBookingLinkController::class, 'staff'])
+    ->where(['slug' => $bookingPageSlug, 'staffSlug' => $linkSlug])
+    ->name(PublicStaffBookingLinkController::STAFF_LINK_ROUTE);
 
-    abort_if($page->failed(), Response::HTTP_NOT_FOUND);
+Route::get('/{slug}/equipo/{staffSlug}/{serviceSlug}', [PublicStaffBookingLinkController::class, 'staffService'])
+    ->where(['slug' => $bookingPageSlug, 'staffSlug' => $linkSlug, 'serviceSlug' => $linkSlug])
+    ->name(PublicStaffBookingLinkController::STAFF_SERVICE_LINK_ROUTE);
 
-    return Inertia::render('public/businesses/show', [
-        'slug' => $page->value()->slug,
-        'serviceSlug' => $service,
-    ]);
-})->where(['slug' => $bookingPageSlug, 'service' => $serviceSlug])->name('booking-page.service');
+Route::get('/{slug}/{serviceSlug}', [PublicServiceBookingLinkController::class, 'service'])
+    ->where(['slug' => $bookingPageSlug, 'serviceSlug' => $serviceSlug])
+    ->name(PublicServiceBookingLinkController::SERVICE_LINK_ROUTE);

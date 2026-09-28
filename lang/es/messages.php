@@ -126,6 +126,11 @@ return [
         'team_member_has_upcoming_appointments' => 'Esta persona todavía tiene citas próximas. Reasígnalas o cancélalas primero.',
         'team_invitation_not_pending' => 'Esta persona no tiene ninguna invitación pendiente para reenviar.',
         'temporary_password_unavailable' => 'La contraseña temporal ya no está disponible: esta persona ya inició sesión o no tiene una invitación pendiente.',
+        'staff_member_cannot_receive_bookings' => 'Esta persona necesita al menos un servicio y un horario antes de tener un enlace de reserva.',
+        'booking_link_already_exists' => 'Esta persona ya tiene un enlace de reserva.',
+        'booking_link_not_found' => 'Esta persona todavía no tiene un enlace de reserva.',
+        'booking_slug_taken' => 'Ese enlace ya lo usa otra persona del equipo.',
+        'invalid_booking_slug' => 'Ese enlace no es válido. Usa letras minúsculas, números y guiones.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.

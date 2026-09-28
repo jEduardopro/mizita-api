@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { BookingFlowFallback } from '@/domains/public-catalog/components/booking/BookingFlowFallback';
 import { BookingFlowLayout } from '@/domains/public-catalog/components/booking/BookingFlowLayout';
+import { BookingPinnedServiceStep } from '@/domains/public-catalog/components/booking/BookingPinnedServiceStep';
 import { BookingServiceList } from '@/domains/public-catalog/components/booking/BookingServiceList';
 import { useBookingFlow } from '@/domains/public-catalog/components/booking/use-booking-flow';
 
@@ -16,6 +17,10 @@ export default function BookingServiceStep({ slug }: Props) {
         return <BookingFlowFallback flow={flow} />;
     }
 
+    if (flow.pinnedMember !== null) {
+        return <BookingPinnedServiceStep flow={flow} member={flow.pinnedMember} />;
+    }
+
     const { page } = flow;
 
     return (
@@ -26,12 +31,12 @@ export default function BookingServiceStep({ slug }: Props) {
         >
             <BookingServiceList
                 slug={page.slug}
-                services={page.services}
+                services={flow.services}
                 currencyCode={page.currency_code}
                 selectedServiceId={flow.service?.id ?? null}
                 accentColor={page.brand.accent_color}
                 buttonShape={page.brand.button_shape}
-                onSelect={(serviceId) => flow.goTo('staff', { service: serviceId })}
+                onSelect={(serviceId) => flow.advance({ service: serviceId })}
             />
         </BookingFlowLayout>
     );

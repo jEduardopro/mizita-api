@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { KeyRound, LoaderCircle, MailPlus, MoreHorizontal, Pencil, UserMinus } from 'lucide-react';
+import { KeyRound, Link2, LoaderCircle, MailPlus, MoreHorizontal, Pencil, UserMinus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +14,7 @@ import type { TeamMember } from '../types';
 import { RemoveTeamMemberDialog } from './RemoveTeamMemberDialog';
 import { TeamMemberRemovalBlockedDialog } from './TeamMemberRemovalBlockedDialog';
 import { teamMemberEditUrl } from './team-urls';
+import { useCopyBookingLink } from './use-copy-booking-link';
 import { useCopyTemporaryPassword } from './use-copy-temporary-password';
 import { useResendInvitation } from './use-resend-invitation';
 import { canEditStaffProfile, useStaffProfileAccess } from './use-staff-profile-access';
@@ -32,13 +33,16 @@ export function TeamMemberRowActions({ member }: Props) {
     const invitation = useResendInvitation(member.id);
     const access = useStaffProfileAccess(member.id);
     const temporaryPassword = useCopyTemporaryPassword(member.id);
+    const copyBookingLink = useCopyBookingLink();
+    const bookingUrl = member.booking_url;
 
     const canEdit = canEditStaffProfile(access);
     const canResend = can('create_staff_member') && member.invitation_pending;
     const canCopyPassword = can('reveal_temporary_password') && member.temporary_password_available;
     const canRemove = can('delete_staff_member') && member.level !== 'owner';
+    const hasLeadingItems = canEdit || bookingUrl !== null || canResend || canCopyPassword;
 
-    if (! canEdit && ! canResend && ! canCopyPassword && ! canRemove) {
+    if (! hasLeadingItems && ! canRemove) {
         return null;
     }
 
@@ -72,6 +76,13 @@ export function TeamMemberRowActions({ member }: Props) {
                         </DropdownMenuItem>
                     ) : null}
 
+                    {bookingUrl === null ? null : (
+                        <DropdownMenuItem onSelect={() => copyBookingLink(bookingUrl)} className={MENU_ITEM_SIZE}>
+                            <Link2 aria-hidden="true" />
+                            {t('team.actions.copyLink')}
+                        </DropdownMenuItem>
+                    )}
+
                     {canResend ? (
                         <DropdownMenuItem
                             disabled={invitation.isPending}
@@ -94,7 +105,7 @@ export function TeamMemberRowActions({ member }: Props) {
                         </DropdownMenuItem>
                     ) : null}
 
-                    {(canEdit || canResend || canCopyPassword) && canRemove ? <DropdownMenuSeparator /> : null}
+                    {hasLeadingItems && canRemove ? <DropdownMenuSeparator /> : null}
 
                     {canRemove ? (
                         <DropdownMenuItem

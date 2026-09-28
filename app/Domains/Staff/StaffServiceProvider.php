@@ -6,7 +6,10 @@ namespace App\Domains\Staff;
 
 use App\Domains\Staff\Application\Listeners\NotifyInvitedTeamMember;
 use App\Domains\Staff\Contracts\AccountDirectory;
+use App\Domains\Staff\Contracts\BookingSlugRegistry;
 use App\Domains\Staff\Contracts\BusinessDirectory;
+use App\Domains\Staff\Contracts\BusinessSlugs;
+use App\Domains\Staff\Contracts\ServiceAssignments;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffPhoneBook;
 use App\Domains\Staff\Contracts\StaffProfilePhotos;
@@ -16,6 +19,7 @@ use App\Domains\Staff\Contracts\TeamInvitationMailer;
 use App\Domains\Staff\Contracts\TeamRoster;
 use App\Domains\Staff\Contracts\TeamTemporaryPasswords;
 use App\Domains\Staff\Contracts\UpcomingAppointments;
+use App\Domains\Staff\Contracts\WorkingHours;
 use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Infrastructure\Eloquent\EloquentStaffMemberRepository;
 use App\Domains\Staff\Infrastructure\Eloquent\EloquentStaffProfileRepository;
@@ -25,12 +29,16 @@ use App\Domains\Staff\Infrastructure\Gateways\AccountsAccountDirectory;
 use App\Domains\Staff\Infrastructure\Gateways\AccountsTeamAccountProvisioner;
 use App\Domains\Staff\Infrastructure\Gateways\AccountsTeamTemporaryPasswords;
 use App\Domains\Staff\Infrastructure\Gateways\AppointmentsUpcomingAppointments;
+use App\Domains\Staff\Infrastructure\Gateways\AvailabilityWorkingHours;
 use App\Domains\Staff\Infrastructure\Gateways\BusinessesBusinessDirectory;
+use App\Domains\Staff\Infrastructure\Gateways\BusinessesBusinessSlugs;
 use App\Domains\Staff\Infrastructure\Gateways\EloquentBusinessMembership;
 use App\Domains\Staff\Infrastructure\Gateways\PhonesStaffPhoneBook;
+use App\Domains\Staff\Infrastructure\Gateways\ServicesServiceAssignments;
 use App\Domains\Staff\Infrastructure\Media\SpatieStaffProfilePhotos;
 use App\Domains\Staff\Infrastructure\Notifications\NotificationTeamInvitationMailer;
 use App\Domains\Staff\Infrastructure\Permissions\StaffBusinessAuthorization;
+use App\Domains\Staff\Services\BookingLinks;
 use App\Shared\Contracts\BusinessAuthorization;
 use App\Shared\Contracts\BusinessMembership;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -76,6 +84,15 @@ final class StaffServiceProvider extends ServiceProvider
         $this->app->bind(BusinessDirectory::class, BusinessesBusinessDirectory::class);
         $this->app->bind(TeamInvitationMailer::class, NotificationTeamInvitationMailer::class);
         $this->app->bind(TeamTemporaryPasswords::class, AccountsTeamTemporaryPasswords::class);
+        $this->app->bind(BookingSlugRegistry::class, EloquentStaffProfileRepository::class);
+        $this->app->bind(BusinessSlugs::class, BusinessesBusinessSlugs::class);
+        $this->app->bind(ServiceAssignments::class, ServicesServiceAssignments::class);
+        $this->app->bind(WorkingHours::class, AvailabilityWorkingHours::class);
+
+        $this->app->bind(
+            BookingLinks::class,
+            fn (): BookingLinks => new BookingLinks((string) config('app.url')),
+        );
     }
 
     public function boot(): void

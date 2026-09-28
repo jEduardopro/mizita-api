@@ -36,7 +36,7 @@ beforeEach(function () {
         $this->members,
         $this->profiles,
         $this->photos,
-        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, $this->photos, new FakeTeamTemporaryPasswords),
+        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, $this->photos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
     );
 

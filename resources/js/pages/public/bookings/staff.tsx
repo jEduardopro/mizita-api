@@ -35,7 +35,7 @@ export default function BookingStaffStep({ slug }: Props) {
                 selectedStaffId={flow.staffMember?.id ?? null}
                 accent={brandColorClasses[page.brand.accent_color]}
                 buttonShape={page.brand.button_shape}
-                onSelect={(staffId) => flow.goTo('time', { staff: staffId })}
+                onSelect={(staffId) => flow.advance({ staff: staffId })}
             />
         </BookingFlowLayout>
     );

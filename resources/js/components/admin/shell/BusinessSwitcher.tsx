@@ -26,20 +26,30 @@ type CrestProps = {
     className?: string;
 };
 
+const CREST_FRAME_CLASSES = 'aspect-square size-8 shrink-0 rounded-md';
+
 function BusinessCrest({ name, logoUrl, className }: CrestProps) {
+    if (logoUrl !== null) {
+        return (
+            <img
+                src={logoUrl}
+                alt=""
+                aria-hidden="true"
+                className={cn(CREST_FRAME_CLASSES, 'object-contain', className)}
+            />
+        );
+    }
+
     return (
         <span
             aria-hidden="true"
             className={cn(
-                'flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground',
+                CREST_FRAME_CLASSES,
+                'flex items-center justify-center bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground',
                 className,
             )}
         >
-            {logoUrl === null ? (
-                initialsFrom(name)
-            ) : (
-                <img src={logoUrl} alt="" className="size-full object-cover" />
-            )}
+            {initialsFrom(name)}
         </span>
     );
 }

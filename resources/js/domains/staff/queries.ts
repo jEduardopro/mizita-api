@@ -13,7 +13,9 @@ import { errorCodeFrom, isNotFoundError } from '@/lib/http';
 import {
     attachMyProfilePhoto,
     attachTeamMemberPhoto,
+    changeStaffBookingSlug,
     checkTeamMemberRemoval,
+    generateStaffBookingLink,
     getMyProfile,
     getTeamMember,
     inviteTeamMembers,
@@ -29,6 +31,7 @@ import {
 } from './api';
 import {
     TEMPORARY_PASSWORD_UNAVAILABLE_CODE,
+    type ChangeStaffBookingSlugPayload,
     type MyProfile,
     type TeamListParams,
     type TeamMember,
@@ -85,6 +88,13 @@ function invalidateTeamMemberViews(queryClient: QueryClient, staffMemberId: stri
     return Promise.all([
         queryClient.invalidateQueries({ queryKey: staffKeys.teams() }),
         queryClient.invalidateQueries({ queryKey: staffKeys.teamMember(staffMemberId) }),
+    ]);
+}
+
+function invalidateBookingLinkViews(queryClient: QueryClient, staffMemberId: string): Promise<unknown> {
+    return Promise.all([
+        invalidateTeamMemberViews(queryClient, staffMemberId),
+        queryClient.invalidateQueries({ queryKey: staffKeys.myProfile() }),
     ]);
 }
 
@@ -251,5 +261,37 @@ export function useRefreshMyProfile(): () => void {
     return useCallback(
         () => void queryClient.invalidateQueries({ queryKey: staffKeys.myProfile() }),
         [queryClient],
+    );
+}
+
+export function useGenerateStaffBookingLink() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: generateStaffBookingLink,
+        onSettled: (_link, _error, staffMemberId) => invalidateBookingLinkViews(queryClient, staffMemberId),
+    });
+}
+
+type BookingSlugChange = {
+    staffMemberId: string;
+    payload: ChangeStaffBookingSlugPayload;
+};
+
+export function useChangeStaffBookingSlug() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ staffMemberId, payload }: BookingSlugChange) => changeStaffBookingSlug(staffMemberId, payload),
+        onSuccess: (_link, { staffMemberId }) => invalidateBookingLinkViews(queryClient, staffMemberId),
+    });
+}
+
+export function useRefreshBookingLinkReadiness(staffMemberId: string): () => void {
+    const queryClient = useQueryClient();
+
+    return useCallback(
+        () => void invalidateBookingLinkViews(queryClient, staffMemberId),
+        [queryClient, staffMemberId],
     );
 }

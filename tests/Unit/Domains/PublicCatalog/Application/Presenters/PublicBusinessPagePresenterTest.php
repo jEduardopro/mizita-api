@@ -128,7 +128,7 @@ describe('assembling the page a visitor reads', function () {
         $this->services->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn([]);
         $this->team->shouldReceive('forBusiness')->once()
-            ->with(Mockery::on($record))->andReturn([]);
+            ->with(Mockery::on($record), PublicCatalogFixtures::SLUG)->andReturn([]);
         $this->location->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturnNull();
         $this->contact->shouldReceive('forBusiness')->once()
@@ -212,6 +212,33 @@ describe('assembling the page a visitor reads', function () {
 
         expect($page->profile->id)->toBe(PublicCatalogFixtures::OTHER_BUSINESS_ID)
             ->and($page->profile->slug)->toBe('peluqueria-ambar');
+    });
+});
+
+describe('the team a visitor sees', function () {
+    it('hands the team port the business uuid and the slug its booking links hang off', function () {
+        ($this->publish)(PublicCatalogFixtures::profile(
+            id: PublicCatalogFixtures::OTHER_BUSINESS_ID,
+            slug: 'peluqueria-ambar',
+        ));
+
+        ($this->describe)('peluqueria-ambar');
+
+        $this->team->shouldHaveReceived('forBusiness')->once()
+            ->with(PublicCatalogFixtures::OTHER_BUSINESS_ID, 'peluqueria-ambar');
+    });
+
+    it('carries the photo, job title, about and booking link of each member untouched', function () {
+        ($this->publish)();
+
+        $member = ($this->describe)()->team[0];
+
+        expect($member->id)->toBe(PublicCatalogFixtures::TEAM_MEMBER_ID)
+            ->and($member->name)->toBe('Ada Lovelace')
+            ->and($member->photoUrl)->toBe(PublicCatalogFixtures::TEAM_PHOTO_URL)
+            ->and($member->jobTitle)->toBe(PublicCatalogFixtures::TEAM_JOB_TITLE)
+            ->and($member->about)->toBe(PublicCatalogFixtures::TEAM_ABOUT)
+            ->and($member->bookingUrl)->toBe(PublicCatalogFixtures::TEAM_BOOKING_URL);
     });
 });
 

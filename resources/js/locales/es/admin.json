@@ -709,7 +709,8 @@
             "hours": "Horario de trabajo",
             "about": "Acerca de",
             "addAbout": "Añadir una descripción",
-            "role": "Nivel de permiso"
+            "role": "Nivel de permiso",
+            "bookingLink": "Enlace de reserva"
         },
         "notFound": {
             "title": "No encontramos tu perfil",
@@ -772,6 +773,33 @@
             "saving": "Guardando…",
             "saved": "Perfil guardado",
             "unexpected": "No pudimos guardar tu perfil. Inténtalo de nuevo."
+        },
+        "bookingLink": {
+            "generate": "Generar enlace",
+            "generating": "Generando enlace…",
+            "generated": "Enlace generado",
+            "generateFailed": "No hemos podido generar el enlace. Inténtalo otra vez.",
+            "none": "Sin enlace de reserva",
+            "opensInNewTab": "(se abre en una pestaña nueva)",
+            "copy": "Copiar enlace",
+            "copyFailed": "No hemos podido copiar el enlace. Cópialo a mano desde el perfil.",
+            "edit": "Editar enlace",
+            "blockers": {
+                "noServices": "Asigna al menos un servicio para generar el enlace.",
+                "noWorkingHours": "Configura el horario de trabajo para generar el enlace.",
+                "both": "Asigna al menos un servicio y configura el horario de trabajo para generar el enlace."
+            },
+            "dialog": {
+                "title": "Editar enlace",
+                "description": "Quien tenga el enlace anterior ya no podrá usarlo para reservar.",
+                "slug": "Final del enlace",
+                "preview": "Vista previa del enlace",
+                "save": "Guardar enlace",
+                "saving": "Guardando…",
+                "saved": "Enlace guardado",
+                "saveFailed": "No hemos podido guardar el enlace. Inténtalo otra vez.",
+                "taken": "Otra persona de tu equipo ya usa ese enlace. Prueba con otro."
+            }
         }
     },
     "onboarding": {
@@ -1175,7 +1203,10 @@
             "empty": "No quedan servicios por añadir",
             "results": "Servicios disponibles",
             "optionsError": "No pudimos cargar los servicios."
-        }
+        },
+        "copyLink": "Copiar enlace de {{service}}",
+        "linkUnavailable": "Genera primero el enlace de {{name}}",
+        "copyFailed": "No hemos podido copiar el enlace. Inténtalo otra vez."
     },
     "security": {
         "title": "Inicio de Sesión y Seguridad",
@@ -1419,7 +1450,8 @@
             "resend": "Reenviar la invitación",
             "copyTemporaryPassword": "Copiar contraseña temporal",
             "remove": "Remover del equipo",
-            "removeMember": "Remover del equipo"
+            "removeMember": "Remover del equipo",
+            "copyLink": "Copiar enlace"
         },
         "empty": {
             "search": {

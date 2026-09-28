@@ -3,6 +3,7 @@ export const BOOKING_STEPS = ['service', 'staff', 'time', 'details'] as const;
 export type BookingStep = (typeof BOOKING_STEPS)[number];
 
 export type BookingSelection = {
+    with: string | null;
     service: string | null;
     staff: string | null;
     at: string | null;
@@ -11,16 +12,25 @@ export type BookingSelection = {
 export type BookingSelectionKey = keyof BookingSelection;
 
 export const BOOKING_SELECTION_KEYS: readonly BookingSelectionKey[] = [
+    'with',
     'service',
     'staff',
     'at',
 ];
 
 export const EMPTY_BOOKING_SELECTION: BookingSelection = {
+    with: null,
     service: null,
     staff: null,
     at: null,
 };
+
+type BookingPin = {
+    key: BookingSelectionKey;
+    supplies: BookingSelectionKey;
+};
+
+const BOOKING_PINS: readonly BookingPin[] = [{ key: 'with', supplies: 'staff' }];
 
 const FLOW_SEGMENT = 'book';
 
@@ -77,21 +87,33 @@ function withQuery(path: string, query: string): string {
     return query === '' ? path : `${path}?${query}`;
 }
 
-export function previousStep(step: BookingStep): BookingStep | null {
-    const position = BOOKING_STEPS.indexOf(step);
-
-    return position <= 0 ? null : BOOKING_STEPS[position - 1];
+function activePins(selection: Partial<BookingSelection>): readonly BookingPin[] {
+    return BOOKING_PINS.filter((pin) => (selection[pin.key] ?? null) !== null);
 }
 
-export function stepPrerequisites(step: BookingStep): readonly BookingSelectionKey[] {
-    return STEP_PREREQUISITES[step];
+function keysSuppliedByPins(selection: Partial<BookingSelection>): BookingSelectionKey[] {
+    return activePins(selection).map((pin) => pin.supplies);
 }
 
-export function selectionBefore(step: BookingStep, selection: BookingSelection): BookingSelection {
+export function isStepSkipped(step: BookingStep, selection: BookingSelection): boolean {
+    const owned = STEP_OWNED_KEYS[step];
+    const supplied = keysSuppliedByPins(selection);
+
+    return owned.length > 0 && owned.every((key) => supplied.includes(key));
+}
+
+function selectionOwnedBy(
+    steps: readonly BookingStep[],
+    selection: BookingSelection,
+): BookingSelection {
     const retained: BookingSelection = { ...EMPTY_BOOKING_SELECTION };
 
-    for (const earlier of BOOKING_STEPS.slice(0, BOOKING_STEPS.indexOf(step))) {
-        for (const key of STEP_OWNED_KEYS[earlier]) {
+    for (const pin of BOOKING_PINS) {
+        retained[pin.key] = selection[pin.key];
+    }
+
+    for (const step of steps) {
+        for (const key of STEP_OWNED_KEYS[step]) {
             retained[key] = selection[key];
         }
     }
@@ -99,12 +121,60 @@ export function selectionBefore(step: BookingStep, selection: BookingSelection):
     return retained;
 }
 
+export function bookingStepsFor(selection: BookingSelection): BookingStep[] {
+    return BOOKING_STEPS.filter((step) => ! isStepSkipped(step, selection));
+}
+
+export function previousStep(step: BookingStep, selection: BookingSelection): BookingStep | null {
+    const earlier = bookingStepsFor(selection).filter(
+        (candidate) => BOOKING_STEPS.indexOf(candidate) < BOOKING_STEPS.indexOf(step),
+    );
+
+    return earlier[earlier.length - 1] ?? null;
+}
+
+export function nextStep(step: BookingStep, selection: BookingSelection): BookingStep | null {
+    return (
+        bookingStepsFor(selection).find(
+            (candidate) => BOOKING_STEPS.indexOf(candidate) > BOOKING_STEPS.indexOf(step),
+        ) ?? null
+    );
+}
+
+export function stepPrerequisites(step: BookingStep): readonly BookingSelectionKey[] {
+    return STEP_PREREQUISITES[step];
+}
+
+export function selectionBefore(step: BookingStep, selection: BookingSelection): BookingSelection {
+    return selectionOwnedBy(BOOKING_STEPS.slice(0, BOOKING_STEPS.indexOf(step)), selection);
+}
+
+export function selectionThrough(step: BookingStep, selection: BookingSelection): BookingSelection {
+    return selectionOwnedBy(BOOKING_STEPS.slice(0, BOOKING_STEPS.indexOf(step) + 1), selection);
+}
+
+export function withPinsApplied(selection: BookingSelection): BookingSelection {
+    const applied: BookingSelection = { ...selection };
+
+    for (const pin of activePins(selection)) {
+        applied[pin.supplies] = selection[pin.key];
+    }
+
+    return applied;
+}
+
+export function hasUnresolvedPin(requested: BookingSelection, resolved: BookingSelection): boolean {
+    return activePins(requested).some((pin) => resolved[pin.key] === null);
+}
+
 export function bookingStepUrl(
     slug: string,
     step: BookingStep,
     selection: Partial<BookingSelection>,
 ): string {
-    const entries = BOOKING_SELECTION_KEYS.map(
+    const supplied = keysSuppliedByPins(selection);
+
+    const entries = BOOKING_SELECTION_KEYS.filter((key) => ! supplied.includes(key)).map(
         (key): [string, string | null] => [key, selection[key] ?? null],
     );
 
@@ -112,7 +182,7 @@ export function bookingStepUrl(
 }
 
 export function bookingBackUrl(slug: string, step: BookingStep, selection: BookingSelection): string {
-    const target = previousStep(step);
+    const target = previousStep(step, selection);
 
     if (target === null) {
         return businessPath(slug);

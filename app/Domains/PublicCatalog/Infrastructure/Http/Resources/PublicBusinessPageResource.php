@@ -134,13 +134,17 @@ final class PublicBusinessPageResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, name: string}
+     * @return array{id: string, name: string, photo_url: string|null, job_title: string|null, about: string|null, booking_url: string|null}
      */
     private static function describeTeamMember(PublicTeamMember $member): array
     {
         return [
             'id' => $member->id,
             'name' => $member->name,
+            'photo_url' => $member->photoUrl,
+            'job_title' => $member->jobTitle,
+            'about' => $member->about,
+            'booking_url' => $member->bookingUrl,
         ];
     }
 

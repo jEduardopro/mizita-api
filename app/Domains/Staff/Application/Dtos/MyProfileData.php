@@ -21,6 +21,7 @@ final readonly class MyProfileData
         public ?string $about,
         public ?PhoneNumber $phone,
         public ?string $photoUrl,
+        public BookingLinkStatus $bookingLink,
         public StaffRole $role,
         public bool $hasPassword,
     ) {}
@@ -31,6 +32,7 @@ final readonly class MyProfileData
         AccountSnapshot $account,
         ?PhoneNumber $phone,
         ?string $photoUrl,
+        BookingLinkStatus $bookingLink,
     ): self {
         return new self(
             id: $profile->id,
@@ -41,6 +43,7 @@ final readonly class MyProfileData
             about: $profile->about()?->value,
             phone: $phone,
             photoUrl: $photoUrl,
+            bookingLink: $bookingLink,
             role: $member->role(),
             hasPassword: $account->hasPassword,
         );

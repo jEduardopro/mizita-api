@@ -19,6 +19,7 @@ final class MyProfilePresenter
         private readonly AccountDirectory $accounts,
         private readonly StaffPhoneBook $phones,
         private readonly StaffProfilePhotos $photos,
+        private readonly BookingLinkPresenter $bookingLinks,
     ) {}
 
     /**
@@ -32,6 +33,7 @@ final class MyProfilePresenter
             $this->accountOf($member),
             $this->phones->forProfile($profile->id),
             $this->photos->urlFor($profile->businessId, $profile->id),
+            $this->bookingLinks->statusOf($profile),
         );
     }
 

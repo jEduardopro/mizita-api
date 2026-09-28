@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { StaffProfileDetails } from '../types';
 import { ProfileAboutPanel } from './ProfileAboutPanel';
 import { ProfileHeader } from './ProfileHeader';
+import { StaffBookingLink } from './StaffBookingLink';
 import type { StaffProfilePane } from './profile-panes';
 import { ROLE_LABEL_KEYS } from './profile-role';
 
@@ -45,6 +46,14 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                 about={profile.about}
                 roleLabel={t(ROLE_LABEL_KEYS[profile.role])}
                 hoursSummary={hoursSummary}
+                bookingLink={
+                    <StaffBookingLink
+                        staffMemberId={profile.staff_member_id}
+                        slug={profile.booking_slug}
+                        url={profile.booking_url}
+                        blockers={profile.booking_link_blockers}
+                    />
+                }
                 onAddPhone={editProfile}
                 onAddAbout={editProfile}
             />

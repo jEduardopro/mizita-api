@@ -3,14 +3,20 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { usePublicBusinessPage } from '../../queries';
 import type { PublicBusinessPage, PublicService, PublicTeamMember } from '../../types';
+import { resolveBooking } from './booking-resolution';
 import {
     BOOKING_SELECTION_KEYS,
     BOOKING_STEPS,
     bookingBackUrl,
+    bookingStepsFor,
     bookingStepUrl,
     EMPTY_BOOKING_SELECTION,
+    hasUnresolvedPin,
+    isStepSkipped,
+    nextStep,
     previousStep,
     selectionBefore,
+    selectionThrough,
     stepPrerequisites,
     type BookingSelection,
     type BookingStep,
@@ -23,6 +29,7 @@ type BookingFlowNavigation = {
     backUrl: string;
     urlFor(step: BookingStep, patch?: Partial<BookingSelection>): string;
     goTo(step: BookingStep, patch?: Partial<BookingSelection>): void;
+    advance(patch: Partial<BookingSelection>): void;
 };
 
 export type PendingBookingFlow = BookingFlowNavigation & {
@@ -33,6 +40,9 @@ export type PendingBookingFlow = BookingFlowNavigation & {
 export type ReadyBookingFlow = BookingFlowNavigation & {
     status: 'ready';
     page: PublicBusinessPage;
+    steps: BookingStep[];
+    pinnedMember: PublicTeamMember | null;
+    services: PublicService[];
     service: PublicService | null;
     staffMember: PublicTeamMember | null;
     startsAt: string | null;
@@ -41,28 +51,12 @@ export type ReadyBookingFlow = BookingFlowNavigation & {
 
 export type BookingFlow = PendingBookingFlow | ReadyBookingFlow;
 
-function serviceIn(page: PublicBusinessPage, serviceId: string | null): PublicService | null {
-    return page.services.find((service) => service.id === serviceId) ?? null;
-}
-
-function staffMemberIn(
-    page: PublicBusinessPage,
-    service: PublicService | null,
-    staffId: string | null,
-): PublicTeamMember | null {
-    if (service === null || staffId === null || ! service.staff_ids.includes(staffId)) {
-        return null;
-    }
-
-    return page.team.find((member) => member.id === staffId) ?? null;
-}
-
 const FIRST_STEP: BookingStep = BOOKING_STEPS[0];
 
 const LAST_STEP: BookingStep = BOOKING_STEPS[BOOKING_STEPS.length - 1];
 
 function furthestReachableStep(selection: BookingSelection): BookingStep {
-    const blocked = BOOKING_STEPS.find((step) =>
+    const blocked = bookingStepsFor(selection).find((step) =>
         stepPrerequisites(step).some((key) => selection[key] === null),
     );
 
@@ -70,30 +64,33 @@ function furthestReachableStep(selection: BookingSelection): BookingStep {
         return LAST_STEP;
     }
 
-    return previousStep(blocked) ?? FIRST_STEP;
+    return previousStep(blocked, selection) ?? FIRST_STEP;
 }
 
 function reaches(step: BookingStep, furthest: BookingStep): boolean {
     return BOOKING_STEPS.indexOf(step) <= BOOKING_STEPS.indexOf(furthest);
 }
 
+function canonicalStep(step: BookingStep, selection: BookingSelection): BookingStep {
+    const furthest = furthestReachableStep(selection);
+    const wanted = isStepSkipped(step, selection) ? (nextStep(step, selection) ?? furthest) : step;
+
+    return reaches(wanted, furthest) ? wanted : furthest;
+}
+
 function redirectUrlFor(
-    page: PublicBusinessPage | undefined,
     slug: string,
     step: BookingStep,
-    selection: BookingSelection,
+    requested: BookingSelection,
+    resolved: BookingSelection,
 ): string | null {
-    if (page === undefined) {
+    const target = canonicalStep(step, resolved);
+
+    if (target === step && ! hasUnresolvedPin(requested, resolved)) {
         return null;
     }
 
-    const furthest = furthestReachableStep(selection);
-
-    if (reaches(step, furthest)) {
-        return null;
-    }
-
-    return bookingStepUrl(slug, furthest, selectionBefore(furthest, selection));
+    return bookingStepUrl(slug, target, selectionThrough(target, resolved));
 }
 
 export function useBookingFlow(slug: string, step: BookingStep): BookingFlow {
@@ -123,6 +120,17 @@ export function useBookingFlow(slug: string, step: BookingStep): BookingFlow {
         [urlFor],
     );
 
+    const advance = useCallback(
+        (patch: Partial<BookingSelection>) => {
+            const target = nextStep(step, { ...selection, ...patch });
+
+            if (target !== null) {
+                goTo(target, patch);
+            }
+        },
+        [goTo, selection, step],
+    );
+
     const navigation: BookingFlowNavigation = useMemo(
         () => ({
             slug,
@@ -131,21 +139,15 @@ export function useBookingFlow(slug: string, step: BookingStep): BookingFlow {
             backUrl: bookingBackUrl(slug, step, selection),
             urlFor,
             goTo,
+            advance,
         }),
-        [goTo, selection, slug, step, urlFor],
+        [advance, goTo, selection, slug, step, urlFor],
     );
 
-    const service = page === undefined ? null : serviceIn(page, selection.service);
-    const staffMember = page === undefined ? null : staffMemberIn(page, service, selection.staff);
-
-    const resolved: BookingSelection = {
-        service: service?.id ?? null,
-        staff: staffMember?.id ?? null,
-        at: selection.at,
-    };
-
-    const redirectUrl = redirectUrlFor(page, slug, step, resolved);
-    const isReachable = page !== undefined && redirectUrl === null;
+    const resolution = page === undefined ? null : resolveBooking(page, selection);
+    const redirectUrl =
+        resolution === null ? null : redirectUrlFor(slug, step, selection, resolution.selection);
+    const isReachable = resolution !== null && redirectUrl === null;
 
     useEffect(() => {
         if (redirectUrl === null) {
@@ -175,8 +177,11 @@ export function useBookingFlow(slug: string, step: BookingStep): BookingFlow {
         ...navigation,
         status: 'ready',
         page,
-        service,
-        staffMember,
+        steps: bookingStepsFor(resolution.selection),
+        pinnedMember: resolution.pinnedMember,
+        services: resolution.services,
+        service: resolution.service,
+        staffMember: resolution.staffMember,
         startsAt: selection.at,
         timezone: page.timezone,
     };

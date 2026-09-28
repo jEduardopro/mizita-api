@@ -21,6 +21,7 @@ final readonly class TeamMemberData
         public ?string $photoUrl,
         public ?string $jobTitle,
         public ?string $about,
+        public BookingLinkStatus $bookingLink,
         public StaffRole $level,
         public bool $invitationPending,
         public bool $temporaryPasswordAvailable,
@@ -33,6 +34,7 @@ final readonly class TeamMemberData
         AccountSnapshot $account,
         ?PhoneNumber $phone,
         ?string $photoUrl,
+        BookingLinkStatus $bookingLink,
         bool $holdsTemporaryPassword,
     ): self {
         $invitationPending = $member->hasPendingInvitation($account);
@@ -45,6 +47,7 @@ final readonly class TeamMemberData
             photoUrl: $photoUrl,
             jobTitle: $profile?->jobTitle()?->value,
             about: $profile?->about()?->value,
+            bookingLink: $bookingLink,
             level: $member->role(),
             invitationPending: $invitationPending,
             temporaryPasswordAvailable: $invitationPending && $holdsTemporaryPassword,

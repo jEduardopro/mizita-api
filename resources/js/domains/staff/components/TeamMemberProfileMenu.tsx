@@ -1,26 +1,42 @@
 import { router } from '@inertiajs/react';
-import { LoaderCircle, MoreHorizontal, UserMinus } from 'lucide-react';
+import { Link2, LoaderCircle, MoreHorizontal, UserMinus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuthorization } from '@/hooks/use-authorization';
+import type { StaffRole } from '../types';
 import { RemoveTeamMemberDialog } from './RemoveTeamMemberDialog';
 import { TeamMemberRemovalBlockedDialog } from './TeamMemberRemovalBlockedDialog';
 import { TEAM_SETTINGS_URL } from './team-urls';
+import { useCopyBookingLink } from './use-copy-booking-link';
 import { useTeamMemberRemoval } from './use-team-member-removal';
+
+const MENU_ITEM_SIZE = 'min-h-11 md:min-h-8';
 
 type Props = {
     memberId: string;
     name: string;
+    level: StaffRole;
+    bookingUrl: string | null;
 };
 
-export function TeamMemberProfileMenu({ memberId, name }: Props) {
+export function TeamMemberProfileMenu({ memberId, name, level, bookingUrl }: Props) {
     const { t } = useTranslation('admin');
+    const { can } = useAuthorization();
     const removal = useTeamMemberRemoval(memberId);
+    const copyBookingLink = useCopyBookingLink();
+
+    const canRemove = can('delete_staff_member') && level !== 'owner';
+
+    if (bookingUrl === null && ! canRemove) {
+        return null;
+    }
 
     return (
         <>
@@ -43,31 +59,46 @@ export function TeamMemberProfileMenu({ memberId, name }: Props) {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-60">
-                    <DropdownMenuItem
-                        variant="destructive"
-                        disabled={removal.isChecking}
-                        onSelect={removal.start}
-                        className="min-h-11 md:min-h-8"
-                    >
-                        <UserMinus aria-hidden="true" />
-                        {t('team.actions.removeMember')}
-                    </DropdownMenuItem>
+                    {bookingUrl === null ? null : (
+                        <DropdownMenuItem onSelect={() => copyBookingLink(bookingUrl)} className={MENU_ITEM_SIZE}>
+                            <Link2 aria-hidden="true" />
+                            {t('team.actions.copyLink')}
+                        </DropdownMenuItem>
+                    )}
+
+                    {bookingUrl !== null && canRemove ? <DropdownMenuSeparator /> : null}
+
+                    {canRemove ? (
+                        <DropdownMenuItem
+                            variant="destructive"
+                            disabled={removal.isChecking}
+                            onSelect={removal.start}
+                            className={MENU_ITEM_SIZE}
+                        >
+                            <UserMinus aria-hidden="true" />
+                            {t('team.actions.removeMember')}
+                        </DropdownMenuItem>
+                    ) : null}
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <RemoveTeamMemberDialog
-                memberId={memberId}
-                name={name}
-                open={removal.dialog === 'confirm'}
-                onOpenChange={removal.handleOpenChange}
-                onBlocked={removal.showBlocked}
-                onRemoved={() => router.visit(TEAM_SETTINGS_URL)}
-            />
+            {canRemove ? (
+                <>
+                    <RemoveTeamMemberDialog
+                        memberId={memberId}
+                        name={name}
+                        open={removal.dialog === 'confirm'}
+                        onOpenChange={removal.handleOpenChange}
+                        onBlocked={removal.showBlocked}
+                        onRemoved={() => router.visit(TEAM_SETTINGS_URL)}
+                    />
 
-            <TeamMemberRemovalBlockedDialog
-                open={removal.dialog === 'blocked'}
-                onOpenChange={removal.handleOpenChange}
-            />
+                    <TeamMemberRemovalBlockedDialog
+                        open={removal.dialog === 'blocked'}
+                        onOpenChange={removal.handleOpenChange}
+                    />
+                </>
+            ) : null}
         </>
     );
 }

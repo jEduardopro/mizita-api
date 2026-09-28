@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domains\Staff\Application\Dtos\BookingLinkData;
+use App\Domains\Staff\Application\Dtos\BookingLinkStatus;
 use App\Domains\Staff\Application\Dtos\TeamMemberData;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use Tests\Support\Staff\StaffFixtures;
 
@@ -19,6 +22,7 @@ it('offers the temporary password only when the invitation is pending and the ac
         StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, awaitingPasswordChange: $awaitingPasswordChange),
         null,
         null,
+        new BookingLinkStatus(null, []),
         $holdsTemporaryPassword,
     );
 
@@ -32,3 +36,22 @@ it('offers the temporary password only when the invitation is pending and the ac
     'no access member holding one' => [StaffRole::NoAccess, true, true, false, false],
     'the owner holding one' => [StaffRole::Owner, true, true, false, false],
 ]);
+
+it('carries the booking link status it was handed, untouched', function () {
+    $status = new BookingLinkStatus(
+        new BookingLinkData(StaffFixtures::BOOKING_SLUG, StaffFixtures::BOOKING_URL),
+        [BookingLinkBlocker::NoWorkingHours],
+    );
+
+    $data = TeamMemberData::fromEntities(
+        StaffFixtures::member(),
+        StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG),
+        StaffFixtures::account(),
+        null,
+        null,
+        $status,
+        false,
+    );
+
+    expect($data->bookingLink)->toBe($status);
+});

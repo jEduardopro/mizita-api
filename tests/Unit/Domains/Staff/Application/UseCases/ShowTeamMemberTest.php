@@ -36,7 +36,7 @@ beforeEach(function () {
 
     $this->build = fn (?FakeBusinessContext $business = null): ShowTeamMember => new ShowTeamMember(
         $this->members,
-        new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords),
+        new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
     );
 

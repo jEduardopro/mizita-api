@@ -15,8 +15,11 @@ use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
 use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
 use App\Domains\PublicCatalog\Contracts\PublishedSchedule;
+use App\Domains\PublicCatalog\Contracts\PublishedServiceLinks;
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\Contracts\PublishedSlots;
+use App\Domains\PublicCatalog\Contracts\PublishedStaffLinks;
+use App\Domains\PublicCatalog\Contracts\PublishedStaffServices;
 use App\Domains\PublicCatalog\Contracts\PublishedStates;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedLocation;
@@ -32,7 +35,10 @@ use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesGuestContac
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesPublishedBookingPolicy;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BusinessesPublishedBusinesses;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\PhonesLinksPublishedContact;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServiceLinks;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServices;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedStaffServices;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedStaffLinks;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedTeam;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -70,7 +76,10 @@ final class PublicCatalogServiceProvider extends ServiceProvider
     {
         $this->app->bind(PublishedBusinesses::class, BusinessesPublishedBusinesses::class);
         $this->app->bind(PublishedServices::class, ServicesPublishedServices::class);
+        $this->app->bind(PublishedServiceLinks::class, ServicesPublishedServiceLinks::class);
         $this->app->bind(PublishedTeam::class, StaffPublishedTeam::class);
+        $this->app->bind(PublishedStaffLinks::class, StaffPublishedStaffLinks::class);
+        $this->app->bind(PublishedStaffServices::class, ServicesPublishedStaffServices::class);
         $this->app->bind(PublishedSchedule::class, AvailabilityPublishedSchedule::class);
         $this->app->bind(PublishedOpenState::class, AvailabilityPublishedOpenState::class);
         $this->app->bind(PublishedBookingHorizon::class, AvailabilityPublishedBookingHorizon::class);

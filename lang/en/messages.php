@@ -126,6 +126,11 @@ return [
         'team_member_has_upcoming_appointments' => 'This team member still has upcoming appointments. Reassign or cancel them first.',
         'team_invitation_not_pending' => 'This team member has no pending invitation to resend.',
         'temporary_password_unavailable' => 'The temporary password is no longer available: this team member has already signed in or has no pending invitation.',
+        'staff_member_cannot_receive_bookings' => 'This team member needs at least one service and working hours before they can have a booking link.',
+        'booking_link_already_exists' => 'This team member already has a booking link.',
+        'booking_link_not_found' => 'This team member does not have a booking link yet.',
+        'booking_slug_taken' => 'That link is already in use by another team member.',
+        'invalid_booking_slug' => 'That link is not valid. Use lowercase letters, numbers and hyphens.',
 
         // Services. The wording never repeats the name, slug or amount that was
         // rejected, and never confirms that a service exists in another business.

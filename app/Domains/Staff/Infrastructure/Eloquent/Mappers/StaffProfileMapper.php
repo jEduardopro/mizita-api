@@ -7,6 +7,7 @@ namespace App\Domains\Staff\Infrastructure\Eloquent\Mappers;
 use App\Domains\Staff\Entities\StaffProfile;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffProfileModel;
 use App\Domains\Staff\ValueObjects\About;
+use App\Domains\Staff\ValueObjects\BookingSlug;
 use App\Domains\Staff\ValueObjects\JobTitle;
 use DateTimeImmutable;
 
@@ -20,6 +21,7 @@ final class StaffProfileMapper
             staffMemberId: $staffMemberId,
             jobTitle: $model->job_title === null ? null : JobTitle::restore($model->job_title),
             about: $model->about === null ? null : About::restore($model->about),
+            bookingSlug: $model->booking_slug === null ? null : BookingSlug::restore($model->booking_slug),
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
         );
     }
@@ -35,6 +37,7 @@ final class StaffProfileMapper
             'staff_member_id' => $staffMemberKey,
             'job_title' => $profile->jobTitle()?->value,
             'about' => $profile->about()?->value,
+            'booking_slug' => $profile->bookingSlug()?->value,
         ];
     }
 }

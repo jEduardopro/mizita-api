@@ -41,7 +41,7 @@ beforeEach(function () {
         $this->members,
         $this->profiles,
         $this->photos,
-        new MyProfilePresenter($this->accounts, $this->phones, $this->photos),
+        new MyProfilePresenter($this->accounts, $this->phones, $this->photos, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
     );
 

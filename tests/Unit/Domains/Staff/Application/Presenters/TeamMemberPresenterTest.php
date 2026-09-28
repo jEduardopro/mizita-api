@@ -5,16 +5,20 @@ declare(strict_types=1);
 use App\Domains\Staff\Application\Dtos\TeamMemberData;
 use App\Domains\Staff\Application\Presenters\TeamMemberPresenter;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
+use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\ValueObjects\Paginated;
 use App\Shared\ValueObjects\Pagination;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\PhoneNumbers;
 use Tests\Support\Staff\FakeAccountDirectory;
+use Tests\Support\Staff\FakeBusinessSlugs;
+use Tests\Support\Staff\FakeServiceAssignments;
 use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
+use Tests\Support\Staff\FakeWorkingHours;
 use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
@@ -40,7 +44,7 @@ beforeEach(function () {
     $this->photos = (new FakeStaffProfilePhotos)->store(FakeBusinessContext::BUSINESS_ID, StaffFixtures::PROFILE_ID, StaffFixtures::PHOTO_URL);
     $this->temporaryPasswords = new FakeTeamTemporaryPasswords;
 
-    $this->presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords);
+    $this->presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, StaffFixtures::bookingLinkPresenter());
 
     $this->owner = StaffFixtures::member();
     $this->invitee = StaffFixtures::member(
@@ -90,7 +94,7 @@ describe('describing one member', function () {
 
     it('describes a member with no profile with no description, no phone and no photo', function () {
         $this->profiles = new FakeStaffProfileRepository;
-        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords);
+        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, StaffFixtures::bookingLinkPresenter());
 
         $data = $presenter->describe($this->owner);
 
@@ -223,4 +227,64 @@ it('describes a page keeping its total and its pagination', function () {
         ->and($page->items[0]->id)->toBe(StaffFixtures::SECOND_MEMBER_ID)
         ->and($page->total)->toBe(2)
         ->and($page->pagination)->toBe($pagination);
+});
+
+describe('the booking link of each member', function () {
+    beforeEach(function () {
+        $this->profiles->store(StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG));
+        $this->services = (new FakeServiceAssignments)->offering(FakeBusinessContext::BUSINESS_ID, StaffFixtures::MEMBER_ID);
+        $this->workingHours = (new FakeWorkingHours)->working(FakeBusinessContext::BUSINESS_ID, StaffFixtures::MEMBER_ID, StaffFixtures::SECOND_MEMBER_ID);
+        $this->businesses = new FakeBusinessSlugs;
+
+        $this->presenter = new TeamMemberPresenter(
+            $this->accounts,
+            $this->profiles,
+            $this->phones,
+            $this->photos,
+            $this->temporaryPasswords,
+            StaffFixtures::bookingLinkPresenter($this->services, $this->workingHours, $this->businesses),
+        );
+    });
+
+    it('describes a linked, ready member with the link and no blocker', function () {
+        $link = $this->presenter->describe($this->owner)->bookingLink;
+
+        expect($link->link?->slug)->toBe(StaffFixtures::BOOKING_SLUG)
+            ->and($link->link?->url)->toBe(StaffFixtures::BOOKING_URL)
+            ->and($link->blockers)->toBe([]);
+    });
+
+    it('describes an unlinked member with what still blocks the link', function () {
+        $link = $this->presenter->describe($this->invitee)->bookingLink;
+
+        expect($link->link)->toBeNull()
+            ->and($link->blockers)->toBe([BookingLinkBlocker::NoServices]);
+    });
+
+    it('describes a member with no profile as unlinked', function () {
+        $loner = StaffFixtures::member(id: StaffFixtures::THIRD_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::Member);
+
+        $link = $this->presenter->describe($loner)->bookingLink;
+
+        expect($link->link)->toBeNull()
+            ->and($link->blockers)->toBe([BookingLinkBlocker::NoServices, BookingLinkBlocker::NoWorkingHours]);
+    });
+
+    it('assesses the whole batch in one lookup per port and reads the business slug once', function () {
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->owner, $this->invitee]);
+
+        expect($this->services->lookups)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'staffMemberIds' => [StaffFixtures::MEMBER_ID, StaffFixtures::SECOND_MEMBER_ID],
+        ]])
+            ->and($this->workingHours->lookups)->toHaveCount(1)
+            ->and($this->businesses->lookups)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('assesses the members against the business it was asked about', function () {
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->owner]);
+
+        expect($this->services->lookups[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->workingHours->lookups[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID);
+    });
 });

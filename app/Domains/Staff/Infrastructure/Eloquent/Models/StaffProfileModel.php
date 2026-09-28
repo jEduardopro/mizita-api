@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-#[Fillable(['uuid', 'business_id', 'staff_member_id', 'job_title', 'about'])]
+#[Fillable(['uuid', 'business_id', 'staff_member_id', 'job_title', 'about', 'booking_slug'])]
 class StaffProfileModel extends Model implements BusinessScopedMediaOwner, HasMedia
 {
     use HasFactory;

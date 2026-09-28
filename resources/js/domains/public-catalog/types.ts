@@ -34,6 +34,10 @@ export type PublicService = {
 export type PublicTeamMember = {
     id: string;
     name: string;
+    photo_url: string | null;
+    job_title: string | null;
+    about: string | null;
+    booking_url: string | null;
 };
 
 export type PublicLocation = {

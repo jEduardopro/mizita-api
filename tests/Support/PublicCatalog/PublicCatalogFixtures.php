@@ -51,6 +51,22 @@ final class PublicCatalogFixtures
 
     public const UNKNOWN_SLUG = 'nobody-here';
 
+    public const STAFF_SLUG = 'ada-lovelace';
+
+    public const UNKNOWN_STAFF_SLUG = 'nobody-works-here';
+
+    public const SERVICE_SLUG = 'corte-de-pelo';
+
+    public const BOOKING_BASE_URL = 'https://mizita.test';
+
+    public const TEAM_PHOTO_URL = 'https://cdn.mizita.test/staff/ada.webp';
+
+    public const TEAM_JOB_TITLE = 'Estilista principal';
+
+    public const TEAM_ABOUT = 'Diez años de corte y color.';
+
+    public const TEAM_BOOKING_URL = self::BOOKING_BASE_URL.'/'.self::SLUG.'/equipo/'.self::STAFF_SLUG;
+
     public const NAME = 'Ada Salón';
 
     public const TIMEZONE = 'Europe/Madrid';
@@ -309,8 +325,19 @@ final class PublicCatalogFixtures
     public static function teamMember(
         string $id = self::TEAM_MEMBER_ID,
         string $name = 'Ada Lovelace',
+        ?string $photoUrl = self::TEAM_PHOTO_URL,
+        ?string $jobTitle = self::TEAM_JOB_TITLE,
+        ?string $about = self::TEAM_ABOUT,
+        ?string $bookingUrl = self::TEAM_BOOKING_URL,
     ): PublicTeamMember {
-        return new PublicTeamMember(id: $id, name: $name);
+        return new PublicTeamMember(
+            id: $id,
+            name: $name,
+            photoUrl: $photoUrl,
+            jobTitle: $jobTitle,
+            about: $about,
+            bookingUrl: $bookingUrl,
+        );
     }
 
     public static function location(

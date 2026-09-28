@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Domains\Staff\Application\Dtos\RegisterBusinessOwnerInput;
 use App\Domains\Staff\Application\Dtos\StaffMemberData;
 use App\Domains\Staff\Application\Dtos\StaffMemberRegistration;
+use App\Domains\Staff\Application\Services\BookingReadinessAssessor;
 use App\Domains\Staff\Application\UseCases\RegisterBusinessOwner;
+use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
 use App\Domains\Staff\Entities\StaffMember;
@@ -24,13 +26,16 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
+use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\StaffFixtures;
 use Tests\Support\Staff\StaffJournal;
 
 const REGISTERED_MEMBER_ID = '01930000-0000-7000-8000-0000000000c1';
 const REGISTERED_PROFILE_ID = '01930000-0000-7000-8000-0000000000e1';
 const OWNED_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b1';
 const OWNER_ACCOUNT = '01930000-0000-7000-8000-0000000000a1';
+const SECOND_OWNER_ACCOUNT = '01930000-0000-7000-8000-0000000000a2';
 
 beforeEach(function () {
     $this->staffMembers = Mockery::mock(StaffMemberRepository::class);
@@ -38,6 +43,10 @@ beforeEach(function () {
     $this->journal = new StaffJournal($this->transactions);
     $this->profiles = new FakeStaffProfileRepository($this->journal);
     $this->now = new DateTimeImmutable('2026-01-01T12:00:00+00:00');
+    $this->accounts = new FakeAccountDirectory(
+        StaffFixtures::account(id: OWNER_ACCOUNT, name: 'José Pablo Núñez'),
+        StaffFixtures::account(id: SECOND_OWNER_ACCOUNT, name: 'Ada Lovelace', email: 'ada@example.org'),
+    );
 
     $this->build = fn (
         ?IdGenerator $ids = null,
@@ -45,6 +54,7 @@ beforeEach(function () {
     ): RegisterBusinessOwner => new RegisterBusinessOwner(
         $this->staffMembers,
         $this->profiles,
+        $this->accounts,
         $ids ?? new FixedIdGenerator(REGISTERED_MEMBER_ID, REGISTERED_PROFILE_ID),
         $clock ?? new FakeClock($this->now),
         $this->transactions,
@@ -143,7 +153,7 @@ describe('the profile that comes with the membership', function () {
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
     });
 
-    it('creates a blank profile for the member it just registered, at the same business', function () {
+    it('creates an undescribed profile for the member it just registered, at the same business', function () {
         ($this->memberIsSaved)();
 
         ($this->register)($this->input);
@@ -205,6 +215,48 @@ describe('the profile that comes with the membership', function () {
     });
 });
 
+describe('the booking link of the owner', function () {
+    beforeEach(function () {
+        $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
+    });
+
+    it('books the owner under a slug built from the account name', function () {
+        ($this->memberIsSaved)();
+
+        ($this->register)($this->input);
+
+        expect($this->profiles->saved[0]->bookingSlug()?->value)->toBe('jose-pablo-nunez');
+    });
+
+    it('reads the name of the account the input names, once', function () {
+        ($this->memberIsSaved)();
+
+        ($this->register)($this->input);
+
+        expect($this->accounts->calls)->toBe([[OWNER_ACCOUNT]]);
+    });
+
+    it('refuses when the account cannot be described, before any transaction opens', function () {
+        $this->staffMembers->shouldNotReceive('save');
+        $useCase = new RegisterBusinessOwner(
+            $this->staffMembers,
+            $this->profiles,
+            new FakeAccountDirectory,
+            new FixedIdGenerator(REGISTERED_MEMBER_ID, REGISTERED_PROFILE_ID),
+            new FakeClock($this->now),
+            $this->transactions,
+        );
+
+        $error = ($this->refuse)($this->input, $useCase);
+
+        expect($error->code)->toBe('staff_member_not_found')
+            ->and($error->kind)->toBe(DomainFailureKind::NotFound)
+            ->and($this->transactions->runs())->toBe(0)
+            ->and($this->journal->entries)->toBe([])
+            ->and($this->profiles->saved)->toBe([]);
+    });
+});
+
 describe('the event it earned', function () {
     it('hands the event back instead of dispatching one', function () {
         $this->staffMembers->shouldReceive('ownsAnyBusiness')->andReturn(false);
@@ -232,14 +284,15 @@ describe('the event it earned', function () {
 
         $first = ($this->register)($this->input, $useCase);
         $second = ($this->register)(
-            new RegisterBusinessOwnerInput(OWNED_BUSINESS_ID, 'another-account-uuid'),
+            new RegisterBusinessOwnerInput(OWNED_BUSINESS_ID, SECOND_OWNER_ACCOUNT),
             $useCase,
         );
 
         expect($first->events)->toHaveCount(1)
             ->and($second->events)->toHaveCount(1)
             ->and($second->events[0]->id)->toBe('01930000-0000-7000-8000-0000000000c2')
-            ->and($this->profiles->saved[1]->staffMemberId)->toBe('01930000-0000-7000-8000-0000000000c2');
+            ->and($this->profiles->saved[1]->staffMemberId)->toBe('01930000-0000-7000-8000-0000000000c2')
+            ->and($this->profiles->saved[1]->bookingSlug()?->value)->toBe('ada-lovelace');
     });
 });
 
@@ -264,7 +317,8 @@ describe('an account that already owns a business', function () {
 
         expect($this->transactions->runs())->toBe(0)
             ->and($this->journal->entries)->toBe([])
-            ->and($this->profiles->saved)->toBe([]);
+            ->and($this->profiles->saved)->toBe([])
+            ->and($this->accounts->callCount())->toBe(0);
     });
 
     it('asks the question platform-wide, not at one business', function () {
@@ -342,7 +396,7 @@ describe('the shape of the answer', function () {
 });
 
 describe('what it deliberately does not depend on', function () {
-    it('takes no business context and no dispatcher', function () {
+    it('takes no business context, no dispatcher and no readiness check', function () {
         $ports = array_map(
             static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
             (new ReflectionClass(RegisterBusinessOwner::class))->getConstructor()->getParameters(),
@@ -351,11 +405,13 @@ describe('what it deliberately does not depend on', function () {
         expect($ports)->toBe([
             StaffMemberRepository::class,
             StaffProfileRepository::class,
+            AccountDirectory::class,
             IdGenerator::class,
             Clock::class,
             TransactionManager::class,
         ])
             ->and($ports)->not->toContain(BusinessContext::class)
-            ->and($ports)->not->toContain(Dispatcher::class);
+            ->and($ports)->not->toContain(Dispatcher::class)
+            ->and($ports)->not->toContain(BookingReadinessAssessor::class);
     });
 });

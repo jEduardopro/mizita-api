@@ -24,6 +24,7 @@ final class TeamMemberPresenter
         private readonly StaffPhoneBook $phones,
         private readonly StaffProfilePhotos $photos,
         private readonly TeamTemporaryPasswords $temporaryPasswords,
+        private readonly BookingLinkPresenter $bookingLinks,
     ) {}
 
     /**
@@ -57,10 +58,12 @@ final class TeamMemberPresenter
         $accountIds = self::accountIdsOf($members);
         $accounts = $this->accountsOf($accountIds);
         $holdingTemporaryPassword = array_flip($this->temporaryPasswords->availableAmong($accountIds));
-        $profiles = $this->profiles->findForStaffMembers($businessId, self::idsOf($members));
+        $memberIds = self::idsOf($members);
+        $profiles = $this->profiles->findForStaffMembers($businessId, $memberIds);
         $profileIds = self::profileIdsOf($profiles);
         $phones = $this->phones->forProfiles($profileIds);
         $photoUrls = $this->photos->urlsFor($businessId, $profileIds);
+        $bookingLinks = $this->bookingLinks->statusesOf($businessId, $memberIds, $profiles);
 
         $described = [];
 
@@ -79,6 +82,7 @@ final class TeamMemberPresenter
                 $account,
                 $profile === null ? null : ($phones[$profile->id] ?? null),
                 $profile === null ? null : ($photoUrls[$profile->id] ?? null),
+                $bookingLinks[$member->id],
                 isset($holdingTemporaryPassword[$member->accountId]),
             );
         }

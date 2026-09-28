@@ -81,7 +81,7 @@ beforeEach(function () {
         $this->accounts,
         $this->provisioner,
         $this->phones,
-        new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos, new FakeTeamTemporaryPasswords),
+        new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
         $this->parser,
         $business ?? new FakeBusinessContext,
         $this->transactions,

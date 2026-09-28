@@ -18,9 +18,10 @@ export type StaffServiceAssignments = {
 type Params = {
     staffMemberId: string;
     assigned: Service[] | undefined;
+    onChange?: () => void;
 };
 
-export function useStaffServiceAssignments({ staffMemberId, assigned }: Params): StaffServiceAssignments {
+export function useStaffServiceAssignments({ staffMemberId, assigned, onChange }: Params): StaffServiceAssignments {
     const { t } = useTranslation('admin');
     const catalog = useAssignableServices();
     const assignMutation = useAssignStaffToService();
@@ -41,6 +42,7 @@ export function useStaffServiceAssignments({ staffMemberId, assigned }: Params):
         try {
             await change({ serviceId, staffMemberId });
             raiseSuccessToast(successMessage);
+            onChange?.();
         } catch (error) {
             raiseErrorToast(formMessageFrom(error, t('staffServices.failed')));
         } finally {

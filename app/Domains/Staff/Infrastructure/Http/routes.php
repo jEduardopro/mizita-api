@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Staff\Infrastructure\Http\Controllers\MyProfileController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\MyProfilePhotoController;
+use App\Domains\Staff\Infrastructure\Http\Controllers\StaffBookingLinkController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\StaffMemberController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamInvitationController;
 use App\Domains\Staff\Infrastructure\Http\Controllers\TeamMemberController;
@@ -44,6 +45,14 @@ Route::get('/staff-members/{staffMember}/removal', [TeamMemberRemovalController:
     ->whereUuid('staffMember');
 
 Route::delete('/staff-members/{staffMember}/photo', [TeamMemberPhotoController::class, 'destroy'])
+    ->middleware('permission:edit_staff_member')
+    ->whereUuid('staffMember');
+
+Route::post('/staff-members/{staffMember}/booking-link', [StaffBookingLinkController::class, 'store'])
+    ->middleware('permission:edit_staff_member')
+    ->whereUuid('staffMember');
+
+Route::put('/staff-members/{staffMember}/booking-link', [StaffBookingLinkController::class, 'update'])
     ->middleware('permission:edit_staff_member')
     ->whereUuid('staffMember');
 
