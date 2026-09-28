@@ -13,6 +13,7 @@ use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffPhoneBook;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
+use App\Domains\Staff\Contracts\TeamAllowance;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
 use App\Domains\Staff\Events\TeamMemberInvited;
@@ -21,6 +22,7 @@ use App\Domains\Staff\Exceptions\InvalidProfileJobTitle;
 use App\Domains\Staff\Exceptions\InvalidProfilePhone;
 use App\Domains\Staff\Exceptions\InvalidTeamLevel;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
+use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Domains\Staff\ValueObjects\AccessTransition;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
@@ -38,6 +40,7 @@ final class UpdateTeamMember
         private readonly StaffProfileRepository $profiles,
         private readonly AccountDirectory $accounts,
         private readonly TeamAccountProvisioner $provisioner,
+        private readonly TeamAllowance $allowance,
         private readonly StaffPhoneBook $phones,
         private readonly TeamMemberPresenter $presenter,
         private readonly PhoneNumberParser $phoneNumberParser,
@@ -61,6 +64,7 @@ final class UpdateTeamMember
 
             $this->describeProfile($input, $profile);
             $transition = $this->changeLevel($input, $member);
+            $this->ensurePlanAllowsGrantingAccess($businessId, $transition);
 
             $invitations = $this->transactions->run(
                 fn (): array => $this->apply($input, $member, $profile, $phone, $transition),
@@ -102,6 +106,20 @@ final class UpdateTeamMember
         }
 
         return $member->changeRole($input->toLevel($input->level));
+    }
+
+    /**
+     * @throws TeamRequiresCompletePlan
+     */
+    private function ensurePlanAllowsGrantingAccess(string $businessId, AccessTransition $transition): void
+    {
+        if ($transition !== AccessTransition::Granted) {
+            return;
+        }
+
+        if (! $this->allowance->includesTeam($businessId)) {
+            throw TeamRequiresCompletePlan::for($businessId);
+        }
     }
 
     /**

@@ -54,14 +54,23 @@ type ContactFieldRowProps = {
     label: string;
     level: ContactFieldLevel;
     error?: string;
+    disabled?: boolean;
     onLevelChange: (level: ContactFieldLevel) => void;
 };
 
-export function ContactFieldRow({ id, label, level, error, onLevelChange }: ContactFieldRowProps) {
+export function ContactFieldRow({
+    id,
+    label,
+    level,
+    error,
+    disabled = false,
+    onLevelChange,
+}: ContactFieldRowProps) {
     const { t } = useTranslation('admin');
 
     const requiredId = `${id}-required`;
     const isShown = isContactFieldShown(level);
+    const isRequiredSwitchDisabled = disabled || ! isShown;
     const message = fieldMessage({ id, error });
 
     return (
@@ -71,6 +80,7 @@ export function ContactFieldRow({ id, label, level, error, onLevelChange }: Cont
                     <Switch
                         id={id}
                         checked={isShown}
+                        disabled={disabled}
                         onCheckedChange={(checked) => onLevelChange(levelForShownSwitch(checked))}
                         aria-invalid={error !== undefined}
                         aria-describedby={message?.id}
@@ -79,7 +89,7 @@ export function ContactFieldRow({ id, label, level, error, onLevelChange }: Cont
                     <Label htmlFor={id}>{label}</Label>
                 </div>
 
-                <div data-disabled={! isShown} className={cn('group ml-auto', TOGGLE_CLASSES)}>
+                <div data-disabled={isRequiredSwitchDisabled} className={cn('group ml-auto', TOGGLE_CLASSES)}>
                     <Label htmlFor={requiredId} className="font-normal text-muted-foreground">
                         {t('bookingPreferences.contactFields.required')}
                     </Label>
@@ -87,7 +97,7 @@ export function ContactFieldRow({ id, label, level, error, onLevelChange }: Cont
                     <Switch
                         id={requiredId}
                         checked={isContactFieldRequired(level)}
-                        disabled={! isShown}
+                        disabled={isRequiredSwitchDisabled}
                         onCheckedChange={(checked) =>
                             onLevelChange(levelForRequiredSwitch(checked))
                         }

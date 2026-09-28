@@ -6,6 +6,7 @@ use App\Domains\Staff\Application\Dtos\ResendTeamInvitationInput;
 use App\Domains\Staff\Application\UseCases\ResendTeamInvitation;
 use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
+use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseError;
 use App\Shared\Application\UseCaseResponse;
@@ -15,6 +16,7 @@ use Tests\Support\FakeBusinessContext;
 use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffMemberRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamAllowance;
 use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
@@ -28,6 +30,7 @@ beforeEach(function () {
         StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, name: 'Grace Hopper', email: 'grace@example.com', awaitingPasswordChange: true),
     );
     $this->provisioner = (new FakeTeamAccountProvisioner)->issues(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+    $this->allowance = new FakeTeamAllowance;
 
     $this->dispatched = [];
     $this->events = Mockery::mock(Dispatcher::class);
@@ -39,6 +42,7 @@ beforeEach(function () {
         $this->members,
         $this->accounts,
         $this->provisioner,
+        $this->allowance,
         $business ?? new FakeBusinessContext,
         $this->events,
     );
@@ -113,7 +117,8 @@ it('refuses a value that is not a uuid without looking anything up', function ()
 
     expect($error->code)->toBe('staff_member_not_found')
         ->and($this->members->businessLookups)->toBe([])
-        ->and($this->accounts->calls)->toBe([]);
+        ->and($this->accounts->calls)->toBe([])
+        ->and($this->allowance->checks)->toBe([]);
 });
 
 it('refuses a member nobody has', function () {
@@ -149,5 +154,50 @@ describe('tenant isolation', function () {
 
         expect($this->dispatched[0]->staffMemberId)->toBe(StaffFixtures::THIRD_MEMBER_ID)
             ->and($this->dispatched[0]->businessId)->toBe(StaffFixtures::OTHER_BUSINESS_ID);
+    });
+
+    it('asks about the plan of the business of the context', function () {
+        ($this->resend)(StaffFixtures::THIRD_MEMBER_ID, ($this->build)(new FakeBusinessContext(StaffFixtures::OTHER_BUSINESS_ID)))->value();
+
+        expect($this->allowance->checks)->toBe([StaffFixtures::OTHER_BUSINESS_ID]);
+    });
+
+    it('resends in a business whose plan includes the team while another business is on the free plan', function () {
+        $this->allowance->withoutTeamFor(StaffFixtures::OTHER_BUSINESS_ID);
+
+        expect(($this->resend)()->succeeded())->toBeTrue()
+            ->and($this->dispatched)->toHaveCount(1);
+    });
+});
+
+describe('the plan gate', function () {
+    beforeEach(function () {
+        $this->allowance->withoutTeamFor(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('refuses a business whose plan excludes the team', function () {
+        $error = ($this->refusal)();
+
+        expect($error->code)->toBe('team_requires_complete_plan')
+            ->and($error->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($error->cause())->toBeInstanceOf(TeamRequiresCompletePlan::class);
+    });
+
+    it('looks nobody up and issues no password when the plan excludes the team', function () {
+        ($this->refusal)();
+
+        expect($this->members->businessLookups)->toBe([])
+            ->and($this->accounts->calls)->toBe([])
+            ->and($this->provisioner->issued)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('refuses on the plan even for a member nobody has', function () {
+        expect(($this->refusal)('01930000-0000-7000-8000-0000000000d9')->code)->toBe('team_requires_complete_plan');
+    });
+
+    it('still names a malformed member id first when the plan excludes the team', function () {
+        expect(($this->refusal)('42')->code)->toBe('staff_member_not_found')
+            ->and($this->allowance->checks)->toBe([]);
     });
 });

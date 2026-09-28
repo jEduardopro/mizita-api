@@ -280,6 +280,24 @@ return [
         'invalid_external_calendar_event' => 'That calendar event has no valid start and end.',
         'invalid_busy_window' => 'That time window is not valid.',
 
+        'active_service_limit_reached' => 'Your current plan allows up to 3 active services. Upgrade to the Complete plan to activate more.',
+        'team_requires_complete_plan' => 'Working with a team is available on the Complete plan.',
+        'booking_rules_require_complete_plan' => 'Booking preferences and contact fields are available on the Complete plan.',
+        'calendar_sync_requires_complete_plan' => 'Google Calendar sync is available on the Complete plan.',
+        'team_access_paused' => 'Your access to this business is paused because its current plan does not include a team.',
+        'staff_member_paused' => 'This team member is not available on the Free plan. Upgrade to the Complete plan to book appointments with them.',
+        'invalid_subscription_plan' => 'That plan does not exist.',
+        'plan_not_grantable' => 'That plan cannot be granted as a subscription.',
+        'invalid_subscription_period' => 'That subscription period is not valid. It has to end in the future.',
+        'subscription_not_extendable' => 'The new end date has to be later than the current one.',
+        'invalid_subscription_end_date' => 'That end date is not valid. Use the YYYY-MM-DD format.',
+        'invalid_subscription_price' => 'That price is not valid.',
+        'subscription_already_in_effect' => 'This business already has a subscription in effect.',
+        'subscription_not_found' => 'This business has no subscription in effect.',
+        'subscription_period_overlaps' => 'That subscription period overlaps another one of the same business.',
+        'subscription_not_active' => 'That subscription is no longer active.',
+        'subscription_not_due_for_expiry' => 'That subscription has not ended yet.',
+
     ],
 
     /*

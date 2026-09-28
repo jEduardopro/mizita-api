@@ -19,6 +19,7 @@ import {
     type ServiceFormValues,
 } from './service-form-values';
 import { serviceEditUrl, SERVICES_URL } from './service-urls';
+import { useServiceActivation, type ServiceActivation } from './use-service-activation';
 
 export type ServiceFormMode = 'create' | 'edit';
 
@@ -32,6 +33,7 @@ export type ServiceFormController = {
     values: ServiceFormValues;
     update: <TKey extends ServiceField>(key: TKey, value: ServiceFormValues[TKey]) => void;
     errorFor: (field: ServiceField) => string | undefined;
+    activation: ServiceActivation;
     image: ImageState;
     isSubmitting: boolean;
     submit: (event: FormEvent<HTMLFormElement>) => void;
@@ -40,9 +42,10 @@ export type ServiceFormController = {
 type Params = {
     mode: ServiceFormMode;
     service: Service | null;
+    fixedStaffIds?: readonly string[];
 };
 
-export function useServiceForm({ mode, service }: Params): ServiceFormController {
+export function useServiceForm({ mode, service, fixedStaffIds }: Params): ServiceFormController {
     const { t } = useTranslation('admin');
     const { fieldErrors, capture, clearField, reset } = useServerErrors();
 
@@ -60,6 +63,10 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
     }
 
     const imageObjectUrl = useObjectUrl(imageFile);
+    const activation = useServiceActivation(service);
+    const shownValues = activation.blocked ? { ...values, active: false } : values;
+    const submittedValues =
+        fixedStaffIds === undefined ? shownValues : { ...shownValues, staffIds: [...fixedStaffIds] };
 
     const createService = useCreateService();
     const updateService = useUpdateService();
@@ -88,11 +95,11 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
         if (mode === 'edit' && service !== null) {
             return updateService.mutateAsync({
                 id: service.id,
-                payload: servicePayloadFrom(values),
+                payload: servicePayloadFrom(submittedValues),
             });
         }
 
-        return createService.mutateAsync(servicePayloadFrom(values));
+        return createService.mutateAsync(servicePayloadFrom(submittedValues));
     }
 
     async function syncImage(saved: Service): Promise<boolean> {
@@ -147,9 +154,10 @@ export function useServiceForm({ mode, service }: Params): ServiceFormController
     }
 
     return {
-        values,
+        values: shownValues,
         update,
         errorFor,
+        activation,
         image: {
             shownUrl: imageFile === null ? savedImageUrl : imageObjectUrl,
             select: setImageFile,

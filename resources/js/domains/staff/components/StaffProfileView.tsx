@@ -49,6 +49,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                 bookingLink={
                     <StaffBookingLink
                         staffMemberId={profile.staff_member_id}
+                        role={profile.role}
                         slug={profile.booking_slug}
                         url={profile.booking_url}
                         blockers={profile.booking_link_blockers}

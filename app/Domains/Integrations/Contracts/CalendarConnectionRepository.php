@@ -19,6 +19,11 @@ interface CalendarConnectionRepository
 
     public function findDisconnected(string $businessId, string $id): ?CalendarConnection;
 
+    /**
+     * @return list<CalendarConnection>
+     */
+    public function liveInBusiness(string $businessId): array;
+
     public function existsLiveForAccount(CalendarProvider $provider, string $accountEmail): bool;
 
     /**

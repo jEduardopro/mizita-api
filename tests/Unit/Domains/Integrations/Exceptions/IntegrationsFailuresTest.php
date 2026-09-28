@@ -12,6 +12,7 @@ use App\Domains\Integrations\Exceptions\CalendarBusinessNotFound;
 use App\Domains\Integrations\Exceptions\CalendarConnectionNotFound;
 use App\Domains\Integrations\Exceptions\CalendarOwnerNotFound;
 use App\Domains\Integrations\Exceptions\CalendarScopeNotGranted;
+use App\Domains\Integrations\Exceptions\CalendarSyncRequiresCompletePlan;
 use App\Domains\Integrations\Exceptions\ExternalCalendarUnavailable;
 use App\Domains\Integrations\Exceptions\InvalidBusyWindow;
 use App\Domains\Integrations\Exceptions\InvalidCalendarConnection;
@@ -140,6 +141,12 @@ function integrationsDomainFailures(): array
             DomainFailureKind::Invalid,
             'The calendar scope [https://www.googleapis.com/auth/calendar.app.created] was not granted.',
         ],
+        'a business whose plan does not include calendar sync' => [
+            CalendarSyncRequiresCompletePlan::forBusiness('business-uuid'),
+            'calendar_sync_requires_complete_plan',
+            DomainFailureKind::Forbidden,
+            'Business [business-uuid] cannot sync a calendar on its current plan.',
+        ],
         'an external calendar out of reach' => [
             ExternalCalendarUnavailable::forConnection('connection-uuid'),
             'external_calendar_unavailable',
@@ -233,8 +240,8 @@ it('gives each refusal of the domain an error code of its own', function () {
         $codeByClass[$failure::class] = $code;
     }
 
-    expect($codeByClass)->toHaveCount(15)
-        ->and(array_unique($codeByClass))->toHaveCount(15);
+    expect($codeByClass)->toHaveCount(16)
+        ->and(array_unique($codeByClass))->toHaveCount(16);
 });
 
 it('keeps the provider or transport error it translates as its previous', function (Closure $translate) {

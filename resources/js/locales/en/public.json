@@ -49,6 +49,7 @@
             "eyebrow": "Pricing",
             "heading": "Start free. Pay when you work with a team.",
             "recommended": "Recommended",
+            "comingSoon": "Coming soon",
             "currency": "MXN",
             "perMonth": "/month",
             "plans": {
@@ -81,7 +82,7 @@
                         "reminders": "Automatic email reminders before every appointment.",
                         "payments": "Online payments: charge or take a deposit when the booking is made.",
                         "reports": "Reports and statistics on your agenda, your staff and your services.",
-                        "googleCalendar": "Two-way sync with Google Calendar."
+                        "googleCalendar": "Your appointments in your Google Calendar, as they happen."
                     }
                 }
             }

@@ -64,6 +64,17 @@ final class EloquentCalendarConnectionRepository implements CalendarConnectionRe
         return $model === null ? null : $this->mapper->toEntity($model, $businessId);
     }
 
+    public function liveInBusiness(string $businessId): array
+    {
+        return $this->ofBusiness($businessId)
+            ->with(self::STAFF_SELECTION)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (CalendarConnectionModel $model): CalendarConnection => $this->mapper->toEntity($model, $businessId))
+            ->values()
+            ->all();
+    }
+
     public function existsLiveForAccount(CalendarProvider $provider, string $accountEmail): bool
     {
         return CalendarConnectionModel::query()

@@ -3,20 +3,27 @@
 declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServiceLinks;
+use App\Domains\Services\Application\Services\BookableServiceCatalog;
 use App\Domains\Services\Contracts\ServiceRepository;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
+use Tests\Support\Services\FakeServiceAllowance;
 use Tests\Support\Services\FakeServiceRepository;
 use Tests\Support\Services\ServiceFixtures;
 
 beforeEach(function () {
     $this->services = new FakeServiceRepository;
 
-    $this->gateway = new ServicesPublishedServiceLinks($this->services);
+    $this->allowance = FakeServiceAllowance::unlimited();
+
+    $this->gatewayOver = fn (ServiceRepository $services): ServicesPublishedServiceLinks => new ServicesPublishedServiceLinks(
+        $services,
+        new BookableServiceCatalog($services, $this->allowance),
+    );
 
     $this->lookup = fn (
         string $serviceSlug = PublicCatalogFixtures::SERVICE_SLUG,
         string $businessId = PublicCatalogFixtures::BUSINESS_ID,
-    ): ?string => $this->gateway->bookableServiceIdFor($businessId, $serviceSlug);
+    ): ?string => ($this->gatewayOver)($this->services)->bookableServiceIdFor($businessId, $serviceSlug);
 });
 
 describe('a service slug the business books under', function () {
@@ -49,7 +56,7 @@ describe('a service slug the business books under', function () {
     it('asks the catalogue for the active services of that business alone', function () {
         ($this->lookup)();
 
-        expect($this->services->businessIdsSeen)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+        expect(array_values(array_unique($this->services->businessIdsSeen)))->toBe([PublicCatalogFixtures::BUSINESS_ID]);
     });
 
     it('matches the whole slug, never a prefix of it', function (string $serviceSlug) {
@@ -125,8 +132,52 @@ describe('what is not a miss', function () {
         $services = Mockery::mock(ServiceRepository::class);
         $services->shouldReceive('activeForBusiness')->once()->andThrow($bug);
 
-        expect(fn () => (new ServicesPublishedServiceLinks($services))
+        expect(fn () => ($this->gatewayOver)($services)
             ->bookableServiceIdFor(PublicCatalogFixtures::BUSINESS_ID, PublicCatalogFixtures::SERVICE_SLUG))
             ->toThrow($bug);
+    });
+});
+
+describe('a business on the Free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeServiceAllowance::free();
+        $this->services->store(...ServiceFixtures::lineup([
+            PublicCatalogFixtures::SERVICE_ID,
+            PublicCatalogFixtures::SECOND_SERVICE_ID,
+            PublicCatalogFixtures::THIRD_SERVICE_ID,
+            PublicCatalogFixtures::FOURTH_SERVICE_ID,
+        ], PublicCatalogFixtures::BUSINESS_ID));
+    });
+
+    it('resolves nothing for an active service beyond the limit', function () {
+        expect(($this->lookup)(ServiceFixtures::SLUG.'-4'))->toBeNull();
+    });
+
+    it('still resolves the newest service the limit keeps', function () {
+        expect(($this->lookup)(ServiceFixtures::SLUG.'-3'))->toBe(PublicCatalogFixtures::THIRD_SERVICE_ID);
+    });
+
+    it('asks the plan of the business the link belongs to, and no other', function () {
+        ($this->lookup)(ServiceFixtures::SLUG.'-1');
+
+        expect($this->allowance->asked)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+    });
+
+    it('never lets the services of another business use up the places of this one', function () {
+        $services = new FakeServiceRepository;
+        $services
+            ->store(...ServiceFixtures::lineup(
+                PublicCatalogFixtures::OTHER_BUSINESS_SERVICE_IDS,
+                PublicCatalogFixtures::OTHER_BUSINESS_ID,
+            ))
+            ->store(ServiceFixtures::service(
+                id: PublicCatalogFixtures::SERVICE_ID,
+                businessId: PublicCatalogFixtures::BUSINESS_ID,
+                slug: PublicCatalogFixtures::SERVICE_SLUG,
+                createdAt: ServiceFixtures::now()->modify('+30 days'),
+            ));
+
+        expect(($this->gatewayOver)($services)->bookableServiceIdFor(PublicCatalogFixtures::BUSINESS_ID, PublicCatalogFixtures::SERVICE_SLUG))
+            ->toBe(PublicCatalogFixtures::SERVICE_ID);
     });
 });

@@ -8,6 +8,7 @@ use App\Domains\Integrations\Application\Dtos\ScheduleCalendarBackfillInput;
 use App\Domains\Integrations\Contracts\AppointmentSyncQueue;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarEventLinkRepository;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
 use App\Domains\Integrations\Contracts\UpcomingAppointments;
 use App\Domains\Integrations\Entities\CalendarConnection;
 use App\Shared\Application\UseCaseResponse;
@@ -21,6 +22,7 @@ final class ScheduleCalendarBackfill
         private readonly AppointmentSyncQueue $syncQueue,
         private readonly Clock $clock,
         private readonly CalendarEventLinkRepository $links,
+        private readonly CalendarSyncAllowance $allowance,
     ) {}
 
     /**
@@ -28,6 +30,10 @@ final class ScheduleCalendarBackfill
      */
     public function handle(ScheduleCalendarBackfillInput $input): UseCaseResponse
     {
+        if (! $this->allowance->includesCalendarSync($input->businessId)) {
+            return UseCaseResponse::success(0);
+        }
+
         $connection = $this->connections->findInBusiness($input->businessId, $input->connectionId);
 
         if ($connection?->acceptsSync() !== true) {

@@ -575,3 +575,40 @@ describe('validating', function () {
         expect(fn () => $input->validate())->not->toThrow(Throwable::class);
     });
 });
+
+describe('carrying booking preferences', function () {
+    it('carries booking preferences when either booking block was sent', function (UpdateBusinessSettingsInput $input) {
+        expect($input->carriesBookingPreferences())->toBeTrue();
+    })->with([
+        'the booking policy only' => fn () => new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()),
+        'the contact fields only' => fn () => new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()),
+        'both blocks' => fn () => new UpdateBusinessSettingsInput(
+            bookingPolicy: SettingsFixtures::bookingPolicyInput(),
+            contactFields: SettingsFixtures::contactFieldsInput(),
+        ),
+        'everything' => fn () => SettingsFixtures::everything(),
+        'both read off a payload' => fn () => UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => SettingsFixtures::bookingPolicySection(),
+            'contact_fields' => SettingsFixtures::contactFieldsSection(),
+        ]),
+    ]);
+
+    it('carries no booking preferences when neither booking block was sent', function (UpdateBusinessSettingsInput $input) {
+        expect($input->carriesBookingPreferences())->toBeFalse();
+    })->with([
+        'nothing at all' => fn () => new UpdateBusinessSettingsInput,
+        'an empty payload' => fn () => UpdateBusinessSettingsInput::fromRequest([]),
+        'every other section' => fn () => new UpdateBusinessSettingsInput(
+            brand: SettingsFixtures::brand(),
+            appearance: SettingsFixtures::appearance(),
+            contact: SettingsFixtures::contact(),
+            location: SettingsFixtures::location(),
+            schedule: SettingsFixtures::schedule(),
+            links: SettingsFixtures::links(),
+        ),
+        'booking blocks the payload could not read' => fn () => UpdateBusinessSettingsInput::fromRequest([
+            'booking_policy' => 'nonsense',
+            'contact_fields' => 7,
+        ]),
+    ]);
+});

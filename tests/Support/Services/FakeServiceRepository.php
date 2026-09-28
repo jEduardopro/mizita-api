@@ -9,6 +9,7 @@ use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Exceptions\ServiceNotFound;
 use App\Domains\Services\ValueObjects\ServiceQuery;
 use App\Shared\ValueObjects\Paginated;
+use Tests\Support\FakeTransactionManager;
 use Throwable;
 
 final class FakeServiceRepository implements ServiceRepository
@@ -69,6 +70,35 @@ final class FakeServiceRepository implements ServiceRepository
      * @var list<ServiceQuery>
      */
     public array $queries = [];
+
+    /**
+     * @var list<string>
+     */
+    public array $locks = [];
+
+    /**
+     * @var list<bool>
+     */
+    public array $locksInsideTransaction = [];
+
+    /**
+     * @var list<bool>
+     */
+    public array $countsUnderLock = [];
+
+    /**
+     * @var list<bool>
+     */
+    public array $savesInsideTransaction = [];
+
+    private ?FakeTransactionManager $transactions = null;
+
+    public function observing(FakeTransactionManager $transactions): self
+    {
+        $this->transactions = $transactions;
+
+        return $this;
+    }
 
     public function store(Service ...$services): self
     {
@@ -136,6 +166,35 @@ final class FakeServiceRepository implements ServiceRepository
         usort($active, static fn (Service $one, Service $other): int => $one->name() <=> $other->name());
 
         return $active;
+    }
+
+    public function countActive(string $businessId): int
+    {
+        $this->businessIdsSeen[] = $businessId;
+        $this->countsUnderLock[] = in_array($businessId, $this->locks, true);
+
+        return count($this->activeOf($businessId));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function activeIdsOldestFirst(string $businessId): array
+    {
+        $this->businessIdsSeen[] = $businessId;
+
+        $active = $this->activeOf($businessId);
+
+        usort($active, static fn (Service $one, Service $other): int => [$one->createdAt, $one->id] <=> [$other->createdAt, $other->id]);
+
+        return array_map(static fn (Service $service): string => $service->id, $active);
+    }
+
+    public function lockActivationsOf(string $businessId): void
+    {
+        $this->businessIdsSeen[] = $businessId;
+        $this->locks[] = $businessId;
+        $this->locksInsideTransaction[] = $this->transactions?->isRunning() ?? false;
     }
 
     public function findForBusiness(string $businessId, string $id): Service
@@ -208,6 +267,7 @@ final class FakeServiceRepository implements ServiceRepository
 
         $this->services[$this->keyFor($service->businessId, $service->id)] = $service;
         $this->saved[] = $service;
+        $this->savesInsideTransaction[] = $this->transactions?->isRunning() ?? false;
     }
 
     public function delete(string $businessId, string $id): void
@@ -223,6 +283,17 @@ final class FakeServiceRepository implements ServiceRepository
         unset($this->services[$key]);
 
         $this->deleted[] = ['businessId' => $businessId, 'id' => $id];
+    }
+
+    /**
+     * @return list<Service>
+     */
+    private function activeOf(string $businessId): array
+    {
+        return array_values(array_filter(
+            $this->services,
+            static fn (Service $service): bool => $service->businessId === $businessId && $service->isActive(),
+        ));
     }
 
     private function keyFor(string $businessId, string $id): string

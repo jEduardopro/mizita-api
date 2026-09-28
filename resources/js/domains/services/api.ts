@@ -1,6 +1,12 @@
 import { api } from '@/lib/api';
 import type { Paginated } from '@/types/api';
-import type { DuplicateServicePayload, Service, ServiceListParams, ServicePayload } from './types';
+import type {
+    ActiveServiceQuota,
+    DuplicateServicePayload,
+    Service,
+    ServiceListParams,
+    ServicePayload,
+} from './types';
 
 export async function listServices(
     params: ServiceListParams,
@@ -9,6 +15,12 @@ export async function listServices(
     const { data } = await api.get<Paginated<Service>>('/services', { params, signal });
 
     return data;
+}
+
+export async function getActiveServiceQuota(signal?: AbortSignal): Promise<ActiveServiceQuota> {
+    const { data } = await api.get<{ data: ActiveServiceQuota }>('/services/quota', { signal });
+
+    return data.data;
 }
 
 export async function getService(id: string, signal?: AbortSignal): Promise<Service> {

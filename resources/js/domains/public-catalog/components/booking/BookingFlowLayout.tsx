@@ -4,6 +4,7 @@ import { ArrowLeft, Store } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { brandColorClasses, THEME_SCOPES } from '@/lib/booking-brand';
+import { useBusinessFavicon } from '../use-business-favicon';
 import { BookingBusinessCard } from './BookingBusinessCard';
 import { BookingStepHeading } from './BookingStepHeading';
 import { BookingSummary } from './BookingSummary';
@@ -24,6 +25,8 @@ export function BookingFlowLayout({ flow, title, description, intro, actions, ch
     const { t } = useTranslation('public');
 
     const { page } = flow;
+    useBusinessFavicon(page.logo_url);
+
     const accent = brandColorClasses[page.brand.accent_color];
     const themeScope = THEME_SCOPES[page.brand.theme];
 

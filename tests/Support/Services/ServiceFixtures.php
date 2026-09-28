@@ -25,6 +25,10 @@ final class ServiceFixtures
 
     public const THIRD_SERVICE_ID = '01930000-0000-7000-8000-0000000000e3';
 
+    public const FOURTH_SERVICE_ID = '01930000-0000-7000-8000-0000000000e4';
+
+    public const FIFTH_SERVICE_ID = '01930000-0000-7000-8000-0000000000e5';
+
     public const GENERATED_SERVICE_ID = '01930000-0000-7000-8000-0000000000e9';
 
     public const OTHER_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b2';
@@ -78,6 +82,29 @@ final class ServiceFixtures
             active: $active,
             staffIds: $staffIds,
             createdAt: $createdAt ?? self::now(),
+        );
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<Service>
+     */
+    public static function lineup(
+        array $ids,
+        string $businessId = FakeBusinessContext::BUSINESS_ID,
+        bool $active = true,
+    ): array {
+        return array_map(
+            static fn (string $id, int $position): Service => self::service(
+                id: $id,
+                businessId: $businessId,
+                name: self::NAME.' '.($position + 1),
+                slug: self::SLUG.'-'.($position + 1),
+                active: $active,
+                createdAt: self::now()->modify("+{$position} days"),
+            ),
+            $ids,
+            array_keys($ids),
         );
     }
 

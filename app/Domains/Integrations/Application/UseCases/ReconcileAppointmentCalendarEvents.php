@@ -9,6 +9,7 @@ use App\Domains\Integrations\Contracts\AppointmentFeed;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarEventLinkRepository;
 use App\Domains\Integrations\Contracts\CalendarEventPublisher;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
 use App\Domains\Integrations\Entities\CalendarConnection;
 use App\Domains\Integrations\Entities\CalendarEventLink;
 use App\Domains\Integrations\Exceptions\CalendarAuthorizationRevoked;
@@ -29,6 +30,7 @@ final class ReconcileAppointmentCalendarEvents
         private readonly CalendarEventPublisher $publisher,
         private readonly IdGenerator $ids,
         private readonly string $mizitaLink,
+        private readonly CalendarSyncAllowance $allowance,
     ) {}
 
     /**
@@ -38,6 +40,11 @@ final class ReconcileAppointmentCalendarEvents
     {
         try {
             $appointment = $this->appointments->snapshotOf($input->appointmentId);
+
+            if (! $this->allowance->includesCalendarSync($appointment->businessId)) {
+                return UseCaseResponse::success();
+            }
+
             $target = $this->targetConnectionFor($appointment);
             $kept = $this->withdrawLinksOutside($appointment, $target);
 

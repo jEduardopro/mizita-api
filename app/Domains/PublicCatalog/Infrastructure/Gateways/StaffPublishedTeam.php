@@ -6,6 +6,7 @@ namespace App\Domains\PublicCatalog\Infrastructure\Gateways;
 
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
 use App\Domains\PublicCatalog\ValueObjects\PublicTeamMember;
+use App\Domains\Staff\Application\Services\BookableTeam;
 use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffProfilePhotos;
@@ -22,6 +23,7 @@ final class StaffPublishedTeam implements PublishedTeam
         private readonly StaffProfileRepository $profiles,
         private readonly StaffProfilePhotos $photos,
         private readonly BookingLinks $bookingLinks,
+        private readonly BookableTeam $bookableTeam,
     ) {}
 
     /**
@@ -29,7 +31,7 @@ final class StaffPublishedTeam implements PublishedTeam
      */
     public function forBusiness(string $businessId, string $businessSlug): array
     {
-        $members = $this->members->allForBusiness($businessId);
+        $members = $this->bookableMembersOf($businessId);
 
         if ($members === []) {
             return [];
@@ -58,6 +60,25 @@ final class StaffPublishedTeam implements PublishedTeam
         }
 
         return $team;
+    }
+
+    /**
+     * @return list<StaffMember>
+     */
+    private function bookableMembersOf(string $businessId): array
+    {
+        $members = $this->members->allForBusiness($businessId);
+
+        if ($members === []) {
+            return [];
+        }
+
+        $bookableIds = array_flip($this->bookableTeam->bookableAmong($businessId, self::memberIds($members)));
+
+        return array_values(array_filter(
+            $members,
+            static fn (StaffMember $member): bool => isset($bookableIds[$member->id]),
+        ));
     }
 
     private function bookingUrlFor(string $businessSlug, ?StaffProfile $profile): ?string

@@ -68,6 +68,7 @@ export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) 
                     staffMemberId={profile.staff_member_id}
                     staffName={profile.name}
                     staffBookingUrl={profile.booking_url}
+                    isOwner={profile.role === 'owner'}
                     onAssignmentsChange={refreshBookingLinkReadiness}
                 />
             }

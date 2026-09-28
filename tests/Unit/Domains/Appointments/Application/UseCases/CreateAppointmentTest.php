@@ -14,6 +14,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeBookableStaff;
 use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakeCustomerDirectory;
 use Tests\Support\Appointments\FakePaymentLedger;
@@ -50,6 +51,7 @@ beforeEach(function () {
 
     $this->payments = new FakePaymentLedger($this->journal);
     $this->calendars = FakeCalendarAccess::everyone();
+    $this->bookableStaff = new FakeBookableStaff($this->journal);
 
     $this->dispatched = [];
     $this->events = Mockery::mock(Dispatcher::class);
@@ -71,6 +73,7 @@ beforeEach(function () {
         $business ?? new FakeBusinessContext,
         $this->events,
         $this->calendars,
+        $this->bookableStaff,
     );
 
     $this->useCase = ($this->build)();
@@ -217,6 +220,7 @@ describe('announcing the booking', function () {
             'services.describe',
             'customers.describe',
             'staff.describe',
+            'staff.confirmBookable',
             'appointments.save',
             'customers.describe',
             'services.describe',
@@ -390,5 +394,76 @@ describe('the calendar the caller is allowed to keep', function () {
         expect($response->error()->code)->toBe('business_not_accessible')
             ->and($this->calendars->lookups)->toBe([])
             ->and($this->journal->entries)->toBe([]);
+    });
+});
+
+describe('a team member the plan has paused', function () {
+    beforeEach(function () {
+        $this->bookableStaff->pause(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::STAFF_ID);
+    });
+
+    it('refuses to book them because they are paused', function () {
+        $response = ($this->create)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('staff_member_paused')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden);
+    });
+
+    it('saves and announces nothing when it refuses them', function () {
+        ($this->create)();
+
+        expect($this->appointments->saved)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('refuses them only once every neighbour is known, and before it saves', function () {
+        ($this->create)();
+
+        expect($this->journal->entries)->toBe([
+            'services.describe',
+            'customers.describe',
+            'staff.describe',
+            'staff.confirmBookable',
+        ]);
+    });
+
+    it('answers not found for a team member of nobody before it asks whether they are bookable', function () {
+        $response = ($this->create)(staffMemberId: AppointmentFixtures::UNKNOWN_ID);
+
+        expect($response->error()->code)->toBe('appointment_staff_not_found')
+            ->and($this->bookableStaff->confirmations)->toBe([]);
+    });
+
+    it('still books another team member of the same business who is not paused', function () {
+        $this->staff->add(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::staffSnapshot(
+            id: AppointmentFixtures::SECOND_STAFF_ID,
+            name: AppointmentFixtures::SECOND_STAFF_NAME,
+        ));
+
+        $data = ($this->create)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID)->value();
+
+        expect($data->staffMember->id)->toBe(AppointmentFixtures::SECOND_STAFF_ID)
+            ->and($this->appointments->saved)->toHaveCount(1);
+    });
+});
+
+describe('asking whether the team member is bookable', function () {
+    it('asks once, about the business in context and the team member on the input', function () {
+        ($this->create)();
+
+        expect($this->bookableStaff->confirmations)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'staffMemberId' => AppointmentFixtures::STAFF_ID,
+        ]]);
+    });
+
+    it('never asks about a team member the caller may not assign', function () {
+        $this->calendars = FakeCalendarAccess::ownedBy(AppointmentFixtures::STAFF_ID);
+        $this->useCase = ($this->build)();
+
+        ($this->create)(staffMemberId: AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($this->bookableStaff->confirmations)->toBe([]);
     });
 });

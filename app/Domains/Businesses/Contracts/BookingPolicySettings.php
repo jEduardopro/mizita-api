@@ -17,4 +17,8 @@ interface BookingPolicySettings
     public function contactFieldsFor(string $businessId): ContactFieldPreferences;
 
     public function applyContactFieldsTo(string $businessId, ContactFieldPreferences $preferences): void;
+
+    public function platformDefaults(): BookingPolicySnapshot;
+
+    public function platformDefaultContactFields(): ContactFieldPreferences;
 }

@@ -8,6 +8,7 @@ use Tests\Support\FakeClock;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeAppointmentSyncQueue;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarConnectionRepository;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarEventLinkRepository;
+use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarSyncAllowance;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeUpcomingAppointments;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsFixtures;
 
@@ -20,6 +21,7 @@ beforeEach(function () {
     );
     $this->queue = new FakeAppointmentSyncQueue;
     $this->links = new FakeCalendarEventLinkRepository;
+    $this->allowance = FakeCalendarSyncAllowance::completePlan();
 
     $this->linkAppointments = function (string ...$appointmentIds): void {
         foreach ($appointmentIds as $position => $appointmentId) {
@@ -39,6 +41,7 @@ beforeEach(function () {
         $this->queue,
         new FakeClock(IntegrationsFixtures::now()),
         $this->links,
+        $this->allowance,
     ))->handle(new ScheduleCalendarBackfillInput($businessId, $connectionId));
 });
 
@@ -77,6 +80,12 @@ describe('a connected calendar', function () {
             'businessId' => IntegrationsFixtures::BUSINESS_ID,
             'id' => IntegrationsFixtures::CONNECTION_ID,
         ]]);
+    });
+
+    it('asks whether the plan of the business of the input includes calendar sync', function () {
+        ($this->backfill)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::BUSINESS_ID]);
     });
 
     it('schedules nothing and answers zero when no appointment is upcoming', function () {
@@ -192,4 +201,39 @@ describe('a connection that cannot be synced', function () {
             IntegrationsFixtures::connection(businessId: IntegrationsFixtures::OTHER_BUSINESS_ID),
         )],
     ]);
+});
+
+describe('a business on the free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeCalendarSyncAllowance::freePlan();
+        $this->connections->store(IntegrationsFixtures::connection());
+        ($this->linkAppointments)(IntegrationsFixtures::THIRD_APPOINTMENT_ID);
+    });
+
+    it('answers zero', function () {
+        $response = ($this->backfill)();
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value())->toBe(0);
+    });
+
+    it('schedules no sync, not even for the appointments already on the calendar', function () {
+        ($this->backfill)();
+
+        expect($this->queue->scheduled)->toBe([]);
+    });
+
+    it('reads no connection, no upcoming appointment and no link', function () {
+        ($this->backfill)();
+
+        expect($this->connections->businessLookups)->toBe([])
+            ->and($this->upcoming->lookups)->toBe([])
+            ->and($this->links->connectionLookups)->toBe([]);
+    });
+
+    it('asks for the plan of the business of the input', function () {
+        ($this->backfill)(IntegrationsFixtures::OTHER_BUSINESS_ID);
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::OTHER_BUSINESS_ID]);
+    });
 });

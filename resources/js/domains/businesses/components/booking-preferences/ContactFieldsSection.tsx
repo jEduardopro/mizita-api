@@ -33,6 +33,7 @@ export function ContactFieldsSection({ form }: Props) {
                         label={t(CONTACT_FIELD_LABEL_KEYS[name])}
                         level={form.values.contactFields[name]}
                         error={form.contactFieldErrorFor(name)}
+                        disabled={form.areBookingRulesLocked}
                         onLevelChange={(level) => form.updateContactField(name, level)}
                     />
                 ))}

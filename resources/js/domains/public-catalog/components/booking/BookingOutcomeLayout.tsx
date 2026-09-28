@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { brandColorClasses, THEME_SCOPES } from '@/lib/booking-brand';
 import type { PublicBusinessPage } from '../../types';
+import { useBusinessFavicon } from '../use-business-favicon';
 import { businessPageUrl } from './booking-steps';
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 
 export function BookingOutcomeLayout({ page, title, children }: Props) {
     const { t } = useTranslation('public');
+    useBusinessFavicon(page.logo_url);
 
     const accent = brandColorClasses[page.brand.accent_color];
     const themeScope = THEME_SCOPES[page.brand.theme];

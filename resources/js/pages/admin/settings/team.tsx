@@ -1,6 +1,7 @@
 import { UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PlanUpgradeNotice } from '@/components/admin/PlanUpgradeNotice';
 import type { DataTableSort } from '@/components/shared/data-table/types';
 import { useDataTableQuery } from '@/components/shared/data-table/use-data-table-query';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,8 @@ import { BRAND_SETTINGS_URL } from '@/domains/businesses/components/settings-url
 import { InviteTeamMembersDialog } from '@/domains/staff/components/InviteTeamMembersDialog';
 import { TeamTable } from '@/domains/staff/components/TeamTable';
 import { TeamToolbar } from '@/domains/staff/components/TeamToolbar';
+import { useTeamInvitationAccess } from '@/domains/staff/components/use-team-invitation-access';
 import { TEAM_SORT_FIELDS, type TeamSortField } from '@/domains/staff/types';
-import { useAuthorization } from '@/hooks/use-authorization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { AdminLayout } from '@/layouts/AdminLayout';
 
@@ -19,7 +20,7 @@ const DEFAULT_SORT: DataTableSort<TeamSortField> = { field: 'name', direction: '
 
 export default function Team() {
     const { t } = useTranslation('admin');
-    const { can } = useAuthorization();
+    const invitationAccess = useTeamInvitationAccess();
     const [isInviting, setIsInviting] = useState(false);
 
     const query = useDataTableQuery({
@@ -53,7 +54,7 @@ export default function Team() {
                 { label: t('nav.team') },
             ]}
             actions={
-                can('create_staff_member') ? (
+                invitationAccess === 'allowed' ? (
                     <Button
                         type="button"
                         variant="brand"
@@ -66,6 +67,10 @@ export default function Team() {
                 ) : undefined
             }
         >
+            {invitationAccess === 'requires_upgrade' ? (
+                <PlanUpgradeNotice description={t('plan.team.inviteBlocked')} className="mb-5" />
+            ) : null}
+
             <TeamTable
                 query={query}
                 toolbar={{
@@ -76,7 +81,9 @@ export default function Team() {
                 onInvite={() => setIsInviting(true)}
             />
 
-            {isInviting ? <InviteTeamMembersDialog onClose={() => setIsInviting(false)} /> : null}
+            {isInviting && invitationAccess === 'allowed' ? (
+                <InviteTeamMembersDialog onClose={() => setIsInviting(false)} />
+            ) : null}
         </AdminLayout>
     );
 }

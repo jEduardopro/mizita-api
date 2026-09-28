@@ -4,6 +4,7 @@ import { DataTable } from '@/components/shared/data-table/DataTable';
 import { dataTableStatus } from '@/components/shared/data-table/status';
 import type { DataTableToolbar } from '@/components/shared/data-table/types';
 import type { DataTableQuery } from '@/components/shared/data-table/use-data-table-query';
+import { useIsTeamMemberPaused } from '@/hooks/use-is-team-member-paused';
 import { useTeamMembers } from '../queries';
 import type { TeamSortField } from '../types';
 import { teamColumns } from './team-columns';
@@ -19,6 +20,7 @@ type Props = {
 
 export function TeamTable({ query, toolbar, onClearSearch, onInvite }: Props) {
     const { t } = useTranslation('admin');
+    const isPaused = useIsTeamMemberPaused();
 
     const team = useTeamMembers({
         page: query.page,
@@ -28,7 +30,7 @@ export function TeamTable({ query, toolbar, onClearSearch, onInvite }: Props) {
         search: query.search === '' ? undefined : query.search,
     });
 
-    const columns = useMemo(() => teamColumns({ t }), [t]);
+    const columns = useMemo(() => teamColumns({ t, isPaused }), [t, isPaused]);
 
     return (
         <DataTable
@@ -53,7 +55,7 @@ export function TeamTable({ query, toolbar, onClearSearch, onInvite }: Props) {
                     onInvite={onInvite}
                 />
             }
-            renderCard={(member) => <TeamMemberListRow member={member} />}
+            renderCard={(member) => <TeamMemberListRow member={member} paused={isPaused(member.level)} />}
             toolbar={toolbar}
         />
     );

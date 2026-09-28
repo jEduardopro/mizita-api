@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\PublicCatalog;
 
+use App\Domains\PublicCatalog\Contracts\BookingRulesAllowance;
 use App\Domains\PublicCatalog\Contracts\GuestBookingDesk;
 use App\Domains\PublicCatalog\Contracts\GuestBookings;
 use App\Domains\PublicCatalog\Contracts\GuestContactFields;
@@ -40,6 +41,7 @@ use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServices;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedStaffServices;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedStaffLinks;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedTeam;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\SubscriptionsBookingRulesAllowance;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -92,6 +94,7 @@ final class PublicCatalogServiceProvider extends ServiceProvider
         $this->app->bind(GuestBookings::class, AppointmentsGuestBookings::class);
         $this->app->bind(GuestBookingDesk::class, AppointmentsGuestBookingDesk::class);
         $this->app->bind(GuestContactFields::class, BookingPoliciesGuestContactFields::class);
+        $this->app->bind(BookingRulesAllowance::class, SubscriptionsBookingRulesAllowance::class);
     }
 
     public function boot(): void

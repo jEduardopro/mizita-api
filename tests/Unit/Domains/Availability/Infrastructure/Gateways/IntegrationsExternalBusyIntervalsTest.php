@@ -8,6 +8,7 @@ use App\Domains\Integrations\Application\UseCases\ListCalendarBusyIntervals;
 use App\Domains\Integrations\Contracts\BusinessProfiles;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarEventFeed;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
 use App\Domains\Integrations\Entities\CalendarConnection;
 use App\Domains\Integrations\Exceptions\CalendarBusinessNotFound;
 use App\Domains\Integrations\ValueObjects\BusinessCalendarProfile;
@@ -61,8 +62,13 @@ beforeEach(function () {
         },
     );
 
+    $this->includesCalendarSync = true;
+
+    $allowance = Mockery::mock(CalendarSyncAllowance::class);
+    $allowance->shouldReceive('includesCalendarSync')->andReturnUsing(fn (string $businessId): bool => $this->includesCalendarSync);
+
     $this->gateway = new IntegrationsExternalBusyIntervals(
-        new ListCalendarBusyIntervals($connections, $this->businesses, $feed),
+        new ListCalendarBusyIntervals($connections, $this->businesses, $feed, $allowance),
     );
 
     $this->busyEvent = static fn (string $startsAt, string $endsAt): ExternalCalendarEvent => new ExternalCalendarEvent(
@@ -136,6 +142,25 @@ describe('a calendar with nothing to report', function () {
 
         expect($this->gateway->forStaffBetween(FakeBusinessContext::BUSINESS_ID, $this->staffMemberId, $this->from, $this->to))
             ->toBe([])
+            ->and($this->feedWindows)->toBe([]);
+    });
+});
+
+describe('a business whose plan leaves calendar sync out', function () {
+    beforeEach(function () {
+        $this->includesCalendarSync = false;
+        $this->events = [($this->busyEvent)('2026-10-05T09:00:00+00:00', '2026-10-05T10:00:00+00:00')];
+    });
+
+    it('returns no busy time even when the connected calendar holds some', function () {
+        expect($this->gateway->forStaffBetween(FakeBusinessContext::BUSINESS_ID, $this->staffMemberId, $this->from, $this->to))
+            ->toBe([]);
+    });
+
+    it('never looks the connection up nor reads the feed', function () {
+        $this->gateway->forStaffBetween(FakeBusinessContext::BUSINESS_ID, $this->staffMemberId, $this->from, $this->to);
+
+        expect($this->connectionLookups)->toBe([])
             ->and($this->feedWindows)->toBe([]);
     });
 });

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { DataTableSort, DataTableToolbar } from '@/components/shared/data-table/types';
 import { useDataTableQuery } from '@/components/shared/data-table/use-data-table-query';
 import { Button } from '@/components/ui/button';
+import { ActiveServiceQuotaMeter } from '@/domains/services/components/ActiveServiceQuotaMeter';
 import { ServicesList } from '@/domains/services/components/ServicesList';
 import { ServicesTable } from '@/domains/services/components/ServicesTable';
 import {
@@ -13,6 +14,7 @@ import {
     type ServicesView,
 } from '@/domains/services/components/ServicesToolbar';
 import { NEW_SERVICE_URL } from '@/domains/services/components/service-urls';
+import { useActiveServiceAllowance } from '@/domains/services/components/use-active-service-allowance';
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from '@/domains/services/types';
 import { useAuthorization } from '@/hooks/use-authorization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -33,6 +35,7 @@ export default function ServicesIndex() {
     const url = useUrlQueryState();
     const { can } = useAuthorization();
     const isDesktop = useIsDesktop();
+    const allowance = useActiveServiceAllowance();
 
     const query = useDataTableQuery({
         sortableFields: SERVICE_SORT_FIELDS,
@@ -87,19 +90,23 @@ export default function ServicesIndex() {
                 ) : undefined
             }
         >
-            {view === 'table' ? (
-                <ServicesTable
-                    query={query}
-                    toolbar={toolbar}
-                    onClearSearch={() => setSearchInput('')}
-                />
-            ) : (
-                <ServicesList
-                    search={search}
-                    onClearSearch={() => setSearchInput('')}
-                    toolbar={toolbar}
-                />
-            )}
+            <div className="grid gap-4">
+                <ActiveServiceQuotaMeter allowance={allowance} />
+
+                {view === 'table' ? (
+                    <ServicesTable
+                        query={query}
+                        toolbar={toolbar}
+                        onClearSearch={() => setSearchInput('')}
+                    />
+                ) : (
+                    <ServicesList
+                        search={search}
+                        onClearSearch={() => setSearchInput('')}
+                        toolbar={toolbar}
+                    />
+                )}
+            </div>
         </AdminLayout>
     );
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Services\Infrastructure\Http\Controllers\ServiceController;
 use App\Domains\Services\Infrastructure\Http\Controllers\ServiceImageController;
+use App\Domains\Services\Infrastructure\Http\Controllers\ServiceQuotaController;
 use App\Domains\Services\Infrastructure\Http\Controllers\ServiceStaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,9 @@ Route::get('/services', [ServiceController::class, 'index'])
 
 Route::post('/services', [ServiceController::class, 'store'])
     ->middleware('permission:create_service');
+
+Route::get('/services/quota', [ServiceQuotaController::class, 'show'])
+    ->middleware('permission:view_services');
 
 Route::get('/services/{service}', [ServiceController::class, 'show'])
     ->middleware('permission:view_services')

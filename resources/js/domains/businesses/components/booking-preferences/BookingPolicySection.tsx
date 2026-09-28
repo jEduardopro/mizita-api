@@ -1,8 +1,7 @@
 import { Info } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Duration, DurationUnit } from '@/components/form/duration-units';
-import { DurationField, type DurationUnitOption } from '@/components/form/DurationField';
+import type { DurationUnit } from '@/components/form/duration-units';
+import type { DurationUnitOption } from '@/components/form/DurationField';
 import { fieldMessage } from '@/components/form/FieldMessage';
 import { TEXTAREA_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { SelectControl } from '@/components/form/SelectControl';
@@ -17,12 +16,10 @@ import {
     LEAD_TIME_UNITS,
     SLOT_SIZE_UNITS,
 } from './booking-policy-options';
-import {
-    SettingsFieldRow,
-    settingsFieldLabelId,
-} from '@/domains/businesses/components/settings/SettingsFieldRow';
+import { SettingsFieldRow } from '@/domains/businesses/components/settings/SettingsFieldRow';
 import { SettingsSection } from '@/domains/businesses/components/settings/SettingsSection';
 import { BOOKING_PREFERENCES_SECTION_IDS } from './booking-preferences-values';
+import { DurationPolicyRow } from './DurationPolicyRow';
 import type { BookingPreferencesFormController } from './use-booking-preferences-form';
 
 const LEAD_TIME_ID = 'business-lead-time';
@@ -36,58 +33,6 @@ const CANCELLATION_ID = 'business-cancellation-window';
 const POLICY_MESSAGE_ID = 'business-policy-message';
 
 const POLICY_DISPLAY_ID = 'business-policy-display';
-
-const AMOUNT_MAX_LENGTH = 4;
-
-type DurationRowProps = {
-    id: string;
-    label: string;
-    helper: string;
-    unitLabel: string;
-    units: readonly DurationUnitOption[];
-    value: Duration;
-    onChange: (value: Duration) => void;
-    error?: string;
-    hint?: string;
-    labelAdornment?: ReactNode;
-};
-
-function DurationPolicyRow({
-    id,
-    label,
-    helper,
-    unitLabel,
-    units,
-    value,
-    onChange,
-    error,
-    hint,
-    labelAdornment,
-}: DurationRowProps) {
-    const message = fieldMessage({ id, error, hint });
-
-    return (
-        <SettingsFieldRow
-            htmlFor={id}
-            label={label}
-            helper={helper}
-            labelAdornment={labelAdornment}
-            message={message}
-        >
-            <DurationField
-                id={id}
-                labelledBy={settingsFieldLabelId(id)}
-                value={value}
-                onChange={onChange}
-                units={units}
-                unitLabel={unitLabel}
-                maxLength={AMOUNT_MAX_LENGTH}
-                invalid={error !== undefined}
-                describedBy={message?.id}
-            />
-        </SettingsFieldRow>
-    );
-}
 
 type Props = {
     form: BookingPreferencesFormController;
@@ -144,6 +89,7 @@ export function BookingPolicySection({ form }: Props) {
                 value={form.values.leadTime}
                 onChange={(value) => form.update('leadTime', value)}
                 error={form.errorFor('leadTime')}
+                disabled={form.areBookingRulesLocked}
             />
 
             <DurationPolicyRow
@@ -156,6 +102,7 @@ export function BookingPolicySection({ form }: Props) {
                 onChange={(value) => form.update('bookingWindow', value)}
                 hint={t('bookingPreferences.policy.bookingWindow.hint')}
                 error={form.errorFor('bookingWindow')}
+                disabled={form.areBookingRulesLocked}
             />
 
             <DurationPolicyRow
@@ -168,6 +115,7 @@ export function BookingPolicySection({ form }: Props) {
                 onChange={(value) => form.update('slotSize', value)}
                 hint={t('bookingPreferences.policy.slotSize.hint')}
                 error={form.errorFor('slotSize')}
+                disabled={form.areBookingRulesLocked}
                 labelAdornment={
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -198,6 +146,7 @@ export function BookingPolicySection({ form }: Props) {
                     options={cancellationOptions}
                     value={form.values.cancellationWindow}
                     onChange={(event) => selectCancellationWindow(event.target.value)}
+                    disabled={form.areBookingRulesLocked}
                     aria-invalid={form.errorFor('cancellationWindow') !== undefined}
                     aria-describedby={cancellationMessage?.id}
                 />
@@ -215,6 +164,7 @@ export function BookingPolicySection({ form }: Props) {
                     placeholder={t('bookingPreferences.policy.message.placeholder')}
                     value={form.values.policyMessage}
                     onChange={(event) => form.update('policyMessage', event.target.value)}
+                    disabled={form.areBookingRulesLocked}
                     aria-invalid={form.errorFor('policyMessage') !== undefined}
                     aria-describedby={policyMessageState?.id}
                     className={TEXTAREA_DENSITY_CLASSES[density]}
@@ -234,6 +184,7 @@ export function BookingPolicySection({ form }: Props) {
                         onCheckedChange={(checked) =>
                             form.update('displayPolicyOnBookingPage', checked)
                         }
+                        disabled={form.areBookingRulesLocked}
                         aria-describedby={displayMessage?.id}
                     />
                 </div>

@@ -10,6 +10,7 @@ use App\Domains\BookingPolicies\Infrastructure\ProvisionedCurrentBookingPolicy;
 use App\Domains\BookingPolicies\ValueObjects\ContactFieldRequirement;
 use App\Domains\Businesses\Contracts\BookingPolicySettings;
 use App\Domains\Businesses\Infrastructure\Gateways\BookingPoliciesBookingPolicySettings;
+use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
 use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use Tests\Support\BookingPolicies\BookingPolicyFixtures;
@@ -165,6 +166,54 @@ describe('revising the contact fields', function () {
             ->and($this->policies->saved[0]->id)->toBe(BookingPolicyFixtures::GENERATED_POLICY_ID)
             ->and($this->policies->saved[1]->businessId)->toBe(BookingPolicyFixtures::OTHER_BUSINESS_ID)
             ->and($this->policies->saved[1]->contactFields()->address)->toBe(ContactFieldRequirement::Required);
+    });
+});
+
+describe('the platform defaults', function () {
+    it('describes the booking policy a business gets before it changes anything', function () {
+        $defaults = $this->settings->platformDefaults();
+
+        expect($defaults)->toBeInstanceOf(BookingPolicySnapshot::class)
+            ->and($defaults->leadTimeMinutes)->toBe(0)
+            ->and($defaults->bookingWindowMinutes)->toBeNull()
+            ->and($defaults->slotGranularityMinutes)->toBe(15)
+            ->and($defaults->cancellationWindowMinutes)->toBe(120)
+            ->and($defaults->policyMessage)->toBeNull()
+            ->and($defaults->displayOnBookingPage)->toBeFalse();
+    });
+
+    it('matches the policy a freshly provisioned business is described with', function () {
+        expect($this->settings->platformDefaults())
+            ->toEqual($this->settings->forBusiness(FakeBusinessContext::BUSINESS_ID));
+    });
+
+    it('describes the contact fields a business gets before it changes anything', function () {
+        $defaults = $this->settings->platformDefaultContactFields();
+
+        expect($defaults)->toBeInstanceOf(ContactFieldPreferences::class)
+            ->and($defaults->phone)->toBe(ContactFieldPreference::Required)
+            ->and($defaults->email)->toBe(ContactFieldPreference::Optional)
+            ->and($defaults->address)->toBe(ContactFieldPreference::Hidden);
+    });
+
+    it('matches the contact fields a freshly provisioned business is described with', function () {
+        expect($this->settings->platformDefaultContactFields())
+            ->toEqual($this->settings->contactFieldsFor(FakeBusinessContext::BUSINESS_ID));
+    });
+
+    it('ignores whatever a business stored, because the defaults belong to the platform', function () {
+        $this->policies->store(BookingPolicyFixtures::policy());
+
+        expect($this->settings->platformDefaults()->leadTimeMinutes)->toBe(0)
+            ->and($this->settings->platformDefaultContactFields()->phone)->toBe(ContactFieldPreference::Required);
+    });
+
+    it('reads, provisions and saves no policy to answer', function () {
+        $this->settings->platformDefaults();
+        $this->settings->platformDefaultContactFields();
+
+        expect($this->policies->businessIdsSeen)->toBe([])
+            ->and($this->policies->saved)->toBe([]);
     });
 });
 

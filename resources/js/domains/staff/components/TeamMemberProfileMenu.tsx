@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { useIsTeamMemberPaused } from '@/hooks/use-is-team-member-paused';
 import type { StaffRole } from '../types';
 import { RemoveTeamMemberDialog } from './RemoveTeamMemberDialog';
 import { TeamMemberRemovalBlockedDialog } from './TeamMemberRemovalBlockedDialog';
@@ -26,12 +27,14 @@ type Props = {
     bookingUrl: string | null;
 };
 
-export function TeamMemberProfileMenu({ memberId, name, level, bookingUrl }: Props) {
+export function TeamMemberProfileMenu({ memberId, name, level, bookingUrl: issuedBookingUrl }: Props) {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
     const removal = useTeamMemberRemoval(memberId);
     const copyBookingLink = useCopyBookingLink();
+    const isPaused = useIsTeamMemberPaused();
 
+    const bookingUrl = isPaused(level) ? null : issuedBookingUrl;
     const canRemove = can('delete_staff_member') && level !== 'owner';
 
     if (bookingUrl === null && ! canRemove) {

@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 use App\Domains\Services\Application\Dtos\ServiceData;
 use App\Domains\Services\Application\Presenters\ServicePresenter;
+use App\Domains\Services\Application\Services\ActiveServiceQuota;
 use App\Domains\Services\Application\UseCases\UpdateService;
 use App\Domains\Services\Services\BookingLinks;
 use App\Domains\Services\Services\SlugAllocator;
 use App\Domains\Services\ValueObjects\ServiceColor;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\FakeBusinessContext;
+use Tests\Support\FakeTransactionManager;
 use Tests\Support\Services\FakeBusinessProfile;
+use Tests\Support\Services\FakeServiceAllowance;
 use Tests\Support\Services\FakeServiceImages;
 use Tests\Support\Services\FakeServiceRepository;
 use Tests\Support\Services\FakeStaffDirectory;
 use Tests\Support\Services\ServiceFixtures;
 
 beforeEach(function () {
-    $this->services = new FakeServiceRepository;
+    $this->transactions = new FakeTransactionManager;
+    $this->services = (new FakeServiceRepository)->observing($this->transactions);
     $this->staff = FakeStaffDirectory::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::STAFF_ID => 'Ada Lovelace',
         ServiceFixtures::SECOND_STAFF_ID => 'Grace Hopper',
@@ -25,7 +29,7 @@ beforeEach(function () {
         ServiceFixtures::FOREIGN_STAFF_ID => 'Katherine Johnson',
     ]);
 
-    $this->useCase = new UpdateService(
+    $this->buildUseCase = fn (FakeServiceAllowance $allowance) => new UpdateService(
         $this->services,
         $this->staff,
         new ServicePresenter(
@@ -35,8 +39,12 @@ beforeEach(function () {
             new BookingLinks(ServiceFixtures::BASE_URL),
         ),
         new SlugAllocator,
+        new ActiveServiceQuota($this->services, $allowance),
         new FakeBusinessContext,
+        $this->transactions,
     );
+
+    $this->useCase = ($this->buildUseCase)(FakeServiceAllowance::free());
 
     $this->onRecord = function (...$overrides) {
         $this->services->store(ServiceFixtures::service(...$overrides));
@@ -258,4 +266,75 @@ describe('refusing to update', function () {
         'a negative price' => [['price' => '-1'], 'invalid_service_price'],
         'a colour outside the palette' => [['color' => 'rose'], 'invalid_service_color'],
     ]);
+});
+
+describe('the active service quota', function () {
+    beforeEach(function () {
+        $this->atTheFreeLimit = fn () => $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::SECOND_SERVICE_ID,
+            ServiceFixtures::THIRD_SERVICE_ID,
+            ServiceFixtures::FOURTH_SERVICE_ID,
+        ]));
+    });
+
+    it('refuses to show a hidden service once the plan has no room for another, and saves nothing', function () {
+        ($this->onRecord)(active: false);
+        ($this->atTheFreeLimit)();
+
+        $response = ($this->update)(active: true);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('active_service_limit_reached')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->services->saved)->toBe([])
+            ->and($this->services->findForBusiness(FakeBusinessContext::BUSINESS_ID, ServiceFixtures::SERVICE_ID)->isActive())->toBeFalse();
+    });
+
+    it('shows a hidden service while the plan still has room', function () {
+        ($this->onRecord)(active: false);
+        $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::SECOND_SERVICE_ID,
+            ServiceFixtures::THIRD_SERVICE_ID,
+        ]));
+
+        expect(($this->update)(active: true)->value()->active)->toBeTrue()
+            ->and($this->services->locks)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('edits a service without consulting the quota when its visibility does not turn on', function (bool $wasActive, bool $becomesActive) {
+        ($this->onRecord)(active: $wasActive);
+        ($this->atTheFreeLimit)();
+
+        $response = ($this->update)(price: '300', active: $becomesActive);
+
+        expect($response->value()->active)->toBe($becomesActive)
+            ->and($response->value()->price)->toBe('300.00')
+            ->and($this->services->locks)->toBe([]);
+    })->with([
+        'a visible service stays visible' => [true, true],
+        'a visible service is hidden' => [true, false],
+        'a hidden service stays hidden' => [false, false],
+    ]);
+
+    it('lets a plan without a limit show a hidden service without taking the lock', function () {
+        ($this->onRecord)(active: false);
+        ($this->atTheFreeLimit)();
+
+        $response = (($this->buildUseCase)(FakeServiceAllowance::unlimited()))
+            ->handle(ServiceFixtures::updateInput(active: true));
+
+        expect($response->value()->active)->toBeTrue()
+            ->and($this->services->locks)->toBe([]);
+    });
+
+    it('counts the active services under the activation lock, inside the transaction that saves', function () {
+        ($this->onRecord)(active: false);
+
+        ($this->update)(active: true);
+
+        expect($this->transactions->runs())->toBe(1)
+            ->and($this->services->locksInsideTransaction)->toBe([true])
+            ->and($this->services->countsUnderLock)->toBe([true])
+            ->and($this->services->savesInsideTransaction)->toBe([true]);
+    });
 });

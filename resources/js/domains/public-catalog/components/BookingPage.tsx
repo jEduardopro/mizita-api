@@ -11,6 +11,7 @@ import { BookingHeader } from './BookingHeader';
 import { BookingHero } from './BookingHero';
 import { BookingSections } from './BookingSections';
 import { BookingSidebar } from './BookingSidebar';
+import { useBusinessFavicon } from './use-business-favicon';
 
 type Props = {
     page: PublicBusinessPage;
@@ -19,6 +20,7 @@ type Props = {
 
 export function BookingPage({ page, openServiceSlug }: Props) {
     const { t } = useTranslation('public');
+    useBusinessFavicon(page.logo_url);
 
     const accent = brandColorClasses[page.brand.accent_color];
     const themeScope = THEME_SCOPES[page.brand.theme];

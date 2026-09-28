@@ -28,7 +28,7 @@ type Props = {
     onRemovePhoto: () => Promise<unknown>;
     services: ReactNode;
     renderHoursSummary: (onEdit?: () => void) => ReactNode;
-    renderHoursPanel: (onCancel?: () => void) => ReactNode;
+    renderHoursPanel?: (onCancel?: () => void) => ReactNode;
     accountPanes?: readonly StaffProfilePaneContent[];
     headerActions?: ReactNode;
 };
@@ -65,19 +65,20 @@ export function StaffProfileScreen({
     const openDialog = (pane: StaffProfilePane) => setDialog({ open: true, pane });
     const closeDialog = () => setDialog((current) => ({ ...current, open: false }));
 
-    const hoursPane: StaffProfilePaneContent = {
+    const hoursPanes: StaffProfilePaneContent[] = renderHoursPanel === undefined ? [] : [{
         id: 'hours',
         content: <SettingsPane title={t('workingHours.title')}>{renderHoursPanel(closeDialog)}</SettingsPane>,
-    };
+    }];
+    const editHours = renderHoursPanel === undefined ? undefined : () => openDialog('hours');
 
     return (
         <>
             <StaffProfileView
                 profile={profile}
                 onEdit={openDialog}
-                hoursSummary={renderHoursSummary(() => openDialog('hours'))}
+                hoursSummary={renderHoursSummary(editHours)}
                 services={services}
-                hours={renderHoursPanel()}
+                hours={renderHoursPanel?.()}
                 headerActions={headerActions}
             />
 
@@ -92,7 +93,7 @@ export function StaffProfileScreen({
                 onSaveProfile={onSaveProfile}
                 onUploadPhoto={onUploadPhoto}
                 onRemovePhoto={onRemovePhoto}
-                panes={[hoursPane, ...accountPanes]}
+                panes={[...hoursPanes, ...accountPanes]}
             />
         </>
     );

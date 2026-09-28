@@ -925,13 +925,13 @@
         },
         "logo": {
             "label": "Logo",
-            "hint": "Square, JPG, PNG or WebP, up to 2 MB.",
+            "hint": "Square, JPG, PNG or WebP, up to 2 MB. Recommended size: 200 × 200 px.",
             "choose": "Drag your logo here, or tap to choose it",
             "tooLarge": "That logo is over 2 MB. Choose a smaller one."
         },
         "banner": {
             "label": "Cover image",
-            "hint": "Landscape 16:9, JPG, PNG or WebP, up to 5 MB.",
+            "hint": "Landscape 16:9, JPG, PNG or WebP, up to 5 MB. Recommended size: 1920 × 1080 px.",
             "choose": "Drag your cover image here, or tap to choose it",
             "tooLarge": "That cover image is over 5 MB. Choose a smaller one."
         },
@@ -1535,6 +1535,56 @@
             "removalCheckFailed": "We could not check whether this team member can be removed. Try again.",
             "ownerCannotBeRemoved": "The business owner can’t be removed from the team.",
             "resendFailed": "We could not resend the invitation. Try again."
+        }
+    },
+    "plan": {
+        "names": {
+            "free": "Free",
+            "complete": "Complete"
+        },
+        "notice": {
+            "title": "Available on the Complete plan",
+            "link": "See plans"
+        },
+        "settings": {
+            "nav": "Plan",
+            "eyebrow": "Subscription",
+            "title": "Your plan",
+            "subtitle": "Compare what each plan includes and pick the one your business needs.",
+            "current": "Your current plan: {{plan}}",
+            "endsAt": "Ends on {{date}}",
+            "currentPlan": "Current plan",
+            "upgrade": "Upgrade to Complete"
+        },
+        "team": {
+            "inviteBlocked": "On the Free plan only the owner takes appointments. Upgrade to the Complete plan to add your team.",
+            "resendBlocked": "Resending invitations is available on the Complete plan.",
+            "paused": {
+                "badge": "Paused",
+                "tooltip": "Available again when you upgrade to the Complete plan",
+                "memberNotice": "This person is paused: on the Free plan only the owner takes appointments. Their existing appointments are kept."
+            }
+        },
+        "services": {
+            "quota_one": "{{count}} of {{limit}} active services",
+            "quota_other": "{{count}} of {{limit}} active services",
+            "activationBlocked": "You already have {{limit}} active services, the most the Free plan allows. Turn another one off or upgrade to the Complete plan to turn this one on.",
+            "staffPickerHidden": "On the Free plan, the owner takes every service."
+        },
+        "bookingRules": {
+            "locked": "Booking preferences and contact fields are available on the Complete plan. The Free plan uses the default values."
+        },
+        "integrations": {
+            "connectBlocked": "Connecting Google Calendar is available on the Complete plan.",
+            "syncPaused": {
+                "title": "Sync paused",
+                "description": "Your connection is still saved, but Mizita won't send appointments to Google while your business is on the Free plan. Upgrade to the Complete plan and your calendar catches up on its own."
+            }
+        },
+        "teamAccessPaused": {
+            "title": "Your access is paused",
+            "body": "The business you work at is on the Free plan, which includes only its owner. You'll get your access back once the owner upgrades to the Complete plan.",
+            "signOut": "Log out"
         }
     }
 }

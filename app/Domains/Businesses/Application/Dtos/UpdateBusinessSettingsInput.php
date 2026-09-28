@@ -77,6 +77,12 @@ final readonly class UpdateBusinessSettingsInput
             || $this->location !== null;
     }
 
+    public function carriesBookingPreferences(): bool
+    {
+        return $this->bookingPolicy !== null
+            || $this->contactFields !== null;
+    }
+
     private static function submittedBrand(mixed $section): ?BrandDetailsInput
     {
         if (! is_array($section)) {

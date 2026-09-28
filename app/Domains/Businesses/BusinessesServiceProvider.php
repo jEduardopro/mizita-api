@@ -6,6 +6,7 @@ namespace App\Domains\Businesses;
 
 use App\Domains\Businesses\Contracts\BookingPageSettings;
 use App\Domains\Businesses\Contracts\BookingPolicySettings;
+use App\Domains\Businesses\Contracts\BookingRulesAllowance;
 use App\Domains\Businesses\Contracts\BusinessAddressBook;
 use App\Domains\Businesses\Contracts\BusinessLinkList;
 use App\Domains\Businesses\Contracts\BusinessLogo;
@@ -35,6 +36,7 @@ use App\Domains\Businesses\Infrastructure\Gateways\PhonesPhoneBook;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffOwnerRegistrar;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffRoleProvisioner;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffTeamSignOut;
+use App\Domains\Businesses\Infrastructure\Gateways\SubscriptionsBookingRulesAllowance;
 use App\Domains\Businesses\Infrastructure\Media\SpatieBusinessLogo;
 use App\Domains\Businesses\Infrastructure\Purge\DatabaseTenantDataEraser;
 use App\Shared\Contracts\BusinessTeamKey;
@@ -69,6 +71,7 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(ScheduleProvisioner::class, AvailabilityScheduleProvisioner::class);
         $this->app->bind(BookingPageSettings::class, BookingPagesBookingPageSettings::class);
         $this->app->bind(BookingPolicySettings::class, BookingPoliciesBookingPolicySettings::class);
+        $this->app->bind(BookingRulesAllowance::class, SubscriptionsBookingRulesAllowance::class);
         $this->app->bind(TeamSignOut::class, StaffTeamSignOut::class);
         $this->app->bind(TenantDataEraser::class, DatabaseTenantDataEraser::class);
     }

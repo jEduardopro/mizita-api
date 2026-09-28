@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Availability\Infrastructure\Gateways;
 
 use App\Domains\Availability\Contracts\BookingRules;
+use App\Domains\Availability\Contracts\BookingRulesAllowance;
 use App\Domains\Availability\ValueObjects\SlotRules;
 use App\Domains\BookingPolicies\Contracts\BookingPolicyRepository;
 use App\Domains\BookingPolicies\Entities\BookingPolicy;
@@ -15,19 +16,29 @@ final class BookingPoliciesBookingRules implements BookingRules
 {
     public function __construct(
         private readonly BookingPolicyRepository $policies,
+        private readonly BookingRulesAllowance $allowance,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
     ) {}
 
     public function forBusiness(string $businessId): SlotRules
     {
-        $policy = $this->policies->findForBusiness($businessId) ?? $this->defaultsFor($businessId);
+        $policy = $this->effectivePolicyFor($businessId);
 
         return new SlotRules(
             leadTimeMinutes: $policy->leadTime()->minutes,
             bookingWindowMinutes: $policy->bookingWindow()->minutes(),
             slotGranularityMinutes: $policy->slotGranularity()->minutes,
         );
+    }
+
+    private function effectivePolicyFor(string $businessId): BookingPolicy
+    {
+        if (! $this->allowance->includesBookingRules($businessId)) {
+            return $this->defaultsFor($businessId);
+        }
+
+        return $this->policies->findForBusiness($businessId) ?? $this->defaultsFor($businessId);
     }
 
     private function defaultsFor(string $businessId): BookingPolicy

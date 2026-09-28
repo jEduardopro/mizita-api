@@ -7,6 +7,7 @@ namespace App\Domains\Availability\Infrastructure\Gateways;
 use App\Domains\Availability\Contracts\BookableServices;
 use App\Domains\Availability\Exceptions\BookableServiceNotFound;
 use App\Domains\Availability\ValueObjects\BookableService;
+use App\Domains\Services\Application\Services\BookableServiceCatalog;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Exceptions\ServiceNotFound;
@@ -15,13 +16,14 @@ final class ServicesBookableServices implements BookableServices
 {
     public function __construct(
         private readonly ServiceRepository $services,
+        private readonly BookableServiceCatalog $catalog,
     ) {}
 
     public function describe(string $businessId, string $serviceId): BookableService
     {
         $service = $this->offeredService($businessId, $serviceId);
 
-        if (! $service->isActive()) {
+        if (! $this->catalog->isBookable($businessId, $serviceId)) {
             throw BookableServiceNotFound::withId($serviceId);
         }
 

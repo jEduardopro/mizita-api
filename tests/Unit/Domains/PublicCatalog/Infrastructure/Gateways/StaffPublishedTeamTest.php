@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedTeam;
 use App\Domains\PublicCatalog\ValueObjects\PublicTeamMember;
+use App\Domains\Staff\Application\Services\BookableTeam;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffProfilePhotos;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
@@ -13,6 +14,8 @@ use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\FakeTeamAllowance;
+use Tests\Support\Staff\FakeTeamOwnership;
 use Tests\Support\Staff\StaffFixtures;
 
 beforeEach(function () {
@@ -20,6 +23,10 @@ beforeEach(function () {
     $this->profiles = new FakeStaffProfileRepository;
     $this->photos = new FakeStaffProfilePhotos;
     $this->bookingLinks = new BookingLinks(PublicCatalogFixtures::BOOKING_BASE_URL);
+    $this->allowance = new FakeTeamAllowance;
+    $this->ownership = (new FakeTeamOwnership)
+        ->ownedBy(PublicCatalogFixtures::BUSINESS_ID, PublicCatalogFixtures::TEAM_MEMBER_ID);
+    $this->bookableTeam = fn (): BookableTeam => new BookableTeam($this->allowance, $this->ownership);
 
     $this->accounts = new FakeAccountDirectory(
         StaffFixtures::account(id: StaffFixtures::ACCOUNT_ID, name: 'Ada Lovelace'),
@@ -36,6 +43,7 @@ beforeEach(function () {
         $profiles ?? $this->profiles,
         $photos ?? $this->photos,
         $this->bookingLinks,
+        ($this->bookableTeam)(),
     ))->forBusiness(PublicCatalogFixtures::BUSINESS_ID, PublicCatalogFixtures::SLUG);
 
     $this->read = fn (): array => ($this->teamOf)($this->accounts);
@@ -299,8 +307,14 @@ describe('the booking link of each member', function () {
             bookingSlug: 'jose-pablo-2',
         ));
 
-        $team = (new StaffPublishedTeam($this->members, $this->accounts, $this->profiles, $this->photos, $this->bookingLinks))
-            ->forBusiness(PublicCatalogFixtures::BUSINESS_ID, 'peluqueria-ambar');
+        $team = (new StaffPublishedTeam(
+            $this->members,
+            $this->accounts,
+            $this->profiles,
+            $this->photos,
+            $this->bookingLinks,
+            ($this->bookableTeam)(),
+        ))->forBusiness(PublicCatalogFixtures::BUSINESS_ID, 'peluqueria-ambar');
 
         expect($team[0]->bookingUrl)->toBe('https://mizita.test/peluqueria-ambar/equipo/jose-pablo-2');
     });
@@ -355,5 +369,117 @@ describe('reading the team in a batch', function () {
 
         expect(array_column(($this->teamOf)($this->accounts, $this->profilesPort, $this->photosPort), 'photoUrl'))
             ->toBe([null, null]);
+    });
+});
+
+describe('a business whose plan leaves out the team', function () {
+    beforeEach(function () {
+        $this->allowance->withoutTeamFor(PublicCatalogFixtures::BUSINESS_ID);
+    });
+
+    it('publishes the owner alone and leaves every paused member off the page', function () {
+        ($this->staffed)();
+
+        $team = ($this->read)();
+
+        expect($team)->toHaveCount(1)
+            ->and($team[0]->id)->toBe(PublicCatalogFixtures::TEAM_MEMBER_ID)
+            ->and($team[0]->name)->toBe('Ada Lovelace');
+    });
+
+    it('publishes no booking link for a paused member, even one who holds a booking slug', function () {
+        ($this->staffed)();
+        $this->profiles->store(
+            ($this->profileOf)(
+                StaffFixtures::PROFILE_ID,
+                PublicCatalogFixtures::TEAM_MEMBER_ID,
+                bookingSlug: PublicCatalogFixtures::STAFF_SLUG,
+            ),
+            ($this->profileOf)(
+                StaffFixtures::SECOND_PROFILE_ID,
+                PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+                bookingSlug: 'grace-hopper',
+            ),
+        );
+
+        expect(array_column(($this->read)(), 'bookingUrl'))->toBe([PublicCatalogFixtures::TEAM_BOOKING_URL]);
+    });
+
+    it('starts the list at the owner when a paused member was listed ahead of them', function () {
+        $this->members->shouldReceive('allForBusiness')->once()->andReturn([
+            StaffFixtures::member(
+                id: PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID,
+                accountId: StaffFixtures::SECOND_ACCOUNT_ID,
+                businessId: PublicCatalogFixtures::BUSINESS_ID,
+                role: StaffRole::Member,
+            ),
+            StaffFixtures::member(
+                id: PublicCatalogFixtures::TEAM_MEMBER_ID,
+                accountId: StaffFixtures::ACCOUNT_ID,
+                businessId: PublicCatalogFixtures::BUSINESS_ID,
+            ),
+        ]);
+
+        $team = ($this->read)();
+
+        expect(array_keys($team))->toBe([0])
+            ->and($team[0]->id)->toBe(PublicCatalogFixtures::TEAM_MEMBER_ID);
+    });
+
+    it('asks no neighbour about a paused member', function () {
+        $profiles = Mockery::mock(StaffProfileRepository::class);
+        $photos = Mockery::mock(StaffProfilePhotos::class);
+
+        ($this->staffed)();
+        $profiles->shouldReceive('findForStaffMembers')->once()
+            ->with(PublicCatalogFixtures::BUSINESS_ID, [PublicCatalogFixtures::TEAM_MEMBER_ID])
+            ->andReturn([]);
+        $photos->shouldReceive('urlsFor')->once()->andReturn([]);
+
+        ($this->teamOf)($this->accounts, $profiles, $photos);
+
+        expect($this->accounts->lastCall())->toBe([StaffFixtures::ACCOUNT_ID]);
+    });
+
+    it('publishes nobody, and asks no neighbour, when the business has no owner on record', function () {
+        $this->ownership = new FakeTeamOwnership;
+        $profiles = Mockery::mock(StaffProfileRepository::class);
+        $photos = Mockery::mock(StaffProfilePhotos::class);
+
+        ($this->staffed)();
+        $profiles->shouldNotReceive('findForStaffMembers');
+        $photos->shouldNotReceive('urlsFor');
+
+        expect(($this->teamOf)($this->accounts, $profiles, $photos))->toBe([])
+            ->and($this->accounts->callCount())->toBe(0);
+    });
+});
+
+describe('the plan each business carries', function () {
+    it('pauses the team by the plan of the business whose page is read, never by a neighbour plan', function () {
+        $this->allowance->withoutTeamFor(PublicCatalogFixtures::BUSINESS_ID);
+
+        ($this->staffed)();
+
+        expect(array_column(($this->read)(), 'id'))->toBe([PublicCatalogFixtures::TEAM_MEMBER_ID])
+            ->and($this->allowance->checks)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+    });
+
+    it('asks for the owner of the business whose page is read alone', function () {
+        $this->allowance->withoutTeamFor(PublicCatalogFixtures::BUSINESS_ID);
+
+        ($this->staffed)();
+        ($this->read)();
+
+        expect($this->ownership->lookups)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+    });
+
+    it('never lets the owner of another business through as an owner of this one', function () {
+        $this->allowance->withoutTeamFor(PublicCatalogFixtures::BUSINESS_ID, PublicCatalogFixtures::OTHER_BUSINESS_ID);
+        $this->ownership->ownedBy(PublicCatalogFixtures::OTHER_BUSINESS_ID, PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID);
+
+        ($this->staffed)();
+
+        expect(array_column(($this->read)(), 'id'))->toBe([PublicCatalogFixtures::TEAM_MEMBER_ID]);
     });
 });

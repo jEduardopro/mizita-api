@@ -13,6 +13,7 @@ use Tests\Unit\Domains\Integrations\Application\Doubles\FakeAppointmentFeed;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarConnectionRepository;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarEventLinkRepository;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarEventPublisher;
+use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarSyncAllowance;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsFixtures;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsJournal;
 
@@ -23,6 +24,7 @@ beforeEach(function () {
     $this->links = new FakeCalendarEventLinkRepository($this->journal);
     $this->publisher = new FakeCalendarEventPublisher($this->journal);
     $this->ids = new FixedIdGenerator(IntegrationsFixtures::NEW_LINK_ID);
+    $this->allowance = FakeCalendarSyncAllowance::completePlan();
 
     $this->reconcile = fn (string $appointmentId = IntegrationsFixtures::APPOINTMENT_ID) => (new ReconcileAppointmentCalendarEvents(
         $this->appointments,
@@ -31,6 +33,7 @@ beforeEach(function () {
         $this->publisher,
         $this->ids,
         IntegrationsFixtures::MIZITA_LINK,
+        $this->allowance,
     ))->handle(new ReconcileAppointmentCalendarEventsInput($appointmentId));
 
     $this->reassignTo = function (string $staffMemberId): void {
@@ -105,6 +108,12 @@ describe('an active appointment on a connected calendar, not yet published', fun
         ($this->reconcile)();
 
         expect($this->publisher->withdrawn)->toBe([]);
+    });
+
+    it('asks whether the plan of the business of the appointment includes calendar sync', function () {
+        ($this->reconcile)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::BUSINESS_ID]);
     });
 });
 
@@ -616,6 +625,86 @@ describe('an unexpected failure while withdrawing', function () {
         expect($this->links->deleted)->toBe([])
             ->and($this->links->all())->toHaveCount(1)
             ->and($this->connections->updated)->toBe([]);
+    });
+});
+
+dataset('appointments of a business on the free plan', [
+    'active, not yet published' => [fn (object $test) => null],
+    'active, already published' => [fn (object $test) => $test->links->store(IntegrationsFixtures::link())],
+    'cancelled, still on the calendar' => [function (object $test): void {
+        $test->links->store(IntegrationsFixtures::link());
+        $test->appointments->add(IntegrationsFixtures::snapshot(lifecycle: AppointmentLifecycle::Cancelled));
+    }],
+    'deleted, still on the calendar' => [function (object $test): void {
+        $test->links->store(IntegrationsFixtures::link());
+        $test->appointments->add(IntegrationsFixtures::snapshot(lifecycle: AppointmentLifecycle::Deleted));
+    }],
+    'reassigned to a colleague with a calendar' => [function (object $test): void {
+        $test->links->store(IntegrationsFixtures::link());
+        $test->connections->store(IntegrationsFixtures::connection(
+            id: IntegrationsFixtures::SECOND_CONNECTION_ID,
+            staffMemberId: IntegrationsFixtures::SECOND_STAFF_MEMBER_ID,
+        ));
+        $test->appointments->add(IntegrationsFixtures::snapshot(staffMemberId: IntegrationsFixtures::SECOND_STAFF_MEMBER_ID));
+    }],
+]);
+
+describe('an appointment of a business on the free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeCalendarSyncAllowance::freePlan();
+    });
+
+    it('answers with an empty success', function (Closure $arrange) {
+        $arrange($this);
+
+        $response = ($this->reconcile)();
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value())->toBeNull();
+    })->with('appointments of a business on the free plan');
+
+    it('publishes nothing and withdraws nothing', function (Closure $arrange) {
+        $arrange($this);
+
+        ($this->reconcile)();
+
+        expect($this->publisher->published)->toBe([])
+            ->and($this->publisher->withdrawn)->toBe([]);
+    })->with('appointments of a business on the free plan');
+
+    it('leaves the links it already had untouched', function (Closure $arrange) {
+        $arrange($this);
+        $before = array_map(static fn ($link) => [$link->id, $link->connectionId, $link->externalEventId()], $this->links->all());
+
+        ($this->reconcile)();
+
+        expect($this->links->saved)->toBe([])
+            ->and($this->links->deleted)->toBe([])
+            ->and(array_map(static fn ($link) => [$link->id, $link->connectionId, $link->externalEventId()], $this->links->all()))->toBe($before);
+    })->with('appointments of a business on the free plan');
+
+    it('reads nothing past the appointment and rewrites no connection', function (Closure $arrange) {
+        $arrange($this);
+
+        ($this->reconcile)();
+
+        expect($this->journal->entries)->toBe(['appointments.snapshotOf'])
+            ->and($this->connections->updated)->toBe([]);
+    })->with('appointments of a business on the free plan');
+
+    it('asks for the plan of the business the appointment belongs to', function () {
+        $this->appointments->add(IntegrationsFixtures::snapshot(businessId: IntegrationsFixtures::OTHER_BUSINESS_ID));
+
+        ($this->reconcile)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::OTHER_BUSINESS_ID]);
+    });
+
+    it('still refuses an appointment that cannot be found, without asking for any plan', function () {
+        $response = ($this->reconcile)(IntegrationsFixtures::SECOND_APPOINTMENT_ID);
+
+        expect($response->error()->code)->toBe('appointment_not_found')
+            ->and($this->allowance->lookups)->toBe([]);
     });
 });
 

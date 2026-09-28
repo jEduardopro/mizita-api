@@ -6,6 +6,7 @@ namespace App\Domains\PublicCatalog\Infrastructure\Gateways;
 
 use App\Domains\PublicCatalog\Contracts\PublishedServices;
 use App\Domains\PublicCatalog\ValueObjects\PublicService;
+use App\Domains\Services\Application\Services\BookableServiceCatalog;
 use App\Domains\Services\Contracts\ServiceImages;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Entities\Service;
@@ -15,6 +16,7 @@ final class ServicesPublishedServices implements PublishedServices
     public function __construct(
         private readonly ServiceRepository $services,
         private readonly ServiceImages $images,
+        private readonly BookableServiceCatalog $bookableServices,
     ) {}
 
     /**
@@ -22,7 +24,7 @@ final class ServicesPublishedServices implements PublishedServices
      */
     public function forBusiness(string $businessId): array
     {
-        $services = $this->services->activeForBusiness($businessId);
+        $services = $this->bookableServicesOf($businessId);
 
         if ($services === []) {
             return [];
@@ -46,5 +48,22 @@ final class ServicesPublishedServices implements PublishedServices
             ),
             $services,
         );
+    }
+
+    /**
+     * @return list<Service>
+     */
+    private function bookableServicesOf(string $businessId): array
+    {
+        $bookableIds = array_flip($this->bookableServices->bookableIdsFor($businessId));
+
+        if ($bookableIds === []) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $this->services->activeForBusiness($businessId),
+            static fn (Service $service): bool => isset($bookableIds[$service->id]),
+        ));
     }
 }

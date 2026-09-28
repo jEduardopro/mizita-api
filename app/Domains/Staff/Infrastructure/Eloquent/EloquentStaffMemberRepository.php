@@ -6,6 +6,7 @@ namespace App\Domains\Staff\Infrastructure\Eloquent;
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
+use App\Domains\Staff\Contracts\TeamOwnership;
 use App\Domains\Staff\Contracts\TeamRoster;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Exceptions\AccountAlreadyOwnsBusiness;
@@ -30,7 +31,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Database\UniqueConstraintViolationException;
 
-final class EloquentStaffMemberRepository implements StaffMemberRepository, TeamRoster
+final class EloquentStaffMemberRepository implements StaffMemberRepository, TeamOwnership, TeamRoster
 {
     private const BUSINESS_ACCOUNT_UNIQUE_INDEX = 'staff_members_business_account_unique';
 
@@ -189,6 +190,23 @@ final class EloquentStaffMemberRepository implements StaffMemberRepository, Team
         $businessId = BusinessModel::withTrashed()->whereKey($businessKey)->value('uuid');
 
         return $businessId === null ? null : (string) $businessId;
+    }
+
+    public function ownerStaffMemberIdOf(string $businessId): ?string
+    {
+        $businessKey = $this->businessKeyIncludingClosed($businessId);
+        $ownerAccountKey = $this->roles->ownerAccountKeyOf($businessKey);
+
+        if ($ownerAccountKey === null) {
+            return null;
+        }
+
+        $staffMemberId = StaffMemberModel::query()
+            ->where('business_id', $businessKey)
+            ->where('account_id', $ownerAccountKey)
+            ->value('uuid');
+
+        return $staffMemberId === null ? null : (string) $staffMemberId;
     }
 
     public function delete(string $businessId, string $id): void

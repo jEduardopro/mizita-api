@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServices;
 use App\Domains\PublicCatalog\ValueObjects\PublicService;
+use App\Domains\Services\Application\Services\BookableServiceCatalog;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
+use Tests\Support\Services\FakeServiceAllowance;
 use Tests\Support\Services\FakeServiceImages;
 use Tests\Support\Services\FakeServiceRepository;
 use Tests\Support\Services\ServiceFixtures;
@@ -12,10 +14,15 @@ use Tests\Support\Services\ServiceFixtures;
 beforeEach(function () {
     $this->services = new FakeServiceRepository;
     $this->images = new FakeServiceImages;
+    $this->allowance = FakeServiceAllowance::unlimited();
 
-    $this->gateway = new ServicesPublishedServices($this->services, $this->images);
+    $this->gatewayWith = fn (FakeServiceImages $images): ServicesPublishedServices => new ServicesPublishedServices(
+        $this->services,
+        $images,
+        new BookableServiceCatalog($this->services, $this->allowance),
+    );
 
-    $this->read = fn (string $businessId = PublicCatalogFixtures::BUSINESS_ID): array => $this->gateway
+    $this->read = fn (string $businessId = PublicCatalogFixtures::BUSINESS_ID): array => ($this->gatewayWith)($this->images)
         ->forBusiness($businessId);
 });
 
@@ -94,9 +101,14 @@ describe('the services a visitor may book', function () {
     });
 
     it('asks the catalogue for the active services of that business alone', function () {
+        $this->services->store(ServiceFixtures::service(
+            id: PublicCatalogFixtures::SERVICE_ID,
+            businessId: PublicCatalogFixtures::BUSINESS_ID,
+        ));
+
         ($this->read)();
 
-        expect($this->services->businessIdsSeen)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+        expect(array_values(array_unique($this->services->businessIdsSeen)))->toBe([PublicCatalogFixtures::BUSINESS_ID]);
     });
 
     it('leaves out a service the business took off the page', function () {
@@ -179,8 +191,7 @@ describe('the image each service shows', function () {
             PublicCatalogFixtures::SERVICE_ID => PublicCatalogFixtures::SERVICE_IMAGE_URL,
         ]);
 
-        $published = (new ServicesPublishedServices($this->services, $images))
-            ->forBusiness(PublicCatalogFixtures::BUSINESS_ID);
+        $published = ($this->gatewayWith)($images)->forBusiness(PublicCatalogFixtures::BUSINESS_ID);
 
         $urlsById = array_combine(array_column($published, 'id'), array_column($published, 'imageUrl'));
 
@@ -193,8 +204,7 @@ describe('the image each service shows', function () {
             PublicCatalogFixtures::SERVICE_ID => PublicCatalogFixtures::SERVICE_IMAGE_URL,
         ]);
 
-        $published = (new ServicesPublishedServices($this->services, $images))
-            ->forBusiness(PublicCatalogFixtures::BUSINESS_ID);
+        $published = ($this->gatewayWith)($images)->forBusiness(PublicCatalogFixtures::BUSINESS_ID);
 
         expect(array_column($published, 'imageUrl'))->toBe([null, null]);
     });
@@ -202,5 +212,100 @@ describe('the image each service shows', function () {
     it('asks for no image at all when the business has no active service', function () {
         expect(($this->read)(PublicCatalogFixtures::OTHER_BUSINESS_ID))->toBe([])
             ->and($this->images->batchReads)->toBe([]);
+    });
+});
+
+describe('a business on the Free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeServiceAllowance::free();
+        $this->lineup = [
+            PublicCatalogFixtures::SERVICE_ID,
+            PublicCatalogFixtures::SECOND_SERVICE_ID,
+            PublicCatalogFixtures::THIRD_SERVICE_ID,
+            PublicCatalogFixtures::FOURTH_SERVICE_ID,
+        ];
+    });
+
+    it('leaves out every active service beyond the limit', function () {
+        $this->services->store(...ServiceFixtures::lineup($this->lineup, PublicCatalogFixtures::BUSINESS_ID));
+
+        expect(array_column(($this->read)(), 'id'))->toBe([
+            PublicCatalogFixtures::SERVICE_ID,
+            PublicCatalogFixtures::SECOND_SERVICE_ID,
+            PublicCatalogFixtures::THIRD_SERVICE_ID,
+        ]);
+    });
+
+    it('keeps the oldest services, even when the newest one sorts first by name', function () {
+        $this->services
+            ->store(...ServiceFixtures::lineup(array_slice($this->lineup, 0, 3), PublicCatalogFixtures::BUSINESS_ID))
+            ->store(ServiceFixtures::service(
+                id: PublicCatalogFixtures::FOURTH_SERVICE_ID,
+                businessId: PublicCatalogFixtures::BUSINESS_ID,
+                name: 'Afeitado',
+                slug: 'afeitado',
+                createdAt: ServiceFixtures::now()->modify('+30 days'),
+            ));
+
+        expect(array_column(($this->read)(), 'id'))->not->toContain(PublicCatalogFixtures::FOURTH_SERVICE_ID)
+            ->toHaveCount(3);
+    });
+
+    it('lets an inactive service take no place under the limit', function () {
+        $this->services->store(
+            ...ServiceFixtures::lineup([PublicCatalogFixtures::SERVICE_ID], PublicCatalogFixtures::BUSINESS_ID, active: false),
+            ...array_slice(ServiceFixtures::lineup($this->lineup, PublicCatalogFixtures::BUSINESS_ID), 1),
+        );
+
+        expect(array_column(($this->read)(), 'id'))->toBe([
+            PublicCatalogFixtures::SECOND_SERVICE_ID,
+            PublicCatalogFixtures::THIRD_SERVICE_ID,
+            PublicCatalogFixtures::FOURTH_SERVICE_ID,
+        ]);
+    });
+
+    it('asks for no image of a service beyond the limit', function () {
+        $this->services->store(...ServiceFixtures::lineup($this->lineup, PublicCatalogFixtures::BUSINESS_ID));
+
+        ($this->read)();
+
+        expect($this->images->batchReads)->toHaveCount(1)
+            ->and($this->images->batchReads[0]['serviceIds'])->not->toContain(PublicCatalogFixtures::FOURTH_SERVICE_ID);
+    });
+
+    it('asks the plan of the business whose page is read, and no other', function () {
+        $this->services->store(...ServiceFixtures::lineup($this->lineup, PublicCatalogFixtures::BUSINESS_ID));
+
+        ($this->read)();
+
+        expect($this->allowance->asked)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+    });
+
+    it('never lets the services of another business use up the places of this one', function () {
+        $this->services
+            ->store(...ServiceFixtures::lineup(
+                PublicCatalogFixtures::OTHER_BUSINESS_SERVICE_IDS,
+                PublicCatalogFixtures::OTHER_BUSINESS_ID,
+            ))
+            ->store(ServiceFixtures::service(
+                id: PublicCatalogFixtures::SERVICE_ID,
+                businessId: PublicCatalogFixtures::BUSINESS_ID,
+                createdAt: ServiceFixtures::now()->modify('+30 days'),
+            ));
+
+        expect(array_column(($this->read)(), 'id'))->toBe([PublicCatalogFixtures::SERVICE_ID]);
+    });
+});
+
+describe('a business on a plan with no service limit', function () {
+    it('publishes every active service', function () {
+        $this->services->store(...ServiceFixtures::lineup([
+            PublicCatalogFixtures::SERVICE_ID,
+            PublicCatalogFixtures::SECOND_SERVICE_ID,
+            PublicCatalogFixtures::THIRD_SERVICE_ID,
+            PublicCatalogFixtures::FOURTH_SERVICE_ID,
+        ], PublicCatalogFixtures::BUSINESS_ID));
+
+        expect(($this->read)())->toHaveCount(4);
     });
 });

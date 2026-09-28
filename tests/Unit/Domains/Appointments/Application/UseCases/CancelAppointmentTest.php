@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Application\UseCases\CancelAppointment;
+use App\Domains\Appointments\Contracts\BookableStaff;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Events\AppointmentCancelled;
 use App\Domains\Appointments\Services\AppointmentChangeWindow;
@@ -360,5 +361,16 @@ describe('the calendar the caller is allowed to keep', function () {
             ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
             ->and($this->journal->entries)->toBe([])
             ->and($this->appointments->saved)->toBe([]);
+    });
+});
+
+describe('a team member the plan has paused', function () {
+    it('never asks whether the team member is bookable, so a paused member can still be cancelled on', function () {
+        $types = array_map(
+            static fn (ReflectionParameter $parameter): string => (string) $parameter->getType(),
+            (new ReflectionMethod(CancelAppointment::class, '__construct'))->getParameters(),
+        );
+
+        expect($types)->not->toContain(BookableStaff::class);
     });
 });

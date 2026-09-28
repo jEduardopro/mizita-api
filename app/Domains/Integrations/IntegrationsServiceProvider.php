@@ -16,12 +16,14 @@ use App\Domains\Integrations\Contracts\AppointmentSyncQueue;
 use App\Domains\Integrations\Contracts\BusinessProfiles;
 use App\Domains\Integrations\Contracts\CalendarAuthorizationStates;
 use App\Domains\Integrations\Contracts\CalendarAuthorizer;
+use App\Domains\Integrations\Contracts\CalendarBackfillQueue;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarEventFeed;
 use App\Domains\Integrations\Contracts\CalendarEventLinkRepository;
 use App\Domains\Integrations\Contracts\CalendarEventPublisher;
 use App\Domains\Integrations\Contracts\CalendarOwners;
 use App\Domains\Integrations\Contracts\CalendarProvisioning;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
 use App\Domains\Integrations\Contracts\UpcomingAppointments;
 use App\Domains\Integrations\Events\CalendarConnected;
 use App\Domains\Integrations\Events\CalendarDisconnected;
@@ -32,6 +34,7 @@ use App\Domains\Integrations\Infrastructure\Gateways\AppointmentsAppointmentFeed
 use App\Domains\Integrations\Infrastructure\Gateways\AppointmentsUpcomingAppointments;
 use App\Domains\Integrations\Infrastructure\Gateways\BusinessesBusinessProfiles;
 use App\Domains\Integrations\Infrastructure\Gateways\StaffCalendarOwners;
+use App\Domains\Integrations\Infrastructure\Gateways\SubscriptionsCalendarSyncAllowance;
 use App\Domains\Integrations\Infrastructure\Google\CachedGoogleEventSource;
 use App\Domains\Integrations\Infrastructure\Google\GoogleAccessTokens;
 use App\Domains\Integrations\Infrastructure\Google\GoogleCalendarApi;
@@ -45,7 +48,10 @@ use App\Domains\Integrations\Infrastructure\Google\HttpGoogleEventSource;
 use App\Domains\Integrations\Infrastructure\Listeners\QueueAppointmentCalendarSync;
 use App\Domains\Integrations\Infrastructure\Listeners\QueueCalendarBackfill;
 use App\Domains\Integrations\Infrastructure\Listeners\QueueCalendarCleanUp;
+use App\Domains\Integrations\Infrastructure\Listeners\QueueCalendarResync;
 use App\Domains\Integrations\Infrastructure\Queue\QueuedAppointmentSync;
+use App\Domains\Integrations\Infrastructure\Queue\QueuedCalendarBackfill;
+use App\Domains\Subscriptions\Events\SubscriptionStarted;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Event;
@@ -90,6 +96,8 @@ final class IntegrationsServiceProvider extends ServiceProvider
         $this->app->bind(AppointmentSyncQueue::class, QueuedAppointmentSync::class);
         $this->app->bind(CalendarOwners::class, StaffCalendarOwners::class);
         $this->app->bind(BusinessProfiles::class, BusinessesBusinessProfiles::class);
+        $this->app->bind(CalendarSyncAllowance::class, SubscriptionsCalendarSyncAllowance::class);
+        $this->app->bind(CalendarBackfillQueue::class, QueuedCalendarBackfill::class);
 
         $this->registerGoogleClients();
 
@@ -103,6 +111,7 @@ final class IntegrationsServiceProvider extends ServiceProvider
         Event::listen(self::APPOINTMENT_EVENTS, QueueAppointmentCalendarSync::class);
         Event::listen(CalendarConnected::class, QueueCalendarBackfill::class);
         Event::listen(CalendarDisconnected::class, QueueCalendarCleanUp::class);
+        Event::listen(SubscriptionStarted::class, QueueCalendarResync::class);
 
         Route::middleware(self::CALLBACK_MIDDLEWARE)
             ->group(__DIR__.'/Infrastructure/Http/web.php');

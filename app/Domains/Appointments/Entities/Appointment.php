@@ -185,6 +185,11 @@ final class Appointment
         $this->staffMemberId = $staffMemberId;
     }
 
+    public function isAssignedTo(string $staffMemberId): bool
+    {
+        return $this->staffMemberId === $staffMemberId;
+    }
+
     public function assignReferenceCode(ReferenceCode $referenceCode): void
     {
         $this->referenceCode = $referenceCode;

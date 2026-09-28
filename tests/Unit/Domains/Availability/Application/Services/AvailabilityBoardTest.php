@@ -6,6 +6,7 @@ use App\Domains\Availability\Application\Dtos\AvailableDayData;
 use App\Domains\Availability\Application\Dtos\SlotQuery;
 use App\Domains\Availability\Application\Services\AvailabilityBoard;
 use App\Domains\Availability\Contracts\BookableServices;
+use App\Domains\Availability\Contracts\BookableStaff;
 use App\Domains\Availability\Contracts\BookedIntervals;
 use App\Domains\Availability\Contracts\BookingRules;
 use App\Domains\Availability\Contracts\BusinessClock;
@@ -22,6 +23,8 @@ use App\Domains\Availability\ValueObjects\BookedInterval;
 use App\Domains\Availability\ValueObjects\ScheduleOwnerType;
 use App\Domains\Availability\ValueObjects\SlotRules;
 use App\Domains\Availability\ValueObjects\WeeklyIntervals;
+use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Availability\ScheduleFixtures;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\FakeClock;
@@ -40,6 +43,8 @@ const BOARD_ZONE = 'Europe/Madrid';
 
 beforeEach(function () {
     $this->services = Mockery::mock(BookableServices::class);
+    $this->staff = Mockery::mock(BookableStaff::class);
+    $this->staff->shouldReceive('confirmBookable')->andReturnNull()->byDefault();
     $this->schedules = Mockery::mock(StaffSchedules::class);
     $this->bookings = Mockery::mock(BookedIntervals::class);
     $this->externalBusy = Mockery::mock(ExternalBusyIntervals::class);
@@ -49,6 +54,7 @@ beforeEach(function () {
 
     $this->board = new AvailabilityBoard(
         $this->services,
+        $this->staff,
         $this->schedules,
         $this->bookings,
         $this->externalBusy,
@@ -117,6 +123,8 @@ describe('reading the days a visitor may book', function () {
             return true;
         };
 
+        $this->staff->shouldReceive('confirmBookable')->once()
+            ->with(Mockery::on($record), ScheduleFixtures::STAFF_ID);
         $this->businessClock->shouldReceive('timezoneOf')->once()->with(Mockery::on($record))->andReturn('UTC');
         $this->schedules->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn(WeeklyIntervals::none());
@@ -135,7 +143,7 @@ describe('reading the days a visitor may book', function () {
 
         ($this->read)();
 
-        expect($asked)->toBe(array_fill(0, 6, FakeBusinessContext::BUSINESS_ID));
+        expect($asked)->toBe(array_fill(0, 7, FakeBusinessContext::BUSINESS_ID));
     });
 
     it('reads the hours of the staff member the query names', function () {
@@ -378,6 +386,7 @@ describe('a query the board refuses', function () {
         foreach ([$this->businessClock, $this->schedules, $this->bookings, $this->externalBusy, $this->rules, $this->services] as $port) {
             $port->shouldNotReceive('timezoneOf', 'forBusiness', 'forStaffMember', 'forStaffBetween', 'describe');
         }
+        $this->staff->shouldNotReceive('confirmBookable');
 
         expect(fn () => $this->board->forBusiness(
             FakeBusinessContext::BUSINESS_ID,
@@ -423,6 +432,91 @@ describe('a query the board refuses', function () {
         ($this->openFor)(staffIds: [ScheduleFixtures::OTHER_STAFF_ID]);
 
         expect(fn () => ($this->read)())->toThrow(StaffMemberNotBookable::class);
+    });
+});
+
+describe('a staff member the current plan leaves out', function () {
+    beforeEach(function () {
+        $this->staff->shouldReceive('confirmBookable')
+            ->andThrow(StaffMemberNotBookable::underCurrentPlan(ScheduleFixtures::STAFF_ID));
+
+        $this->refusal = function (): ?StaffMemberNotBookable {
+            try {
+                ($this->read)();
+            } catch (StaffMemberNotBookable $refused) {
+                return $refused;
+            }
+
+            return null;
+        };
+    });
+
+    it('refuses the read as not bookable', function () {
+        expect(fn () => ($this->read)())->toThrow(StaffMemberNotBookable::class);
+    });
+
+    it('refuses with the failure the transport classifies as not found', function () {
+        $refusal = ($this->refusal)();
+
+        expect($refusal)->toBeInstanceOf(DomainFailure::class)
+            ->and($refusal?->errorCode())->toBe('staff_member_not_bookable')
+            ->and($refusal?->kind())->toBe(DomainFailureKind::NotFound);
+    });
+
+    it('lets the plan refusal out untouched rather than the service one', function () {
+        expect(($this->refusal)()?->getMessage())
+            ->toBe('Staff member ['.ScheduleFixtures::STAFF_ID."] is not bookable under the business's current plan.");
+    });
+
+    it('asks no other port a thing once the staff member is refused', function () {
+        foreach ([$this->businessClock, $this->schedules, $this->bookings, $this->externalBusy, $this->rules, $this->services] as $port) {
+            $port->shouldNotReceive('timezoneOf', 'forBusiness', 'forStaffMember', 'forStaffBetween', 'describe');
+        }
+
+        expect(($this->refusal)())->toBeInstanceOf(StaffMemberNotBookable::class);
+    });
+});
+
+describe('confirming the staff member is bookable', function () {
+    it('asks about the business and the staff member the query names, once', function () {
+        ($this->openFor)();
+        $this->staff->shouldReceive('confirmBookable')->once()
+            ->with(FakeBusinessContext::BUSINESS_ID, ScheduleFixtures::STAFF_ID);
+
+        ($this->read)();
+    });
+
+    it('asks about the other business when the read is for it', function () {
+        ($this->openFor)();
+        $this->staff->shouldReceive('confirmBookable')->once()
+            ->with(ScheduleFixtures::OTHER_BUSINESS_ID, ScheduleFixtures::STAFF_ID);
+
+        $this->board->forBusiness(ScheduleFixtures::OTHER_BUSINESS_ID, ($this->query)());
+    });
+
+    it('confirms the staff member before any other port is consulted', function () {
+        $calls = [];
+
+        $this->staff->shouldReceive('confirmBookable')->andReturnUsing(function () use (&$calls): void {
+            $calls[] = 'confirmBookable';
+        });
+        $this->businessClock->shouldReceive('timezoneOf')->andReturnUsing(function () use (&$calls): string {
+            $calls[] = 'timezoneOf';
+
+            return 'UTC';
+        });
+        ($this->openFor)();
+
+        ($this->read)();
+
+        expect($calls)->toBe(['confirmBookable', 'timezoneOf']);
+    });
+
+    it('holds a staff port that only confirms and never writes', function () {
+        expect(array_map(
+            static fn (ReflectionMethod $method): string => $method->getName(),
+            (new ReflectionClass(BookableStaff::class))->getMethods(),
+        ))->toBe(['confirmBookable']);
     });
 });
 

@@ -6,6 +6,8 @@ namespace App\Domains\Appointments;
 
 use App\Domains\Appointments\Contracts\AppointmentRepository;
 use App\Domains\Appointments\Contracts\BookableSlots;
+use App\Domains\Appointments\Contracts\BookableStaff;
+use App\Domains\Appointments\Contracts\BookingPreferencesAllowance;
 use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
@@ -20,8 +22,10 @@ use App\Domains\Appointments\Infrastructure\Gateways\BookingPoliciesCancellation
 use App\Domains\Appointments\Infrastructure\Gateways\CustomersCustomerDirectory;
 use App\Domains\Appointments\Infrastructure\Gateways\PaymentsPaymentLedger;
 use App\Domains\Appointments\Infrastructure\Gateways\ServicesServiceCatalog;
+use App\Domains\Appointments\Infrastructure\Gateways\StaffBookableStaff;
 use App\Domains\Appointments\Infrastructure\Gateways\StaffCalendarAccess;
 use App\Domains\Appointments\Infrastructure\Gateways\StaffStaffDirectory;
+use App\Domains\Appointments\Infrastructure\Gateways\SubscriptionsBookingPreferencesAllowance;
 use App\Domains\Appointments\Infrastructure\RandomManageTokenFactory;
 use App\Domains\Appointments\Infrastructure\RandomReferenceCodeGenerator;
 use Illuminate\Support\Facades\Route;
@@ -37,10 +41,12 @@ final class AppointmentsServiceProvider extends ServiceProvider
         $this->app->bind(StaffDirectory::class, StaffStaffDirectory::class);
         $this->app->bind(BookableSlots::class, AvailabilityBookableSlots::class);
         $this->app->bind(CancellationPolicy::class, BookingPoliciesCancellationPolicy::class);
+        $this->app->bind(BookingPreferencesAllowance::class, SubscriptionsBookingPreferencesAllowance::class);
         $this->app->bind(ReferenceCodeGenerator::class, RandomReferenceCodeGenerator::class);
         $this->app->bind(ManageTokenFactory::class, RandomManageTokenFactory::class);
         $this->app->bind(PaymentLedger::class, PaymentsPaymentLedger::class);
         $this->app->bind(CalendarAccess::class, StaffCalendarAccess::class);
+        $this->app->bind(BookableStaff::class, StaffBookableStaff::class);
     }
 
     public function boot(): void

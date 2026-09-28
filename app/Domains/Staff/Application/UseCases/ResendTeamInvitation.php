@@ -8,8 +8,10 @@ use App\Domains\Staff\Application\Dtos\ResendTeamInvitationInput;
 use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
+use App\Domains\Staff\Contracts\TeamAllowance;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
+use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
@@ -22,6 +24,7 @@ final class ResendTeamInvitation
         private readonly StaffMemberRepository $members,
         private readonly AccountDirectory $accounts,
         private readonly TeamAccountProvisioner $provisioner,
+        private readonly TeamAllowance $allowance,
         private readonly BusinessContext $business,
         private readonly Dispatcher $events,
     ) {}
@@ -34,10 +37,11 @@ final class ResendTeamInvitation
         try {
             $input->validate();
 
-            $member = $this->members->findForBusiness(
-                $this->business->currentBusinessId(),
-                $input->staffMemberId,
-            );
+            $businessId = $this->business->currentBusinessId();
+
+            $this->ensurePlanIncludesTeam($businessId);
+
+            $member = $this->members->findForBusiness($businessId, $input->staffMemberId);
 
             $member->ensureInvitationPending($this->accountOf($member));
 
@@ -53,6 +57,16 @@ final class ResendTeamInvitation
         }
 
         return UseCaseResponse::success();
+    }
+
+    /**
+     * @throws TeamRequiresCompletePlan
+     */
+    private function ensurePlanIncludesTeam(string $businessId): void
+    {
+        if (! $this->allowance->includesTeam($businessId)) {
+            throw TeamRequiresCompletePlan::for($businessId);
+        }
     }
 
     /**

@@ -1,26 +1,31 @@
 import { cn } from 'cn';
-import { Check, TriangleAlert } from 'lucide-react';
+import { Check, CirclePause, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import type { ConnectionStatus } from '../types';
 
+export type IntegrationBadgeStatus = ConnectionStatus | 'sync_paused';
+
 const STATUS_LABEL_KEYS = {
     connected: 'integrations.status.connected',
     needs_reconnect: 'integrations.status.needs_reconnect',
-} as const satisfies Record<ConnectionStatus, string>;
+    sync_paused: 'plan.integrations.syncPaused.title',
+} as const satisfies Record<IntegrationBadgeStatus, string>;
 
 const STATUS_TONE_CLASSES = {
     connected: 'bg-success/12 text-success',
     needs_reconnect: 'bg-warning/12 text-warning',
-} as const satisfies Record<ConnectionStatus, string>;
+    sync_paused: 'bg-muted text-muted-foreground',
+} as const satisfies Record<IntegrationBadgeStatus, string>;
 
 const STATUS_ICONS = {
     connected: Check,
     needs_reconnect: TriangleAlert,
-} as const satisfies Record<ConnectionStatus, unknown>;
+    sync_paused: CirclePause,
+} as const satisfies Record<IntegrationBadgeStatus, unknown>;
 
 type Props = {
-    status: ConnectionStatus;
+    status: IntegrationBadgeStatus;
 };
 
 export function IntegrationStatusBadge({ status }: Props) {

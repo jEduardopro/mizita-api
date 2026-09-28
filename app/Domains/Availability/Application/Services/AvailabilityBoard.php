@@ -7,6 +7,7 @@ namespace App\Domains\Availability\Application\Services;
 use App\Domains\Availability\Application\Dtos\AvailableDayData;
 use App\Domains\Availability\Application\Dtos\SlotQuery;
 use App\Domains\Availability\Contracts\BookableServices;
+use App\Domains\Availability\Contracts\BookableStaff;
 use App\Domains\Availability\Contracts\BookedIntervals;
 use App\Domains\Availability\Contracts\BookingRules;
 use App\Domains\Availability\Contracts\BusinessClock;
@@ -29,6 +30,7 @@ final class AvailabilityBoard
 {
     public function __construct(
         private readonly BookableServices $services,
+        private readonly BookableStaff $staff,
         private readonly StaffSchedules $schedules,
         private readonly BookedIntervals $bookings,
         private readonly ExternalBusyIntervals $externalBusy,
@@ -51,6 +53,8 @@ final class AvailabilityBoard
     public function forBusiness(string $businessId, SlotQuery $query): array
     {
         $query->validate();
+
+        $this->staff->confirmBookable($businessId, $query->staffId);
 
         $range = $query->range();
         $zone = new DateTimeZone($this->businessClock->timezoneOf($businessId));

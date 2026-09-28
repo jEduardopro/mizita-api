@@ -7,9 +7,10 @@ import { teamMemberShowUrl } from './team-urls';
 
 type Props = {
     member: TeamMember;
+    paused: boolean;
 };
 
-export function TeamMemberListRow({ member }: Props) {
+export function TeamMemberListRow({ member, paused }: Props) {
     return (
         <article className="relative flex items-center gap-3 rounded-xl border border-border bg-card py-2.5 pr-2.5 pl-4">
             <TeamMemberAvatar name={member.name} photoUrl={member.photo_url} size="lg" />
@@ -26,7 +27,11 @@ export function TeamMemberListRow({ member }: Props) {
                     <p className="truncate text-xs text-muted-foreground">{member.email}</p>
                 </div>
 
-                <TeamMemberBadges level={member.level} invitationPending={member.invitation_pending} />
+                <TeamMemberBadges
+                    level={member.level}
+                    invitationPending={member.invitation_pending}
+                    paused={paused}
+                />
             </div>
 
             <div className="relative">

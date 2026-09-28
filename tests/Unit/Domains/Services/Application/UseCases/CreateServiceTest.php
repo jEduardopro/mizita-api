@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Services\Application\Dtos\ServiceData;
 use App\Domains\Services\Application\Presenters\ServicePresenter;
+use App\Domains\Services\Application\Services\ActiveServiceQuota;
 use App\Domains\Services\Application\UseCases\CreateService;
 use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Events\ServiceCreated;
@@ -15,15 +16,18 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\FakeClock;
+use Tests\Support\FakeTransactionManager;
 use Tests\Support\FixedIdGenerator;
 use Tests\Support\Services\FakeBusinessProfile;
+use Tests\Support\Services\FakeServiceAllowance;
 use Tests\Support\Services\FakeServiceImages;
 use Tests\Support\Services\FakeServiceRepository;
 use Tests\Support\Services\FakeStaffDirectory;
 use Tests\Support\Services\ServiceFixtures;
 
 beforeEach(function () {
-    $this->services = new FakeServiceRepository;
+    $this->transactions = new FakeTransactionManager;
+    $this->services = (new FakeServiceRepository)->observing($this->transactions);
     $this->staff = FakeStaffDirectory::of(FakeBusinessContext::BUSINESS_ID, [
         ServiceFixtures::STAFF_ID => 'Ada Lovelace',
         ServiceFixtures::SECOND_STAFF_ID => 'Grace Hopper',
@@ -32,7 +36,7 @@ beforeEach(function () {
     ]);
     $this->events = Mockery::mock(Dispatcher::class);
 
-    $this->useCase = new CreateService(
+    $this->buildUseCase = fn (FakeServiceAllowance $allowance) => new CreateService(
         $this->services,
         $this->staff,
         new ServicePresenter(
@@ -42,11 +46,15 @@ beforeEach(function () {
             new BookingLinks(ServiceFixtures::BASE_URL),
         ),
         new SlugAllocator,
+        new ActiveServiceQuota($this->services, $allowance),
         new FixedIdGenerator(ServiceFixtures::GENERATED_SERVICE_ID),
         new FakeClock(ServiceFixtures::now()),
         new FakeBusinessContext,
+        $this->transactions,
         $this->events,
     );
+
+    $this->useCase = ($this->buildUseCase)(FakeServiceAllowance::free());
 
     $this->create = fn (...$overrides) => $this->useCase->handle(ServiceFixtures::createInput(...$overrides));
 
@@ -259,5 +267,111 @@ describe('announcing the service', function () {
         ($this->create)();
 
         expect($savedWhenAnnounced)->toBe(1);
+    });
+});
+
+describe('the active service quota', function () {
+    beforeEach(function () {
+        $this->atTheFreeLimit = fn () => $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::SERVICE_ID,
+            ServiceFixtures::SECOND_SERVICE_ID,
+            ServiceFixtures::THIRD_SERVICE_ID,
+        ]));
+    });
+
+    it('refuses a visible service once the plan has no room for another, and saves nothing', function () {
+        ($this->expectNoAnnouncement)();
+        ($this->atTheFreeLimit)();
+
+        $response = ($this->create)(active: true);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('active_service_limit_reached')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($this->services->saved)->toBe([]);
+    });
+
+    it('creates a hidden service even when the plan has no room for another visible one', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        ($this->atTheFreeLimit)();
+
+        $data = ($this->create)(active: false)->value();
+
+        expect($data->id)->toBe(ServiceFixtures::GENERATED_SERVICE_ID)
+            ->and($data->active)->toBeFalse()
+            ->and($this->services->saved)->toHaveCount(1)
+            ->and($this->services->locks)->toBe([]);
+    });
+
+    it('creates a visible service while the plan still has room', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::SERVICE_ID,
+            ServiceFixtures::SECOND_SERVICE_ID,
+        ]));
+
+        expect(($this->create)(active: true)->value()->active)->toBeTrue()
+            ->and($this->services->saved)->toHaveCount(1);
+    });
+
+    it('leaves hidden services out of the count', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::SERVICE_ID,
+            ServiceFixtures::SECOND_SERVICE_ID,
+            ServiceFixtures::THIRD_SERVICE_ID,
+        ], active: false));
+
+        expect(($this->create)(active: true)->succeeded())->toBeTrue();
+    });
+
+    it('counts only the services of the business in context', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::SERVICE_ID,
+            ServiceFixtures::SECOND_SERVICE_ID,
+            ServiceFixtures::THIRD_SERVICE_ID,
+        ], businessId: ServiceFixtures::OTHER_BUSINESS_ID));
+
+        expect(($this->create)(active: true)->succeeded())->toBeTrue()
+            ->and($this->services->locks)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('lets a plan without a limit create a visible service without taking the lock', function () {
+        $this->events->shouldReceive('dispatch')->once();
+        ($this->atTheFreeLimit)();
+        $this->services->store(...ServiceFixtures::lineup([
+            ServiceFixtures::FOURTH_SERVICE_ID,
+            ServiceFixtures::FIFTH_SERVICE_ID,
+        ]));
+
+        $response = (($this->buildUseCase)(FakeServiceAllowance::unlimited()))
+            ->handle(ServiceFixtures::createInput(active: true));
+
+        expect($response->value()->active)->toBeTrue()
+            ->and($this->services->locks)->toBe([]);
+    });
+
+    it('counts the active services under the activation lock, inside the transaction that saves', function () {
+        $this->events->shouldReceive('dispatch')->once();
+
+        ($this->create)(active: true);
+
+        expect($this->transactions->runs())->toBe(1)
+            ->and($this->services->locksInsideTransaction)->toBe([true])
+            ->and($this->services->countsUnderLock)->toBe([true])
+            ->and($this->services->savesInsideTransaction)->toBe([true]);
+    });
+});
+
+describe('the transaction', function () {
+    it('announces nothing when the commit fails', function () {
+        ($this->expectNoAnnouncement)();
+        $this->transactions->failAtCommit(ServiceSlugAlreadyTaken::for(ServiceFixtures::SLUG));
+
+        $response = ($this->create)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('service_slug_taken');
     });
 });

@@ -13,7 +13,11 @@ export function AppointmentSheetForm({ title, actionLabel, onCancel, ...params }
             </SheetHeader>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
-                <AppointmentFormFields form={form} mode={params.mode} />
+                <AppointmentFormFields
+                    form={form}
+                    mode={params.mode}
+                    assignedStaffMemberId={params.appointment?.staff_member.id ?? null}
+                />
             </div>
 
             <SheetFooter className="flex-row justify-end gap-2">

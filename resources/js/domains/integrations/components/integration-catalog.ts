@@ -1,4 +1,5 @@
 import type { ComponentType, SVGProps } from 'react';
+import type { PlanFeature } from '@/lib/plan';
 import type { IntegrationCategory, IntegrationConnection, IntegrationKey } from '../types';
 import { GoogleCalendarIcon } from './GoogleCalendarIcon';
 
@@ -14,10 +15,16 @@ export const INTEGRATION_PRESENTATIONS = {
         Logo: GoogleCalendarIcon,
         nameKey: 'integrations.googleCalendar.name',
         descriptionKey: 'integrations.googleCalendar.description',
+        planFeature: 'calendar_sync',
     },
 } as const satisfies Record<
     IntegrationKey,
-    { Logo: ComponentType<SVGProps<SVGSVGElement>>; nameKey: string; descriptionKey: string }
+    {
+        Logo: ComponentType<SVGProps<SVGSVGElement>>;
+        nameKey: string;
+        descriptionKey: string;
+        planFeature: PlanFeature;
+    }
 >;
 
 export const CATEGORY_PRESENTATIONS = {

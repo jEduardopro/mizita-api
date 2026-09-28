@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Appointments\Infrastructure\Gateways;
 
+use App\Domains\Appointments\Contracts\BookingPreferencesAllowance;
 use App\Domains\Appointments\Contracts\CancellationPolicy;
 use App\Domains\Appointments\ValueObjects\CancellationRule;
 use App\Domains\BookingPolicies\Contracts\BookingPolicyRepository;
@@ -15,20 +16,29 @@ final class BookingPoliciesCancellationPolicy implements CancellationPolicy
 {
     public function __construct(
         private readonly BookingPolicyRepository $policies,
+        private readonly BookingPreferencesAllowance $allowance,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
     ) {}
 
     public function forBusiness(string $businessId): CancellationRule
     {
-        $policy = $this->policies->findForBusiness($businessId) ?? $this->defaultsFor($businessId);
-        $minutes = $policy->cancellationWindow()->minutes;
+        $minutes = $this->effectivePolicyFor($businessId)->cancellationWindow()->minutes;
 
         if ($minutes === null) {
             return CancellationRule::notAllowed();
         }
 
         return CancellationRule::ofMinutes($minutes);
+    }
+
+    private function effectivePolicyFor(string $businessId): BookingPolicy
+    {
+        if (! $this->allowance->includesBookingPreferences($businessId)) {
+            return $this->defaultsFor($businessId);
+        }
+
+        return $this->policies->findForBusiness($businessId) ?? $this->defaultsFor($businessId);
     }
 
     private function defaultsFor(string $businessId): BookingPolicy

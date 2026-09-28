@@ -25,6 +25,11 @@ export type Service = {
     created_at: string;
 };
 
+export type ActiveServiceQuota = {
+    active_count: number;
+    active_limit: number | null;
+};
+
 export type ServiceListParams = {
     page: number;
     per_page: number;

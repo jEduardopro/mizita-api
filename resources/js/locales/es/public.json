@@ -49,6 +49,7 @@
             "eyebrow": "Precios",
             "heading": "Empieza gratis. Paga cuando trabajes con equipo.",
             "recommended": "Recomendado",
+            "comingSoon": "Próximamente",
             "currency": "MXN",
             "perMonth": "/mes",
             "plans": {
@@ -81,7 +82,7 @@
                         "reminders": "Recordatorios por email automáticos antes de cada cita.",
                         "payments": "Cobros en línea: cobra o pide un anticipo al reservar.",
                         "reports": "Reportes y estadísticas de tu agenda, tu equipo y tus servicios.",
-                        "googleCalendar": "Sincronización con Google Calendar, en los dos sentidos."
+                        "googleCalendar": "Tus citas en tu Google Calendar, al momento."
                     }
                 }
             }

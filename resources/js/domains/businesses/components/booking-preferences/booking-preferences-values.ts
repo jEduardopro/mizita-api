@@ -4,10 +4,10 @@ import {
     type Duration,
 } from '@/components/form/duration-units';
 import type {
+    BookingPolicySectionPayload,
     BusinessSettings,
     ContactFieldName,
     ContactFieldsSettings,
-    UpdateBusinessSettingsPayload,
 } from '@/domains/businesses/types';
 import {
     BOOKING_WINDOW_UNITS,
@@ -118,9 +118,14 @@ function bookingWindowMinutesFrom(bookingWindow: Duration): number | null {
     return minutes === 0 ? null : minutes;
 }
 
+export type BookingPreferencesPayload = {
+    booking_policy: BookingPolicySectionPayload;
+    contact_fields: ContactFieldsSettings;
+};
+
 export function bookingPreferencesPayloadFrom(
     values: BookingPreferencesFormValues,
-): UpdateBusinessSettingsPayload {
+): BookingPreferencesPayload {
     return {
         booking_policy: {
             lead_time_minutes: minutesFromDuration(values.leadTime),

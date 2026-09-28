@@ -14,18 +14,21 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeBusinessProfiles;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarConnectionRepository;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarEventFeed;
+use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarSyncAllowance;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsFixtures;
 
 beforeEach(function () {
     $this->connections = (new FakeCalendarConnectionRepository)->store(IntegrationsFixtures::connection());
     $this->businesses = (new FakeBusinessProfiles)->add(IntegrationsFixtures::BUSINESS_ID, IntegrationsFixtures::profile());
     $this->feed = new FakeCalendarEventFeed(IntegrationsFixtures::externalEvent('2026-10-02T10:00:00+00:00', '2026-10-02T11:00:00+00:00'));
+    $this->allowance = FakeCalendarSyncAllowance::completePlan();
     $this->input = IntegrationsFixtures::busyInput();
 
     $this->busy = fn () => (new ListCalendarBusyIntervals(
         $this->connections,
         $this->businesses,
         $this->feed,
+        $this->allowance,
     ))->handle($this->input);
 });
 
@@ -74,6 +77,12 @@ describe('a connected calendar with hand-added events', function () {
             ['2026-10-03T08:00:00+00:00', '2026-10-03T09:00:00+00:00'],
             ['2026-10-02T08:00:00+00:00', '2026-10-02T09:00:00+00:00'],
         ]);
+    });
+
+    it('asks whether the plan of the business of the input includes calendar sync', function () {
+        ($this->busy)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::BUSINESS_ID]);
     });
 
     it('answers an empty list when the calendar holds no event', function () {
@@ -226,5 +235,43 @@ describe('refusals', function () {
         expect($response->error()->code)->toBe('business_not_found')
             ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
             ->and($this->feed->requests)->toBe([]);
+    });
+});
+
+describe('a business on the free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeCalendarSyncAllowance::freePlan();
+    });
+
+    it('answers an empty list even though the connected calendar holds busy events', function () {
+        $response = ($this->busy)();
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value())->toBe([]);
+    });
+
+    it('reads no connection, no business profile and no calendar', function () {
+        ($this->busy)();
+
+        expect($this->connections->staffMemberLookups)->toBe([])
+            ->and($this->businesses->lookups)->toBe([])
+            ->and($this->feed->requests)->toBe([]);
+    });
+
+    it('asks for the plan of the business of the input', function () {
+        $this->input = IntegrationsFixtures::busyInput(businessId: IntegrationsFixtures::OTHER_BUSINESS_ID);
+
+        ($this->busy)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::OTHER_BUSINESS_ID]);
+    });
+
+    it('still refuses a window that does not end after it starts, before asking for any plan', function () {
+        $this->input = IntegrationsFixtures::busyInput('2026-10-08T00:00:00+00:00', '2026-10-01T00:00:00+00:00');
+
+        $response = ($this->busy)();
+
+        expect($response->error()->code)->toBe('invalid_busy_window')
+            ->and($this->allowance->lookups)->toBe([]);
     });
 });

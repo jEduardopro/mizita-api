@@ -95,6 +95,16 @@ final class StaffRoleAssignments
         return $businessKey === null ? null : (int) $businessKey;
     }
 
+    public function ownerAccountKeyOf(int $businessKey): ?int
+    {
+        $accountKey = $this->assignments()
+            ->where(self::ASSIGNMENTS_TABLE.'.'.self::TEAM_COLUMN, $businessKey)
+            ->where(self::ROLES_TABLE.'.name', StaffRole::Owner->value)
+            ->value(self::ASSIGNMENTS_TABLE.'.model_id');
+
+        return $accountKey === null ? null : (int) $accountKey;
+    }
+
     /**
      * @return array{roles: list<string>, permissions: list<string>}
      */

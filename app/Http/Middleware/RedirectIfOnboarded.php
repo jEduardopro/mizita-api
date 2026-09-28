@@ -11,16 +11,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class RedirectIfOnboarded
 {
+    private const DASHBOARD_ROUTE = 'dashboard';
+
     public function __construct(
         private readonly BusinessMembership $memberships,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        $accountId = $request->user()?->uuid;
+        $accountId = (string) $request->user()?->uuid;
 
-        if ($this->memberships->businessIdsFor((string) $accountId) !== []) {
-            return redirect()->route('dashboard');
+        if ($this->memberships->businessIdsFor($accountId) !== []) {
+            return redirect()->route(self::DASHBOARD_ROUTE);
         }
 
         return $next($request);

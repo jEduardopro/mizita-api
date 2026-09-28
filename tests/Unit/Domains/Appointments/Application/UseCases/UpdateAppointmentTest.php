@@ -14,6 +14,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Appointments\AppointmentFixtures;
 use Tests\Support\Appointments\AppointmentJournal;
 use Tests\Support\Appointments\FakeAppointmentRepository;
+use Tests\Support\Appointments\FakeBookableStaff;
 use Tests\Support\Appointments\FakeCalendarAccess;
 use Tests\Support\Appointments\FakeCustomerDirectory;
 use Tests\Support\Appointments\FakePaymentLedger;
@@ -60,6 +61,7 @@ beforeEach(function () {
 
     $this->payments = new FakePaymentLedger($this->journal);
     $this->calendars = FakeCalendarAccess::everyone();
+    $this->bookableStaff = new FakeBookableStaff($this->journal);
 
     $this->dispatched = [];
     $this->savesBeforeDispatch = [];
@@ -81,6 +83,7 @@ beforeEach(function () {
         new FakeClock(AppointmentFixtures::instant($now)),
         $this->calendars,
         $this->events,
+        $this->bookableStaff,
     );
 
     $this->store = fn (Appointment $appointment): Appointment => tap(
@@ -479,5 +482,104 @@ describe('the calendar the caller is allowed to keep', function () {
             ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
             ->and($this->journal->entries)->toBe([])
             ->and($this->appointments->saved)->toBe([]);
+    });
+});
+
+describe('handing the appointment to a team member the plan has paused', function () {
+    beforeEach(function () {
+        ($this->store)(AppointmentFixtures::appointment());
+        $this->bookableStaff->pause(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::SECOND_STAFF_ID);
+
+        $this->reassign = fn () => ($this->update)(
+            AppointmentFixtures::NOW,
+            staffMemberId: AppointmentFixtures::SECOND_STAFF_ID,
+        );
+    });
+
+    it('refuses the hand over because the new team member is paused', function () {
+        $response = ($this->reassign)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('staff_member_paused')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden);
+    });
+
+    it('saves and announces nothing when it refuses the hand over', function () {
+        ($this->reassign)();
+
+        expect($this->appointments->saved)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('leaves the stored appointment with the team member it already had', function () {
+        ($this->reassign)();
+
+        $stored = $this->appointments->findForBusiness(
+            FakeBusinessContext::BUSINESS_ID,
+            AppointmentFixtures::APPOINTMENT_ID,
+        );
+
+        expect($stored->staffMemberId())->toBe(AppointmentFixtures::STAFF_ID);
+    });
+
+    it('asks about the new team member in the business in context', function () {
+        ($this->reassign)();
+
+        expect($this->bookableStaff->confirmations)->toBe([[
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+            'staffMemberId' => AppointmentFixtures::SECOND_STAFF_ID,
+        ]]);
+    });
+});
+
+describe('keeping the team member the appointment already has', function () {
+    beforeEach(function () {
+        ($this->store)(AppointmentFixtures::appointment());
+        $this->bookableStaff->pause(FakeBusinessContext::BUSINESS_ID, AppointmentFixtures::STAFF_ID);
+
+        $this->move = fn () => ($this->update)(
+            AppointmentFixtures::NOW,
+            startsAt: '2026-03-11T15:00:00+00:00',
+            endsAt: '2026-03-11T16:00:00+00:00',
+            notes: 'Bring the paperwork',
+        );
+    });
+
+    it('moves and re-notes an appointment of a paused team member', function () {
+        $data = ($this->move)()->value();
+
+        expect($data->staffMember->id)->toBe(AppointmentFixtures::STAFF_ID)
+            ->and($data->startsAt->format(DATE_ATOM))->toBe('2026-03-11T15:00:00+00:00')
+            ->and($data->endsAt->format(DATE_ATOM))->toBe('2026-03-11T16:00:00+00:00')
+            ->and($data->notes)->toBe('Bring the paperwork')
+            ->and($this->appointments->saved)->toHaveCount(1)
+            ->and($this->dispatched)->toHaveCount(1);
+    });
+
+    it('never asks whether the team member it already has is bookable', function () {
+        ($this->move)();
+
+        expect($this->bookableStaff->confirmations)->toBe([])
+            ->and($this->journal->entries)->not->toContain('staff.confirmBookable');
+    });
+});
+
+describe('asking whether a new team member is bookable', function () {
+    beforeEach(function () {
+        ($this->store)(AppointmentFixtures::appointment());
+    });
+
+    it('asks once when the appointment changes hands, and hands it over', function () {
+        $data = ($this->update)(AppointmentFixtures::NOW, staffMemberId: AppointmentFixtures::SECOND_STAFF_ID)->value();
+
+        expect($data->staffMember->id)->toBe(AppointmentFixtures::SECOND_STAFF_ID)
+            ->and($this->bookableStaff->confirmations)->toHaveCount(1);
+    });
+
+    it('answers not found for a team member of nobody before it asks whether they are bookable', function () {
+        $response = ($this->update)(AppointmentFixtures::NOW, staffMemberId: AppointmentFixtures::UNKNOWN_ID);
+
+        expect($response->error()->code)->toBe('appointment_staff_not_found')
+            ->and($this->bookableStaff->confirmations)->toBe([]);
     });
 });

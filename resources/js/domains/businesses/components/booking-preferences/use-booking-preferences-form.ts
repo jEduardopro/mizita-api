@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { matchesServerField } from '@/domains/businesses/components/server-field-path';
 import { useBusinessSettings, useUpdateBusinessSettings } from '@/domains/businesses/queries';
 import type { ContactFieldLevel, ContactFieldName } from '@/domains/businesses/types';
+import { usePlan } from '@/hooks/use-plan';
 import { useServerErrors } from '@/hooks/use-server-errors';
 import { raiseSuccessToast } from '@/lib/toast';
 import {
@@ -25,6 +26,7 @@ export type BookingPreferencesFormController = {
     updateContactField: (name: ContactFieldName, level: ContactFieldLevel) => void;
     errorFor: (field: BookingPreferencesField) => string | undefined;
     contactFieldErrorFor: (name: ContactFieldName) => string | undefined;
+    areBookingRulesLocked: boolean;
     isLoading: boolean;
     isLoadError: boolean;
     retry: () => void;
@@ -35,6 +37,8 @@ export type BookingPreferencesFormController = {
 export function useBookingPreferencesForm(): BookingPreferencesFormController {
     const { t } = useTranslation('admin');
     const { fieldErrors, capture, clearField, reset } = useServerErrors();
+    const { includes } = usePlan();
+    const areBookingRulesLocked = ! includes('booking_rules');
 
     const settingsQuery = useBusinessSettings();
     const settings = settingsQuery.data ?? null;
@@ -106,6 +110,10 @@ export function useBookingPreferencesForm(): BookingPreferencesFormController {
     const retry = useCallback(() => void settingsQuery.refetch(), [settingsQuery]);
 
     async function save() {
+        if (areBookingRulesLocked) {
+            return;
+        }
+
         reset();
 
         try {
@@ -125,6 +133,7 @@ export function useBookingPreferencesForm(): BookingPreferencesFormController {
         updateContactField,
         errorFor,
         contactFieldErrorFor,
+        areBookingRulesLocked,
         isLoading: settingsQuery.isPending,
         isLoadError: settingsQuery.isError,
         retry,

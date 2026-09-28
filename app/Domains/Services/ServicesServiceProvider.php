@@ -6,6 +6,7 @@ namespace App\Domains\Services;
 
 use App\Domains\Services\Contracts\BusinessProfile;
 use App\Domains\Services\Contracts\OfferedServices;
+use App\Domains\Services\Contracts\ServiceAllowance;
 use App\Domains\Services\Contracts\ServiceImages;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Contracts\StaffDirectory;
@@ -13,11 +14,15 @@ use App\Domains\Services\Infrastructure\Eloquent\EloquentServiceRepository;
 use App\Domains\Services\Infrastructure\Eloquent\Models\ServiceModel;
 use App\Domains\Services\Infrastructure\Gateways\BusinessesBusinessProfile;
 use App\Domains\Services\Infrastructure\Gateways\StaffStaffDirectory;
+use App\Domains\Services\Infrastructure\Gateways\SubscriptionsServiceAllowance;
+use App\Domains\Services\Infrastructure\Listeners\DeactivateServicesBeyondPlanLimit;
 use App\Domains\Services\Infrastructure\Media\SpatieServiceImages;
 use App\Domains\Services\Services\BookingLinks;
+use App\Domains\Subscriptions\Events\SubscriptionEnded;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -37,6 +42,7 @@ final class ServicesServiceProvider extends ServiceProvider
         $this->app->bind(StaffDirectory::class, StaffStaffDirectory::class);
         $this->app->bind(ServiceImages::class, SpatieServiceImages::class);
         $this->app->bind(BusinessProfile::class, BusinessesBusinessProfile::class);
+        $this->app->bind(ServiceAllowance::class, SubscriptionsServiceAllowance::class);
 
         $this->app->bind(
             BookingLinks::class,
@@ -49,6 +55,8 @@ final class ServicesServiceProvider extends ServiceProvider
         Relation::enforceMorphMap(['service' => ServiceModel::class]);
 
         $this->registerImageUploadLimiter();
+
+        Event::listen(SubscriptionEnded::class, DeactivateServicesBeyondPlanLimit::class);
 
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum', 'business'])

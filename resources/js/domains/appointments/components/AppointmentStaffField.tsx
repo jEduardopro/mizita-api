@@ -7,12 +7,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthorization } from '@/hooks/use-authorization';
-import { useCurrentUser } from '@/hooks/use-current-user';
 import { initialsFrom } from '@/lib/initials';
-import { useBookableStaffMembers } from '../queries';
-import type { BookableStaffMember } from '../types';
 import { APPOINTMENT_CONTROL_HEIGHT, AppointmentFormRow } from './AppointmentFormRow';
+import { PausedStaffMemberMark } from './PausedStaffMemberMark';
 import type { AppointmentFormMode, AppointmentFormController } from './use-appointment-form';
+import { useAppointmentStaffOptions, type AppointmentStaffOption } from './use-appointment-staff-options';
 
 const FIELD_ID = 'appointment-staff';
 
@@ -32,25 +31,15 @@ function StaffAvatar({ name }: AvatarProps) {
     );
 }
 
-function useOwnStaffMember(members: BookableStaffMember[] | undefined): BookableStaffMember | undefined {
-    const { data: currentUser } = useCurrentUser();
-
-    if (members === undefined || currentUser === undefined) {
-        return undefined;
-    }
-
-    return members.find((member) => member.email === currentUser.email);
-}
-
 type PickerProps = {
-    members: BookableStaffMember[];
+    options: AppointmentStaffOption[];
     value: string;
     onChange: (staffMemberId: string) => void;
     invalid: boolean;
     message: FieldMessageState | null;
 };
 
-function StaffMemberPicker({ members, value, onChange, invalid, message }: PickerProps) {
+function StaffMemberPicker({ options, value, onChange, invalid, message }: PickerProps) {
     const { t } = useTranslation('admin');
 
     return (
@@ -65,9 +54,10 @@ function StaffMemberPicker({ members, value, onChange, invalid, message }: Picke
             </SelectTrigger>
 
             <SelectContent>
-                {members.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                        {member.name}
+                {options.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                        <span className="min-w-0 truncate">{option.name}</span>
+                        {option.paused ? <PausedStaffMemberMark /> : null}
                     </SelectItem>
                 ))}
             </SelectContent>
@@ -104,27 +94,26 @@ function StaffMemberReadout({ name, loading, message }: ReadoutProps) {
 type Props = {
     form: AppointmentFormController;
     mode: AppointmentFormMode;
+    assignedStaffMemberId: string | null;
 };
 
-export function AppointmentStaffField({ form, mode }: Props) {
+export function AppointmentStaffField({ form, mode, assignedStaffMemberId }: Props) {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
-    const { data: staffMembers, isPending: isStaffPending } = useBookableStaffMembers();
-    const ownStaffMember = useOwnStaffMember(staffMembers);
+    const { options, defaultStaffMemberId, isPending } = useAppointmentStaffOptions(assignedStaffMemberId);
     const { staffMemberId } = form.values;
     const error = form.errorFor('staffMemberId');
     const message = fieldMessage({ id: FIELD_ID, error });
+    const selected = options.find((option) => option.id === staffMemberId);
+    const isSelectionOffered = selected !== undefined;
 
     useEffect(() => {
-        if (mode !== 'create' || staffMemberId !== '' || ownStaffMember === undefined) {
+        if (mode !== 'create' || isSelectionOffered || defaultStaffMemberId === undefined) {
             return;
         }
 
-        form.update('staffMemberId', ownStaffMember.id);
-    }, [mode, staffMemberId, ownStaffMember, form]);
-
-    const members = staffMembers ?? [];
-    const selected = members.find((member) => member.id === staffMemberId);
+        form.update('staffMemberId', defaultStaffMemberId);
+    }, [mode, isSelectionOffered, defaultStaffMemberId, form]);
 
     return (
         <AppointmentFormRow
@@ -135,7 +124,7 @@ export function AppointmentStaffField({ form, mode }: Props) {
         >
             {can('manage_all_calendars') ? (
                 <StaffMemberPicker
-                    members={members}
+                    options={options}
                     value={staffMemberId}
                     onChange={(nextId) => form.update('staffMemberId', nextId)}
                     invalid={!! error}
@@ -144,7 +133,7 @@ export function AppointmentStaffField({ form, mode }: Props) {
             ) : (
                 <StaffMemberReadout
                     name={selected?.name}
-                    loading={isStaffPending}
+                    loading={isPending}
                     message={message}
                 />
             )}

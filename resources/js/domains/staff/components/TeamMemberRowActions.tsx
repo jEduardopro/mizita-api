@@ -10,14 +10,17 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { useIsTeamMemberPaused } from '@/hooks/use-is-team-member-paused';
 import type { TeamMember } from '../types';
 import { RemoveTeamMemberDialog } from './RemoveTeamMemberDialog';
+import { ResendInvitationBlockedMenuItem } from './ResendInvitationBlockedMenuItem';
 import { TeamMemberRemovalBlockedDialog } from './TeamMemberRemovalBlockedDialog';
 import { teamMemberEditUrl } from './team-urls';
 import { useCopyBookingLink } from './use-copy-booking-link';
 import { useCopyTemporaryPassword } from './use-copy-temporary-password';
 import { useResendInvitation } from './use-resend-invitation';
 import { canEditStaffProfile, useStaffProfileAccess } from './use-staff-profile-access';
+import { useTeamInvitationAccess } from './use-team-invitation-access';
 import { useTeamMemberRemoval } from './use-team-member-removal';
 
 const MENU_ITEM_SIZE = 'min-h-11 md:min-h-8';
@@ -32,15 +35,18 @@ export function TeamMemberRowActions({ member }: Props) {
     const removal = useTeamMemberRemoval(member.id);
     const invitation = useResendInvitation(member.id);
     const access = useStaffProfileAccess(member.id);
+    const invitationAccess = useTeamInvitationAccess();
     const temporaryPassword = useCopyTemporaryPassword(member.id);
     const copyBookingLink = useCopyBookingLink();
-    const bookingUrl = member.booking_url;
+    const isPaused = useIsTeamMemberPaused();
+    const bookingUrl = isPaused(member.level) ? null : member.booking_url;
 
     const canEdit = canEditStaffProfile(access);
-    const canResend = can('create_staff_member') && member.invitation_pending;
+    const canResend = invitationAccess === 'allowed' && member.invitation_pending;
+    const isResendBlocked = invitationAccess === 'requires_upgrade' && member.invitation_pending;
     const canCopyPassword = can('reveal_temporary_password') && member.temporary_password_available;
     const canRemove = can('delete_staff_member') && member.level !== 'owner';
-    const hasLeadingItems = canEdit || bookingUrl !== null || canResend || canCopyPassword;
+    const hasLeadingItems = canEdit || bookingUrl !== null || canResend || isResendBlocked || canCopyPassword;
 
     if (! hasLeadingItems && ! canRemove) {
         return null;
@@ -93,6 +99,8 @@ export function TeamMemberRowActions({ member }: Props) {
                             {t('team.actions.resend')}
                         </DropdownMenuItem>
                     ) : null}
+
+                    {isResendBlocked ? <ResendInvitationBlockedMenuItem /> : null}
 
                     {canCopyPassword ? (
                         <DropdownMenuItem

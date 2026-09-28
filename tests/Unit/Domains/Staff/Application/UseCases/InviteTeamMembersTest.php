@@ -11,6 +11,7 @@ use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Exceptions\InvalidTeamMemberEmail;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\TeamMemberAlreadyExists;
+use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseError;
 use App\Shared\Application\UseCaseResponse;
@@ -26,6 +27,7 @@ use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamAllowance;
 use Tests\Support\Staff\FakeTeamRoster;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
@@ -48,6 +50,7 @@ beforeEach(function () {
     $this->members = new FakeStaffMemberRepository($this->journal);
     $this->profiles = new FakeStaffProfileRepository($this->journal);
     $this->roster = new FakeTeamRoster($this->journal);
+    $this->allowance = new FakeTeamAllowance($this->journal);
     $this->provisioner = (new FakeTeamAccountProvisioner($this->journal))
         ->provides('grace@example.com', StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD)
         ->provides('linus@example.com', StaffFixtures::THIRD_ACCOUNT_ID, null);
@@ -69,6 +72,7 @@ beforeEach(function () {
         $this->profiles,
         $this->roster,
         $this->provisioner,
+        $this->allowance,
         new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
         new FixedIdGenerator(
@@ -167,12 +171,13 @@ describe('inviting a batch', function () {
         ($this->invite)();
 
         expect($this->journal->entries)->toBe([
+            'allowance.team',
             'roster.emails',
             'accounts.provision', 'members.save', 'profiles.save',
             'accounts.provision', 'members.save', 'profiles.save',
             'events.dispatch',
         ])
-            ->and($this->journal->outsideTransaction)->toBe(['roster.emails', 'events.dispatch'])
+            ->and($this->journal->outsideTransaction)->toBe(['allowance.team', 'roster.emails', 'events.dispatch'])
             ->and($this->transactions->runs())->toBe(1);
     });
 
@@ -257,7 +262,7 @@ describe('announcing the invitations', function () {
         ($this->invite)()->value();
 
         expect(array_slice($this->journal->entries, -2))->toBe(['events.dispatch', 'presenter.describe'])
-            ->and($this->journal->outsideTransaction)->toBe(['roster.emails', 'events.dispatch', 'presenter.describe']);
+            ->and($this->journal->outsideTransaction)->toBe(['allowance.team', 'roster.emails', 'events.dispatch', 'presenter.describe']);
     });
 
     it('lets a presenter refusal escape with the invitations already announced, rather than refusing a batch that was written', function () {
@@ -282,6 +287,7 @@ describe('tenant isolation', function () {
             ->and(array_unique(array_map(static fn ($profile): string => $profile->businessId, $this->profiles->saved)))
             ->toBe([StaffFixtures::OTHER_BUSINESS_ID])
             ->and($this->roster->emailChecks[0]['businessId'])->toBe(StaffFixtures::OTHER_BUSINESS_ID)
+            ->and($this->allowance->checks)->toBe([StaffFixtures::OTHER_BUSINESS_ID])
             ->and($this->dispatched[0]->businessId)->toBe(StaffFixtures::OTHER_BUSINESS_ID);
     });
 
@@ -299,7 +305,8 @@ describe('refusals decided before anything is written', function () {
 
         expect($error->code)->toBe($code)
             ->and($error->kind)->toBe(DomainFailureKind::Invalid)
-            ->and($this->roster->emailChecks)->toBe([]);
+            ->and($this->roster->emailChecks)->toBe([])
+            ->and($this->allowance->checks)->toBe([]);
 
         ($this->nothingWasCommittedOrAnnounced)();
     })->with([
@@ -331,6 +338,54 @@ describe('refusals decided before anything is written', function () {
     });
 });
 
+describe('the plan gate', function () {
+    beforeEach(function () {
+        $this->allowance->withoutTeamFor(FakeBusinessContext::BUSINESS_ID);
+    });
+
+    it('refuses a business whose plan excludes the team', function () {
+        $error = ($this->refusal)();
+
+        expect($error->code)->toBe('team_requires_complete_plan')
+            ->and($error->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($error->cause())->toBeInstanceOf(TeamRequiresCompletePlan::class);
+    });
+
+    it('writes and announces nothing when the plan excludes the team', function () {
+        ($this->refusal)();
+
+        ($this->nothingWasCommittedOrAnnounced)();
+    });
+
+    it('refuses on the plan before checking who is already on the team', function () {
+        $this->roster->withEmailsOnTeam(FakeBusinessContext::BUSINESS_ID, 'linus@example.com');
+
+        expect(($this->refusal)()->code)->toBe('team_requires_complete_plan')
+            ->and($this->roster->emailChecks)->toBe([])
+            ->and($this->journal->entries)->toBe(['allowance.team']);
+    });
+
+    it('asks about the plan of the business of the context only', function () {
+        ($this->refusal)();
+
+        expect($this->allowance->checks)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('still names the broken payload rule first when the plan excludes the team', function () {
+        $error = ($this->refusal)(['members' => []]);
+
+        expect($error->code)->toBe('invalid_team_invitation')
+            ->and($this->allowance->checks)->toBe([]);
+    });
+
+    it('lets a business whose plan includes the team invite while another business is on the free plan', function () {
+        $this->allowance = (new FakeTeamAllowance($this->journal))->withoutTeamFor(StaffFixtures::OTHER_BUSINESS_ID);
+
+        expect(($this->invite)()->succeeded())->toBeTrue()
+            ->and($this->members->saved)->toHaveCount(2);
+    });
+});
+
 describe('refusals raised inside the transaction', function () {
     it('announces nobody when a later row clashes with the team, so the batch is all or nothing', function () {
         $clash = TeamMemberAlreadyExists::forAccount(StaffFixtures::THIRD_ACCOUNT_ID, new RuntimeException('unique violation'));
@@ -344,7 +399,7 @@ describe('refusals raised inside the transaction', function () {
         expect($error->code)->toBe('team_member_already_exists')
             ->and($error->cause())->toBe($clash)
             ->and($this->dispatched)->toBe([])
-            ->and($this->journal->outsideTransaction)->toBe(['roster.emails'])
+            ->and($this->journal->outsideTransaction)->toBe(['allowance.team', 'roster.emails'])
             ->and($this->transactions->runs())->toBe(1);
     });
 

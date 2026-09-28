@@ -41,6 +41,11 @@ final class FakeCalendarConnectionRepository implements CalendarConnectionReposi
     public array $businessLookups = [];
 
     /**
+     * @var list<string>
+     */
+    public array $liveLookups = [];
+
+    /**
      * @var list<array{provider: CalendarProvider, accountEmail: string}>
      */
     public array $accountLookups = [];
@@ -142,6 +147,17 @@ final class FakeCalendarConnectionRepository implements CalendarConnectionReposi
         $connection = $this->disconnected[$id] ?? null;
 
         return $connection?->businessId === $businessId ? $connection : null;
+    }
+
+    public function liveInBusiness(string $businessId): array
+    {
+        $this->journal->record('connections.liveInBusiness');
+        $this->liveLookups[] = $businessId;
+
+        return array_values(array_filter(
+            $this->live,
+            static fn (CalendarConnection $connection): bool => $connection->businessId === $businessId,
+        ));
     }
 
     public function existsLiveForAccount(CalendarProvider $provider, string $accountEmail): bool

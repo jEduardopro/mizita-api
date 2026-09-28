@@ -12,11 +12,13 @@ use App\Domains\Staff\Application\Presenters\TeamMemberPresenter;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
+use App\Domains\Staff\Contracts\TeamAllowance;
 use App\Domains\Staff\Contracts\TeamRoster;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
 use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Exceptions\TeamMemberAlreadyExists;
+use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
@@ -33,6 +35,7 @@ final class InviteTeamMembers
         private readonly StaffProfileRepository $profiles,
         private readonly TeamRoster $roster,
         private readonly TeamAccountProvisioner $accounts,
+        private readonly TeamAllowance $allowance,
         private readonly TeamMemberPresenter $presenter,
         private readonly BusinessContext $business,
         private readonly IdGenerator $ids,
@@ -51,6 +54,7 @@ final class InviteTeamMembers
 
             $businessId = $this->business->currentBusinessId();
 
+            $this->ensurePlanIncludesTeam($businessId);
             $this->ensureNobodyIsAlreadyOnTeam($businessId, $input->emails());
 
             $invited = $this->transactions->run(
@@ -65,6 +69,16 @@ final class InviteTeamMembers
         }
 
         return UseCaseResponse::success($this->presenter->describeMany($businessId, $this->membersOf($invited)));
+    }
+
+    /**
+     * @throws TeamRequiresCompletePlan
+     */
+    private function ensurePlanIncludesTeam(string $businessId): void
+    {
+        if (! $this->allowance->includesTeam($businessId)) {
+            throw TeamRequiresCompletePlan::for($businessId);
+        }
     }
 
     /**

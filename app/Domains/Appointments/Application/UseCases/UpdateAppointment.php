@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\UpdateAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\BookableStaff;
 use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
@@ -19,6 +20,7 @@ use App\Domains\Appointments\Exceptions\AppointmentAlreadyStarted;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
+use App\Domains\Appointments\Exceptions\AppointmentStaffMemberPaused;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotPermitted;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
@@ -43,6 +45,7 @@ final class UpdateAppointment
         private readonly Clock $clock,
         private readonly CalendarAccess $calendars,
         private readonly Dispatcher $events,
+        private readonly BookableStaff $bookableStaff,
     ) {}
 
     /**
@@ -77,6 +80,7 @@ final class UpdateAppointment
      * @throws AppointmentAlreadyCancelled
      * @throws AppointmentAlreadyStarted
      * @throws AppointmentStaffNotPermitted
+     * @throws AppointmentStaffMemberPaused
      */
     private function apply(
         UpdateAppointmentInput $input,
@@ -90,6 +94,7 @@ final class UpdateAppointment
 
         $this->customers->describe($businessId, $input->customerId);
         $this->staff->describe($businessId, $input->staffMemberId);
+        $this->ensureReassignable($appointment, $businessId, $input->staffMemberId);
 
         $appointment->changeCustomer($input->customerId);
         $appointment->changeService($input->serviceId);
@@ -101,6 +106,18 @@ final class UpdateAppointment
         $appointment->changeNotes($input->toNotes());
 
         $this->appointments->save($appointment);
+    }
+
+    /**
+     * @throws AppointmentStaffMemberPaused
+     */
+    private function ensureReassignable(Appointment $appointment, string $businessId, string $staffMemberId): void
+    {
+        if ($appointment->isAssignedTo($staffMemberId)) {
+            return;
+        }
+
+        $this->bookableStaff->confirmBookable($businessId, $staffMemberId);
     }
 
     private static function slotFor(

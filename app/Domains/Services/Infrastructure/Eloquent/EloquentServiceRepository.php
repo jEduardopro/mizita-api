@@ -42,6 +42,8 @@ final class EloquentServiceRepository implements OfferedServices, ServiceReposit
 
     private const MAXIMUM_OFFERED_SERVICES = 200;
 
+    private const ACTIVATION_LOCK_NAMESPACE = 7_301;
+
     public function __construct(
         private readonly ServiceMapper $mapper,
         private readonly TokenSearch $tokenSearch,
@@ -88,6 +90,36 @@ final class EloquentServiceRepository implements OfferedServices, ServiceReposit
             ->map(fn (ServiceModel $model): Service => $this->mapper->toEntity($model, $businessId))
             ->values()
             ->all();
+    }
+
+    public function countActive(string $businessId): int
+    {
+        return $this->ofBusiness($businessId)
+            ->where('active', true)
+            ->count();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function activeIdsOldestFirst(string $businessId): array
+    {
+        return $this->ofBusiness($businessId)
+            ->where('active', true)
+            ->orderBy('created_at')
+            ->orderBy(self::TIEBREAKER_COLUMN)
+            ->pluck('uuid')
+            ->map(static fn (mixed $uuid): string => (string) $uuid)
+            ->values()
+            ->all();
+    }
+
+    public function lockActivationsOf(string $businessId): void
+    {
+        DB::select(
+            'select pg_advisory_xact_lock(?::integer, hashtext(?::text))',
+            [self::ACTIVATION_LOCK_NAMESPACE, $businessId],
+        );
     }
 
     /**

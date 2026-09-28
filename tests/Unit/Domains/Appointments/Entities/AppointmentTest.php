@@ -318,3 +318,25 @@ it('takes a reservation code assigned after the booking was made', function () {
 
     expect($appointment->referenceCode()?->value)->toBe(AppointmentFixtures::REFERENCE_CODE);
 });
+
+describe('the team member it is assigned to', function () {
+    it('is assigned to the team member it was booked with', function () {
+        expect(AppointmentFixtures::appointment()->isAssignedTo(AppointmentFixtures::STAFF_ID))->toBeTrue();
+    });
+
+    it('is not assigned to any other team member', function (string $staffMemberId) {
+        expect(AppointmentFixtures::appointment()->isAssignedTo($staffMemberId))->toBeFalse();
+    })->with([
+        'another team member' => AppointmentFixtures::SECOND_STAFF_ID,
+        'an empty id' => '',
+    ]);
+
+    it('follows the appointment when it is reassigned', function () {
+        $appointment = AppointmentFixtures::appointment();
+
+        $appointment->reassign(AppointmentFixtures::SECOND_STAFF_ID);
+
+        expect($appointment->isAssignedTo(AppointmentFixtures::SECOND_STAFF_ID))->toBeTrue()
+            ->and($appointment->isAssignedTo(AppointmentFixtures::STAFF_ID))->toBeFalse();
+    });
+});

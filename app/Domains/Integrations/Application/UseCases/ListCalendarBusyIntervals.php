@@ -9,6 +9,7 @@ use App\Domains\Integrations\Application\Dtos\ListCalendarBusyIntervalsInput;
 use App\Domains\Integrations\Contracts\BusinessProfiles;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarEventFeed;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
 use App\Domains\Integrations\Entities\CalendarConnection;
 use App\Domains\Integrations\Exceptions\CalendarAuthorizationRevoked;
 use App\Domains\Integrations\Exceptions\ExternalCalendarUnavailable;
@@ -26,6 +27,7 @@ final class ListCalendarBusyIntervals
         private readonly CalendarConnectionRepository $connections,
         private readonly BusinessProfiles $businesses,
         private readonly CalendarEventFeed $feed,
+        private readonly CalendarSyncAllowance $allowance,
     ) {}
 
     /**
@@ -35,6 +37,10 @@ final class ListCalendarBusyIntervals
     {
         try {
             $input->validate();
+
+            if (! $this->allowance->includesCalendarSync($input->businessId)) {
+                return UseCaseResponse::success([]);
+            }
 
             $connection = $this->connections->findForStaffMember($input->businessId, $input->staffMemberId, self::PROVIDER);
 

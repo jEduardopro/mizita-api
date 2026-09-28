@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
+import type { TeamMemberPauseCheck } from '@/hooks/use-is-team-member-paused';
 import { formatPhoneNumber } from '@/lib/phone';
 import type { TeamMember } from '../types';
 import { TeamMemberAvatar } from './TeamMemberAvatar';
@@ -10,9 +11,10 @@ import { teamMemberShowUrl } from './team-urls';
 
 type Params = {
     t: TFunction<'admin'>;
+    isPaused: TeamMemberPauseCheck;
 };
 
-export function teamColumns({ t }: Params): ColumnDef<TeamMember>[] {
+export function teamColumns({ t, isPaused }: Params): ColumnDef<TeamMember>[] {
     const notProvided = t('team.notProvided');
 
     return [
@@ -65,6 +67,7 @@ export function teamColumns({ t }: Params): ColumnDef<TeamMember>[] {
                 <TeamMemberBadges
                     level={row.original.level}
                     invitationPending={row.original.invitation_pending}
+                    paused={isPaused(row.original.level)}
                 />
             ),
         },

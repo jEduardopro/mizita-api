@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Domains\Availability;
 
 use App\Domains\Availability\Contracts\BookableServices;
+use App\Domains\Availability\Contracts\BookableStaff;
 use App\Domains\Availability\Contracts\BookedIntervals;
 use App\Domains\Availability\Contracts\BookingRules;
+use App\Domains\Availability\Contracts\BookingRulesAllowance;
 use App\Domains\Availability\Contracts\BusinessClock;
 use App\Domains\Availability\Contracts\ExternalBusyIntervals;
 use App\Domains\Availability\Contracts\ScheduleRuleRepository;
@@ -20,8 +22,10 @@ use App\Domains\Availability\Infrastructure\Gateways\BusinessesBusinessClock;
 use App\Domains\Availability\Infrastructure\Gateways\IntegrationsExternalBusyIntervals;
 use App\Domains\Availability\Infrastructure\Gateways\RuleBasedStaffSchedules;
 use App\Domains\Availability\Infrastructure\Gateways\ServicesBookableServices;
+use App\Domains\Availability\Infrastructure\Gateways\StaffBookableStaff;
 use App\Domains\Availability\Infrastructure\Gateways\StaffStaffMembership;
 use App\Domains\Availability\Infrastructure\Gateways\StaffStaffRoster;
+use App\Domains\Availability\Infrastructure\Gateways\SubscriptionsBookingRulesAllowance;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -38,6 +42,8 @@ final class AvailabilityServiceProvider extends ServiceProvider
         $this->app->bind(BusinessClock::class, BusinessesBusinessClock::class);
         $this->app->bind(StaffMembership::class, StaffStaffMembership::class);
         $this->app->bind(StaffRoster::class, StaffStaffRoster::class);
+        $this->app->bind(BookableStaff::class, StaffBookableStaff::class);
+        $this->app->bind(BookingRulesAllowance::class, SubscriptionsBookingRulesAllowance::class);
     }
 
     public function boot(): void

@@ -1,6 +1,7 @@
 import '@inertiajs/core';
 import type { Appearance } from '@/lib/appearance';
 import type { PermissionName, RoleName } from '@/lib/authorization';
+import type { SharedPlan } from '@/lib/plan';
 
 declare module '@inertiajs/core' {
     interface InertiaConfig {
@@ -13,6 +14,7 @@ declare module '@inertiajs/core' {
             supportedLocales: string[];
             flash: { error: string | null };
             auth: { roles: RoleName[]; permissions: PermissionName[] };
+            plan: SharedPlan | null;
         };
     }
 }

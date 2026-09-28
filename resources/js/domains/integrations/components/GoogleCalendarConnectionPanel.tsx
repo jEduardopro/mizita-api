@@ -2,10 +2,12 @@ import { TriangleAlert } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { usePlan } from '@/hooks/use-plan';
 import type { IntegrationConnection } from '../types';
 import { ConnectGoogleCalendarButton } from './ConnectGoogleCalendarButton';
 import { ConnectionAccount } from './ConnectionAccount';
 import { DisconnectGoogleCalendarDialog } from './DisconnectGoogleCalendarDialog';
+import { ConnectBlockedState, SyncPausedState } from './PlanLockedConnectionStates';
 
 const ACTION_BUTTON_CLASSES = 'h-11 w-full px-4 md:h-9';
 
@@ -77,8 +79,15 @@ type StateProps = {
 };
 
 function ConnectionState({ connection, onDisconnect }: StateProps) {
+    const { includes } = usePlan();
+    const isSyncIncluded = includes('calendar_sync');
+
     if (connection === null) {
-        return <NotConnectedState />;
+        return isSyncIncluded ? <NotConnectedState /> : <ConnectBlockedState />;
+    }
+
+    if (! isSyncIncluded) {
+        return <SyncPausedState connection={connection} onDisconnect={onDisconnect} />;
     }
 
     if (connection.status === 'needs_reconnect') {

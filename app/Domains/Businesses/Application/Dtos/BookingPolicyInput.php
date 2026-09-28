@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Businesses\Application\Dtos;
 
 use App\Domains\Businesses\Exceptions\IncompleteBookingPolicy;
+use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 
 final readonly class BookingPolicyInput
 {
@@ -57,6 +58,18 @@ final readonly class BookingPolicyInput
         }
 
         throw IncompleteBookingPolicy::missing($this->absentKeys);
+    }
+
+    public function toPreferences(): BookingPolicyPreferences
+    {
+        return new BookingPolicyPreferences(
+            leadTimeMinutes: $this->leadTimeMinutes,
+            bookingWindowMinutes: $this->bookingWindowMinutes,
+            slotGranularityMinutes: $this->slotGranularityMinutes,
+            cancellationWindowMinutes: $this->cancellationWindowMinutes,
+            policyMessage: $this->policyMessage,
+            displayOnBookingPage: $this->displayOnBookingPage,
+        );
     }
 
     /**

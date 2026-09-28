@@ -5,12 +5,14 @@ import {
     useQuery,
     useQueryClient,
 } from '@tanstack/react-query';
+import { usePlan } from '@/hooks/use-plan';
 import {
     assignStaffToService,
     attachServiceImage,
     createService,
     deleteService,
     duplicateService,
+    getActiveServiceQuota,
     getService,
     listServices,
     listStaffServices,
@@ -39,6 +41,7 @@ export const serviceKeys = {
     infinite: (search: string) => [...serviceKeys.all, 'infinite', search] as const,
     detail: (id: string) => [...serviceKeys.all, 'detail', id] as const,
     byStaff: (staffMemberId: string) => [...serviceKeys.all, 'staff', staffMemberId] as const,
+    quota: () => [...serviceKeys.all, 'quota'] as const,
 };
 
 export function useServices(params: ServiceListParams) {
@@ -76,6 +79,16 @@ export function useService(id: string) {
     return useQuery({
         queryKey: serviceKeys.detail(id),
         queryFn: ({ signal }) => getService(id, signal),
+    });
+}
+
+export function useActiveServiceQuota() {
+    const { maxActiveServices } = usePlan();
+
+    return useQuery({
+        queryKey: serviceKeys.quota(),
+        queryFn: ({ signal }) => getActiveServiceQuota(signal),
+        enabled: maxActiveServices !== null,
     });
 }
 

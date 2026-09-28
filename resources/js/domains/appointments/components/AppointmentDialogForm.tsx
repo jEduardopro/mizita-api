@@ -18,7 +18,11 @@ export function AppointmentDialogForm({
             </DialogHeader>
 
             <div className="max-h-[calc(100svh-12rem)] overflow-y-auto overscroll-contain pr-1">
-                <AppointmentFormFields form={form} mode={params.mode} />
+                <AppointmentFormFields
+                    form={form}
+                    mode={params.mode}
+                    assignedStaffMemberId={params.appointment?.staff_member.id ?? null}
+                />
             </div>
 
             <DialogFooter>

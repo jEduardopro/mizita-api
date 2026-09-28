@@ -10,6 +10,8 @@ use App\Domains\Integrations\Contracts\CalendarAuthorizationStates;
 use App\Domains\Integrations\Contracts\CalendarAuthorizer;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarOwners;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
+use App\Domains\Integrations\Exceptions\CalendarSyncRequiresCompletePlan;
 use App\Domains\Integrations\ValueObjects\CalendarProvider;
 use App\Domains\Integrations\ValueObjects\PendingAuthorization;
 use App\Shared\Application\UseCaseResponse;
@@ -26,6 +28,7 @@ final class StartCalendarAuthorization
         private readonly CalendarAuthorizationStates $states,
         private readonly CalendarAuthorizer $authorizer,
         private readonly BusinessContext $business,
+        private readonly CalendarSyncAllowance $allowance,
     ) {}
 
     /**
@@ -35,6 +38,7 @@ final class StartCalendarAuthorization
     {
         try {
             $businessId = $this->business->currentBusinessId();
+            $this->assertCalendarSyncAllowed($businessId);
             $staffMemberId = $this->owners->staffMemberIdOf($businessId, $input->accountId);
 
             $this->connections
@@ -46,6 +50,16 @@ final class StartCalendarAuthorization
             return UseCaseResponse::success(new AuthorizationUrlData($this->authorizer->authorizationUrl($state)));
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
+        }
+    }
+
+    /**
+     * @throws CalendarSyncRequiresCompletePlan
+     */
+    private function assertCalendarSyncAllowed(string $businessId): void
+    {
+        if (! $this->allowance->includesCalendarSync($businessId)) {
+            throw CalendarSyncRequiresCompletePlan::forBusiness($businessId);
         }
     }
 }

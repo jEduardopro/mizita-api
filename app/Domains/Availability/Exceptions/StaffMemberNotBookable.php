@@ -15,6 +15,11 @@ final class StaffMemberNotBookable extends RuntimeException implements DomainFai
         return new self("Staff member [{$staffId}] does not perform service [{$serviceId}].");
     }
 
+    public static function underCurrentPlan(string $staffId): self
+    {
+        return new self("Staff member [{$staffId}] is not bookable under the business's current plan.");
+    }
+
     public function errorCode(): string
     {
         return 'staff_member_not_bookable';

@@ -925,13 +925,13 @@
         },
         "logo": {
             "label": "Logotipo",
-            "hint": "Cuadrado, JPG, PNG o WebP, hasta 2 MB.",
+            "hint": "Cuadrado, JPG, PNG o WebP, hasta 2 MB. Tamaño recomendado: 200 × 200 px.",
             "choose": "Arrastra tu logotipo o toca para elegirlo",
             "tooLarge": "El logotipo pesa más de 2 MB. Elige uno más ligero."
         },
         "banner": {
             "label": "Portada",
-            "hint": "Apaisada 16:9, JPG, PNG o WebP, hasta 5 MB.",
+            "hint": "Apaisada 16:9, JPG, PNG o WebP, hasta 5 MB. Tamaño recomendado: 1920 × 1080 px.",
             "choose": "Arrastra tu portada o toca para elegirla",
             "tooLarge": "La portada pesa más de 5 MB. Elige una más ligera."
         },
@@ -1535,6 +1535,56 @@
             "removalCheckFailed": "No hemos podido comprobar si se puede remover a este miembro del equipo. Inténtalo otra vez.",
             "ownerCannotBeRemoved": "El propietario del negocio no se puede remover del equipo.",
             "resendFailed": "No hemos podido reenviar la invitación. Inténtalo otra vez."
+        }
+    },
+    "plan": {
+        "names": {
+            "free": "Gratis",
+            "complete": "Completo"
+        },
+        "notice": {
+            "title": "Disponible en el plan Completo",
+            "link": "Ver planes"
+        },
+        "settings": {
+            "nav": "Plan",
+            "eyebrow": "Suscripción",
+            "title": "Tu plan",
+            "subtitle": "Compara lo que incluye cada plan y elige el que necesita tu negocio.",
+            "current": "Tu plan actual: {{plan}}",
+            "endsAt": "Vence el {{date}}",
+            "currentPlan": "Plan actual",
+            "upgrade": "Mejorar a Completo"
+        },
+        "team": {
+            "inviteBlocked": "En el plan Gratis solo el dueño atiende citas. Mejora al plan Completo para sumar a tu equipo.",
+            "resendBlocked": "Reenviar invitaciones está disponible en el plan Completo.",
+            "paused": {
+                "badge": "Pausado",
+                "tooltip": "Disponible de nuevo al mejorar al plan Completo",
+                "memberNotice": "Esta persona está pausada: en el plan Gratis solo el dueño atiende citas. Sus citas ya agendadas se conservan."
+            }
+        },
+        "services": {
+            "quota_one": "{{count}} de {{limit}} servicios activos",
+            "quota_other": "{{count}} de {{limit}} servicios activos",
+            "activationBlocked": "Ya tienes {{limit}} servicios activos, el máximo del plan Gratis. Desactiva otro o mejora al plan Completo para activar este.",
+            "staffPickerHidden": "En el plan Gratis cada servicio lo atiende solo el dueño."
+        },
+        "bookingRules": {
+            "locked": "Las preferencias de reserva y los campos de contacto están disponibles en el plan Completo. En Gratis se usan los valores por defecto."
+        },
+        "integrations": {
+            "connectBlocked": "Conectar Google Calendar está disponible en el plan Completo.",
+            "syncPaused": {
+                "title": "Sincronización pausada",
+                "description": "Tu conexión sigue guardada, pero Mizita no envía citas a Google mientras tu negocio esté en el plan Gratis. Al mejorar al plan Completo, tu calendario se pone al día solo."
+            }
+        },
+        "teamAccessPaused": {
+            "title": "Tu acceso está pausado",
+            "body": "El negocio donde trabajas está en el plan Gratis, que incluye solo a su dueño. Cuando el dueño mejore al plan Completo recuperarás el acceso.",
+            "signOut": "Cerrar sesión"
         }
     }
 }

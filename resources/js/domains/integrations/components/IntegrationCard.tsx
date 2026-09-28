@@ -1,17 +1,15 @@
 import type { ReactNode } from 'react';
-import type { ConnectionStatus } from '../types';
 import { IntegrationLogoTile } from './IntegrationLogoTile';
-import { IntegrationStatusBadge } from './IntegrationStatusBadge';
 
 type Props = {
     name: string;
     description: string;
     logo: ReactNode;
-    status: ConnectionStatus | null;
+    badge: ReactNode;
     onOpen: () => void;
 };
 
-export function IntegrationCard({ name, description, logo, status, onOpen }: Props) {
+export function IntegrationCard({ name, description, logo, badge, onOpen }: Props) {
     return (
         <button
             type="button"
@@ -22,7 +20,7 @@ export function IntegrationCard({ name, description, logo, status, onOpen }: Pro
             <span className="flex items-start justify-between gap-3">
                 <IntegrationLogoTile>{logo}</IntegrationLogoTile>
 
-                {status === null ? null : <IntegrationStatusBadge status={status} />}
+                {badge}
             </span>
 
             <span className="grid gap-1">

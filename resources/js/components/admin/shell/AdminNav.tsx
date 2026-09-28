@@ -27,7 +27,8 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuthorization } from '@/hooks/use-authorization';
-import type { PermissionName } from '@/lib/authorization';
+import type { PermissionName, RoleName } from '@/lib/authorization';
+import { PLAN_SETTINGS_HREF } from '@/lib/plan';
 
 type NavLabelKey =
     | 'nav.calendar'
@@ -38,12 +39,14 @@ type NavLabelKey =
     | 'nav.brand'
     | 'nav.yourProfile'
     | 'nav.team'
-    | 'nav.bookingPreferences';
+    | 'nav.bookingPreferences'
+    | 'plan.settings.nav';
 
 type NavLink = {
     href: string;
     labelKey: NavLabelKey;
     permission?: PermissionName;
+    role?: RoleName;
 };
 
 type NavItem = NavLink & {
@@ -88,6 +91,11 @@ const navItems: NavItem[] = [
                 href: '/settings/booking',
                 labelKey: 'nav.bookingPreferences',
                 permission: 'view_business_settings',
+            },
+            {
+                href: PLAN_SETTINGS_HREF,
+                labelKey: 'plan.settings.nav',
+                role: 'owner',
             },
         ],
     },
@@ -207,10 +215,13 @@ function NavSubLink({ link, url }: NavSubLinkProps) {
 
 export function AdminNav() {
     const { url } = usePage();
-    const { can } = useAuthorization();
+    const { can, is } = useAuthorization();
 
     function isPermitted(link: NavLink): boolean {
-        return link.permission === undefined || can(link.permission);
+        const hasPermission = link.permission === undefined || can(link.permission);
+        const hasRole = link.role === undefined || is(link.role);
+
+        return hasPermission && hasRole;
     }
 
     function renderEntry(item: NavItem) {

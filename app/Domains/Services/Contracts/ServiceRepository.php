@@ -23,6 +23,15 @@ interface ServiceRepository
      */
     public function activeForBusiness(string $businessId): array;
 
+    public function countActive(string $businessId): int;
+
+    /**
+     * @return list<string>
+     */
+    public function activeIdsOldestFirst(string $businessId): array;
+
+    public function lockActivationsOf(string $businessId): void;
+
     /**
      * @throws ServiceNotFound
      */

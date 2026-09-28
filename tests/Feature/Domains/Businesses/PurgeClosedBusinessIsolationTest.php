@@ -10,6 +10,7 @@ use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentMethodModel;
 use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
+use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\SubscriptionModel;
 use App\Models\User;
 use App\Shared\Contracts\Clock;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -26,6 +27,10 @@ uses(RefreshDatabase::class);
 const PURGE_CLOSED_AT = '2026-03-29T00:30:00+00:00';
 
 const PURGE_COLLIDING_OWNER_KEY = 900001;
+
+const PURGE_SUBSCRIPTION_STARTS_AT = '2026-03-01T00:00:00+00:00';
+
+const PURGE_SUBSCRIPTION_ENDS_AT = '2026-04-01T00:00:00+00:00';
 
 beforeEach(function () {
     $this->seed(AuthorizationSeeder::class);
@@ -57,6 +62,12 @@ it('seeds the closing business into every covered table, so the erasure never pa
 
 describe('a business closed more than thirty days ago', function () {
     beforeEach(function () {
+        $this->subscription = SubscriptionModel::factory()->create([
+            'business_id' => $this->closing->business->id,
+            'starts_at' => new DateTimeImmutable(PURGE_SUBSCRIPTION_STARTS_AT),
+            'ends_at' => new DateTimeImmutable(PURGE_SUBSCRIPTION_ENDS_AT),
+        ]);
+
         $this->closing->closeByOwner();
         $this->clock->advance('P31D');
 
@@ -113,6 +124,11 @@ describe('a business closed more than thirty days ago', function () {
 
     it('keeps the accounts of the closed business staff alive', function () {
         expect(User::query()->whereKey($this->closing->staffAccount->id)->exists())->toBeTrue();
+    });
+
+    it('keeps the subscription history of the closed business', function () {
+        expect(SubscriptionModel::withTrashed()->whereKey($this->subscription->id)->sole()->business_id)
+            ->toBe($this->closing->business->id);
     });
 
     it('never touches the business that was not closed', function () {

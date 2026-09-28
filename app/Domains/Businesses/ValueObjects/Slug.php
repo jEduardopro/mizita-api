@@ -31,6 +31,7 @@ final readonly class Slug
         'customers',
         'integrations',
         'settings',
+        'team-access',
         'me',
         'auth',
         'login',

@@ -7,10 +7,12 @@ namespace App\Domains\Services\Application\UseCases;
 use App\Domains\Services\Application\Dtos\CreateServiceInput;
 use App\Domains\Services\Application\Dtos\ServiceData;
 use App\Domains\Services\Application\Presenters\ServicePresenter;
+use App\Domains\Services\Application\Services\ActiveServiceQuota;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Contracts\StaffDirectory;
 use App\Domains\Services\Entities\Service;
 use App\Domains\Services\Events\ServiceCreated;
+use App\Domains\Services\Exceptions\ActiveServiceLimitReached;
 use App\Domains\Services\Exceptions\ServiceNameAlreadyTaken;
 use App\Domains\Services\Exceptions\ServiceRequiresStaff;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
@@ -25,6 +27,7 @@ use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\IdGenerator;
+use App\Shared\Contracts\TransactionManager;
 use Illuminate\Contracts\Events\Dispatcher;
 
 final class CreateService
@@ -34,9 +37,11 @@ final class CreateService
         private readonly StaffDirectory $staff,
         private readonly ServicePresenter $presenter,
         private readonly SlugAllocator $slugs,
+        private readonly ActiveServiceQuota $quota,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
         private readonly BusinessContext $business,
+        private readonly TransactionManager $transactions,
         private readonly Dispatcher $events,
     ) {}
 
@@ -49,7 +54,9 @@ final class CreateService
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
-            $service = $this->register($input, $businessId);
+            $service = $this->transactions->run(
+                fn (): Service => $this->register($input, $businessId),
+            );
             $data = $this->presenter->describe($service);
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
@@ -61,6 +68,7 @@ final class CreateService
     }
 
     /**
+     * @throws ActiveServiceLimitReached
      * @throws ServiceNameAlreadyTaken
      * @throws ServiceRequiresStaff
      * @throws UnknownStaffMember
@@ -72,6 +80,8 @@ final class CreateService
         if ($this->services->existsByName($businessId, $name)) {
             throw ServiceNameAlreadyTaken::for($name);
         }
+
+        $this->ensureRoomIfActive($input, $businessId);
 
         $base = Slug::fromName($name);
 
@@ -93,6 +103,18 @@ final class CreateService
         $this->services->save($service);
 
         return $service;
+    }
+
+    /**
+     * @throws ActiveServiceLimitReached
+     */
+    private function ensureRoomIfActive(CreateServiceInput $input, string $businessId): void
+    {
+        if (! $input->active) {
+            return;
+        }
+
+        $this->quota->ensureRoomFor($businessId);
     }
 
     /**

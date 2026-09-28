@@ -7,6 +7,7 @@ namespace App\Domains\Businesses\Application\Dtos;
 use App\Domains\Businesses\Exceptions\IncompleteContactFields;
 use App\Domains\Businesses\Exceptions\InvalidContactFieldRequirement;
 use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 
 final readonly class ContactFieldsInput
 {
@@ -56,6 +57,15 @@ final readonly class ContactFieldsInput
         $this->validatePhone();
         $this->validateEmail();
         $this->validateAddress();
+    }
+
+    public function toPreferences(): ContactFieldPreferences
+    {
+        return new ContactFieldPreferences(
+            phone: ContactFieldPreference::from($this->phone),
+            email: ContactFieldPreference::from($this->email),
+            address: ContactFieldPreference::from($this->address),
+        );
     }
 
     /**

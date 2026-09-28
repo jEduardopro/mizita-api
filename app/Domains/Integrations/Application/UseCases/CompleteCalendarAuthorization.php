@@ -12,9 +12,11 @@ use App\Domains\Integrations\Contracts\CalendarAuthorizer;
 use App\Domains\Integrations\Contracts\CalendarConnectionRepository;
 use App\Domains\Integrations\Contracts\CalendarOwners;
 use App\Domains\Integrations\Contracts\CalendarProvisioning;
+use App\Domains\Integrations\Contracts\CalendarSyncAllowance;
 use App\Domains\Integrations\Entities\CalendarConnection;
 use App\Domains\Integrations\Events\CalendarConnected;
 use App\Domains\Integrations\Exceptions\CalendarAuthorizationStateInvalid;
+use App\Domains\Integrations\Exceptions\CalendarSyncRequiresCompletePlan;
 use App\Domains\Integrations\Exceptions\InvalidCalendarConnection;
 use App\Domains\Integrations\ValueObjects\BusinessCalendarProfile;
 use App\Domains\Integrations\ValueObjects\CalendarGrant;
@@ -43,6 +45,7 @@ final class CompleteCalendarAuthorization
         private readonly Clock $clock,
         private readonly Dispatcher $events,
         private readonly ExceptionHandler $compensationFailures,
+        private readonly CalendarSyncAllowance $allowance,
     ) {}
 
     /**
@@ -68,6 +71,7 @@ final class CompleteCalendarAuthorization
         $pending = $this->states->consume($input->state);
         $pending->assertIssuedTo($input->accountId);
         $this->assertStillStaffMember($pending);
+        $this->assertCalendarSyncAllowed($pending->businessId);
 
         $existing = $this->connections->findForStaffMember($pending->businessId, $pending->staffMemberId, self::PROVIDER);
         $existing?->assertAwaitingReconnect();
@@ -102,6 +106,16 @@ final class CompleteCalendarAuthorization
     {
         if ($this->owners->staffMemberIdOf($pending->businessId, $pending->accountId) !== $pending->staffMemberId) {
             throw CalendarAuthorizationStateInvalid::issuedToAnotherAccount();
+        }
+    }
+
+    /**
+     * @throws CalendarSyncRequiresCompletePlan
+     */
+    private function assertCalendarSyncAllowed(string $businessId): void
+    {
+        if (! $this->allowance->includesCalendarSync($businessId)) {
+            throw CalendarSyncRequiresCompletePlan::forBusiness($businessId);
         }
     }
 

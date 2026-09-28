@@ -21,6 +21,7 @@ use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarAuthorizer;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarConnectionRepository;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarOwners;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarProvisioning;
+use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarSyncAllowance;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsFixtures;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsJournal;
 
@@ -35,6 +36,7 @@ beforeEach(function () {
         ->add(IntegrationsFixtures::BUSINESS_ID, IntegrationsFixtures::profile());
     $this->provisioning = new FakeCalendarProvisioning($this->journal);
     $this->connections = new FakeCalendarConnectionRepository($this->journal);
+    $this->allowance = FakeCalendarSyncAllowance::completePlan();
     $this->input = IntegrationsFixtures::completeInput();
 
     $this->dispatched = [];
@@ -63,6 +65,7 @@ beforeEach(function () {
         new FakeClock(IntegrationsFixtures::now()),
         $this->events,
         $this->compensationFailures,
+        $this->allowance,
     ))->handle($this->input);
 });
 
@@ -159,6 +162,12 @@ describe('a first connection', function () {
             ->and($this->dispatched[0])->toBeInstanceOf(CalendarConnected::class)
             ->and($this->dispatched[0]->connectionId)->toBe(IntegrationsFixtures::NEW_CONNECTION_ID)
             ->and($this->dispatched[0]->businessId)->toBe(IntegrationsFixtures::BUSINESS_ID);
+    });
+
+    it('asks whether the plan of the business the state was issued for includes calendar sync', function () {
+        ($this->complete)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::BUSINESS_ID]);
     });
 
     it('compensates nothing and reports nothing', function () {
@@ -295,6 +304,11 @@ dataset('calendar authorization refusals', [
         fn (object $test) => $test->businesses = new FakeBusinessProfiles($test->journal),
         'business_not_found',
         DomainFailureKind::NotFound,
+    ],
+    'business on the free plan' => [
+        fn (object $test) => $test->allowance = FakeCalendarSyncAllowance::freePlan(),
+        'calendar_sync_requires_complete_plan',
+        DomainFailureKind::Forbidden,
     ],
     'calendar already connected' => [
         fn (object $test) => $test->connections->store(IntegrationsFixtures::connection()),
@@ -505,10 +519,76 @@ dataset('failures before the exchange', [
     )],
     'account no longer a staff member' => [fn (object $test) => $test->owners = new FakeCalendarOwners($test->journal)],
     'user denied' => [fn (object $test) => $test->input = IntegrationsFixtures::completeInput(code: '', error: 'access_denied')],
+    'business on the free plan' => [fn (object $test) => $test->allowance = FakeCalendarSyncAllowance::freePlan()],
     'already connected' => [fn (object $test) => $test->connections->store(IntegrationsFixtures::connection())],
     'business gone' => [fn (object $test) => $test->businesses = new FakeBusinessProfiles($test->journal)],
     'code exchange failed' => [fn (object $test) => $test->authorizer->failExchangeWith(CalendarAuthorizationFailed::exchangeFailed())],
 ]);
+
+describe('a business on the free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeCalendarSyncAllowance::freePlan();
+    });
+
+    it('exchanges no code and provisions no calendar', function () {
+        ($this->complete)();
+
+        expect($this->authorizer->exchangedCodes)->toBe([])
+            ->and($this->provisioning->created)->toBe([])
+            ->and($this->provisioning->adopted)->toBe([]);
+    });
+
+    it('stops right after the state and the staff membership are checked', function () {
+        ($this->complete)();
+
+        expect($this->journal->entries)->toBe([
+            'states.consume',
+            'owners.staffMemberIdOf',
+        ]);
+    });
+
+    it('still burns the state, so the callback cannot be replayed once the plan is upgraded', function () {
+        ($this->complete)();
+
+        expect($this->states->consumed)->toBe([IntegrationsFixtures::STATE]);
+    });
+
+    it('leaves a connection that needs reconnecting untouched', function () {
+        $this->connections->store(IntegrationsFixtures::awaitingReconnect());
+
+        $response = ($this->complete)();
+
+        expect($response->error()->code)->toBe('calendar_sync_requires_complete_plan')
+            ->and($this->connections->savedWithTokens)->toBe([])
+            ->and($this->connections->stored(IntegrationsFixtures::CONNECTION_ID)->status())->toBe(ConnectionStatus::NeedsReconnect);
+    });
+
+    it('checks the plan of the business the state carries, not of any ambient context', function () {
+        $this->states->remember('other-business-state', IntegrationsFixtures::pending(
+            businessId: IntegrationsFixtures::OTHER_BUSINESS_ID,
+            staffMemberId: IntegrationsFixtures::SECOND_STAFF_MEMBER_ID,
+        ));
+        $this->owners->member(
+            IntegrationsFixtures::OTHER_BUSINESS_ID,
+            IntegrationsFixtures::ACCOUNT_ID,
+            IntegrationsFixtures::SECOND_STAFF_MEMBER_ID,
+        );
+        $this->input = IntegrationsFixtures::completeInput(state: 'other-business-state');
+
+        ($this->complete)();
+
+        expect($this->allowance->lookups)->toBe([IntegrationsFixtures::OTHER_BUSINESS_ID]);
+    });
+
+    it('answers the state failure first when the state is not valid', function () {
+        $this->input = IntegrationsFixtures::completeInput(state: 'unknown-state');
+
+        $response = ($this->complete)();
+
+        expect($response->error()->code)->toBe('calendar_authorization_state_invalid')
+            ->and($this->allowance->lookups)->toBe([]);
+    });
+});
 
 describe('a failure before any grant exists', function () {
     it('discards no calendar and revokes no grant', function (Closure $arrange) {

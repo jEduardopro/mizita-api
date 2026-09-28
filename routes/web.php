@@ -5,6 +5,7 @@ use App\Domains\PublicCatalog\Application\UseCases\ConfirmBusinessPage;
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicServiceBookingLinkController;
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicStaffBookingLinkController;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
+use App\Http\Middleware\RequireBusinessMembership;
 use App\Http\Middleware\RequireFreshPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,10 @@ Route::get('/password/change', fn (Request $request) => $request->user()->mustCh
     ->middleware('auth')
     ->name(RequireFreshPassword::CHANGE_PASSWORD_ROUTE);
 
+Route::get('/team-access/paused', fn () => Inertia::render('admin/team-access-paused'))
+    ->middleware('auth')
+    ->name(RequireBusinessMembership::TEAM_ACCESS_PAUSED_ROUTE);
+
 Route::permanentRedirect('/dashboard', '/calendar')->name('dashboard');
 
 Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
@@ -44,6 +49,7 @@ Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/settings/team/{staffMember}', fn (string $staffMember) => Inertia::render('admin/settings/team/show', ['staffMemberId' => $staffMember]))->whereUuid('staffMember')->name('settings.team.show');
     Route::get('/settings/business', fn () => Inertia::render('admin/settings/business'))->name('settings.business');
     Route::get('/settings/booking', fn () => Inertia::render('admin/settings/booking'))->name('settings.booking');
+    Route::get('/settings/plan', fn () => Inertia::render('admin/settings/plan'))->middleware('owner')->name('settings.plan');
 });
 
 $bookingPageSlug = PublicCatalogServiceProvider::BOOKING_PAGE_SLUG_PATTERN;

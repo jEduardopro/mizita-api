@@ -11,6 +11,7 @@ use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Exceptions\InvalidProfileName;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
+use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseError;
 use App\Shared\Application\UseCaseResponse;
@@ -26,6 +27,7 @@ use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamAllowance;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
 use Tests\Support\Staff\StaffJournal;
@@ -64,6 +66,7 @@ beforeEach(function () {
     $this->presenterAccounts = $this->accounts;
     $this->provisioner = (new FakeTeamAccountProvisioner($this->journal))
         ->issues(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+    $this->allowance = new FakeTeamAllowance;
     $this->phones = new FakeStaffPhoneBook($this->journal);
     $this->photos = new FakeStaffProfilePhotos($this->journal);
     $this->parser = FakePhoneNumberParser::accepting(PhoneNumbers::mexican(), PhoneNumbers::american());
@@ -80,6 +83,7 @@ beforeEach(function () {
         $this->profiles,
         $this->accounts,
         $this->provisioner,
+        $this->allowance,
         $this->phones,
         new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
         $this->parser,
@@ -346,6 +350,118 @@ describe('refusals decided before anything is written', function () {
             ->and($this->parser->wasConsulted())->toBeTrue();
 
         ($this->nothingWasWritten)();
+    });
+});
+
+describe('the plan gate', function () {
+    beforeEach(function () {
+        $this->members->store(StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::NoAccess));
+    });
+
+    describe('on a plan without the team', function () {
+        beforeEach(function () {
+            $this->allowance->withoutTeamFor(FakeBusinessContext::BUSINESS_ID);
+        });
+
+        it('refuses to give a no access member access', function () {
+            $error = ($this->refusal)(['level' => 'staff']);
+
+            expect($error->code)->toBe('team_requires_complete_plan')
+                ->and($error->kind)->toBe(DomainFailureKind::Forbidden)
+                ->and($error->cause())->toBeInstanceOf(TeamRequiresCompletePlan::class);
+        });
+
+        it('refuses before the transaction runs, saving, issuing and announcing nothing', function () {
+            ($this->refusal)(['level' => 'staff']);
+
+            expect($this->transactions->runs())->toBe(0)
+                ->and($this->journal->entries)->toBe([])
+                ->and($this->members->saved)->toBe([])
+                ->and($this->provisioner->issued)->toBe([])
+                ->and($this->dispatched)->toBe([]);
+        });
+
+        it('refuses the whole update when access is granted together with a profile edit', function () {
+            ($this->refusal)(teamMemberUpdate(['level' => 'staff']));
+
+            expect($this->transactions->runs())->toBe(0)
+                ->and($this->accounts->renames)->toBe([])
+                ->and($this->profiles->saved)->toBe([])
+                ->and($this->phones->replacements)->toBe([])
+                ->and($this->members->saved)->toBe([])
+                ->and($this->provisioner->issued)->toBe([])
+                ->and($this->dispatched)->toBe([]);
+        });
+
+        it('asks about the plan of the business of the context only', function () {
+            ($this->refusal)(['level' => 'staff']);
+
+            expect($this->allowance->checks)->toBe([FakeBusinessContext::BUSINESS_ID]);
+        });
+
+        it('names a broken payload rule before consulting the plan', function () {
+            $error = ($this->refusal)(['name' => '  ', 'level' => 'staff']);
+
+            expect($error->code)->toBe('invalid_profile_name')
+                ->and($this->allowance->checks)->toBe([]);
+        });
+
+        it('names an undialable phone before consulting the plan', function () {
+            $error = ($this->refusal)(['phone' => ['country_code' => 'MX', 'national_number' => '123'], 'level' => 'staff']);
+
+            expect($error->code)->toBe('invalid_profile_phone')
+                ->and($this->allowance->checks)->toBe([]);
+        });
+
+        it('names the fixed owner level before consulting the plan', function () {
+            $error = ($this->refusal)(['level' => 'staff'], StaffFixtures::MEMBER_ID);
+
+            expect($error->code)->toBe('owner_level_is_fixed')
+                ->and($this->allowance->checks)->toBe([]);
+        });
+
+        it('lets a level change that grants no access through without consulting the plan', function (StaffRole $from, string $to) {
+            $this->members->store(StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: $from));
+
+            $data = ($this->update)(['level' => $to])->value();
+
+            expect($data->level->value)->toBe($to)
+                ->and($this->members->saved)->toHaveCount(1)
+                ->and($this->members->saved[0]->role()->value)->toBe($to)
+                ->and($this->allowance->checks)->toBe([])
+                ->and($this->provisioner->issued)->toBe([])
+                ->and($this->dispatched)->toBe([]);
+        })->with([
+            'staff to no access' => [StaffRole::Member, 'no_access'],
+            'staff to staff' => [StaffRole::Member, 'staff'],
+            'no access to no access' => [StaffRole::NoAccess, 'no_access'],
+        ]);
+
+        it('lets a profile only edit through without consulting the plan', function () {
+            $data = ($this->update)(['name' => 'Grace Brewster', 'job_title' => 'Colorista'])->value();
+
+            expect($data->name)->toBe('Grace Brewster')
+                ->and($data->jobTitle)->toBe('Colorista')
+                ->and($data->level)->toBe(StaffRole::NoAccess)
+                ->and($this->journal->entries)->toBe(['accounts.rename', 'profiles.save'])
+                ->and($this->allowance->checks)->toBe([]);
+        });
+    });
+
+    describe('on a plan with the team', function () {
+        it('gives access and invites the member, asking about the plan of the business of the context', function () {
+            $this->allowance->withoutTeamFor(StaffFixtures::OTHER_BUSINESS_ID);
+
+            $data = ($this->update)(['level' => 'staff'])->value();
+
+            expect($data->level)->toBe(StaffRole::Member)
+                ->and($this->allowance->checks)->toBe([FakeBusinessContext::BUSINESS_ID])
+                ->and($this->members->saved)->toHaveCount(1)
+                ->and($this->provisioner->issued)->toBe([StaffFixtures::SECOND_ACCOUNT_ID])
+                ->and($this->dispatched)->toHaveCount(1)
+                ->and($this->dispatched[0])->toBeInstanceOf(TeamMemberInvited::class)
+                ->and($this->dispatched[0]->staffMemberId)->toBe(StaffFixtures::SECOND_MEMBER_ID);
+        });
     });
 });
 

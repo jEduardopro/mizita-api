@@ -55,6 +55,7 @@ final class DatabaseTenantDataEraser implements TenantDataEraser
         'states',
         'payment_methods',
         'permissions',
+        'subscriptions',
         'cache',
         'cache_locks',
         'jobs',

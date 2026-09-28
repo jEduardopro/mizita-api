@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
+use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\SubscriptionModel;
 use App\Models\User;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\BusinessMembership;
@@ -39,6 +40,13 @@ function memberOf(BusinessModel $business, User $account, bool $owner = false): 
         'business_id' => $business->id,
         'account_id' => $account->id,
     ]);
+}
+
+function onCompletePlan(BusinessModel $business): BusinessModel
+{
+    SubscriptionModel::factory()->create(['business_id' => $business->id]);
+
+    return $business;
 }
 
 function backdate(StaffMemberModel $member, string $createdAt): void
@@ -79,7 +87,7 @@ describe('a caller who belongs to a business', function () {
 
     it('binds the business named by the X-Business header', function () {
         $owned = BusinessModel::factory()->create();
-        $joined = BusinessModel::factory()->create();
+        $joined = onCompletePlan(BusinessModel::factory()->create());
         $account = User::factory()->create();
 
         memberOf($owned, $account, owner: true);
@@ -93,7 +101,7 @@ describe('a caller who belongs to a business', function () {
     });
 
     it('prefers the owner membership when no header names a business', function () {
-        $joined = BusinessModel::factory()->create();
+        $joined = onCompletePlan(BusinessModel::factory()->create());
         $owned = BusinessModel::factory()->create();
         $account = User::factory()->create();
 
@@ -108,8 +116,8 @@ describe('a caller who belongs to a business', function () {
     });
 
     it('falls back to the oldest membership when none of them is the owner one', function () {
-        $oldest = BusinessModel::factory()->create();
-        $newest = BusinessModel::factory()->create();
+        $oldest = onCompletePlan(BusinessModel::factory()->create());
+        $newest = onCompletePlan(BusinessModel::factory()->create());
         $account = User::factory()->create();
 
         backdate(memberOf($newest, $account), '2024-01-01 00:00:00');

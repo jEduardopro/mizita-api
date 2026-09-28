@@ -123,6 +123,10 @@ arch('checks an account\'s memberships removal without a business context, becau
     ->expect('App\Domains\Staff\Application\UseCases\CheckAccountMembershipsRemoval')
     ->not->toUse('App\Shared\Contracts\BusinessContext');
 
+arch('resolves the business of every subscription from an explicit slug or uuid, never from a business context, because subscriptions are operated from the console and read across tenants')
+    ->expect('App\Domains\Subscriptions\Application')
+    ->not->toUse('App\Shared\Contracts\BusinessContext');
+
 it('takes the tenant from the business context in every other staff use case', function () {
     $useCases = glob(dirname(__DIR__, 2).'/app/Domains/Staff/Application/UseCases/*.php') ?: [];
 

@@ -1,7 +1,7 @@
 import { SearchX, UserPlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { useAuthorization } from '@/hooks/use-authorization';
+import { useTeamInvitationAccess } from './use-team-invitation-access';
 
 const EMPTY_STATE_FRAME =
     'grid justify-items-center gap-3 rounded-xl border border-dashed border-border px-5 py-12 text-center';
@@ -15,7 +15,7 @@ type Props = {
 export function TeamEmptyState({ search, onClearSearch, onInvite }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
-    const { can } = useAuthorization();
+    const invitationAccess = useTeamInvitationAccess();
 
     if (search !== '') {
         return (
@@ -50,7 +50,7 @@ export function TeamEmptyState({ search, onClearSearch, onInvite }: Props) {
                 {t('team.empty.first.body')}
             </p>
 
-            {can('create_staff_member') ? (
+            {invitationAccess === 'allowed' ? (
                 <Button type="button" variant="brand" onClick={onInvite} className="h-11 px-4 md:h-9">
                     {t('team.actions.invite')}
                 </Button>

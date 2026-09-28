@@ -280,6 +280,24 @@ return [
         'invalid_external_calendar_event' => 'Ese evento del calendario no tiene un inicio y un final válidos.',
         'invalid_busy_window' => 'Ese intervalo de tiempo no es válido.',
 
+        'active_service_limit_reached' => 'Tu plan actual permite hasta 3 servicios activos. Mejora al plan Completo para activar más.',
+        'team_requires_complete_plan' => 'Trabajar con un equipo está disponible en el plan Completo.',
+        'booking_rules_require_complete_plan' => 'Las preferencias de reserva y los campos de contacto están disponibles en el plan Completo.',
+        'calendar_sync_requires_complete_plan' => 'La sincronización con Google Calendar está disponible en el plan Completo.',
+        'team_access_paused' => 'Tu acceso a este negocio está en pausa porque su plan actual no incluye equipo.',
+        'staff_member_paused' => 'Esta persona no está disponible en el plan Gratis. Mejora al plan Completo para agendarle citas.',
+        'invalid_subscription_plan' => 'Ese plan no existe.',
+        'plan_not_grantable' => 'Ese plan no se puede asignar como suscripción.',
+        'invalid_subscription_period' => 'Ese periodo de suscripción no es válido. Tiene que terminar en el futuro.',
+        'subscription_not_extendable' => 'La nueva fecha de fin tiene que ser posterior a la actual.',
+        'invalid_subscription_end_date' => 'Esa fecha de fin no es válida. Usa el formato AAAA-MM-DD.',
+        'invalid_subscription_price' => 'Ese precio no es válido.',
+        'subscription_already_in_effect' => 'Este negocio ya tiene una suscripción vigente.',
+        'subscription_not_found' => 'Este negocio no tiene ninguna suscripción vigente.',
+        'subscription_period_overlaps' => 'Ese periodo de suscripción se traslapa con otro del mismo negocio.',
+        'subscription_not_active' => 'Esa suscripción ya no está activa.',
+        'subscription_not_due_for_expiry' => 'Esa suscripción todavía no ha terminado.',
+
     ],
 
     /*

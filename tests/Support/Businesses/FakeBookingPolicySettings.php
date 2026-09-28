@@ -22,6 +22,10 @@ final class FakeBookingPolicySettings implements BookingPolicySettings
      */
     private array $contactFields = [];
 
+    private ?BookingPolicySnapshot $platformPolicy = null;
+
+    private ?ContactFieldPreferences $platformContactFields = null;
+
     private ?Throwable $applyFailure = null;
 
     private ?Throwable $contactFieldsFailure = null;
@@ -46,6 +50,8 @@ final class FakeBookingPolicySettings implements BookingPolicySettings
      */
     public array $contactFieldReads = [];
 
+    public int $platformDefaultReads = 0;
+
     public function store(string $businessId, BookingPolicySnapshot $policy): self
     {
         $this->policies[$businessId] = $policy;
@@ -56,6 +62,14 @@ final class FakeBookingPolicySettings implements BookingPolicySettings
     public function storeContactFields(string $businessId, ContactFieldPreferences $preferences): self
     {
         $this->contactFields[$businessId] = $preferences;
+
+        return $this;
+    }
+
+    public function withPlatformDefaults(BookingPolicySnapshot $policy, ContactFieldPreferences $contactFields): self
+    {
+        $this->platformPolicy = $policy;
+        $this->platformContactFields = $contactFields;
 
         return $this;
     }
@@ -115,5 +129,19 @@ final class FakeBookingPolicySettings implements BookingPolicySettings
         $this->contactFieldApplications[] = ['businessId' => $businessId, 'preferences' => $preferences];
 
         $this->contactFields[$businessId] = $preferences;
+    }
+
+    public function platformDefaults(): BookingPolicySnapshot
+    {
+        $this->platformDefaultReads++;
+
+        return $this->platformPolicy ?? SettingsFixtures::bookingPolicy();
+    }
+
+    public function platformDefaultContactFields(): ContactFieldPreferences
+    {
+        $this->platformDefaultReads++;
+
+        return $this->platformContactFields ?? SettingsFixtures::contactFields();
     }
 }

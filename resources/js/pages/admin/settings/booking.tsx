@@ -59,6 +59,7 @@ export default function BookingPreferences() {
                         label={t('bookingPreferences.submit.save')}
                         submittingLabel={t('bookingPreferences.submit.saving')}
                         isSubmitting={form.isSubmitting}
+                        disabled={form.areBookingRulesLocked}
                     />
                 ) : null
             }

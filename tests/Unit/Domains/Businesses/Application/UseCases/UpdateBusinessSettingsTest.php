@@ -8,6 +8,7 @@ use App\Domains\Addresses\Exceptions\InvalidAddressStreet;
 use App\Domains\Availability\Exceptions\OverlappingScheduleIntervals;
 use App\Domains\BookingPolicies\Exceptions\BookingPolicyNotFound;
 use App\Domains\BookingPolicies\Exceptions\InvalidLeadTime;
+use App\Domains\Businesses\Application\Dtos\BookingPolicyInput;
 use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\ContactInput;
 use App\Domains\Businesses\Application\Dtos\LinksInput;
@@ -22,11 +23,13 @@ use App\Domains\Businesses\ValueObjects\BookingPolicySnapshot;
 use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
 use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Domains\Links\Exceptions\InvalidLinkPlatform;
+use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\TransactionManager;
 use App\Shared\ValueObjects\CountryCode;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\FakeBookingPageSettings;
 use Tests\Support\Businesses\FakeBookingPolicySettings;
+use Tests\Support\Businesses\FakeBookingRulesAllowance;
 use Tests\Support\Businesses\FakeBusinessAddressBook;
 use Tests\Support\Businesses\FakeBusinessLinkList;
 use Tests\Support\Businesses\FakeBusinessLogo;
@@ -53,18 +56,27 @@ beforeEach(function () {
     $this->schedule = new FakeBusinessSchedule;
     $this->bookingPages = new FakeBookingPageSettings;
     $this->bookingPolicies = new FakeBookingPolicySettings;
+    $this->bookingRules = FakeBookingRulesAllowance::onCompletePlan();
     $this->phones = new FakeBusinessPhoneBook;
     $this->logo = new FakeBusinessLogo;
     $this->parser = FakePhoneNumberParser::accepting(PhoneNumbers::mexican(), PhoneNumbers::american());
     $this->transactions = new FakeTransactionManager;
 
-    $this->presenter = new BusinessSettingsPresenter(
-        $this->businesses,
+    $this->presenterRules = FakeBookingRulesAllowance::onCompletePlan();
+
+    $this->onFreePlan = function () {
+        $this->bookingRules = FakeBookingRulesAllowance::onFreePlan();
+        $this->presenterRules = FakeBookingRulesAllowance::onFreePlan();
+    };
+
+    $this->presenterOver = fn (FakeBusinessRepository $businesses) => new BusinessSettingsPresenter(
+        $businesses,
         $this->addresses,
         $this->links,
         $this->schedule,
         $this->bookingPages,
         $this->bookingPolicies,
+        $this->presenterRules,
         $this->phones,
         $this->logo,
     );
@@ -77,8 +89,9 @@ beforeEach(function () {
         $this->schedule,
         $this->bookingPages,
         $this->bookingPolicies,
+        $this->bookingRules,
         $this->phones,
-        $this->presenter,
+        ($this->presenterOver)($this->businesses),
         $this->parser,
         new FakeBusinessContext,
         $transactions,
@@ -493,6 +506,300 @@ describe('the booking policy', function () {
     });
 });
 
+dataset('changed booking policies', [
+    'a longer lead time' => fn () => SettingsFixtures::bookingPolicyInput(leadTimeMinutes: 90),
+    'no lead time at all' => fn () => SettingsFixtures::bookingPolicyInput(leadTimeMinutes: 0),
+    'a shorter window' => fn () => SettingsFixtures::bookingPolicyInput(bookingWindowMinutes: 10080),
+    'an unlimited window' => fn () => SettingsFixtures::bookingPolicyInput(bookingWindowMinutes: null),
+    'a finer granularity' => fn () => SettingsFixtures::bookingPolicyInput(slotGranularityMinutes: 15),
+    'a shorter cancellation window' => fn () => SettingsFixtures::bookingPolicyInput(cancellationWindowMinutes: 60),
+    'no cancellation at all' => fn () => SettingsFixtures::bookingPolicyInput(cancellationWindowMinutes: null),
+    'another policy message' => fn () => SettingsFixtures::bookingPolicyInput(policyMessage: 'Llega cinco minutos antes.'),
+    'no policy message' => fn () => SettingsFixtures::bookingPolicyInput(policyMessage: null),
+    'the policy hidden from the booking page' => fn () => SettingsFixtures::bookingPolicyInput(displayOnBookingPage: false),
+]);
+
+dataset('changed contact fields', [
+    'the phone made optional' => fn () => SettingsFixtures::contactFieldsInput(phone: 'optional'),
+    'the email made optional' => fn () => SettingsFixtures::contactFieldsInput(email: 'optional'),
+    'the address made required' => fn () => SettingsFixtures::contactFieldsInput(address: 'required'),
+]);
+
+describe('the booking preferences the plan allows', function () {
+    beforeEach(function () {
+        $this->bookingPolicies
+            ->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+                leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
+                bookingWindowMinutes: SettingsFixtures::BOOKING_WINDOW_MINUTES,
+                slotGranularityMinutes: SettingsFixtures::SLOT_GRANULARITY_MINUTES,
+                cancellationWindowMinutes: SettingsFixtures::CANCELLATION_WINDOW_MINUTES,
+                policyMessage: SettingsFixtures::POLICY_MESSAGE,
+                displayOnBookingPage: true,
+            ))
+            ->storeContactFields(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::contactFields(
+                phone: ContactFieldPreference::Hidden,
+                email: ContactFieldPreference::Required,
+                address: ContactFieldPreference::Optional,
+            ));
+
+        $this->expectRefusedForThePlan = fn (UseCaseResponse $response) => expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('booking_rules_require_complete_plan')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden);
+    });
+
+    describe('on the free plan', function () {
+        beforeEach(function () {
+            ($this->onFreePlan)();
+        });
+
+        it('saves the booking policy resubmitted exactly as it is stored', function () {
+            $response = ($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()));
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->bookingPolicies->applications)->toHaveCount(1)
+                ->and($this->bookingPolicies->applications[0]['preferences'])->toEqual(SettingsFixtures::bookingPolicyInput()->toPreferences());
+        });
+
+        it('saves the contact fields resubmitted exactly as they are stored', function () {
+            $response = ($this->update)(new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()));
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->bookingPolicies->contactFieldApplications)->toHaveCount(1)
+                ->and($this->bookingPolicies->contactFieldApplications[0]['preferences'])->toEqual(SettingsFixtures::contactFieldsInput()->toPreferences());
+        });
+
+        it('saves every other section of a patch that resubmits both blocks unchanged', function () {
+            $response = ($this->update)(SettingsFixtures::everything());
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->businesses->saved)->toHaveCount(1)
+                ->and($this->phones->replacements)->toHaveCount(1)
+                ->and($this->addresses->replacements)->toHaveCount(1)
+                ->and($this->bookingPages->applications)->toHaveCount(1)
+                ->and($this->schedule->replacements)->toHaveCount(1)
+                ->and($this->links->replacements)->toHaveCount(1);
+        });
+
+        it('keeps an unlimited window unlimited without a refusal', function () {
+            $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+                leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
+                bookingWindowMinutes: null,
+                slotGranularityMinutes: SettingsFixtures::SLOT_GRANULARITY_MINUTES,
+                cancellationWindowMinutes: SettingsFixtures::CANCELLATION_WINDOW_MINUTES,
+                policyMessage: SettingsFixtures::POLICY_MESSAGE,
+                displayOnBookingPage: true,
+            ));
+
+            $response = ($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(bookingWindowMinutes: null),
+            ));
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->bookingPolicies->applications[0]['preferences']->bookingWindowMinutes)->toBeNull();
+        });
+
+        it('treats a message that differs only in how it is padded or how it says none as unchanged', function (?string $stored, ?string $submitted) {
+            $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+                leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
+                bookingWindowMinutes: SettingsFixtures::BOOKING_WINDOW_MINUTES,
+                slotGranularityMinutes: SettingsFixtures::SLOT_GRANULARITY_MINUTES,
+                cancellationWindowMinutes: SettingsFixtures::CANCELLATION_WINDOW_MINUTES,
+                policyMessage: $stored,
+                displayOnBookingPage: true,
+            ));
+
+            $response = ($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(policyMessage: $submitted),
+            ));
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->bookingPolicies->applications)->toHaveCount(1);
+        })->with([
+            'padded with spaces' => [SettingsFixtures::POLICY_MESSAGE, '  '.SettingsFixtures::POLICY_MESSAGE.'  '],
+            'padded with a newline' => [SettingsFixtures::POLICY_MESSAGE, SettingsFixtures::POLICY_MESSAGE."\n"],
+            'empty against none' => [null, ''],
+            'whitespace against none' => [null, '   '],
+        ]);
+
+        it('refuses a change to any one of the booking policy fields and writes nothing', function (BookingPolicyInput $submitted) {
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: $submitted)));
+
+            ($this->expectNothingWritten)();
+        })->with('changed booking policies');
+
+        it('refuses a window set on a business whose window was unlimited', function () {
+            $this->bookingPolicies->store(FakeBusinessContext::BUSINESS_ID, SettingsFixtures::bookingPolicy(
+                leadTimeMinutes: SettingsFixtures::LEAD_TIME_MINUTES,
+                bookingWindowMinutes: null,
+                slotGranularityMinutes: SettingsFixtures::SLOT_GRANULARITY_MINUTES,
+                cancellationWindowMinutes: SettingsFixtures::CANCELLATION_WINDOW_MINUTES,
+                policyMessage: SettingsFixtures::POLICY_MESSAGE,
+                displayOnBookingPage: true,
+            ));
+
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(bookingWindowMinutes: SettingsFixtures::BOOKING_WINDOW_MINUTES),
+            )));
+
+            ($this->expectNothingWritten)();
+        });
+
+        it('refuses a change to any one of the contact fields and writes nothing', function (ContactFieldsInput $submitted) {
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(contactFields: $submitted)));
+
+            ($this->expectNothingWritten)();
+        })->with('changed contact fields');
+
+        it('refuses changed contact fields even beside an unchanged booking policy', function () {
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(),
+                contactFields: SettingsFixtures::contactFieldsInput(address: 'required'),
+            )));
+
+            ($this->expectNothingWritten)();
+        });
+
+        it('refuses a changed booking policy even beside unchanged contact fields', function () {
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(leadTimeMinutes: 90),
+                contactFields: SettingsFixtures::contactFieldsInput(),
+            )));
+
+            ($this->expectNothingWritten)();
+        });
+
+        it('writes none of the brand, contact or location that arrived in the same refused patch', function () {
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(
+                brand: SettingsFixtures::brand(
+                    name: 'Barbería del Centro',
+                    slug: 'barberia-del-centro',
+                    industryId: SettingsFixtures::OTHER_INDUSTRY_ID,
+                ),
+                appearance: SettingsFixtures::appearance(),
+                contact: SettingsFixtures::contact(phone: SettingsFixtures::submittedPhone()),
+                location: SettingsFixtures::location(timezone: 'America/Mexico_City'),
+                schedule: SettingsFixtures::schedule(),
+                links: SettingsFixtures::links(),
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(slotGranularityMinutes: 15),
+            )));
+
+            ($this->expectNothingWritten)();
+
+            expect($this->businesses->nameChecks)->toBe([])
+                ->and($this->businesses->slugChecks)->toBe([])
+                ->and($this->industries->wasConsulted())->toBeFalse()
+                ->and($this->parser->wasConsulted())->toBeFalse();
+        });
+
+        it('asks the allowance about the business in context once, whichever booking block the patch carried', function (UpdateBusinessSettingsInput $input) {
+            ($this->update)($input);
+
+            expect($this->bookingRules->consultations)->toBe([FakeBusinessContext::BUSINESS_ID]);
+        })->with([
+            'the booking policy only' => fn () => new UpdateBusinessSettingsInput(bookingPolicy: SettingsFixtures::bookingPolicyInput()),
+            'the contact fields only' => fn () => new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()),
+            'both blocks' => fn () => new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(),
+                contactFields: SettingsFixtures::contactFieldsInput(),
+            ),
+        ]);
+
+        it('compares against the policy of the business in context, never another one', function () {
+            $this->bookingPolicies->store(
+                SettingsFixtures::OTHER_BUSINESS_ID,
+                SettingsFixtures::bookingPolicy(leadTimeMinutes: 90, bookingWindowMinutes: 10080),
+            );
+
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(leadTimeMinutes: 90, bookingWindowMinutes: 10080),
+            )));
+
+            expect($this->bookingPolicies->reads)->not->toContain(SettingsFixtures::OTHER_BUSINESS_ID);
+        });
+
+        it('compares against the contact fields of the business in context, never another one', function () {
+            $this->bookingPolicies->storeContactFields(
+                SettingsFixtures::OTHER_BUSINESS_ID,
+                SettingsFixtures::contactFields(
+                    phone: ContactFieldPreference::Hidden,
+                    email: ContactFieldPreference::Required,
+                    address: ContactFieldPreference::Required,
+                ),
+            );
+
+            ($this->expectRefusedForThePlan)(($this->update)(new UpdateBusinessSettingsInput(
+                contactFields: SettingsFixtures::contactFieldsInput(address: 'required'),
+            )));
+
+            expect($this->bookingPolicies->contactFieldReads)->not->toContain(SettingsFixtures::OTHER_BUSINESS_ID);
+        });
+
+        it('answers with the platform defaults the free plan runs on, not with what it stored', function () {
+            $data = ($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(),
+                contactFields: SettingsFixtures::contactFieldsInput(),
+            ))->value();
+
+            expect($data->bookingPolicy->leadTimeMinutes)->toBe(0)
+                ->and($data->bookingPolicy->bookingWindowMinutes)->toBeNull()
+                ->and($data->bookingPolicy->displayOnBookingPage)->toBeFalse()
+                ->and($data->contactFields->phone)->toBe(ContactFieldPreference::Required)
+                ->and($data->contactFields->address)->toBe(ContactFieldPreference::Hidden);
+        });
+    });
+
+    describe('on the complete plan', function () {
+        it('saves a change to any one of the booking policy fields', function (BookingPolicyInput $submitted) {
+            $response = ($this->update)(new UpdateBusinessSettingsInput(bookingPolicy: $submitted));
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->bookingPolicies->applications)->toHaveCount(1)
+                ->and($this->bookingPolicies->applications[0]['preferences'])->toEqual($submitted->toPreferences())
+                ->and($response->value()->bookingPolicy->leadTimeMinutes)->toBe($submitted->leadTimeMinutes)
+                ->and($response->value()->bookingPolicy->bookingWindowMinutes)->toBe($submitted->bookingWindowMinutes)
+                ->and($response->value()->bookingPolicy->slotGranularityMinutes)->toBe($submitted->slotGranularityMinutes)
+                ->and($response->value()->bookingPolicy->cancellationWindowMinutes)->toBe($submitted->cancellationWindowMinutes)
+                ->and($response->value()->bookingPolicy->policyMessage)->toBe($submitted->policyMessage)
+                ->and($response->value()->bookingPolicy->displayOnBookingPage)->toBe($submitted->displayOnBookingPage);
+        })->with('changed booking policies');
+
+        it('saves a change to any one of the contact fields', function (ContactFieldsInput $submitted) {
+            $response = ($this->update)(new UpdateBusinessSettingsInput(contactFields: $submitted));
+
+            expect($response->succeeded())->toBeTrue()
+                ->and($this->bookingPolicies->contactFieldApplications)->toHaveCount(1)
+                ->and($this->bookingPolicies->contactFieldApplications[0]['preferences'])->toEqual($submitted->toPreferences())
+                ->and($response->value()->contactFields)->toEqual($submitted->toPreferences());
+        })->with('changed contact fields');
+
+        it('asks the allowance about the business in context once', function () {
+            ($this->update)(new UpdateBusinessSettingsInput(
+                bookingPolicy: SettingsFixtures::bookingPolicyInput(leadTimeMinutes: 90),
+                contactFields: SettingsFixtures::contactFieldsInput(address: 'required'),
+            ));
+
+            expect($this->bookingRules->consultations)->toBe([FakeBusinessContext::BUSINESS_ID]);
+        });
+    });
+
+    it('never consults the allowance when the patch carried neither booking block', function (UpdateBusinessSettingsInput $input) {
+        ($this->onFreePlan)();
+
+        $response = ($this->update)($input);
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->bookingRules->consultations)->toBe([]);
+    })->with([
+        'nothing at all' => fn () => new UpdateBusinessSettingsInput,
+        'brand only' => fn () => new UpdateBusinessSettingsInput(brand: SettingsFixtures::brand()),
+        'appearance only' => fn () => new UpdateBusinessSettingsInput(appearance: SettingsFixtures::appearance()),
+        'contact only' => fn () => new UpdateBusinessSettingsInput(contact: SettingsFixtures::contact()),
+        'location only' => fn () => new UpdateBusinessSettingsInput(location: SettingsFixtures::location()),
+        'schedule only' => fn () => new UpdateBusinessSettingsInput(schedule: SettingsFixtures::schedule()),
+        'links only' => fn () => new UpdateBusinessSettingsInput(links: SettingsFixtures::links()),
+    ]);
+});
+
 describe('the contact fields', function () {
     it('hands the submitted requirements to the port that owns them, exactly once', function () {
         ($this->update)(new UpdateBusinessSettingsInput(contactFields: SettingsFixtures::contactFieldsInput()));
@@ -814,17 +1121,9 @@ describe('refusing an update', function () {
             $this->schedule,
             $this->bookingPages,
             $this->bookingPolicies,
+            $this->bookingRules,
             $this->phones,
-            new BusinessSettingsPresenter(
-                $elsewhere,
-                $this->addresses,
-                $this->links,
-                $this->schedule,
-                $this->bookingPages,
-                $this->bookingPolicies,
-                $this->phones,
-                $this->logo,
-            ),
+            ($this->presenterOver)($elsewhere),
             $this->parser,
             new FakeBusinessContext,
             $this->transactions,

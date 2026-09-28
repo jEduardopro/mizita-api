@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next';
+import { PlanUpgradeNotice } from '@/components/admin/PlanUpgradeNotice';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { usePlan } from '@/hooks/use-plan';
 import type { Service } from '../types';
 import { ManagedStaffServicesTab } from './ManagedStaffServicesTab';
 import { staffServiceBookingUrl } from './service-urls';
@@ -9,11 +12,20 @@ type Props = {
     staffMemberId: string;
     staffName: string;
     staffBookingUrl: string | null;
+    isOwner: boolean;
     onAssignmentsChange?: () => void;
 };
 
-export function StaffServicesSection({ staffMemberId, staffName, staffBookingUrl, onAssignmentsChange }: Props) {
+export function StaffServicesSection({
+    staffMemberId,
+    staffName,
+    staffBookingUrl,
+    isOwner,
+    onAssignmentsChange,
+}: Props) {
+    const { t } = useTranslation('admin');
     const { can } = useAuthorization();
+    const { includes } = usePlan();
 
     const renderLinkAction = (service: Service) => (
         <StaffServiceLinkButton
@@ -22,6 +34,16 @@ export function StaffServicesSection({ staffMemberId, staffName, staffBookingUrl
             staffName={staffName}
         />
     );
+
+    if (! includes('team') && ! isOwner) {
+        return (
+            <div className="grid max-w-2xl gap-4">
+                <PlanUpgradeNotice description={t('plan.services.staffPickerHidden')} />
+
+                <StaffServicesTab staffMemberId={staffMemberId} renderLinkAction={renderLinkAction} />
+            </div>
+        );
+    }
 
     if (can('edit_service')) {
         return (

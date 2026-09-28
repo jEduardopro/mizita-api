@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PlanUpgradeNotice } from '@/components/admin/PlanUpgradeNotice';
 import { BusinessHoursNotice } from '@/domains/availability/components/BusinessHoursNotice';
 import { businessScheduleFor } from '@/domains/availability/components/business-schedule';
 import { WorkingHoursPanel } from '@/domains/availability/components/WorkingHoursPanel';
@@ -8,6 +9,7 @@ import { useReplaceStaffSchedule, useStaffSchedule } from '@/domains/availabilit
 import { BRAND_SETTINGS_URL } from '@/domains/businesses/components/settings-urls';
 import { useBusinessTimezone, useCalendarSettings } from '@/domains/businesses/queries';
 import { StaffServicesSection } from '@/domains/services/components/StaffServicesSection';
+import { StaffServicesTab } from '@/domains/services/components/StaffServicesTab';
 import { ProfileLoadError } from '@/domains/staff/components/ProfileLoadError';
 import { staffProfilePaneFrom, type StaffProfilePane } from '@/domains/staff/components/profile-panes';
 import { StaffProfileScreen } from '@/domains/staff/components/StaffProfileScreen';
@@ -26,6 +28,7 @@ import {
 } from '@/domains/staff/queries';
 import type { MyProfile, TeamMember } from '@/domains/staff/types';
 import { useAuthorization } from '@/hooks/use-authorization';
+import { useIsTeamMemberPaused } from '@/hooks/use-is-team-member-paused';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { isNotFoundError } from '@/lib/http';
@@ -49,6 +52,8 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
     const removePhoto = useRemoveTeamMemberPhoto();
     const refreshBookingLinkReadiness = useRefreshBookingLinkReadiness(member.id);
     const profile = useMemo(() => staffProfileDetailsFrom(member), [member]);
+    const isTeamMemberPaused = useIsTeamMemberPaused();
+    const isPaused = isTeamMemberPaused(member.level);
 
     const businessSchedule = businessScheduleFor(schedule.data, calendarSettings?.schedule);
     const retrySchedule = () => void schedule.refetch();
@@ -57,53 +62,64 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
         <BusinessHoursNotice businessSettingsHref={BRAND_SETTINGS_URL} />
     ) : null;
 
-    return (
-        <StaffProfileScreen
-            profile={profile}
-            dialogTitle={t('team.member.dialogTitle')}
-            initialPane={initialPane}
-            readOnly={readOnly}
-            editableLevel={editableLevelOf(member)}
-            onSaveProfile={(payload) => updateMember.mutateAsync({ id: member.id, payload })}
-            onUploadPhoto={(photo) => attachPhoto.mutateAsync({ id: member.id, photo })}
-            onRemovePhoto={() => removePhoto.mutateAsync(member.id)}
-            services={
-                <StaffServicesSection
-                    staffMemberId={member.id}
-                    staffName={member.name}
-                    staffBookingUrl={member.booking_url}
-                    onAssignmentsChange={refreshBookingLinkReadiness}
-                />
-            }
-            renderHoursSummary={(onEdit) => (
-                <WorkingHoursSummary
-                    schedule={schedule.data?.schedule}
-                    loadFailed={schedule.isError}
-                    onRetry={retrySchedule}
-                    timezone={timezone}
-                    onEdit={onEdit}
-                />
-            )}
-            renderHoursPanel={(onCancel) => (
-                <WorkingHoursPanel
-                    schedule={schedule.data}
-                    loadFailed={schedule.isError}
-                    onRetry={retrySchedule}
-                    businessSchedule={businessSchedule}
-                    onSave={(payload) => replaceSchedule.mutateAsync(payload).then(refreshBookingLinkReadiness)}
-                    onCancel={onCancel}
-                    notice={hoursNotice}
-                />
-            )}
-            headerActions={
-                <TeamMemberProfileMenu
-                    memberId={member.id}
-                    name={member.name}
-                    level={member.level}
-                    bookingUrl={member.booking_url}
-                />
-            }
+    const services = isPaused ? (
+        <StaffServicesTab staffMemberId={member.id} renderLinkAction={() => null} />
+    ) : (
+        <StaffServicesSection
+            staffMemberId={member.id}
+            staffName={member.name}
+            staffBookingUrl={member.booking_url}
+            isOwner={member.level === 'owner'}
+            onAssignmentsChange={refreshBookingLinkReadiness}
         />
+    );
+
+    const renderHoursPanel = (onCancel?: () => void) => (
+        <WorkingHoursPanel
+            schedule={schedule.data}
+            loadFailed={schedule.isError}
+            onRetry={retrySchedule}
+            businessSchedule={businessSchedule}
+            onSave={(payload) => replaceSchedule.mutateAsync(payload).then(refreshBookingLinkReadiness)}
+            onCancel={onCancel}
+            notice={hoursNotice}
+        />
+    );
+
+    return (
+        <>
+            {isPaused ? <PlanUpgradeNotice description={t('plan.team.paused.memberNotice')} className="mb-6" /> : null}
+
+            <StaffProfileScreen
+                profile={profile}
+                dialogTitle={t('team.member.dialogTitle')}
+                initialPane={initialPane}
+                readOnly={readOnly}
+                editableLevel={editableLevelOf(member)}
+                onSaveProfile={(payload) => updateMember.mutateAsync({ id: member.id, payload })}
+                onUploadPhoto={(photo) => attachPhoto.mutateAsync({ id: member.id, photo })}
+                onRemovePhoto={() => removePhoto.mutateAsync(member.id)}
+                services={services}
+                renderHoursSummary={(onEdit) => (
+                    <WorkingHoursSummary
+                        schedule={schedule.data?.schedule}
+                        loadFailed={schedule.isError}
+                        onRetry={retrySchedule}
+                        timezone={timezone}
+                        onEdit={onEdit}
+                    />
+                )}
+                renderHoursPanel={isPaused ? undefined : renderHoursPanel}
+                headerActions={
+                    <TeamMemberProfileMenu
+                        memberId={member.id}
+                        name={member.name}
+                        level={member.level}
+                        bookingUrl={member.booking_url}
+                    />
+                }
+            />
+        </>
     );
 }
 

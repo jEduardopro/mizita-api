@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Integration, IntegrationKey } from '../types';
 import { INTEGRATION_PRESENTATIONS } from './integration-catalog';
 import { IntegrationCard } from './IntegrationCard';
+import { IntegrationCardBadge } from './IntegrationCardBadge';
 import { IntegrationCategorySection } from './IntegrationCategorySection';
 import { IntegrationDetail } from './IntegrationDetail';
 import { IntegrationsEmptySearch } from './IntegrationsEmptySearch';
@@ -23,7 +24,7 @@ function IntegrationResults({ sections, search, onClearSearch, onOpen }: Results
     return sections.map((section) => (
         <IntegrationCategorySection key={section.category} category={section.category}>
             {section.entries.map(({ integration, name, description }) => {
-                const { Logo } = INTEGRATION_PRESENTATIONS[integration.key];
+                const { Logo, planFeature } = INTEGRATION_PRESENTATIONS[integration.key];
 
                 return (
                     <li key={integration.key}>
@@ -31,7 +32,12 @@ function IntegrationResults({ sections, search, onClearSearch, onOpen }: Results
                             name={name}
                             description={description}
                             logo={<Logo />}
-                            status={integration.connection?.status ?? null}
+                            badge={
+                                <IntegrationCardBadge
+                                    status={integration.connection?.status ?? null}
+                                    planFeature={planFeature}
+                                />
+                            }
                             onOpen={() => onOpen(integration.key)}
                         />
                     </li>

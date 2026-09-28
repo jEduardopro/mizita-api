@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthorization } from '@/hooks/use-authorization';
-import type { BookingLinkBlocker } from '../types';
+import { useIsTeamMemberPaused } from '@/hooks/use-is-team-member-paused';
+import type { BookingLinkBlocker, StaffRole } from '../types';
 import { bookingLinkBlockerKey } from './booking-link';
 import { EditBookingSlugDialog } from './EditBookingSlugDialog';
 import { GenerateBookingLinkAction } from './GenerateBookingLinkAction';
@@ -42,17 +43,20 @@ function IssuedBookingLink({ staffMemberId, slug, url, canEdit }: IssuedLinkProp
 
 type Props = {
     staffMemberId: string;
+    role: StaffRole;
     slug: string | null;
     url: string | null;
     blockers: readonly BookingLinkBlocker[];
 };
 
-export function StaffBookingLink({ staffMemberId, slug, url, blockers }: Props) {
+export function StaffBookingLink({ staffMemberId, role, slug, url, blockers }: Props) {
     const { t } = useTranslation('admin');
     const { can } = useAuthorization();
-    const canEdit = can('edit_staff_member');
+    const isPaused = useIsTeamMemberPaused();
+    const paused = isPaused(role);
+    const canEdit = can('edit_staff_member') && ! paused;
 
-    if (slug !== null && url !== null) {
+    if (! paused && slug !== null && url !== null) {
         return <IssuedBookingLink staffMemberId={staffMemberId} slug={slug} url={url} canEdit={canEdit} />;
     }
 

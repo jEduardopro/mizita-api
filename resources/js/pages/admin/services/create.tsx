@@ -3,13 +3,25 @@ import { ServiceForm } from '@/domains/services/components/ServiceForm';
 import { ServiceFormActions } from '@/domains/services/components/ServiceFormActions';
 import { SERVICES_URL } from '@/domains/services/components/service-urls';
 import { useServiceForm } from '@/domains/services/components/use-service-form';
-import { useStaffChoices } from '@/domains/staff/queries';
+import { useStaffChoices, useStaffMembers } from '@/domains/staff/queries';
+import { usePlan } from '@/hooks/use-plan';
 import { AdminLayout } from '@/layouts/AdminLayout';
 
 export default function CreateService() {
     const { t } = useTranslation('admin');
+    const { includes } = usePlan();
     const staff = useStaffChoices();
-    const form = useServiceForm({ mode: 'create', service: null });
+    const staffMembers = useStaffMembers();
+
+    const ownerStaffIds = (staffMembers.data ?? [])
+        .filter((member) => member.role === 'owner')
+        .map((member) => member.id);
+
+    const form = useServiceForm({
+        mode: 'create',
+        service: null,
+        fixedStaffIds: includes('team') ? undefined : ownerStaffIds,
+    });
 
     return (
         <AdminLayout

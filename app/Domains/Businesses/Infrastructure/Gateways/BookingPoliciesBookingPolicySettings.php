@@ -84,6 +84,34 @@ final class BookingPoliciesBookingPolicySettings implements BookingPolicySetting
         $this->repository->save($policy);
     }
 
+    public function platformDefaults(): BookingPolicySnapshot
+    {
+        return new BookingPolicySnapshot(
+            leadTimeMinutes: BookingPolicy::DEFAULT_LEAD_TIME_MINUTES,
+            bookingWindowMinutes: BookingPolicy::DEFAULT_BOOKING_WINDOW_MINUTES,
+            slotGranularityMinutes: BookingPolicy::DEFAULT_SLOT_GRANULARITY_MINUTES,
+            cancellationWindowMinutes: BookingPolicy::DEFAULT_CANCELLATION_WINDOW_MINUTES,
+            policyMessage: PolicyMessage::none()->toString(),
+            displayOnBookingPage: BookingPolicy::DEFAULT_DISPLAY_ON_BOOKING_PAGE,
+        );
+    }
+
+    public function platformDefaultContactFields(): ContactFieldPreferences
+    {
+        $defaults = ContactFields::defaults();
+
+        return new ContactFieldPreferences(
+            phone: self::preferenceOf($defaults->phone),
+            email: self::preferenceOf($defaults->email),
+            address: self::preferenceOf($defaults->address),
+        );
+    }
+
+    private static function preferenceOf(ContactFieldRequirement $requirement): ContactFieldPreference
+    {
+        return ContactFieldPreference::from($requirement->value);
+    }
+
     private static function requirementOf(ContactFieldPreference $preference): ContactFieldRequirement
     {
         return ContactFieldRequirement::from($preference->value);

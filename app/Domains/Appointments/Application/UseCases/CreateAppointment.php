@@ -8,6 +8,7 @@ use App\Domains\Appointments\Application\Dtos\AppointmentData;
 use App\Domains\Appointments\Application\Dtos\CreateAppointmentInput;
 use App\Domains\Appointments\Application\Presenters\AppointmentPresenter;
 use App\Domains\Appointments\Contracts\AppointmentRepository;
+use App\Domains\Appointments\Contracts\BookableStaff;
 use App\Domains\Appointments\Contracts\CalendarAccess;
 use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
@@ -17,6 +18,7 @@ use App\Domains\Appointments\Events\AppointmentCreated;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentOverlaps;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
+use App\Domains\Appointments\Exceptions\AppointmentStaffMemberPaused;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotPermitted;
 use App\Domains\Appointments\ValueObjects\AppointmentSlot;
@@ -43,6 +45,7 @@ final class CreateAppointment
         private readonly BusinessContext $business,
         private readonly Dispatcher $events,
         private readonly CalendarAccess $calendars,
+        private readonly BookableStaff $bookableStaff,
     ) {}
 
     /**
@@ -72,6 +75,7 @@ final class CreateAppointment
      * @throws AppointmentStaffNotFound
      * @throws AppointmentOverlaps
      * @throws AppointmentStaffNotPermitted
+     * @throws AppointmentStaffMemberPaused
      */
     private function book(CreateAppointmentInput $input, string $businessId, CalendarScope $scope): Appointment
     {
@@ -80,6 +84,7 @@ final class CreateAppointment
         $service = $this->services->describe($businessId, $input->serviceId);
 
         $this->ensureParticipantsAreKnown($businessId, $input->customerId, $input->staffMemberId);
+        $this->bookableStaff->confirmBookable($businessId, $input->staffMemberId);
 
         $appointment = Appointment::create(
             id: $this->ids->next(),

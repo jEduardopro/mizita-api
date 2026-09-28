@@ -1,3 +1,4 @@
+import type { RoleName } from '@/lib/authorization';
 import type { ServiceColor } from '@/lib/service-color';
 
 export type AppointmentCustomerPhone = {
@@ -77,6 +78,7 @@ export type BookableStaffMember = {
     id: string;
     name: string;
     email: string;
+    role: RoleName;
 };
 
 export type BookableCustomer = {

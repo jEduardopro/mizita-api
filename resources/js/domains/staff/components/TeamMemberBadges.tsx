@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import type { StaffRole } from '../types';
 import { ROLE_LABEL_KEYS } from './profile-role';
+import { TeamMemberPausedBadge } from './TeamMemberPausedBadge';
 
 type BadgeVariant = ComponentProps<typeof Badge>['variant'];
 
@@ -22,9 +23,10 @@ const LEVEL_CLASSES = {
 type Props = {
     level: StaffRole;
     invitationPending: boolean;
+    paused: boolean;
 };
 
-export function TeamMemberBadges({ level, invitationPending }: Props) {
+export function TeamMemberBadges({ level, invitationPending, paused }: Props) {
     const { t } = useTranslation('admin');
 
     return (
@@ -39,6 +41,8 @@ export function TeamMemberBadges({ level, invitationPending }: Props) {
                     {t('team.invitationPending')}
                 </Badge>
             ) : null}
+
+            {paused ? <TeamMemberPausedBadge /> : null}
         </div>
     );
 }

@@ -12,3 +12,8 @@ Schedule::command('businesses:purge-closed')
     ->dailyAt('03:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('subscriptions:expire')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

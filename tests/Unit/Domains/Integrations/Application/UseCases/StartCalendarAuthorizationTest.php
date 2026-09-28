@@ -12,6 +12,7 @@ use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarAuthorizatio
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarAuthorizer;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarConnectionRepository;
 use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarOwners;
+use Tests\Unit\Domains\Integrations\Application\Doubles\FakeCalendarSyncAllowance;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsFixtures;
 use Tests\Unit\Domains\Integrations\Application\Doubles\IntegrationsJournal;
 
@@ -22,6 +23,7 @@ beforeEach(function () {
     $this->connections = new FakeCalendarConnectionRepository($this->journal);
     $this->states = new FakeCalendarAuthorizationStates($this->journal);
     $this->authorizer = new FakeCalendarAuthorizer($this->journal);
+    $this->allowance = FakeCalendarSyncAllowance::completePlan();
 
     $this->start = fn (string $accountId = IntegrationsFixtures::ACCOUNT_ID) => (new StartCalendarAuthorization(
         $this->owners,
@@ -29,6 +31,7 @@ beforeEach(function () {
         $this->states,
         $this->authorizer,
         new FakeBusinessContext,
+        $this->allowance,
     ))->handle(new StartCalendarAuthorizationInput($accountId));
 });
 
@@ -60,6 +63,12 @@ describe('a staff member with no calendar connected', function () {
             'staffMemberId' => IntegrationsFixtures::STAFF_MEMBER_ID,
             'provider' => CalendarProvider::Google,
         ]]);
+    });
+
+    it('asks whether the plan of the business in context includes calendar sync', function () {
+        ($this->start)();
+
+        expect($this->allowance->lookups)->toBe([FakeBusinessContext::BUSINESS_ID]);
     });
 
     it('is not blocked by a colleague who already connected a calendar', function () {
@@ -117,5 +126,44 @@ describe('a caller who is no staff member of the business', function () {
         ($this->start)(IntegrationsFixtures::OTHER_ACCOUNT_ID);
 
         expect($this->journal->entries)->toBe(['owners.staffMemberIdOf']);
+    });
+});
+
+describe('a business on the free plan', function () {
+    beforeEach(function () {
+        $this->allowance = FakeCalendarSyncAllowance::freePlan();
+    });
+
+    it('refuses with calendar sync requires the complete plan', function () {
+        $response = ($this->start)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('calendar_sync_requires_complete_plan')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden);
+    });
+
+    it('issues no state and builds no authorization url', function () {
+        ($this->start)();
+
+        expect($this->states->issued)->toBe([])
+            ->and($this->authorizer->exchangedCodes)->toBe([])
+            ->and($this->journal->entries)->not->toContain('authorizer.authorizationUrl');
+    });
+
+    it('refuses before it resolves the staff member or reads any connection', function () {
+        ($this->start)();
+
+        expect($this->journal->entries)->toBe([])
+            ->and($this->owners->lookups)->toBe([])
+            ->and($this->connections->staffMemberLookups)->toBe([]);
+    });
+
+    it('refuses on the plan even when a calendar needs reconnecting', function () {
+        $this->connections->store(IntegrationsFixtures::awaitingReconnect());
+
+        $response = ($this->start)();
+
+        expect($response->error()->code)->toBe('calendar_sync_requires_complete_plan')
+            ->and($this->states->issued)->toBe([]);
     });
 });

@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Exceptions\IncompleteContactFields;
 use App\Domains\Businesses\Exceptions\InvalidContactFieldRequirement;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
+use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\SettingsFixtures;
@@ -143,4 +145,21 @@ describe('validating', function () {
             ->and($refusal?->getMessage())->toContain('[email]')
             ->and($refusal?->getMessage())->not->toContain('[address]');
     });
+});
+
+describe('turning a validated section into preferences', function () {
+    it('translates each requirement into the preference of the field it was sent for', function () {
+        $preferences = SettingsFixtures::contactFieldsInput(phone: 'hidden', email: 'required', address: 'optional')->toPreferences();
+
+        expect($preferences)->toBeInstanceOf(ContactFieldPreferences::class)
+            ->and($preferences->phone)->toBe(ContactFieldPreference::Hidden)
+            ->and($preferences->email)->toBe(ContactFieldPreference::Required)
+            ->and($preferences->address)->toBe(ContactFieldPreference::Optional);
+    });
+
+    it('translates every requirement the client may send', function (ContactFieldPreference $preference) {
+        $preferences = SettingsFixtures::contactFieldsInput($preference->value, $preference->value, $preference->value)->toPreferences();
+
+        expect($preferences)->toEqual(new ContactFieldPreferences($preference, $preference, $preference));
+    })->with(ContactFieldPreference::cases());
 });

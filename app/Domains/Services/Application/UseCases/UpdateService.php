@@ -7,9 +7,11 @@ namespace App\Domains\Services\Application\UseCases;
 use App\Domains\Services\Application\Dtos\ServiceData;
 use App\Domains\Services\Application\Dtos\UpdateServiceInput;
 use App\Domains\Services\Application\Presenters\ServicePresenter;
+use App\Domains\Services\Application\Services\ActiveServiceQuota;
 use App\Domains\Services\Contracts\ServiceRepository;
 use App\Domains\Services\Contracts\StaffDirectory;
 use App\Domains\Services\Entities\Service;
+use App\Domains\Services\Exceptions\ActiveServiceLimitReached;
 use App\Domains\Services\Exceptions\ServiceNameAlreadyTaken;
 use App\Domains\Services\Exceptions\ServiceNotFound;
 use App\Domains\Services\Exceptions\ServiceRequiresStaff;
@@ -23,6 +25,7 @@ use App\Domains\Services\ValueObjects\Slug;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\DomainFailure;
+use App\Shared\Contracts\TransactionManager;
 
 final class UpdateService
 {
@@ -31,7 +34,9 @@ final class UpdateService
         private readonly StaffDirectory $staff,
         private readonly ServicePresenter $presenter,
         private readonly SlugAllocator $slugs,
+        private readonly ActiveServiceQuota $quota,
         private readonly BusinessContext $business,
+        private readonly TransactionManager $transactions,
     ) {}
 
     /**
@@ -43,10 +48,10 @@ final class UpdateService
             $input->validate();
 
             $businessId = $this->business->currentBusinessId();
-            $service = $this->services->findForBusiness($businessId, $input->serviceId);
 
-            $this->apply($input, $service, $businessId);
-            $this->services->save($service);
+            $service = $this->transactions->run(
+                fn (): Service => $this->revise($input, $businessId),
+            );
 
             return UseCaseResponse::success($this->presenter->describe($service));
         } catch (DomainFailure $failure) {
@@ -55,8 +60,25 @@ final class UpdateService
     }
 
     /**
+     * @throws ActiveServiceLimitReached
      * @throws ServiceNameAlreadyTaken
      * @throws ServiceNotFound
+     * @throws ServiceRequiresStaff
+     * @throws UnknownStaffMember
+     */
+    private function revise(UpdateServiceInput $input, string $businessId): Service
+    {
+        $service = $this->services->findForBusiness($businessId, $input->serviceId);
+
+        $this->apply($input, $service, $businessId);
+        $this->services->save($service);
+
+        return $service;
+    }
+
+    /**
+     * @throws ActiveServiceLimitReached
+     * @throws ServiceNameAlreadyTaken
      * @throws ServiceRequiresStaff
      * @throws UnknownStaffMember
      */
@@ -100,6 +122,9 @@ final class UpdateService
         $service->rename($name, $this->slugs->allocate($base, $taken));
     }
 
+    /**
+     * @throws ActiveServiceLimitReached
+     */
     private function applyVisibility(Service $service, bool $active): void
     {
         if ($active === $service->isActive()) {
@@ -107,6 +132,7 @@ final class UpdateService
         }
 
         if ($active) {
+            $this->quota->ensureRoomFor($service->businessId);
             $service->activate();
 
             return;

@@ -18,6 +18,7 @@ use App\Domains\Businesses\Application\Dtos\UpdateBusinessSettingsInput;
 use App\Domains\Businesses\Application\Presenters\BusinessSettingsPresenter;
 use App\Domains\Businesses\Contracts\BookingPageSettings;
 use App\Domains\Businesses\Contracts\BookingPolicySettings;
+use App\Domains\Businesses\Contracts\BookingRulesAllowance;
 use App\Domains\Businesses\Contracts\BusinessAddressBook;
 use App\Domains\Businesses\Contracts\BusinessLinkList;
 use App\Domains\Businesses\Contracts\BusinessRepository;
@@ -25,6 +26,7 @@ use App\Domains\Businesses\Contracts\BusinessSchedule;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
 use App\Domains\Businesses\Contracts\PhoneBook;
 use App\Domains\Businesses\Entities\Business;
+use App\Domains\Businesses\Exceptions\BookingRulesRequireCompletePlan;
 use App\Domains\Businesses\Exceptions\BusinessNameAlreadyTaken;
 use App\Domains\Businesses\Exceptions\BusinessNotFound;
 use App\Domains\Businesses\Exceptions\BusinessSlugAlreadyTaken;
@@ -32,11 +34,8 @@ use App\Domains\Businesses\Exceptions\UnknownIndustry;
 use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\BookingPageStyle;
-use App\Domains\Businesses\ValueObjects\BookingPolicyPreferences;
 use App\Domains\Businesses\ValueObjects\BusinessAddressSnapshot;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
-use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
-use App\Domains\Businesses\ValueObjects\ContactFieldPreferences;
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\Businesses\ValueObjects\Timezone;
 use App\Shared\Application\UseCaseResponse;
@@ -58,6 +57,7 @@ final class UpdateBusinessSettings
         private readonly BusinessSchedule $schedule,
         private readonly BookingPageSettings $bookingPages,
         private readonly BookingPolicySettings $bookingPolicies,
+        private readonly BookingRulesAllowance $bookingRules,
         private readonly PhoneBook $phones,
         private readonly BusinessSettingsPresenter $presenter,
         private readonly PhoneNumberParser $phoneNumberParser,
@@ -87,6 +87,7 @@ final class UpdateBusinessSettings
 
     /**
      * @throws BusinessNotFound
+     * @throws BookingRulesRequireCompletePlan
      * @throws BusinessNameAlreadyTaken
      * @throws BusinessSlugAlreadyTaken
      * @throws UnknownIndustry
@@ -95,6 +96,8 @@ final class UpdateBusinessSettings
     private function applyTo(string $businessId, UpdateBusinessSettingsInput $input): void
     {
         $business = $this->businesses->findById($businessId);
+
+        $this->guardBookingRulesAllowance($input, $businessId);
 
         $this->applyBrand($input->brand, $business);
         $this->applyContact($input->contact, $business, $businessId);
@@ -109,6 +112,44 @@ final class UpdateBusinessSettings
         $this->applyContactFields($input->contactFields, $businessId);
         $this->applySchedule($input->schedule, $businessId);
         $this->applyLinks($input->links, $businessId);
+    }
+
+    /**
+     * @throws BookingRulesRequireCompletePlan
+     */
+    private function guardBookingRulesAllowance(UpdateBusinessSettingsInput $input, string $businessId): void
+    {
+        if (! $input->carriesBookingPreferences()) {
+            return;
+        }
+
+        if ($this->bookingRules->includesBookingRules($businessId)) {
+            return;
+        }
+
+        if (! $this->changesStoredBookingPreferences($input, $businessId)) {
+            return;
+        }
+
+        throw BookingRulesRequireCompletePlan::forBusiness($businessId);
+    }
+
+    private function changesStoredBookingPreferences(UpdateBusinessSettingsInput $input, string $businessId): bool
+    {
+        return $this->changesStoredBookingPolicy($input->bookingPolicy, $businessId)
+            || $this->changesStoredContactFields($input->contactFields, $businessId);
+    }
+
+    private function changesStoredBookingPolicy(?BookingPolicyInput $bookingPolicy, string $businessId): bool
+    {
+        return $bookingPolicy !== null
+            && $bookingPolicy->toPreferences()->changesAnythingOf($this->bookingPolicies->forBusiness($businessId));
+    }
+
+    private function changesStoredContactFields(?ContactFieldsInput $contactFields, string $businessId): bool
+    {
+        return $contactFields !== null
+            && $contactFields->toPreferences()->changesAnythingOf($this->bookingPolicies->contactFieldsFor($businessId));
     }
 
     /**
@@ -241,14 +282,7 @@ final class UpdateBusinessSettings
             return;
         }
 
-        $this->bookingPolicies->applyTo($businessId, new BookingPolicyPreferences(
-            leadTimeMinutes: $bookingPolicy->leadTimeMinutes,
-            bookingWindowMinutes: $bookingPolicy->bookingWindowMinutes,
-            slotGranularityMinutes: $bookingPolicy->slotGranularityMinutes,
-            cancellationWindowMinutes: $bookingPolicy->cancellationWindowMinutes,
-            policyMessage: $bookingPolicy->policyMessage,
-            displayOnBookingPage: $bookingPolicy->displayOnBookingPage,
-        ));
+        $this->bookingPolicies->applyTo($businessId, $bookingPolicy->toPreferences());
     }
 
     private function applyContactFields(?ContactFieldsInput $contactFields, string $businessId): void
@@ -257,11 +291,7 @@ final class UpdateBusinessSettings
             return;
         }
 
-        $this->bookingPolicies->applyContactFieldsTo($businessId, new ContactFieldPreferences(
-            phone: ContactFieldPreference::from($contactFields->phone),
-            email: ContactFieldPreference::from($contactFields->email),
-            address: ContactFieldPreference::from($contactFields->address),
-        ));
+        $this->bookingPolicies->applyContactFieldsTo($businessId, $contactFields->toPreferences());
     }
 
     private function applySchedule(?ScheduleInput $schedule, string $businessId): void

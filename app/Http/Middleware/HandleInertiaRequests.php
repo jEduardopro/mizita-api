@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Http\Preferences\CookiePreferences;
 use App\Shared\Contracts\BusinessAuthorization;
 use App\Shared\Contracts\BusinessContext;
+use App\Shared\Contracts\BusinessPlan;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -21,6 +22,7 @@ class HandleInertiaRequests extends Middleware
     public function __construct(
         private readonly CookiePreferences $preferences,
         private readonly BusinessAuthorization $authorization,
+        private readonly BusinessPlan $plans,
     ) {}
 
     public function version(Request $request): ?string
@@ -43,7 +45,20 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => $this->preferences->sidebarOpen($request),
             'flash' => fn () => ['error' => $request->session()->get('error')],
             'auth' => fn (): array => $this->grantsFor($request),
+            'plan' => fn (): ?array => $this->planOfCurrentBusiness(),
         ];
+    }
+
+    /**
+     * @return array{name: 'free'|'complete', ends_at: ?string, entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}|null
+     */
+    private function planOfCurrentBusiness(): ?array
+    {
+        if (! app()->bound(BusinessContext::class)) {
+            return null;
+        }
+
+        return $this->plans->describe(app(BusinessContext::class)->currentBusinessId());
     }
 
     /**

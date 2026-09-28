@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HandlePreferences;
 use App\Http\Middleware\RedirectIfOnboarded;
 use App\Http\Middleware\RequireBusinessMembership;
+use App\Http\Middleware\RequireBusinessOwner;
 use App\Http\Middleware\RequireFreshPassword;
 use App\Http\Middleware\RequirePermission;
 use App\Http\Middleware\SetBusinessContext;
@@ -49,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'sidebar_state',
         ]);
 
+        $middleware->redirectUsersTo(
+            fn (): string => route(RequireBusinessMembership::ONBOARDING_ROUTE),
+        );
+
         $middleware->group('business', [
             RequireFreshPassword::class,
             SetBusinessContext::class,
@@ -57,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'onboarded' => RequireBusinessMembership::class,
             'onboarding' => RedirectIfOnboarded::class,
+            'owner' => RequireBusinessOwner::class,
             'permission' => RequirePermission::class,
         ]);
     })
