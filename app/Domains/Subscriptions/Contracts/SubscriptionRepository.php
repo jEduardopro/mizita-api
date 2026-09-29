@@ -5,31 +5,33 @@ declare(strict_types=1);
 namespace App\Domains\Subscriptions\Contracts;
 
 use App\Domains\Subscriptions\Entities\Subscription;
-use App\Domains\Subscriptions\Exceptions\SubscriptionPeriodOverlaps;
+use App\Domains\Subscriptions\Exceptions\CheckoutAlreadyStarted;
 use DateTimeImmutable;
 
 interface SubscriptionRepository
 {
     /**
-     * @throws SubscriptionPeriodOverlaps
+     * @throws CheckoutAlreadyStarted
      */
     public function save(Subscription $subscription): void;
 
-    public function inEffectFor(string $businessId, DateTimeImmutable $now): ?Subscription;
+    public function forBusiness(string $businessId): ?Subscription;
+
+    public function forBillingCustomer(string $billingCustomerId): ?Subscription;
 
     /**
      * @param  list<string>  $businessIds
      * @return array<string, Subscription>
      */
-    public function inEffectForMany(array $businessIds, DateTimeImmutable $now): array;
+    public function forManyBusinesses(array $businessIds): array;
 
     /**
      * @return list<Subscription>
      */
-    public function dueForExpiry(DateTimeImmutable $now): array;
+    public function pastPaymentGrace(DateTimeImmutable $now): array;
 
     /**
      * @return list<Subscription>
      */
-    public function historyOf(string $businessId): array;
+    public function lapsedWithoutEnding(DateTimeImmutable $now): array;
 }

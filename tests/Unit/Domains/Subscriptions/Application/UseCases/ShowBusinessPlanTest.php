@@ -21,34 +21,43 @@ beforeEach(function () {
         ->value();
 });
 
-it('shows the free plan with no end to a business that never subscribed', function () {
+it('shows the free plan to a business that never subscribed', function () {
     $plan = ($this->show)();
 
     expect($plan->plan)->toBe(Plan::Free)
-        ->and($plan->endsAt)->toBeNull()
         ->and($plan->entitlements)->toEqual(PlanEntitlements::free());
 });
 
-it('shows the complete plan and its end while a subscription is in effect', function () {
+it('shows the complete plan while a subscription grants access', function () {
     $this->subscriptions->store(SubscriptionFixtures::subscription());
 
     $plan = ($this->show)();
 
     expect($plan->plan)->toBe(Plan::Complete)
-        ->and($plan->endsAt?->format(DATE_ATOM))->toBe(SubscriptionFixtures::ENDS_AT)
         ->and($plan->entitlements)->toEqual(PlanEntitlements::complete());
 });
 
-it('shows no end for an open-ended subscription', function () {
-    $this->subscriptions->store(SubscriptionFixtures::subscription(endsAt: null));
+it('keeps the complete plan through a failed renewal while the payment grace lasts', function () {
+    $this->subscriptions->store(SubscriptionFixtures::subscription(
+        status: SubscriptionStatus::PastDue,
+        paymentFailedAt: '2026-06-11T15:00:00+00:00',
+    ));
 
-    expect(($this->show)()->endsAt)->toBeNull()
-        ->and(($this->show)()->plan)->toBe(Plan::Complete);
+    expect(($this->show)()->plan)->toBe(Plan::Complete);
 });
 
-it('falls back to free the instant the period ends, before any expiry job runs', function () {
-    $this->subscriptions->store(SubscriptionFixtures::subscription());
-    $this->clock = new FakeClock(SubscriptionFixtures::instant(SubscriptionFixtures::ENDS_AT));
+it('falls back to free once the payment grace has run out', function () {
+    $this->subscriptions->store(SubscriptionFixtures::subscription(
+        status: SubscriptionStatus::PastDue,
+        paymentFailedAt: '2026-06-10T15:00:00+00:00',
+    ));
+
+    expect(($this->show)()->plan)->toBe(Plan::Free);
+});
+
+it('falls back to free at the end of a period set to end, with no renewal leeway', function () {
+    $this->subscriptions->store(SubscriptionFixtures::subscription(canceledAt: '2026-06-10T15:00:00+00:00'));
+    $this->clock = new FakeClock(SubscriptionFixtures::instant(SubscriptionFixtures::PERIOD_ENDS_AT));
 
     expect(($this->show)()->plan)->toBe(Plan::Free);
 });
@@ -66,10 +75,8 @@ it('never shows a business another business\'s subscription', function () {
         ->and(($this->show)(SubscriptionFixtures::OTHER_BUSINESS_ID)->plan)->toBe(Plan::Complete);
 });
 
-it('asks for the business uuid it was given at the instant of the clock', function () {
+it('asks for the business uuid it was given', function () {
     ($this->show)();
 
-    expect($this->subscriptions->inEffectLookups)->toEqual([
-        ['businessId' => SubscriptionFixtures::BUSINESS_ID, 'now' => SubscriptionFixtures::now()],
-    ]);
+    expect($this->subscriptions->businessLookups)->toBe([SubscriptionFixtures::BUSINESS_ID]);
 });

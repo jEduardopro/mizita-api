@@ -12,7 +12,7 @@ final class SubscriptionNotActive extends DomainException implements DomainFailu
 {
     public static function withId(string $subscriptionId): self
     {
-        return new self("Subscription [{$subscriptionId}] is no longer active.");
+        return new self("Subscription [{$subscriptionId}] does not grant access right now.");
     }
 
     public function errorCode(): string

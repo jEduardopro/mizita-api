@@ -7,10 +7,7 @@ namespace App\Domains\Subscriptions\Infrastructure\Eloquent\Mappers;
 use App\Domains\Subscriptions\Entities\Subscription;
 use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\SubscriptionModel;
 use App\Domains\Subscriptions\ValueObjects\Plan;
-use App\Domains\Subscriptions\ValueObjects\SubscriptionPeriod;
-use App\Domains\Subscriptions\ValueObjects\SubscriptionPrice;
 use App\Domains\Subscriptions\ValueObjects\SubscriptionStatus;
-use App\Shared\ValueObjects\CurrencyCode;
 use DateTimeImmutable;
 
 final class SubscriptionMapper
@@ -20,10 +17,15 @@ final class SubscriptionMapper
         return Subscription::restore(
             id: $model->uuid,
             businessId: $businessId,
-            plan: Plan::from($model->plan),
+            billingCustomerId: $model->stripe_customer_id,
+            planId: $model->plan->uuid,
+            plan: Plan::from($model->plan->key),
             status: SubscriptionStatus::from($model->status),
-            period: SubscriptionPeriod::restore($model->starts_at, $model->ends_at),
-            price: SubscriptionPrice::restore($model->price_amount, CurrencyCode::restore($model->price_currency)),
+            billingSubscriptionId: $model->stripe_subscription_id,
+            startedAt: $model->started_at,
+            currentPeriodEndsAt: $model->current_period_ends_at,
+            canceledAt: $model->canceled_at,
+            paymentFailedAt: $model->payment_failed_at,
             createdAt: DateTimeImmutable::createFromInterface($model->created_at),
         );
     }
@@ -31,19 +33,19 @@ final class SubscriptionMapper
     /**
      * @return array<string, mixed>
      */
-    public function toAttributes(Subscription $subscription, int $businessKey): array
+    public function toAttributes(Subscription $subscription, int $businessKey, int $planKey): array
     {
-        $period = $subscription->period();
-
         return [
             'uuid' => $subscription->id,
             'business_id' => $businessKey,
-            'plan' => $subscription->plan->value,
+            'plan_id' => $planKey,
             'status' => $subscription->status()->value,
-            'starts_at' => $period->startsAt,
-            'ends_at' => $period->endsAt,
-            'price_amount' => $subscription->price->amountInMinorUnits,
-            'price_currency' => $subscription->price->currency->value,
+            'stripe_customer_id' => $subscription->billingCustomerId,
+            'stripe_subscription_id' => $subscription->billingSubscriptionId(),
+            'started_at' => $subscription->startedAt(),
+            'current_period_ends_at' => $subscription->currentPeriodEndsAt(),
+            'canceled_at' => $subscription->canceledAt(),
+            'payment_failed_at' => $subscription->paymentFailedAt(),
         ];
     }
 }

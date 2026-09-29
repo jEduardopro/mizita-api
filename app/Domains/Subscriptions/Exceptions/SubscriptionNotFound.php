@@ -10,9 +10,9 @@ use RuntimeException;
 
 final class SubscriptionNotFound extends RuntimeException implements DomainFailure
 {
-    public static function inEffectFor(string $businessId): self
+    public static function forBusiness(string $businessId): self
     {
-        return new self("Business [{$businessId}] has no subscription in effect.");
+        return new self("Business [{$businessId}] has no subscription.");
     }
 
     public function errorCode(): string

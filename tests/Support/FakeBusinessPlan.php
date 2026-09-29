@@ -15,14 +15,14 @@ final class FakeBusinessPlan implements BusinessPlan
     public array $describedBusinessIds = [];
 
     /**
-     * @param  array<string, array{name: 'free'|'complete', ends_at: ?string, entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}>  $plansByBusiness
+     * @param  array<string, array{name: 'free'|'complete', entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}>  $plansByBusiness
      */
     public function __construct(
         private readonly array $plansByBusiness = [],
     ) {}
 
     /**
-     * @return array{name: 'free'|'complete', ends_at: ?string, entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}
+     * @return array{name: 'free'|'complete', entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}
      */
     public function describe(string $businessId): array
     {

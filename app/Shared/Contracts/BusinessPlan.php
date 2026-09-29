@@ -9,7 +9,6 @@ interface BusinessPlan
     /**
      * @return array{
      *     name: 'free'|'complete',
-     *     ends_at: ?string,
      *     entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool},
      * }
      */

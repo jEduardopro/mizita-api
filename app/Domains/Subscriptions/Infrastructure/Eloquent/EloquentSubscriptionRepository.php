@@ -6,11 +6,13 @@ namespace App\Domains\Subscriptions\Infrastructure\Eloquent;
 
 use App\Domains\Subscriptions\Contracts\SubscriptionRepository;
 use App\Domains\Subscriptions\Entities\Subscription;
-use App\Domains\Subscriptions\Exceptions\SubscriptionPeriodOverlaps;
+use App\Domains\Subscriptions\Exceptions\CheckoutAlreadyStarted;
 use App\Domains\Subscriptions\Infrastructure\Eloquent\Mappers\SubscriptionMapper;
+use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\PlanModel;
 use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\SubscriptionModel;
 use App\Domains\Subscriptions\ValueObjects\SubscriptionStatus;
 use App\Shared\Contracts\BusinessTeamKey;
+use DateInterval;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -18,11 +20,13 @@ use Illuminate\Database\QueryException;
 
 final class EloquentSubscriptionRepository implements SubscriptionRepository
 {
-    private const OVERLAP_SQLSTATE = '23P01';
+    private const UNIQUE_VIOLATION_SQLSTATE = '23505';
+
+    private const ONE_PER_BUSINESS_INDEX = 'subscriptions_business_unique_when_not_deleted';
 
     private const BUSINESSES_TABLE = 'businesses';
 
-    private const BUSINESS_RELATION = 'business';
+    private const RELATIONS = ['business', 'plan'];
 
     private const TIEBREAKER_COLUMN = 'id';
 
@@ -36,83 +40,98 @@ final class EloquentSubscriptionRepository implements SubscriptionRepository
         $attributes = $this->mapper->toAttributes(
             $subscription,
             $this->businessKeys->teamKeyFor($subscription->businessId),
+            $this->planKeyFor($subscription->planId()),
         );
 
         try {
             SubscriptionModel::query()->updateOrCreate(['uuid' => $subscription->id], $attributes);
         } catch (QueryException $violation) {
-            $this->failFrom($violation);
+            $this->failFrom($violation, $subscription->businessId);
         }
     }
 
-    public function inEffectFor(string $businessId, DateTimeImmutable $now): ?Subscription
+    public function forBusiness(string $businessId): ?Subscription
     {
-        $model = $this->inEffectAt($this->ofBusinesses([$businessId]), $now)
-            ->orderByDesc('starts_at')
-            ->orderByDesc(self::TIEBREAKER_COLUMN)
+        $model = $this->ofBusinesses([$businessId])->with(self::RELATIONS)->first();
+
+        return $model === null ? null : $this->toEntity($model);
+    }
+
+    public function forBillingCustomer(string $billingCustomerId): ?Subscription
+    {
+        $model = SubscriptionModel::query()
+            ->with(self::RELATIONS)
+            ->where('stripe_customer_id', $billingCustomerId)
             ->first();
 
-        return $model === null ? null : $this->mapper->toEntity($model, $businessId);
+        return $model === null ? null : $this->toEntity($model);
     }
 
     /**
      * @param  list<string>  $businessIds
      * @return array<string, Subscription>
      */
-    public function inEffectForMany(array $businessIds, DateTimeImmutable $now): array
+    public function forManyBusinesses(array $businessIds): array
     {
         if ($businessIds === []) {
             return [];
         }
 
-        $models = $this->inEffectAt($this->ofBusinesses($businessIds), $now)
-            ->with(self::BUSINESS_RELATION)
-            ->orderBy('starts_at')
-            ->orderBy(self::TIEBREAKER_COLUMN)
-            ->get();
+        $subscriptions = [];
 
-        $inEffect = [];
-
-        foreach ($models as $model) {
-            $subscription = $this->toEntityWithItsBusiness($model);
-            $inEffect[$subscription->businessId] = $subscription;
+        foreach ($this->ofBusinesses($businessIds)->with(self::RELATIONS)->get() as $model) {
+            $subscription = $this->toEntity($model);
+            $subscriptions[$subscription->businessId] = $subscription;
         }
 
-        return $inEffect;
+        return $subscriptions;
     }
 
     /**
      * @return list<Subscription>
      */
-    public function dueForExpiry(DateTimeImmutable $now): array
+    public function pastPaymentGrace(DateTimeImmutable $now): array
     {
-        $models = SubscriptionModel::query()
-            ->with(self::BUSINESS_RELATION)
-            ->where('status', SubscriptionStatus::Active->value)
-            ->whereNotNull('ends_at')
-            ->where('ends_at', '<=', $now->format(DATE_ATOM))
-            ->orderBy('ends_at')
-            ->orderBy(self::TIEBREAKER_COLUMN)
-            ->get();
+        $cutoff = $now->sub(new DateInterval(Subscription::PAYMENT_GRACE));
 
-        return array_values(array_map(
-            fn (SubscriptionModel $model): Subscription => $this->toEntityWithItsBusiness($model),
-            $models->all(),
-        ));
+        return $this->listOf(SubscriptionModel::query()
+            ->where('status', SubscriptionStatus::PastDue->value)
+            ->whereNotNull('stripe_subscription_id')
+            ->where('payment_failed_at', '<=', $cutoff->format(DATE_ATOM))
+            ->orderBy('payment_failed_at'));
     }
 
     /**
      * @return list<Subscription>
      */
-    public function historyOf(string $businessId): array
+    public function lapsedWithoutEnding(DateTimeImmutable $now): array
     {
-        $models = $this->ofBusinesses([$businessId])
-            ->orderByDesc('starts_at')
-            ->orderByDesc(self::TIEBREAKER_COLUMN)
-            ->get();
+        $instant = $now->format(DATE_ATOM);
+        $renewalCutoff = $now->sub(new DateInterval(Subscription::RENEWAL_LEEWAY))->format(DATE_ATOM);
+
+        return $this->listOf(SubscriptionModel::query()
+            ->whereIn('status', [SubscriptionStatus::Active->value, SubscriptionStatus::Trialing->value])
+            ->whereNotNull('stripe_subscription_id')
+            ->where(static fn (Builder $lapsed) => $lapsed
+                ->where(static fn (Builder $renewing) => $renewing
+                    ->whereNull('canceled_at')
+                    ->where('current_period_ends_at', '<=', $renewalCutoff))
+                ->orWhere(static fn (Builder $ending) => $ending
+                    ->whereNotNull('canceled_at')
+                    ->where('current_period_ends_at', '<=', $instant)))
+            ->orderBy('current_period_ends_at'));
+    }
+
+    /**
+     * @param  Builder<SubscriptionModel>  $query
+     * @return list<Subscription>
+     */
+    private function listOf(Builder $query): array
+    {
+        $models = $query->with(self::RELATIONS)->orderBy(self::TIEBREAKER_COLUMN)->get();
 
         return array_values(array_map(
-            fn (SubscriptionModel $model): Subscription => $this->mapper->toEntity($model, $businessId),
+            fn (SubscriptionModel $model): Subscription => $this->toEntity($model),
             $models->all(),
         ));
     }
@@ -132,34 +151,24 @@ final class EloquentSubscriptionRepository implements SubscriptionRepository
         );
     }
 
-    /**
-     * @param  Builder<SubscriptionModel>  $query
-     * @return Builder<SubscriptionModel>
-     */
-    private function inEffectAt(Builder $query, DateTimeImmutable $now): Builder
+    private function planKeyFor(string $planId): int
     {
-        $instant = $now->format(DATE_ATOM);
-
-        return $query
-            ->where('status', SubscriptionStatus::Active->value)
-            ->where('starts_at', '<=', $instant)
-            ->where(static fn (Builder $open) => $open
-                ->whereNull('ends_at')
-                ->orWhere('ends_at', '>', $instant));
+        return (int) PlanModel::withTrashed()->where('uuid', $planId)->valueOrFail('id');
     }
 
-    private function toEntityWithItsBusiness(SubscriptionModel $model): Subscription
+    private function toEntity(SubscriptionModel $model): Subscription
     {
         return $this->mapper->toEntity($model, $model->business->uuid);
     }
 
     /**
-     * @throws SubscriptionPeriodOverlaps
+     * @throws CheckoutAlreadyStarted
      */
-    private function failFrom(QueryException $violation): never
+    private function failFrom(QueryException $violation, string $businessId): never
     {
-        if ((string) $violation->getCode() === self::OVERLAP_SQLSTATE) {
-            throw SubscriptionPeriodOverlaps::withAnotherPeriod($violation);
+        if ((string) $violation->getCode() === self::UNIQUE_VIOLATION_SQLSTATE
+            && str_contains($violation->getMessage(), self::ONE_PER_BUSINESS_INDEX)) {
+            throw CheckoutAlreadyStarted::forBusiness($businessId, $violation);
         }
 
         throw $violation;

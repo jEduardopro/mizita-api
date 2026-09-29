@@ -15,7 +15,7 @@ it('keeps the amount in minor units and the currency', function () {
         ->and($price->currency->value)->toBe('USD');
 });
 
-it('accepts a zero price, so a complimentary grant is expressible', function () {
+it('accepts a zero price', function () {
     expect(SubscriptionPrice::of(0, CurrencyCode::default())->amountInMinorUnits)->toBe(0);
 });
 
@@ -36,26 +36,6 @@ it('refuses a negative amount as an invalid domain failure', function () {
     }
 
     $this->fail('A negative price was accepted.');
-});
-
-it('changes the amount and keeps the currency', function () {
-    $price = SubscriptionPrice::of(20000, CurrencyCode::fromString('EUR'))->withAmount(15000);
-
-    expect($price->amountInMinorUnits)->toBe(15000)
-        ->and($price->currency->value)->toBe('EUR');
-});
-
-it('leaves the original price untouched when the amount changes', function () {
-    $original = SubscriptionPrice::of(20000, CurrencyCode::default());
-
-    $original->withAmount(0);
-
-    expect($original->amountInMinorUnits)->toBe(20000);
-});
-
-it('holds a changed amount to the same rule as a new price', function () {
-    expect(fn () => SubscriptionPrice::of(20000, CurrencyCode::default())->withAmount(-5))
-        ->toThrow(InvalidSubscriptionPrice::class);
 });
 
 it('restores a stored amount without holding it to the creation rule', function () {

@@ -10,14 +10,9 @@ use RuntimeException;
 
 final class SubscriptionBusinessNotFound extends RuntimeException implements DomainFailure
 {
-    public static function withSlug(string $slug): self
-    {
-        return new self("Business [{$slug}] was not found.");
-    }
-
     public static function withId(string $businessId): self
     {
-        return new self("Business [{$businessId}] was not found.");
+        return new self("Business [{$businessId}] or its owner was not found.");
     }
 
     public function errorCode(): string

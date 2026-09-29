@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * @return array{name: 'free'|'complete', ends_at: ?string, entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}|null
+     * @return array{name: 'free'|'complete', entitlements: array{team: bool, max_active_services: ?int, booking_rules: bool, calendar_sync: bool}}|null
      */
     private function planOfCurrentBusiness(): ?array
     {

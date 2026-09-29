@@ -28,9 +28,9 @@ const PURGE_CLOSED_AT = '2026-03-29T00:30:00+00:00';
 
 const PURGE_COLLIDING_OWNER_KEY = 900001;
 
-const PURGE_SUBSCRIPTION_STARTS_AT = '2026-03-01T00:00:00+00:00';
+const PURGE_SUBSCRIPTION_STARTED_AT = '2026-03-01T00:00:00+00:00';
 
-const PURGE_SUBSCRIPTION_ENDS_AT = '2026-04-01T00:00:00+00:00';
+const PURGE_SUBSCRIPTION_PERIOD_ENDS_AT = '2026-04-01T00:00:00+00:00';
 
 beforeEach(function () {
     $this->seed(AuthorizationSeeder::class);
@@ -64,8 +64,8 @@ describe('a business closed more than thirty days ago', function () {
     beforeEach(function () {
         $this->subscription = SubscriptionModel::factory()->create([
             'business_id' => $this->closing->business->id,
-            'starts_at' => new DateTimeImmutable(PURGE_SUBSCRIPTION_STARTS_AT),
-            'ends_at' => new DateTimeImmutable(PURGE_SUBSCRIPTION_ENDS_AT),
+            'started_at' => new DateTimeImmutable(PURGE_SUBSCRIPTION_STARTED_AT),
+            'current_period_ends_at' => new DateTimeImmutable(PURGE_SUBSCRIPTION_PERIOD_ENDS_AT),
         ]);
 
         $this->closing->closeByOwner();

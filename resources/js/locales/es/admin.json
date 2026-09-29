@@ -1552,9 +1552,15 @@
             "title": "Tu plan",
             "subtitle": "Compara lo que incluye cada plan y elige el que necesita tu negocio.",
             "current": "Tu plan actual: {{plan}}",
-            "endsAt": "Vence el {{date}}",
             "currentPlan": "Plan actual",
-            "upgrade": "Mejorar a Completo"
+            "upgrade": "Mejorar a Completo",
+            "renewsAt": "Se renueva el {{date}}",
+            "accessUntil": "Acceso hasta el {{date}}",
+            "changeCard": "Cambiar tarjeta",
+            "openingPortal": "Abriendo…",
+            "resume": "Reanudar suscripción",
+            "resuming": "Reanudando…",
+            "switchToFree": "Cambiar a Gratis"
         },
         "team": {
             "inviteBlocked": "En el plan Gratis solo el dueño atiende citas. Mejora al plan Completo para sumar a tu equipo.",
@@ -1585,6 +1591,54 @@
             "title": "Tu acceso está pausado",
             "body": "El negocio donde trabajas está en el plan Gratis, que incluye solo a su dueño. Cuando el dueño mejore al plan Completo recuperarás el acceso.",
             "signOut": "Cerrar sesión"
+        },
+        "subscription": {
+            "loadFailed": "No pudimos cargar tu suscripción.",
+            "pastDue": {
+                "title": "No pudimos cobrar tu suscripción",
+                "body": "Actualiza tu tarjeta antes del {{date}}; después tu negocio vuelve al plan Gratis.",
+                "action": "Actualizar tarjeta"
+            },
+            "resumed": "Suscripción reanudada",
+            "resumeFailed": "No pudimos reanudar tu suscripción. Inténtalo otra vez.",
+            "portalFailed": "No pudimos abrir la gestión de tu tarjeta. Inténtalo otra vez.",
+            "switchToFree": {
+                "title": "¿Cambiar al plan Gratis?",
+                "body": "Conservas las funciones de Completo hasta el {{date}}; después tu negocio vuelve al plan Gratis.",
+                "bodyUndated": "Conservas las funciones de Completo hasta que termine el periodo pagado; después tu negocio vuelve al plan Gratis.",
+                "keep": "Conservar Completo",
+                "switching": "Cambiando…",
+                "done": "Tu plan cambiará a Gratis el {{date}}",
+                "doneUndated": "Tu plan cambiará a Gratis cuando termine el periodo pagado",
+                "failed": "No pudimos cambiar tu plan. Inténtalo otra vez."
+            }
+        },
+        "checkout": {
+            "title": "Mejorar a Completo",
+            "close": "Cerrar",
+            "heading": "Confirmar y pagar",
+            "description": "Tu plan Completo se activa en cuanto se confirma el pago.",
+            "orPayWithCard": "o paga con tarjeta",
+            "legal": "Al suscribirte aceptas los <terms>Términos de uso</terms> y el <privacy>Aviso de privacidad</privacy>.",
+            "subscribe": "Suscribirme",
+            "subscribing": "Procesando pago…",
+            "subscribed": "Suscripción activada",
+            "activationPending": "Recibimos tu pago. Tu plan Completo se activará en unos minutos.",
+            "confirmingReturn": "Confirmando tu pago…",
+            "details": {
+                "title": "Detalles del plan",
+                "perMonth": "{{price}} al mes",
+                "trial_one": "Incluye {{count}} día de prueba",
+                "trial_other": "Incluye {{count}} días de prueba",
+                "totalToday": "Total cargado hoy",
+                "billing": "Se cobra cada mes. Puedes volver al plan Gratis cuando quieras."
+            },
+            "errors": {
+                "start": "No pudimos preparar el pago. Inténtalo otra vez.",
+                "load": "No pudimos cargar el formulario de pago. Inténtalo otra vez.",
+                "unavailable": "El pago en línea no está disponible en este momento.",
+                "confirm": "No pudimos confirmar tu suscripción. Si ya se hizo el cargo, tu plan se activará en unos minutos."
+            }
         }
     }
 }

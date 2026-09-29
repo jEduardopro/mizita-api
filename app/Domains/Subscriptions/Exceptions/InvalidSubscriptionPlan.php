@@ -10,9 +10,9 @@ use DomainException;
 
 final class InvalidSubscriptionPlan extends DomainException implements DomainFailure
 {
-    public static function unknown(string $plan): self
+    public static function unknown(string $planId): self
     {
-        return new self("[{$plan}] is not a subscription plan.");
+        return new self("[{$planId}] is not a plan on offer.");
     }
 
     public function errorCode(): string

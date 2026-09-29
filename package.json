@@ -34,6 +34,8 @@
         "@schedule-x/react": "^4.1.0",
         "@schedule-x/theme-shadcn": "^4.8.0",
         "@simplewebauthn/browser": "^13.3.0",
+        "@stripe/react-stripe-js": "^6.12.0",
+        "@stripe/stripe-js": "^9.17.0",
         "@tanstack/react-query": "^5.102.8",
         "@tanstack/react-table": "^8.21.3",
         "axios": "^1.20.0",

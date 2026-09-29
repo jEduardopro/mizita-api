@@ -6,9 +6,7 @@ namespace Tests\Support\Subscriptions;
 
 use App\Domains\Subscriptions\Contracts\SubscriptionRepository;
 use App\Domains\Subscriptions\Entities\Subscription;
-use App\Domains\Subscriptions\ValueObjects\SubscriptionStatus;
 use DateTimeImmutable;
-use Tests\Support\FakeTransactionManager;
 use Throwable;
 
 final class FakeSubscriptionRepository implements SubscriptionRepository
@@ -17,27 +15,33 @@ final class FakeSubscriptionRepository implements SubscriptionRepository
     private array $subscriptions = [];
 
     /** @var list<Subscription>|null */
-    private ?array $reportedDue = null;
+    private ?array $reportedPastPaymentGrace = null;
+
+    /** @var list<Subscription>|null */
+    private ?array $reportedLapsed = null;
 
     private ?Throwable $saveFailure = null;
 
     /** @var list<Subscription> */
     public array $saved = [];
 
-    /** @var list<bool> */
-    public array $savedInsideTransaction = [];
+    /** @var list<string> */
+    public array $businessLookups = [];
 
-    /** @var list<array{businessId: string, now: DateTimeImmutable}> */
-    public array $inEffectLookups = [];
+    /** @var list<string> */
+    public array $billingCustomerLookups = [];
 
-    /** @var list<array{businessIds: list<string>, now: DateTimeImmutable}> */
-    public array $inEffectForManyLookups = [];
+    /** @var list<list<string>> */
+    public array $manyBusinessesLookups = [];
 
     /** @var list<DateTimeImmutable> */
-    public array $dueLookups = [];
+    public array $pastPaymentGraceLookups = [];
+
+    /** @var list<DateTimeImmutable> */
+    public array $lapsedLookups = [];
 
     public function __construct(
-        private readonly ?FakeTransactionManager $transactions = null,
+        private readonly ?SubscriptionJournal $journal = null,
     ) {}
 
     public function store(Subscription ...$subscriptions): self
@@ -49,9 +53,16 @@ final class FakeSubscriptionRepository implements SubscriptionRepository
         return $this;
     }
 
-    public function reportingDue(Subscription ...$subscriptions): self
+    public function reportingPastPaymentGrace(Subscription ...$subscriptions): self
     {
-        $this->reportedDue = array_values($subscriptions);
+        $this->reportedPastPaymentGrace = array_values($subscriptions);
+
+        return $this;
+    }
+
+    public function reportingLapsed(Subscription ...$subscriptions): self
+    {
+        $this->reportedLapsed = array_values($subscriptions);
 
         return $this;
     }
@@ -70,61 +81,69 @@ final class FakeSubscriptionRepository implements SubscriptionRepository
         }
 
         $this->saved[] = $subscription;
-        $this->savedInsideTransaction[] = $this->transactions?->isRunning() ?? false;
         $this->subscriptions[$subscription->id] = $subscription;
+        $this->journal?->record('saved '.$subscription->id);
     }
 
-    public function inEffectFor(string $businessId, DateTimeImmutable $now): ?Subscription
+    public function forBusiness(string $businessId): ?Subscription
     {
-        $this->inEffectLookups[] = ['businessId' => $businessId, 'now' => $now];
+        $this->businessLookups[] = $businessId;
 
-        return $this->findInEffect($businessId, $now);
-    }
-
-    public function inEffectForMany(array $businessIds, DateTimeImmutable $now): array
-    {
-        $this->inEffectForManyLookups[] = ['businessIds' => $businessIds, 'now' => $now];
-
-        $inEffect = [];
-
-        foreach ($businessIds as $businessId) {
-            $subscription = $this->findInEffect($businessId, $now);
-
-            if ($subscription !== null) {
-                $inEffect[$businessId] = $subscription;
-            }
-        }
-
-        return $inEffect;
-    }
-
-    public function dueForExpiry(DateTimeImmutable $now): array
-    {
-        $this->dueLookups[] = $now;
-
-        return $this->reportedDue ?? array_values(array_filter(
-            $this->subscriptions,
-            static fn (Subscription $subscription): bool => $subscription->status() === SubscriptionStatus::Active
-                && $subscription->period()->hasEndedBy($now),
-        ));
-    }
-
-    public function historyOf(string $businessId): array
-    {
-        return array_values(array_filter(
-            $this->subscriptions,
-            static fn (Subscription $subscription): bool => $subscription->businessId === $businessId,
-        ));
-    }
-
-    private function findInEffect(string $businessId, DateTimeImmutable $now): ?Subscription
-    {
         foreach ($this->subscriptions as $subscription) {
-            if ($subscription->businessId === $businessId && $subscription->isInEffectAt($now)) {
+            if ($subscription->businessId === $businessId) {
                 return $subscription;
             }
         }
 
         return null;
+    }
+
+    public function forBillingCustomer(string $billingCustomerId): ?Subscription
+    {
+        $this->billingCustomerLookups[] = $billingCustomerId;
+
+        foreach ($this->subscriptions as $subscription) {
+            if ($subscription->billingCustomerId === $billingCustomerId) {
+                return $subscription;
+            }
+        }
+
+        return null;
+    }
+
+    public function forManyBusinesses(array $businessIds): array
+    {
+        $this->manyBusinessesLookups[] = $businessIds;
+
+        $found = [];
+
+        foreach ($this->subscriptions as $subscription) {
+            if (in_array($subscription->businessId, $businessIds, true)) {
+                $found[$subscription->businessId] = $subscription;
+            }
+        }
+
+        return $found;
+    }
+
+    public function pastPaymentGrace(DateTimeImmutable $now): array
+    {
+        $this->pastPaymentGraceLookups[] = $now;
+
+        return $this->reportedPastPaymentGrace ?? array_values(array_filter(
+            $this->subscriptions,
+            static fn (Subscription $subscription): bool => $subscription->isPastPaymentGraceAt($now),
+        ));
+    }
+
+    public function lapsedWithoutEnding(DateTimeImmutable $now): array
+    {
+        $this->lapsedLookups[] = $now;
+
+        return $this->reportedLapsed ?? array_values(array_filter(
+            $this->subscriptions,
+            static fn (Subscription $subscription): bool => $subscription->status()->entitles()
+                && ! $subscription->grantsAccessAt($now),
+        ));
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Exceptions\RenderDomainFailure;
 use App\Http\Logging\LogUnexpectedFailure;
+use App\Http\Middleware\ForbidNonOwners;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HandlePreferences;
 use App\Http\Middleware\RedirectIfOnboarded;
@@ -63,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'onboarded' => RequireBusinessMembership::class,
             'onboarding' => RedirectIfOnboarded::class,
             'owner' => RequireBusinessOwner::class,
+            'owner.api' => ForbidNonOwners::class,
             'permission' => RequirePermission::class,
         ]);
     })

@@ -13,7 +13,12 @@ Schedule::command('businesses:purge-closed')
     ->withoutOverlapping()
     ->onOneServer();
 
-Schedule::command('subscriptions:expire')
-    ->everyMinute()
+Schedule::command('subscriptions:enforce-payment-grace')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('subscriptions:reconcile')
+    ->hourly()
     ->withoutOverlapping()
     ->onOneServer();

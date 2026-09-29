@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domains\Subscriptions\Application\Services;
 
 use App\Domains\Subscriptions\Contracts\SubscriptionRepository;
-use App\Domains\Subscriptions\Entities\Subscription;
 use App\Domains\Subscriptions\ValueObjects\Plan;
 use App\Domains\Subscriptions\ValueObjects\PlanEntitlements;
 use App\Shared\Contracts\Clock;
@@ -19,7 +18,7 @@ final class BusinessPlans
 
     public function planOf(string $businessId): Plan
     {
-        return self::planGrantedBy($this->subscriptions->inEffectFor($businessId, $this->clock->now()));
+        return $this->subscriptions->forBusiness($businessId)?->planGrantedAt($this->clock->now()) ?? Plan::Free;
     }
 
     public function entitlementsOf(string $businessId): PlanEntitlements
@@ -37,18 +36,15 @@ final class BusinessPlans
             return [];
         }
 
-        $inEffect = $this->subscriptions->inEffectForMany($businessIds, $this->clock->now());
+        $now = $this->clock->now();
+        $subscriptions = $this->subscriptions->forManyBusinesses($businessIds);
         $entitlements = [];
 
         foreach ($businessIds as $businessId) {
-            $entitlements[$businessId] = self::planGrantedBy($inEffect[$businessId] ?? null)->entitlements();
+            $plan = ($subscriptions[$businessId] ?? null)?->planGrantedAt($now) ?? Plan::Free;
+            $entitlements[$businessId] = $plan->entitlements();
         }
 
         return $entitlements;
-    }
-
-    private static function planGrantedBy(?Subscription $subscription): Plan
-    {
-        return $subscription === null ? Plan::Free : $subscription->plan;
     }
 }

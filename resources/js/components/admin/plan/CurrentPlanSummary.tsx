@@ -1,12 +1,12 @@
-import { CalendarClock } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type Props = {
     planLabel: string;
-    endsOn: string | null;
+    details?: ReactNode;
 };
 
-export function CurrentPlanSummary({ planLabel, endsOn }: Props) {
+export function CurrentPlanSummary({ planLabel, details }: Props) {
     const { t } = useTranslation('admin');
 
     return (
@@ -23,12 +23,7 @@ export function CurrentPlanSummary({ planLabel, endsOn }: Props) {
                 {t('plan.settings.subtitle')}
             </p>
 
-            {endsOn !== null ? (
-                <p className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-foreground">
-                    <CalendarClock aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                    {t('plan.settings.endsAt', { date: endsOn })}
-                </p>
-            ) : null}
+            {details ? <div className="mt-1 grid justify-items-start gap-3">{details}</div> : null}
         </header>
     );
 }

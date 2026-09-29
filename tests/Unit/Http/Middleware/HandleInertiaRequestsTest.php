@@ -23,12 +23,10 @@ function inertiaSharedPlan(HandleInertiaRequests $middleware): mixed
 beforeEach(function () {
     $this->completePlan = [
         'name' => 'complete',
-        'ends_at' => '2026-10-31T23:00:00+00:00',
         'entitlements' => ['team' => true, 'max_active_services' => null, 'booking_rules' => true, 'calendar_sync' => true],
     ];
     $this->freePlan = [
         'name' => 'free',
-        'ends_at' => null,
         'entitlements' => ['team' => false, 'max_active_services' => 3, 'booking_rules' => false, 'calendar_sync' => false],
     ];
     $this->plans = new FakeBusinessPlan([

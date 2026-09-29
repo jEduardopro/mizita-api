@@ -30,12 +30,4 @@ final readonly class SubscriptionPrice
     {
         return new self($amountInMinorUnits, $currency);
     }
-
-    /**
-     * @throws InvalidSubscriptionPrice
-     */
-    public function withAmount(int $amountInMinorUnits): self
-    {
-        return self::of($amountInMinorUnits, $this->currency);
-    }
 }

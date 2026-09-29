@@ -11,7 +11,6 @@ export type PlanEntitlements = {
 
 export type SharedPlan = {
     name: PlanName;
-    ends_at: string | null;
     entitlements: PlanEntitlements;
 };
 
@@ -21,7 +20,6 @@ export const FREE_ACTIVE_SERVICE_LIMIT = 3;
 
 export const FREE_PLAN: SharedPlan = {
     name: 'free',
-    ends_at: null,
     entitlements: {
         team: false,
         max_active_services: FREE_ACTIVE_SERVICE_LIMIT,

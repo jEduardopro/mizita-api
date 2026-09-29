@@ -17,12 +17,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'uuid',
     'business_id',
-    'plan',
+    'plan_id',
     'status',
-    'starts_at',
-    'ends_at',
-    'price_amount',
-    'price_currency',
+    'stripe_customer_id',
+    'stripe_subscription_id',
+    'started_at',
+    'current_period_ends_at',
+    'canceled_at',
+    'payment_failed_at',
 ])]
 class SubscriptionModel extends Model
 {
@@ -54,14 +56,23 @@ class SubscriptionModel extends Model
     }
 
     /**
+     * @return BelongsTo<PlanModel, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(PlanModel::class, 'plan_id')->withTrashed();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'starts_at' => UtcInstant::class,
-            'ends_at' => UtcInstant::class,
-            'price_amount' => 'integer',
+            'started_at' => UtcInstant::class,
+            'current_period_ends_at' => UtcInstant::class,
+            'canceled_at' => UtcInstant::class,
+            'payment_failed_at' => UtcInstant::class,
         ];
     }
 

@@ -12,7 +12,6 @@ import {
 export type PlanAccess = {
     name: PlanName;
     isComplete: boolean;
-    endsAt: string | null;
     includes: (feature: PlanFeature) => boolean;
     maxActiveServices: number | null;
     allowsAnotherActiveService: (activeCount: number) => boolean;
@@ -26,7 +25,6 @@ export function usePlan(): PlanAccess {
         () => ({
             name: current.name,
             isComplete: isCompletePlan(current.name),
-            endsAt: current.ends_at,
             includes: (feature) => planIncludes(feature, current.entitlements),
             maxActiveServices: current.entitlements.max_active_services,
             allowsAnotherActiveService: (activeCount) =>

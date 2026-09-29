@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
+use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\PlanModel;
 use App\Domains\Subscriptions\Infrastructure\Eloquent\Models\SubscriptionModel;
+use App\Domains\Subscriptions\ValueObjects\Plan;
 use App\Models\User;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\BusinessMembership;
@@ -44,7 +46,9 @@ function memberOf(BusinessModel $business, User $account, bool $owner = false): 
 
 function onCompletePlan(BusinessModel $business): BusinessModel
 {
-    SubscriptionModel::factory()->create(['business_id' => $business->id]);
+    $completePlan = PlanModel::query()->where('key', Plan::Complete->value)->first() ?? PlanModel::factory()->create();
+
+    SubscriptionModel::factory()->create(['business_id' => $business->id, 'plan_id' => $completePlan->id]);
 
     return $business;
 }

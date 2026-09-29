@@ -123,7 +123,7 @@ arch('checks an account\'s memberships removal without a business context, becau
     ->expect('App\Domains\Staff\Application\UseCases\CheckAccountMembershipsRemoval')
     ->not->toUse('App\Shared\Contracts\BusinessContext');
 
-arch('resolves the business of every subscription from an explicit slug or uuid, never from a business context, because subscriptions are operated from the console and read across tenants')
+arch('resolves the business of every subscription from the explicit uuid its caller passes, never from a business context, because the Stripe webhook, the queued sync and the scheduled commands run outside any tenant request')
     ->expect('App\Domains\Subscriptions\Application')
     ->not->toUse('App\Shared\Contracts\BusinessContext');
 

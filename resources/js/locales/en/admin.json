@@ -1552,9 +1552,15 @@
             "title": "Your plan",
             "subtitle": "Compare what each plan includes and pick the one your business needs.",
             "current": "Your current plan: {{plan}}",
-            "endsAt": "Ends on {{date}}",
             "currentPlan": "Current plan",
-            "upgrade": "Upgrade to Complete"
+            "upgrade": "Upgrade to Complete",
+            "renewsAt": "Renews on {{date}}",
+            "accessUntil": "Access until {{date}}",
+            "changeCard": "Change card",
+            "openingPortal": "Opening…",
+            "resume": "Resume subscription",
+            "resuming": "Resuming…",
+            "switchToFree": "Switch to Free"
         },
         "team": {
             "inviteBlocked": "On the Free plan only the owner takes appointments. Upgrade to the Complete plan to add your team.",
@@ -1585,6 +1591,54 @@
             "title": "Your access is paused",
             "body": "The business you work at is on the Free plan, which includes only its owner. You'll get your access back once the owner upgrades to the Complete plan.",
             "signOut": "Log out"
+        },
+        "subscription": {
+            "loadFailed": "We couldn't load your subscription.",
+            "pastDue": {
+                "title": "We couldn't charge your subscription",
+                "body": "Update your card before {{date}}; after that your business moves back to the Free plan.",
+                "action": "Update card"
+            },
+            "resumed": "Subscription resumed",
+            "resumeFailed": "We couldn't resume your subscription. Try again.",
+            "portalFailed": "We couldn't open your card settings. Try again.",
+            "switchToFree": {
+                "title": "Switch to the Free plan?",
+                "body": "You keep the Complete features until {{date}}; after that your business moves back to the Free plan.",
+                "bodyUndated": "You keep the Complete features until the paid period ends; after that your business moves back to the Free plan.",
+                "keep": "Keep Complete",
+                "switching": "Switching…",
+                "done": "Your plan switches to Free on {{date}}",
+                "doneUndated": "Your plan switches to Free when the paid period ends",
+                "failed": "We couldn't change your plan. Try again."
+            }
+        },
+        "checkout": {
+            "title": "Upgrade to Complete",
+            "close": "Close",
+            "heading": "Confirm and pay",
+            "description": "Your Complete plan turns on as soon as the payment is confirmed.",
+            "orPayWithCard": "or pay with card",
+            "legal": "By subscribing you accept the <terms>Terms of use</terms> and the <privacy>Privacy notice</privacy>.",
+            "subscribe": "Subscribe",
+            "subscribing": "Processing payment…",
+            "subscribed": "Subscription active",
+            "activationPending": "We received your payment. Your Complete plan turns on within a few minutes.",
+            "confirmingReturn": "Confirming your payment…",
+            "details": {
+                "title": "Plan details",
+                "perMonth": "{{price}} per month",
+                "trial_one": "Includes a {{count}}-day trial",
+                "trial_other": "Includes a {{count}}-day trial",
+                "totalToday": "Total charged today",
+                "billing": "Billed every month. You can move back to the Free plan any time."
+            },
+            "errors": {
+                "start": "We couldn't prepare the payment. Try again.",
+                "load": "We couldn't load the payment form. Try again.",
+                "unavailable": "Online payment isn't available right now.",
+                "confirm": "We couldn't confirm your subscription. If you were charged, your plan turns on within a few minutes."
+            }
         }
     }
 }

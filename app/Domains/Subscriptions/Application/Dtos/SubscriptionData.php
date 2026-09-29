@@ -5,36 +5,57 @@ declare(strict_types=1);
 namespace App\Domains\Subscriptions\Application\Dtos;
 
 use App\Domains\Subscriptions\Entities\Subscription;
+use App\Domains\Subscriptions\ValueObjects\Plan;
+use App\Domains\Subscriptions\ValueObjects\SubscriptionStatus;
 use DateTimeImmutable;
 
 final readonly class SubscriptionData
 {
     public function __construct(
-        public string $id,
-        public string $businessId,
-        public string $plan,
-        public string $status,
-        public DateTimeImmutable $startsAt,
-        public ?DateTimeImmutable $endsAt,
-        public int $priceAmount,
-        public string $priceCurrency,
-        public DateTimeImmutable $createdAt,
+        public ?string $id,
+        public Plan $plan,
+        public ?SubscriptionStatus $status,
+        public ?DateTimeImmutable $startedAt,
+        public ?DateTimeImmutable $currentPeriodEndsAt,
+        public ?DateTimeImmutable $canceledAt,
+        public ?DateTimeImmutable $paymentGraceEndsAt,
+        public bool $canCheckout,
+        public bool $canSwitchToFree,
+        public bool $canResume,
+        public bool $canManageBilling,
     ) {}
 
-    public static function fromEntity(Subscription $subscription): self
+    public static function fromSubscription(Subscription $subscription, DateTimeImmutable $now): self
     {
-        $period = $subscription->period();
-
         return new self(
             id: $subscription->id,
-            businessId: $subscription->businessId,
-            plan: $subscription->plan->value,
-            status: $subscription->status()->value,
-            startsAt: $period->startsAt,
-            endsAt: $period->endsAt,
-            priceAmount: $subscription->price->amountInMinorUnits,
-            priceCurrency: $subscription->price->currency->value,
-            createdAt: $subscription->createdAt,
+            plan: $subscription->planGrantedAt($now),
+            status: $subscription->status(),
+            startedAt: $subscription->startedAt(),
+            currentPeriodEndsAt: $subscription->currentPeriodEndsAt(),
+            canceledAt: $subscription->canceledAt(),
+            paymentGraceEndsAt: $subscription->paymentGraceEndsAt(),
+            canCheckout: $subscription->canCheckout($now),
+            canSwitchToFree: $subscription->canSwitchToFree($now),
+            canResume: $subscription->canResume($now),
+            canManageBilling: true,
+        );
+    }
+
+    public static function free(): self
+    {
+        return new self(
+            id: null,
+            plan: Plan::Free,
+            status: null,
+            startedAt: null,
+            currentPeriodEndsAt: null,
+            canceledAt: null,
+            paymentGraceEndsAt: null,
+            canCheckout: true,
+            canSwitchToFree: false,
+            canResume: false,
+            canManageBilling: false,
         );
     }
 }

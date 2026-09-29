@@ -16,10 +16,9 @@ beforeEach(function () {
     );
 });
 
-it('describes the free plan of a business with nothing in effect', function () {
+it('describes the free plan of a business with nothing granting access', function () {
     expect($this->plan->describe(SubscriptionFixtures::BUSINESS_ID))->toBe([
         'name' => 'free',
-        'ends_at' => null,
         'entitlements' => [
             'team' => false,
             'max_active_services' => 3,
@@ -29,12 +28,11 @@ it('describes the free plan of a business with nothing in effect', function () {
     ]);
 });
 
-it('describes the complete plan with its end as an ATOM instant in UTC', function () {
+it('describes the complete plan of a business whose subscription grants access', function () {
     $this->subscriptions->store(SubscriptionFixtures::subscription());
 
     expect($this->plan->describe(SubscriptionFixtures::BUSINESS_ID))->toBe([
         'name' => 'complete',
-        'ends_at' => '2026-07-01T06:00:00+00:00',
         'entitlements' => [
             'team' => true,
             'max_active_services' => null,
@@ -42,12 +40,6 @@ it('describes the complete plan with its end as an ATOM instant in UTC', functio
             'calendar_sync' => true,
         ],
     ]);
-});
-
-it('describes an open-ended complete plan with no end', function () {
-    $this->subscriptions->store(SubscriptionFixtures::subscription(endsAt: null));
-
-    expect($this->plan->describe(SubscriptionFixtures::BUSINESS_ID)['ends_at'])->toBeNull();
 });
 
 it('describes only the business it was asked about', function () {

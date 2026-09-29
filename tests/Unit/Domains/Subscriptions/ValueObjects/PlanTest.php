@@ -49,29 +49,3 @@ describe('the plan names', function () {
         expect(Plan::tryFrom($value))->toBeNull();
     })->with(['Complete', 'COMPLETE', 'completo', 'gratis', 'premium', '']);
 });
-
-describe('granting', function () {
-    it('grants the complete plan', function () {
-        expect(Plan::Complete->isGrantable())->toBeTrue();
-    });
-
-    it('never grants the free plan, because free is the absence of a subscription', function () {
-        expect(Plan::Free->isGrantable())->toBeFalse();
-    });
-});
-
-describe('the list price', function () {
-    it('lists the complete plan at 200.00 in the default currency', function () {
-        $price = Plan::Complete->listPrice();
-
-        expect($price->amountInMinorUnits)->toBe(20000)
-            ->and($price->currency->value)->toBe('MXN');
-    });
-
-    it('lists the free plan at zero in the default currency', function () {
-        $price = Plan::Free->listPrice();
-
-        expect($price->amountInMinorUnits)->toBe(0)
-            ->and($price->currency->value)->toBe('MXN');
-    });
-});

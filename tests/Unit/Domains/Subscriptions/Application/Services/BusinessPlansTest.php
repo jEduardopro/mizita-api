@@ -24,17 +24,17 @@ describe('one business', function () {
             ->and($this->plans->entitlementsOf(SubscriptionFixtures::BUSINESS_ID))->toEqual(PlanEntitlements::free());
     });
 
-    it('puts a business with a subscription in effect on the plan it grants', function () {
+    it('puts a business with a subscription granting access on the plan it grants', function () {
         $this->subscriptions->store(SubscriptionFixtures::subscription());
 
         expect($this->plans->planOf(SubscriptionFixtures::BUSINESS_ID))->toBe(Plan::Complete)
             ->and($this->plans->entitlementsOf(SubscriptionFixtures::BUSINESS_ID))->toEqual(PlanEntitlements::complete());
     });
 
-    it('resolves the plan from the clock, so it falls to free when the period ends with no expiry run', function () {
+    it('resolves the plan from the clock, so it falls to free once the renewal leeway runs out with no webhook', function () {
         $this->subscriptions->store(SubscriptionFixtures::subscription());
 
-        $this->clock->advance('P15DT14H59M59S');
+        $this->clock->advance('P16DT23H59M59S');
         $lastSecond = $this->plans->planOf(SubscriptionFixtures::BUSINESS_ID);
 
         $this->clock->advance('PT1S');
@@ -44,8 +44,8 @@ describe('one business', function () {
             ->and($atTheEnd)->toBe(Plan::Free);
     });
 
-    it('puts a business on free before its subscription starts', function () {
-        $this->subscriptions->store(SubscriptionFixtures::subscription(startsAt: '2026-07-01T06:00:00+00:00', endsAt: '2026-08-01T06:00:00+00:00'));
+    it('puts a business whose checkout never completed on free', function () {
+        $this->subscriptions->store(SubscriptionFixtures::opened());
 
         expect($this->plans->planOf(SubscriptionFixtures::BUSINESS_ID))->toBe(Plan::Free);
     });
@@ -62,12 +62,10 @@ describe('one business', function () {
         expect($this->plans->planOf(SubscriptionFixtures::BUSINESS_ID))->toBe(Plan::Free);
     });
 
-    it('asks for the business uuid at the instant of the clock', function () {
+    it('asks for the business by its uuid', function () {
         $this->plans->entitlementsOf(SubscriptionFixtures::BUSINESS_ID);
 
-        expect($this->subscriptions->inEffectLookups)->toEqual([
-            ['businessId' => SubscriptionFixtures::BUSINESS_ID, 'now' => SubscriptionFixtures::now()],
-        ]);
+        expect($this->subscriptions->businessLookups)->toBe([SubscriptionFixtures::BUSINESS_ID]);
     });
 });
 
@@ -76,9 +74,10 @@ describe('many businesses', function () {
         $this->subscriptions->store(
             SubscriptionFixtures::subscription(),
             SubscriptionFixtures::subscription(
+                status: SubscriptionStatus::Canceled,
                 id: SubscriptionFixtures::OTHER_SUBSCRIPTION_ID,
                 businessId: SubscriptionFixtures::OTHER_BUSINESS_ID,
-                endsAt: '2026-06-10T06:00:00+00:00',
+                billingCustomerId: SubscriptionFixtures::OTHER_BILLING_CUSTOMER_ID,
             ),
         );
 
@@ -101,12 +100,11 @@ describe('many businesses', function () {
         ]);
     });
 
-    it('asks the repository once for the whole list at the instant of the clock', function () {
+    it('asks the repository once for the whole list', function () {
         $this->plans->entitlementsOfMany($this->requested);
 
-        expect($this->subscriptions->inEffectForManyLookups)->toEqual([
-            ['businessIds' => $this->requested, 'now' => SubscriptionFixtures::now()],
-        ])->and($this->subscriptions->inEffectLookups)->toBe([]);
+        expect($this->subscriptions->manyBusinessesLookups)->toBe([$this->requested])
+            ->and($this->subscriptions->businessLookups)->toBe([]);
     });
 
     it('agrees with the single business answer for every business', function () {
@@ -119,8 +117,8 @@ describe('many businesses', function () {
 
     it('answers an empty list with an empty map and no query at all', function () {
         expect($this->plans->entitlementsOfMany([]))->toBe([])
-            ->and($this->subscriptions->inEffectForManyLookups)->toBe([])
-            ->and($this->subscriptions->inEffectLookups)->toBe([]);
+            ->and($this->subscriptions->manyBusinessesLookups)->toBe([])
+            ->and($this->subscriptions->businessLookups)->toBe([]);
     });
 
     it('answers a business asked twice under its one uuid', function () {

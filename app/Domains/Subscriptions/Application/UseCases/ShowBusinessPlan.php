@@ -7,6 +7,7 @@ namespace App\Domains\Subscriptions\Application\UseCases;
 use App\Domains\Subscriptions\Application\Dtos\BusinessPlanData;
 use App\Domains\Subscriptions\Application\Dtos\ShowBusinessPlanInput;
 use App\Domains\Subscriptions\Contracts\SubscriptionRepository;
+use App\Domains\Subscriptions\ValueObjects\Plan;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
 
@@ -22,12 +23,8 @@ final class ShowBusinessPlan
      */
     public function handle(ShowBusinessPlanInput $input): UseCaseResponse
     {
-        $subscription = $this->subscriptions->inEffectFor($input->businessId, $this->clock->now());
+        $plan = $this->subscriptions->forBusiness($input->businessId)?->planGrantedAt($this->clock->now()) ?? Plan::Free;
 
-        if ($subscription === null) {
-            return UseCaseResponse::success(BusinessPlanData::free());
-        }
-
-        return UseCaseResponse::success(BusinessPlanData::fromSubscription($subscription));
+        return UseCaseResponse::success(BusinessPlanData::of($plan));
     }
 }

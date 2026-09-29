@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
         $this->call(StateSeeder::class);
         $this->call(PaymentMethodSeeder::class);
         $this->call(AuthorizationSeeder::class);
+        $this->call(PlanSeeder::class);
 
         User::factory()->create([
             'name' => 'Test User',

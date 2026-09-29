@@ -15,11 +15,6 @@ final class InvalidSubscriptionPrice extends DomainException implements DomainFa
         return new self("A subscription price cannot be negative, [{$amount}] given.");
     }
 
-    public static function malformed(string $amount): self
-    {
-        return new self("[{$amount}] is not a whole amount in minor currency units.");
-    }
-
     public function errorCode(): string
     {
         return 'invalid_subscription_price';

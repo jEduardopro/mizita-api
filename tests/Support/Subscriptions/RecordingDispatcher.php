@@ -6,24 +6,20 @@ namespace Tests\Support\Subscriptions;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use LogicException;
-use Tests\Support\FakeTransactionManager;
 
 final class RecordingDispatcher implements Dispatcher
 {
     /** @var list<object|string> */
     public array $dispatched = [];
 
-    /** @var list<bool> */
-    public array $dispatchedInsideTransaction = [];
-
     public function __construct(
-        private readonly ?FakeTransactionManager $transactions = null,
+        private readonly ?SubscriptionJournal $journal = null,
     ) {}
 
     public function dispatch($event, $payload = [], $halt = false)
     {
         $this->dispatched[] = $event;
-        $this->dispatchedInsideTransaction[] = $this->transactions?->isRunning() ?? false;
+        $this->journal?->record('dispatched '.(is_object($event) ? $event::class : $event));
 
         return null;
     }
