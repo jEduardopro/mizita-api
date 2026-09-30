@@ -1,7 +1,7 @@
 <?php
 
-use App\Domains\PublicCatalog\Application\Dtos\ConfirmBusinessPageInput;
-use App\Domains\PublicCatalog\Application\UseCases\ConfirmBusinessPage;
+use App\Domains\PublicCatalog\Application\Dtos\DescribeBusinessPageSharePreviewInput;
+use App\Domains\PublicCatalog\Application\UseCases\DescribeBusinessPageSharePreview;
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicServiceBookingLinkController;
 use App\Domains\PublicCatalog\Infrastructure\Http\Controllers\PublicStaffBookingLinkController;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
@@ -80,12 +80,13 @@ Route::get('/{slug}/book/manage/{reference}', fn (string $slug, string $referenc
     ['slug' => $slug, 'reference' => $reference],
 ))->where(['slug' => $bookingPageSlug, 'reference' => $referenceCode])->name('booking-flow.manage');
 
-Route::get('/{slug}', function (string $slug, ConfirmBusinessPage $confirmBusinessPage) {
-    $page = $confirmBusinessPage->handle(new ConfirmBusinessPageInput($slug));
+Route::get('/{slug}', function (string $slug, DescribeBusinessPageSharePreview $describeSharePreview) {
+    $preview = $describeSharePreview->handle(new DescribeBusinessPageSharePreviewInput($slug));
 
-    abort_if($page->failed(), Response::HTTP_NOT_FOUND);
+    abort_if($preview->failed(), Response::HTTP_NOT_FOUND);
 
-    return Inertia::render('public/businesses/show', ['slug' => $page->value()->slug]);
+    return Inertia::render('public/businesses/show', ['slug' => $slug])
+        ->withViewData(['sharePreview' => $preview->value()]);
 })->where('slug', $bookingPageSlug)->name('booking-page');
 
 Route::get('/{slug}/equipo/{staffSlug}', [PublicStaffBookingLinkController::class, 'staff'])

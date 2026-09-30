@@ -1,12 +1,13 @@
 import { cn } from 'cn';
 import { Clock, MapPin, Store } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { brandColorClasses, type TimeInterval } from '@/lib/booking-brand';
+import { brandColorClasses, BUTTON_SHAPE_CLASSES, type TimeInterval } from '@/lib/booking-brand';
 import type { PublicBusinessPage } from '../types';
 import { addressLinesFrom } from './booking-address';
 import { socialLinksFrom, websiteLinkFrom } from './booking-links';
 import { intervalKeyFor, intervalLabelFor } from './booking-schedule';
-import { bookingStepUrl } from './booking/booking-steps';
+import { bookingStepUrl, businessPath } from './booking/booking-steps';
+import { BookingShareButton } from './booking/BookingShareButton';
 import { BookingContactPills } from './BookingContactPills';
 import { BookingCta } from './BookingCta';
 import { BookingOpenBadge } from './BookingOpenBadge';
@@ -49,12 +50,27 @@ export function BookingSidebar({ page, todayIntervals }: Props) {
             </div>
 
             <div className="grid w-full justify-items-center gap-4">
-                <BookingCta
-                    href={bookingStepUrl(page.slug, 'service', {})}
-                    accentColor={page.brand.accent_color}
-                    buttonShape={page.brand.button_shape}
-                    className="w-full"
-                />
+                <div className="flex w-full items-stretch gap-2">
+                    <BookingCta
+                        href={bookingStepUrl(page.slug, 'service', {})}
+                        accentColor={page.brand.accent_color}
+                        buttonShape={page.brand.button_shape}
+                        className="min-w-0 flex-1"
+                    />
+
+                    <BookingShareButton
+                        url={`${window.location.origin}${businessPath(page.slug)}`}
+                        title={t('booking.share.title', { name: page.name })}
+                        label={t('booking.share.label')}
+                        copied={t('booking.share.copied')}
+                        copyFailed={t('booking.share.copyFailed')}
+                        className={cn(
+                            'size-12 text-foreground',
+                            accent.surface,
+                            BUTTON_SHAPE_CLASSES[page.brand.button_shape],
+                        )}
+                    />
+                </div>
 
                 {page.open_state.open ? (
                     <BookingOpenBadge closesAt={page.open_state.closes_at} accent={accent} />

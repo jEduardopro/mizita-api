@@ -12,6 +12,7 @@ import {
     type WeeklyHours,
 } from '@/lib/booking-brand';
 import { BookingPageLink } from './BookingPageLink';
+import { BookingPagePreviewAddressBar } from './BookingPagePreviewAddressBar';
 import { BookingPagePreviewContact } from './BookingPagePreviewContact';
 import { BookingPagePreviewHours } from './BookingPagePreviewHours';
 import { BookingPagePreviewPolicy } from './BookingPagePreviewPolicy';
@@ -74,6 +75,8 @@ export function BookingPagePreview({
                     {t('businessSettings.preview.description')}
                 </p>
             </div>
+
+            <BookingPagePreviewAddressBar slug={savedSlug} businessName={name} />
 
             <div
                 className={cn(

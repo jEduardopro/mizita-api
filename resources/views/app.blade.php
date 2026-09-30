@@ -25,18 +25,43 @@
             is exactly the handover we want. Marking it would opt it into management and
             defeat that.
 
-            og:title carries the app name only for the same reason — the per-page title
-            is not known at this point in the response.
+            og:title carries the app name for the same reason, except where a route hands
+            over a `sharePreview` through withViewData — the booking page, so a shared
+            link shows the business instead of the app.
         --}}
-        <title>{{ config('app.name') }}</title>
+        @isset($sharePreview)
+            @php
+                $shareTitle = $sharePreview->city === null
+                    ? __('share.business_page.title', ['name' => $sharePreview->name])
+                    : __('share.business_page.title_with_city', ['name' => $sharePreview->name, 'city' => $sharePreview->city]);
+                $shareDescription = filled($sharePreview->about)
+                    ? Str::limit(Str::squish($sharePreview->about), 160)
+                    : __('share.business_page.description', ['name' => $sharePreview->name]);
+            @endphp
+        @endisset
+        <title>{{ $shareTitle ?? config('app.name') }}</title>
+        @isset($shareDescription)
+            <meta name="description" content="{{ $shareDescription }}">
+        @endisset
         <meta property="og:site_name" content="{{ config('app.name') }}">
-        <meta property="og:title" content="{{ config('app.name') }}">
+        <meta property="og:title" content="{{ $shareTitle ?? config('app.name') }}">
+        @isset($shareDescription)
+            <meta property="og:description" content="{{ $shareDescription }}">
+        @endisset
         <meta property="og:type" content="website">
         <meta property="og:url" content="{{ url()->current() }}">
-        <meta property="og:image" content="{{ asset('images/brand/og-image.png') }}">
-        <meta property="og:image:width" content="1200">
-        <meta property="og:image:height" content="630">
+        @isset($sharePreview->imageUrl)
+            <meta property="og:image" content="{{ $sharePreview->imageUrl }}">
+        @else
+            <meta property="og:image" content="{{ asset('images/brand/og-image.png') }}">
+            <meta property="og:image:width" content="1200">
+            <meta property="og:image:height" content="630">
+        @endisset
         <meta name="twitter:card" content="summary_large_image">
+        @isset($shareTitle)
+            <meta name="twitter:title" content="{{ $shareTitle }}">
+            <meta name="twitter:description" content="{{ $shareDescription }}">
+        @endisset
 
         {{-- Inline and in <head> on purpose: it has to run before the first paint, so it cannot
              move into app.tsx or any bundled file. Only `system` reaches it — an explicit choice

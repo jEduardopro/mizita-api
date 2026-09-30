@@ -17,8 +17,7 @@
         "company": {
             "title": "Empresa",
             "about": "Quiénes somos",
-            "contact": "Contacto",
-            "help": "Ayuda"
+            "contact": "Contacto"
         },
         "legal": {
             "title": "Legal",

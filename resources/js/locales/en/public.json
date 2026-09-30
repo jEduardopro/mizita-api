@@ -64,7 +64,8 @@
                         "services": "Up to three services, each with its duration, buffers and price.",
                         "hours": "Your business hours, in your own timezone.",
                         "page": "Your booking page, where customers book without an account.",
-                        "slots": "Slots that already count your hours and what is booked."
+                        "slots": "Slots that already count your hours and what is booked.",
+                        "statistics": "Statistics: your revenue, appointments and new and returning customers."
                     }
                 },
                 "complete": {
@@ -81,7 +82,6 @@
                         "agenda": "The business's day and every staff member's day on one screen.",
                         "reminders": "Automatic email reminders before every appointment.",
                         "payments": "Online payments: charge or take a deposit when the booking is made.",
-                        "reports": "Reports and statistics on your agenda, your staff and your services.",
                         "googleCalendar": "Your appointments in your Google Calendar, as they happen."
                     }
                 }
@@ -359,6 +359,12 @@
         },
         "team": {
             "bookWith": "Book with {{name}}"
+        },
+        "share": {
+            "label": "Share page",
+            "title": "{{name}} · Book now",
+            "copied": "Link copied",
+            "copyFailed": "We could not copy the link."
         }
     }
 }

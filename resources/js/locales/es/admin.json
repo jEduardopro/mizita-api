@@ -868,6 +868,12 @@
                     "youtube": "YouTube",
                     "whatsapp": "WhatsApp"
                 }
+            },
+            "share": {
+                "label": "Compartir página de reservas",
+                "title": "{{name}} · Reserva ahora",
+                "copied": "Enlace copiado",
+                "copyFailed": "No pudimos copiar el enlace."
             }
         },
         "brandColor": {

@@ -1,31 +1,29 @@
+import { cn } from 'cn';
 import { Share } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { useShareLink } from './use-share-link';
+import { useShareLink } from '@/hooks/use-share-link';
 
 type Props = {
     url: string;
     title: string;
+    label: string;
+    copied: string;
+    copyFailed: string;
+    className?: string;
 };
 
-export function BookingShareButton({ url, title }: Props) {
-    const { t } = useTranslation('public');
-
-    const share = useShareLink({
-        title,
-        copied: t('booking.flow.pinned.copied'),
-        failed: t('booking.flow.pinned.copyFailed'),
-    });
+export function BookingShareButton({ url, title, label, copied, copyFailed, className }: Props) {
+    const share = useShareLink({ title, copied, failed: copyFailed });
 
     return (
         <Button
             type="button"
             variant="ghost"
             onClick={() => share(url)}
-            className="size-11 rounded-full p-0"
+            className={cn('size-11 rounded-full p-0', className)}
         >
             <Share aria-hidden="true" className="size-5" />
-            <span className="sr-only">{t('booking.flow.pinned.share')}</span>
+            <span className="sr-only">{label}</span>
         </Button>
     );
 }

@@ -64,7 +64,8 @@
                         "services": "Hasta tres servicios, cada uno con su duración, sus márgenes y su precio.",
                         "hours": "El horario de tu negocio, en tu zona horaria.",
                         "page": "Tu página de reservas, donde tus clientes reservan sin crear cuenta.",
-                        "slots": "Huecos que ya cuentan tu horario y lo que ya está reservado."
+                        "slots": "Huecos que ya cuentan tu horario y lo que ya está reservado.",
+                        "statistics": "Estadísticas: tus ingresos, tus citas y tus clientes nuevos y recurrentes."
                     }
                 },
                 "complete": {
@@ -81,7 +82,6 @@
                         "agenda": "El día del negocio y el de cada persona en una sola pantalla.",
                         "reminders": "Recordatorios por email automáticos antes de cada cita.",
                         "payments": "Cobros en línea: cobra o pide un anticipo al reservar.",
-                        "reports": "Reportes y estadísticas de tu agenda, tu equipo y tus servicios.",
                         "googleCalendar": "Tus citas en tu Google Calendar, al momento."
                     }
                 }
@@ -359,6 +359,12 @@
         },
         "team": {
             "bookWith": "Reservar con {{name}}"
+        },
+        "share": {
+            "label": "Compartir página",
+            "title": "{{name}} · Reserva ahora",
+            "copied": "Enlace copiado",
+            "copyFailed": "No pudimos copiar el enlace."
         }
     }
 }

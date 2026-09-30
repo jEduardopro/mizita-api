@@ -27,6 +27,9 @@ export function BookingPinnedServiceStep({ flow, member }: Props) {
                     name: member.name,
                     business: page.name,
                 })}
+                label={t('booking.flow.pinned.share')}
+                copied={t('booking.flow.pinned.copied')}
+                copyFailed={t('booking.flow.pinned.copyFailed')}
             />
         );
 

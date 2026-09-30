@@ -17,8 +17,7 @@
         "company": {
             "title": "Company",
             "about": "About us",
-            "contact": "Contact",
-            "help": "Help"
+            "contact": "Contact"
         },
         "legal": {
             "title": "Legal",

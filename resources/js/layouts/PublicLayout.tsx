@@ -8,9 +8,6 @@ import { SectionNav, type Section } from '@/components/public/shell/SectionNav';
 import {
     FacebookIcon,
     InstagramIcon,
-    LinkedinIcon,
-    TwitterIcon,
-    YoutubeIcon,
     type SocialIconProps,
 } from '@/components/public/shell/SocialIcons';
 import { Wordmark } from '@/components/shared/Wordmark';
@@ -21,9 +18,6 @@ import { useFlashToast } from '@/hooks/use-flash-toast';
 const socialProfiles: { network: string; href: string; Icon: (props: SocialIconProps) => ReactNode }[] = [
     { network: 'Facebook', href: '#', Icon: FacebookIcon },
     { network: 'Instagram', href: '#', Icon: InstagramIcon },
-    { network: 'X', href: '#', Icon: TwitterIcon },
-    { network: 'LinkedIn', href: '#', Icon: LinkedinIcon },
-    { network: 'YouTube', href: '#', Icon: YoutubeIcon },
 ];
 
 const footerMenu = [
@@ -42,7 +36,6 @@ const footerMenu = [
         links: [
             { label: 'footer.company.about', href: '#' },
             { label: 'footer.company.contact', href: '#' },
-            { label: 'footer.company.help', href: '#' },
         ],
     },
     {

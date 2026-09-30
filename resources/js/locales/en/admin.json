@@ -868,6 +868,12 @@
                     "youtube": "YouTube",
                     "whatsapp": "WhatsApp"
                 }
+            },
+            "share": {
+                "label": "Share booking page",
+                "title": "{{name}} · Book now",
+                "copied": "Link copied",
+                "copyFailed": "We could not copy the link."
             }
         },
         "brandColor": {

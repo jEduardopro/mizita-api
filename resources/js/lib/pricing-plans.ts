@@ -43,6 +43,7 @@ export const PRICING_PLANS = [
             { key: 'welcome.pricing.plans.free.features.hours', comingSoon: false },
             { key: 'welcome.pricing.plans.free.features.page', comingSoon: false },
             { key: 'welcome.pricing.plans.free.features.slots', comingSoon: false },
+            { key: 'welcome.pricing.plans.free.features.statistics', comingSoon: false },
         ],
     },
     {
@@ -61,7 +62,6 @@ export const PRICING_PLANS = [
             { key: 'welcome.pricing.plans.complete.features.agenda', comingSoon: true },
             { key: 'welcome.pricing.plans.complete.features.reminders', comingSoon: true },
             { key: 'welcome.pricing.plans.complete.features.payments', comingSoon: true },
-            { key: 'welcome.pricing.plans.complete.features.reports', comingSoon: true },
             { key: 'welcome.pricing.plans.complete.features.googleCalendar', comingSoon: false },
         ],
     },

@@ -57,7 +57,7 @@ const STEP_PREREQUISITES: Record<BookingStep, readonly BookingSelectionKey[]> = 
     details: ['service', 'staff', 'at'],
 };
 
-function businessPath(slug: string): string {
+export function businessPath(slug: string): string {
     return `/${encodeURIComponent(slug)}`;
 }
 
