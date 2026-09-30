@@ -56,7 +56,10 @@ export function BookingPage({ page, openServiceSlug }: Props) {
 
                     <div className="grid min-w-0 gap-6 lg:col-start-1 lg:row-start-1">
                         {page.booking_policy === undefined ? null : (
-                            <BookingPolicyNotice message={page.booking_policy.policy_message} />
+                            <BookingPolicyNotice
+                                businessId={page.id}
+                                message={page.booking_policy.policy_message}
+                            />
                         )}
 
                         <BookingSections

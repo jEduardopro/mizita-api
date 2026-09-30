@@ -1,23 +1,36 @@
-import { Info } from 'lucide-react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { usePolicyNoticeDismissal } from './use-policy-notice-dismissal';
 
 type Props = {
+    businessId: string;
     message: string;
 };
 
-export function BookingPolicyNotice({ message }: Props) {
+export function BookingPolicyNotice({ businessId, message }: Props) {
     const { t } = useTranslation('public');
+    const headingId = useId();
+    const { dismissed, dismiss } = usePolicyNoticeDismissal(businessId, message);
+
+    if (dismissed) {
+        return null;
+    }
 
     return (
-        <section className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm sm:p-5">
-            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <section aria-labelledby={headingId} className="grid gap-2 rounded-2xl bg-muted p-5 sm:p-6">
+            <h2 id={headingId} className="text-sm font-semibold">
+                {t('booking.policy.dialogTitle')}
+            </h2>
 
-            <div className="grid min-w-0 gap-1">
-                <h2 className="text-sm font-medium">{t('booking.policy.title')}</h2>
+            <p className="text-sm leading-relaxed text-pretty whitespace-pre-line text-foreground">
+                {message}
+            </p>
 
-                <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-                    {message}
-                </p>
+            <div className="mt-2 flex justify-end">
+                <Button type="button" variant="outline" className="h-11 rounded-full px-5" onClick={dismiss}>
+                    {t('booking.policy.acknowledge')}
+                </Button>
             </div>
         </section>
     );
