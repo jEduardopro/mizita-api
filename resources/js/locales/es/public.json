@@ -177,6 +177,7 @@
             "showAll": "Mostrar todas las fotos",
             "close": "Cerrar las fotos",
             "openPhoto": "Ver la foto {{position}}",
+            "goToPhoto": "Ir a la foto {{position}}",
             "previous": "Foto anterior",
             "next": "Foto siguiente",
             "counter": "{{position}} / {{total}}",

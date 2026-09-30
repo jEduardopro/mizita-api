@@ -1,9 +1,22 @@
+import Autoplay from 'embla-carousel-autoplay';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import type { GalleryImage } from '@/lib/booking-brand';
-import { BookingCarouselCounter } from './BookingCarouselCounter';
+import { BookingCarouselDots } from './BookingCarouselDots';
 
 const FIRST_SLIDE_INDEX = 0;
+const SLIDE_DURATION_MS = 4000;
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const CAROUSEL_OPTIONS = { loop: true };
+
+function createHeroAutoplay() {
+    return Autoplay({
+        delay: SLIDE_DURATION_MS,
+        stopOnInteraction: false,
+        breakpoints: { [REDUCED_MOTION_QUERY]: { active: false } },
+    });
+}
 
 type Props = {
     slides: GalleryImage[];
@@ -13,11 +26,19 @@ type Props = {
 
 export function BookingHeroCarousel({ slides, label, onOpenSlide }: Props) {
     const { t } = useTranslation('public');
-    const total = slides.length;
+    const [autoplay] = useState(createHeroAutoplay);
+    const hasMultipleSlides = slides.length > 1;
+
+    const plugins = useMemo(
+        () => (hasMultipleSlides ? [autoplay] : []),
+        [autoplay, hasMultipleSlides],
+    );
 
     return (
         <Carousel
             aria-label={label}
+            opts={CAROUSEL_OPTIONS}
+            plugins={plugins}
             className="h-full [&>[data-slot=carousel-content]]:h-full"
         >
             <CarouselContent className="ml-0 h-full">
@@ -44,10 +65,10 @@ export function BookingHeroCarousel({ slides, label, onOpenSlide }: Props) {
                 ))}
             </CarouselContent>
 
-            {total > 1 ? (
-                <BookingCarouselCounter
-                    total={total}
-                    className="pointer-events-none absolute top-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium tabular-nums text-white backdrop-blur-sm"
+            {hasMultipleSlides ? (
+                <BookingCarouselDots
+                    slideIds={slides.map((slide) => slide.id)}
+                    onNavigate={autoplay.reset}
                 />
             ) : null}
         </Carousel>
