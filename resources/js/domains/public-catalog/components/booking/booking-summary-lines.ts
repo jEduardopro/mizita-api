@@ -38,14 +38,14 @@ export function bookingMomentLabel(input: BookingSummaryInput, instant: string):
     });
 }
 
-export function bookingPriceLabel(price: string, currencyCode: string, locale: string, t: TFunction<'public'>): string {
+export function bookingPriceLabel(price: string, currencyCode: string, t: TFunction<'public'>): string {
     return isFreeAmount(price)
         ? t('booking.services.free')
-        : formatMoney(price, currencyCode, locale);
+        : formatMoney(price, currencyCode);
 }
 
 export function bookingSummaryLines(input: BookingSummaryInput): BookingSummaryLine[] {
-    const { service, staffMember, startsAt, currencyCode, locale, t } = input;
+    const { service, staffMember, startsAt, currencyCode, t } = input;
     const lines: BookingSummaryLine[] = [];
 
     if (service !== null) {
@@ -74,7 +74,7 @@ export function bookingSummaryLines(input: BookingSummaryInput): BookingSummaryL
         lines.push({
             id: 'price',
             label: t('booking.flow.summary.price'),
-            value: bookingPriceLabel(service.price, currencyCode, locale, t),
+            value: bookingPriceLabel(service.price, currencyCode, t),
         });
     }
 

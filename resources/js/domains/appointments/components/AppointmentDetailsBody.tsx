@@ -2,6 +2,7 @@ import 'temporal-polyfill/global';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
+import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { formatPhoneNumber } from '@/lib/phone';
 import { formatServiceSummary } from '@/lib/service-format';
 import { formatTimeOfDay } from '@/lib/time';
@@ -51,6 +52,7 @@ function CustomerContactLine({ customer }: ContactLineProps) {
 
 export function AppointmentDetailsBody({ appointment, timezone, chargeAction }: Props) {
     const { t, i18n } = useTranslation('admin');
+    const currencyCode = useBusinessCurrency();
 
     return (
         <div className="grid gap-4">
@@ -73,7 +75,7 @@ export function AppointmentDetailsBody({ appointment, timezone, chargeAction }: 
                     <p className="truncate font-medium">{appointment.service.name}</p>
 
                     <p className="text-sm text-muted-foreground">
-                        {formatServiceSummary(appointment.service, i18n.language, t)}
+                        {formatServiceSummary(appointment.service, currencyCode, t)}
                     </p>
                 </div>
 

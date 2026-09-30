@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
     Blocks,
     Calendar,
+    ChartColumn,
     ChevronRight,
     ListChecks,
     Settings,
@@ -32,6 +33,7 @@ import { PLAN_SETTINGS_HREF } from '@/lib/plan';
 
 type NavLabelKey =
     | 'nav.calendar'
+    | 'nav.statistics'
     | 'nav.services'
     | 'nav.customers'
     | 'nav.integrations'
@@ -58,6 +60,7 @@ const BRAND_SETTINGS_HREF = '/settings/business';
 
 const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
+    { href: '/statistics', labelKey: 'nav.statistics', icon: ChartColumn, role: 'owner' },
     { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     { href: '/customers', labelKey: 'nav.customers', icon: Users, permission: 'view_customers' },
     {

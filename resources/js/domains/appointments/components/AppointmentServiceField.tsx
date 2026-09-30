@@ -2,6 +2,7 @@ import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 import { fieldMessage } from '@/components/form/FieldMessage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { formatServiceSummary } from '@/lib/service-format';
 import { useBookableServices } from '../queries';
 import { APPOINTMENT_CONTROL_HEIGHT, AppointmentFormRow } from './AppointmentFormRow';
@@ -15,7 +16,8 @@ type Props = {
 };
 
 export function AppointmentServiceField({ form }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
+    const currencyCode = useBusinessCurrency();
     const { data, isPending, isError } = useBookableServices();
     const selected = form.values.service;
     const error = form.errorFor('service');
@@ -28,7 +30,7 @@ export function AppointmentServiceField({ form }: Props) {
         hint:
             selectedService === null
                 ? undefined
-                : formatServiceSummary(selectedService, i18n.language, t),
+                : formatServiceSummary(selectedService, currencyCode, t),
     });
 
     return (

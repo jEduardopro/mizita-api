@@ -25,7 +25,7 @@ export function PaymentTransactionsSection({
     timezone,
     onChanged,
 }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
     const [transactionToVoid, setTransactionToVoid] = useState<string | null>(null);
 
     return (
@@ -53,7 +53,7 @@ export function PaymentTransactionsSection({
                 <span>{t('payments.panel.totalPaid')}</span>
 
                 <span className="shrink-0 tabular-nums">
-                    {formatMoneyFromCents(paidCents, currencyCode, i18n.language)}
+                    {formatMoneyFromCents(paidCents, currencyCode)}
                 </span>
             </div>
 

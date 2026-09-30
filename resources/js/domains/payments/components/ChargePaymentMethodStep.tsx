@@ -17,13 +17,13 @@ type Props = {
 };
 
 export function ChargePaymentMethodStep({ form }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
     const fieldId = useId();
     const { values, totals } = form;
     const methodError = form.errorFor(PAYMENT_METHOD_FIELD);
 
     function money(cents: number): string {
-        return formatMoneyFromCents(cents, form.currencyCode, i18n.language);
+        return formatMoneyFromCents(cents, form.currencyCode);
     }
 
     function methodList() {

@@ -16,6 +16,7 @@ use App\Domains\Phones\PhonesServiceProvider;
 use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use App\Domains\Services\ServicesServiceProvider;
 use App\Domains\Staff\StaffServiceProvider;
+use App\Domains\Statistics\StatisticsServiceProvider;
 use App\Domains\Subscriptions\SubscriptionsServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\FortifyServiceProvider;
@@ -42,4 +43,5 @@ return [
     PaymentsServiceProvider::class,
     IntegrationsServiceProvider::class,
     SubscriptionsServiceProvider::class,
+    StatisticsServiceProvider::class,
 ];

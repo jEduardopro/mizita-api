@@ -101,12 +101,12 @@ type Props = {
 };
 
 export function ChargeItemsStep({ form }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
     const partialId = useId();
     const { values, totals, serviceLine } = form;
 
     function money(cents: number): string {
-        return formatMoneyFromCents(cents, form.currencyCode, i18n.language);
+        return formatMoneyFromCents(cents, form.currencyCode);
     }
 
     return (

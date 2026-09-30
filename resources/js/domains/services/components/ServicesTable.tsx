@@ -4,6 +4,7 @@ import { DataTable } from '@/components/shared/data-table/DataTable';
 import { dataTableStatus } from '@/components/shared/data-table/status';
 import type { DataTableToolbar } from '@/components/shared/data-table/types';
 import type { DataTableQuery } from '@/components/shared/data-table/use-data-table-query';
+import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { useServices } from '../queries';
 import type { ServiceSortField } from '../types';
 import { serviceColumns } from './service-columns';
@@ -17,8 +18,8 @@ type Props = {
 };
 
 export function ServicesTable({ query, toolbar, onClearSearch }: Props) {
-    const { t, i18n } = useTranslation('admin');
-    const locale = i18n.language;
+    const { t } = useTranslation('admin');
+    const currencyCode = useBusinessCurrency();
 
     const services = useServices({
         page: query.page,
@@ -28,7 +29,7 @@ export function ServicesTable({ query, toolbar, onClearSearch }: Props) {
         search: query.search === '' ? undefined : query.search,
     });
 
-    const columns = useMemo(() => serviceColumns({ t, locale }), [t, locale]);
+    const columns = useMemo(() => serviceColumns({ t, currencyCode }), [t, currencyCode]);
 
     return (
         <DataTable

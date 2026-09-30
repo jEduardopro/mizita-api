@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { formatAmount, isFreeAmount } from '@/lib/money';
+import { formatMoney, isFreeAmount } from '@/lib/money';
 
 type AdminTranslate = TFunction<'admin'>;
 
@@ -15,12 +15,12 @@ export function formatBuffer(minutes: number, t: AdminTranslate): string {
     return t('services.buffer', { count: minutes });
 }
 
-export function formatPrice(price: string, locale: string, t: AdminTranslate): string {
+export function formatPrice(price: string, currencyCode: string, t: AdminTranslate): string {
     if (isFreeAmount(price)) {
         return t('services.free');
     }
 
-    return t('services.price', { amount: formatAmount(price, locale) });
+    return formatMoney(price, currencyCode);
 }
 
 type ServiceSummarySource = {
@@ -31,11 +31,11 @@ type ServiceSummarySource = {
 
 export function formatServiceSummary(
     service: ServiceSummarySource,
-    locale: string,
+    currencyCode: string,
     t: AdminTranslate,
 ): string {
     const duration = formatDuration(service.duration_minutes, t);
-    const price = formatPrice(service.price, locale, t);
+    const price = formatPrice(service.price, currencyCode, t);
 
     if (service.buffer_minutes > 0) {
         return t('services.summaryWithBuffer', {

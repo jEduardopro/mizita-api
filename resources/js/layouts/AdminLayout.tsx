@@ -8,8 +8,10 @@ import { AppSidebar } from '@/components/admin/shell/AppSidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NewAppointmentLauncher } from '@/domains/appointments/components/NewAppointmentLauncher';
+import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
 import { useCalendarSettings } from '@/domains/businesses/queries';
 import { CreateCustomerDialog } from '@/domains/customers/components/CreateCustomerDialog';
+import { BusinessCurrencyProvider } from '@/hooks/use-business-currency';
 import { CustomerCreationProvider } from '@/hooks/use-customer-creation';
 import { useFlashToast } from '@/hooks/use-flash-toast';
 
@@ -34,47 +36,50 @@ export function AdminLayout({
 }: Props) {
     const { sidebarOpen } = usePage().props;
     const { data: calendarSettings } = useCalendarSettings();
+    const currencyCode = calendarSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
 
     useFlashToast();
 
     return (
-        <TooltipProvider>
-            <Head title={title} />
+        <BusinessCurrencyProvider currencyCode={currencyCode}>
+            <TooltipProvider>
+                <Head title={title} />
 
-            <CustomerCreationProvider>
-                <SidebarProvider defaultOpen={sidebarOpen} className={cn(fullBleed && 'h-svh')}>
-                    <AppSidebar />
+                <CustomerCreationProvider>
+                    <SidebarProvider defaultOpen={sidebarOpen} className={cn(fullBleed && 'h-svh')}>
+                        <AppSidebar />
 
-                    <SidebarInset className={cn('min-w-0', fullBleed && 'overflow-hidden')}>
-                        <div className="sticky top-0 z-20 shrink-0 bg-background/90 backdrop-blur-sm">
-                            <AdminHeader
-                                title={title}
-                                breadcrumbs={breadcrumbs}
-                                actions={
-                                    newAppointment ? (
-                                        <NewAppointmentLauncher
-                                            timezone={calendarSettings?.timezone}
-                                        />
-                                    ) : undefined
-                                }
-                            />
+                        <SidebarInset className={cn('min-w-0', fullBleed && 'overflow-hidden')}>
+                            <div className="sticky top-0 z-20 shrink-0 bg-background/90 backdrop-blur-sm">
+                                <AdminHeader
+                                    title={title}
+                                    breadcrumbs={breadcrumbs}
+                                    actions={
+                                        newAppointment ? (
+                                            <NewAppointmentLauncher
+                                                timezone={calendarSettings?.timezone}
+                                            />
+                                        ) : undefined
+                                    }
+                                />
 
-                            <AdminSubheader description={description} actions={actions} />
-                        </div>
+                                <AdminSubheader description={description} actions={actions} />
+                            </div>
 
-                        <div
-                            className={cn(
-                                'flex-1',
-                                fullBleed ? 'flex min-h-0 flex-col' : 'px-5 py-8 sm:px-8',
-                            )}
-                        >
-                            {children}
-                        </div>
-                    </SidebarInset>
-                </SidebarProvider>
+                            <div
+                                className={cn(
+                                    'flex-1',
+                                    fullBleed ? 'flex min-h-0 flex-col' : 'px-5 py-8 sm:px-8',
+                                )}
+                            >
+                                {children}
+                            </div>
+                        </SidebarInset>
+                    </SidebarProvider>
 
-                <CreateCustomerDialog />
-            </CustomerCreationProvider>
-        </TooltipProvider>
+                    <CreateCustomerDialog />
+                </CustomerCreationProvider>
+            </TooltipProvider>
+        </BusinessCurrencyProvider>
     );
 }

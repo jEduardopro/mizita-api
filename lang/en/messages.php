@@ -44,6 +44,9 @@ return [
         // and nothing more: confirming that a slug exists is an information leak.
         'business_not_found' => 'We could not find that business.',
 
+        'invalid_statistics_period' => 'That statistics period is not valid.',
+        'statistics_period_too_wide' => 'That statistics period covers too many days.',
+
         // The database rejected an appointment overlapping an existing one.
         'appointment_overlap' => 'That time slot has just been booked. Please choose another one.',
 

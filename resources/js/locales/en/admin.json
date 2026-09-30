@@ -1,6 +1,7 @@
 {
     "nav": {
         "calendar": "Calendar",
+        "statistics": "Statistics",
         "services": "Services",
         "customers": "Customers",
         "integrations": "Integrations",
@@ -273,7 +274,6 @@
         "buffer_other": "+{{count}} mins",
         "noBuffer": "None",
         "free": "Free",
-        "price": "${{amount}}",
         "currencySymbol": "$",
         "hidden": "Hidden",
         "summary": "{{duration}} · {{price}}",
@@ -1638,6 +1638,88 @@
                 "load": "We couldn't load the payment form. Try again.",
                 "unavailable": "Online payment isn't available right now.",
                 "confirm": "We couldn't confirm your subscription. If you were charged, your plan turns on within a few minutes."
+            }
+        }
+    },
+    "statistics": {
+        "title": "Statistics",
+        "loading": "Loading statistics",
+        "sections": {
+            "sales": "Sales",
+            "breakdown": "Breakdown"
+        },
+        "range": {
+            "label": "Period",
+            "placeholder": "Choose a period",
+            "apply": "Apply",
+            "picker": {
+                "calendar": "Choose a period",
+                "previousMonth": "Previous month",
+                "nextMonth": "Next month",
+                "today": "Today"
+            }
+        },
+        "shareOfTotal": "{{share}} of total",
+        "collected": {
+            "title": "Total collected"
+        },
+        "comparison": {
+            "title": "Comparison",
+            "current": "Current period",
+            "previous": "Previous period",
+            "versusPrevious": "compared with the previous period"
+        },
+        "lastSevenDays": {
+            "title": "Sales, last 7 days",
+            "description": "Collected per day, net of voids and refunds",
+            "series": "Collected",
+            "today": "Today",
+            "summary": "Chart of the amount collected on each of the last 7 days"
+        },
+        "today": {
+            "title": "Today's sales"
+        },
+        "byPaymentMethod": {
+            "title": "By payment method",
+            "empty": "No payments collected in this period.",
+            "methods": {
+                "cash": "Cash",
+                "bank_transfer": "Bank transfer",
+                "card": "Card"
+            }
+        },
+        "byStaff": {
+            "title": "By staff",
+            "empty": "Nobody on your team has collected in this period.",
+            "summary_one": "{{share}} of total \u00b7 {{count}} appointment",
+            "summary_other": "{{share}} of total \u00b7 {{count}} appointments"
+        },
+        "appointments": {
+            "title": "Appointments",
+            "total": "booked in this period",
+            "attended": "Attended",
+            "cancelled": "Cancelled",
+            "upcoming": "Upcoming",
+            "bySource": "Booked from",
+            "sources": {
+                "admin": "Your dashboard",
+                "public": "Your booking page"
+            }
+        },
+        "customers": {
+            "title": "Customers",
+            "attended": "attended in this period",
+            "new": "New",
+            "returning": "Returning"
+        },
+        "errors": {
+            "load": {
+                "title": "Statistics didn't load",
+                "body": "Check your connection and try again."
+            },
+            "range": {
+                "title": "This period can't be shown",
+                "body": "Choose a period that ends today or earlier and spans one year at most."
             }
         }
     }

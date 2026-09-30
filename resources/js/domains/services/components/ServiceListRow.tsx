@@ -3,6 +3,7 @@ import { cn } from 'cn';
 import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
 import { Badge } from '@/components/ui/badge';
+import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { serviceColorClasses } from '@/lib/service-color';
 import { formatServiceSummary } from '@/lib/service-format';
 import type { Service } from '../types';
@@ -15,9 +16,10 @@ type Props = {
 };
 
 export function ServiceListRow({ service }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
+    const currencyCode = useBusinessCurrency();
 
-    const summary = formatServiceSummary(service, i18n.language, t);
+    const summary = formatServiceSummary(service, currencyCode, t);
 
     return (
         <article className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card py-2.5 pr-2.5 pl-4">

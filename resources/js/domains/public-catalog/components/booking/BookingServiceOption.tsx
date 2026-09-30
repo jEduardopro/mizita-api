@@ -30,13 +30,13 @@ export function BookingServiceOption({
     buttonShape,
     onSelect,
 }: Props) {
-    const { t, i18n } = useTranslation('public');
+    const { t } = useTranslation('public');
     const nameId = useId();
 
     const duration = t('booking.services.duration', { count: service.duration_minutes });
     const price = isFreeAmount(service.price)
         ? t('booking.services.free')
-        : formatMoney(service.price, currencyCode, i18n.language);
+        : formatMoney(service.price, currencyCode);
 
     const hasDescription = service.description !== null;
     const detailsUrl = `/${encodeURIComponent(slug)}/${encodeURIComponent(service.slug)}`;

@@ -63,7 +63,7 @@ export function PaymentTransactionRow({
 }: Props) {
     const { t, i18n } = useTranslation('admin');
 
-    const money = (cents: number) => formatMoneyFromCents(cents, currencyCode, i18n.language);
+    const money = (cents: number) => formatMoneyFromCents(cents, currencyCode);
     const type = transaction.type;
     const date = formatTransactionDate(transaction.processed_at, timezone, i18n.language);
     const carriesBreakdown = transaction.subtotal_pre_discount_cents > 0;

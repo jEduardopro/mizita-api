@@ -34,9 +34,9 @@ export function PaymentPurchasesSection({
     totalCents,
     currencyCode,
 }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
 
-    const money = (cents: number) => formatMoneyFromCents(cents, currencyCode, i18n.language);
+    const money = (cents: number) => formatMoneyFromCents(cents, currencyCode);
 
     return (
         <section className="grid gap-3">

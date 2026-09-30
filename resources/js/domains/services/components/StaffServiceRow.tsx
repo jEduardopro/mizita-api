@@ -2,6 +2,7 @@ import { cn } from 'cn';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ServiceColorTile } from '@/components/shared/ServiceColorTile';
+import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { serviceColorClasses } from '@/lib/service-color';
 import { formatServiceSummary } from '@/lib/service-format';
 import type { Service } from '../types';
@@ -12,7 +13,8 @@ type Props = {
 };
 
 export function StaffServiceRow({ service, action }: Props) {
-    const { t, i18n } = useTranslation('admin');
+    const { t } = useTranslation('admin');
+    const currencyCode = useBusinessCurrency();
 
     return (
         <li className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card py-2.5 pr-2.5 pl-4">
@@ -27,7 +29,7 @@ export function StaffServiceRow({ service, action }: Props) {
                 <p className="truncate text-sm font-medium">{service.name}</p>
 
                 <p className="truncate text-xs text-muted-foreground">
-                    {formatServiceSummary(service, i18n.language, t)}
+                    {formatServiceSummary(service, currencyCode, t)}
                 </p>
             </div>
 

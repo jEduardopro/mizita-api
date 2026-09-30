@@ -21,12 +21,12 @@ export function BookingServiceRow({
     accentColor,
     buttonShape,
 }: Props) {
-    const { t, i18n } = useTranslation('public');
+    const { t } = useTranslation('public');
 
     const duration = t('booking.services.duration', { count: service.duration_minutes });
     const price = isFreeAmount(service.price)
         ? t('booking.services.free')
-        : formatMoney(service.price, currencyCode, i18n.language);
+        : formatMoney(service.price, currencyCode);
 
     return (
         <AccordionItem value={service.slug} className="border-b border-border last:border-b-0">

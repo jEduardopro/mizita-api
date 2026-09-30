@@ -27,6 +27,7 @@ final readonly class Slug
         'dashboard',
         'onboarding',
         'calendar',
+        'statistics',
         'services',
         'customers',
         'integrations',

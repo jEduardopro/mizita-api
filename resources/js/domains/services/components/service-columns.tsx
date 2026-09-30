@@ -11,10 +11,10 @@ import { ServiceStaffAvatars } from './ServiceStaffAvatars';
 
 type Params = {
     t: TFunction<'admin'>;
-    locale: string;
+    currencyCode: string;
 };
 
-export function serviceColumns({ t, locale }: Params): ColumnDef<Service>[] {
+export function serviceColumns({ t, currencyCode }: Params): ColumnDef<Service>[] {
     return [
         {
             id: 'name',
@@ -65,7 +65,7 @@ export function serviceColumns({ t, locale }: Params): ColumnDef<Service>[] {
             id: 'price',
             accessorKey: 'price',
             header: t('services.columns.price'),
-            cell: ({ row }) => formatPrice(row.original.price, locale, t),
+            cell: ({ row }) => formatPrice(row.original.price, currencyCode, t),
         },
         {
             id: 'staff',

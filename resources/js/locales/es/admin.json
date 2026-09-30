@@ -1,6 +1,7 @@
 {
     "nav": {
         "calendar": "Calendario",
+        "statistics": "Estadísticas",
         "services": "Servicios",
         "customers": "Clientes",
         "integrations": "Integraciones",
@@ -273,7 +274,6 @@
         "buffer_other": "+{{count}} min",
         "noBuffer": "Ninguno",
         "free": "Gratis",
-        "price": "${{amount}}",
         "currencySymbol": "$",
         "hidden": "Oculto",
         "summary": "{{duration}} · {{price}}",
@@ -1638,6 +1638,88 @@
                 "load": "No pudimos cargar el formulario de pago. Inténtalo otra vez.",
                 "unavailable": "El pago en línea no está disponible en este momento.",
                 "confirm": "No pudimos confirmar tu suscripción. Si ya se hizo el cargo, tu plan se activará en unos minutos."
+            }
+        }
+    },
+    "statistics": {
+        "title": "Estadísticas",
+        "loading": "Cargando estadísticas",
+        "sections": {
+            "sales": "Ingresos",
+            "breakdown": "Desglose"
+        },
+        "range": {
+            "label": "Periodo",
+            "placeholder": "Elige un periodo",
+            "apply": "Aplicar",
+            "picker": {
+                "calendar": "Elige un periodo",
+                "previousMonth": "Mes anterior",
+                "nextMonth": "Mes siguiente",
+                "today": "Hoy"
+            }
+        },
+        "shareOfTotal": "{{share}} del total",
+        "collected": {
+            "title": "Total cobrado"
+        },
+        "comparison": {
+            "title": "Comparación",
+            "current": "Periodo actual",
+            "previous": "Periodo anterior",
+            "versusPrevious": "respecto al periodo anterior"
+        },
+        "lastSevenDays": {
+            "title": "Ingresos últimos 7 días",
+            "description": "Cobrado por día, descontando anulaciones y reembolsos",
+            "series": "Cobrado",
+            "today": "Hoy",
+            "summary": "Gráfica de lo cobrado en cada uno de los últimos 7 días"
+        },
+        "today": {
+            "title": "Ingresos de hoy"
+        },
+        "byPaymentMethod": {
+            "title": "Por método de pago",
+            "empty": "No hay pagos cobrados en este periodo.",
+            "methods": {
+                "cash": "Efectivo",
+                "bank_transfer": "Transferencia bancaria",
+                "card": "Tarjeta"
+            }
+        },
+        "byStaff": {
+            "title": "Por staff",
+            "empty": "Nadie de tu equipo ha cobrado en este periodo.",
+            "summary_one": "{{share}} del total · {{count}} cita",
+            "summary_other": "{{share}} del total · {{count}} citas"
+        },
+        "appointments": {
+            "title": "Citas",
+            "total": "agendadas en este periodo",
+            "attended": "Atendidas",
+            "cancelled": "Canceladas",
+            "upcoming": "Próximas",
+            "bySource": "Agendadas desde",
+            "sources": {
+                "admin": "Tu panel",
+                "public": "Tu página de reservas"
+            }
+        },
+        "customers": {
+            "title": "Clientes",
+            "attended": "atendidos en este periodo",
+            "new": "Nuevos",
+            "returning": "Recurrentes"
+        },
+        "errors": {
+            "load": {
+                "title": "No se pudieron cargar las estadísticas",
+                "body": "Revisa tu conexión e inténtalo otra vez."
+            },
+            "range": {
+                "title": "No se puede mostrar este periodo",
+                "body": "Elige un periodo que termine hoy o antes y que dure un año como máximo."
             }
         }
     }

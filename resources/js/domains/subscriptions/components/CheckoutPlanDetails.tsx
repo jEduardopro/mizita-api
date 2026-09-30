@@ -22,8 +22,8 @@ function chargedTodayCents(plan: Plan): number {
 }
 
 function CheckoutPlanDetailsBody({ plan }: BodyProps) {
-    const { t, i18n } = useTranslation('admin');
-    const formatPrice = (cents: number) => formatMoneyFromCents(cents, plan.currency_code, i18n.language);
+    const { t } = useTranslation('admin');
+    const formatPrice = (cents: number) => formatMoneyFromCents(cents, plan.currency_code);
 
     return (
         <>
