@@ -153,7 +153,15 @@
             "book": "Reservar"
         },
         "policy": {
-            "title": "Antes de reservar"
+            "title": "Antes de reservar",
+            "goodToKnow": "Bueno saber",
+            "open": "Política de reservas",
+            "dialogTitle": "Nuestra política de reservas",
+            "cancellationTitle": "Política de cancelación",
+            "cancellationWindow": "Puedes cancelar o reprogramar hasta {{window}} antes de la hora de la cita.",
+            "cancellationUntilStart": "Puedes cancelar o reprogramar hasta la hora de la cita.",
+            "cancellationNotAllowed": "No se permiten cancelaciones ni cambios de hora una vez reservada la cita.",
+            "acknowledge": "De acuerdo"
         },
         "contact": {
             "title": "Ponte en contacto con nosotros",
@@ -169,7 +177,9 @@
         "hours": {
             "title": "Horarios",
             "today": "Hoy",
-            "openNow": "Abierto ahora · cierra a las {{time}}"
+            "openNow": "Abierto ahora · cierra a las {{time}}",
+            "opensAt": "Abre {{time}}",
+            "opensOn": "Abre {{time}} {{weekday}}"
         },
         "gallery": {
             "title": "Fotos",

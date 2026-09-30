@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\PublicCatalog\Application\Dtos\PublicBusinessPageData;
 use App\Domains\PublicCatalog\Infrastructure\Http\Resources\PublicBusinessPageResource;
 use App\Domains\PublicCatalog\ValueObjects\GuestFieldRequirement;
+use App\Domains\PublicCatalog\ValueObjects\PublicCancellationWindow;
 use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use Tests\Support\PublicCatalog\PublicCatalogFixtures;
 use Tests\TestCase;
@@ -151,6 +152,7 @@ describe('what a visitor is allowed to see', function () {
             'contact_fields',
             'email',
             'address',
+            'cancellation_window_minutes',
             'booking_policy',
             'policy_message',
         ]);
@@ -183,6 +185,7 @@ describe('the client contract', function () {
             'location',
             'contact',
             'contact_fields',
+            'cancellation_window_minutes',
             'booking_policy',
         ]);
     });
@@ -283,7 +286,10 @@ describe('the client contract', function () {
                 'email' => 'optional',
                 'address' => 'hidden',
             ],
-            'booking_policy' => ['policy_message' => PublicCatalogFixtures::POLICY_MESSAGE],
+            'cancellation_window_minutes' => PublicCatalogFixtures::CANCELLATION_WINDOW_MINUTES,
+            'booking_policy' => [
+                'policy_message' => PublicCatalogFixtures::POLICY_MESSAGE,
+            ],
         ]);
     });
 });
@@ -340,10 +346,10 @@ describe('the booking policy a visitor is shown', function () {
     });
 
     it('sends no null placeholder for a business that displays no policy', function () {
-        expect(publicPageKeysAtEveryDepth(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())))
-            ->not->toContain('booking_policy')
-            ->and(publicPageKeysAtEveryDepth(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())))
-            ->not->toContain('policy_message');
+        $keys = publicPageKeysAtEveryDepth(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage()));
+
+        expect($keys)->not->toContain('booking_policy')
+            ->and($keys)->not->toContain('policy_message');
     });
 
     it('carries only the message, never the minutes the business schedules by', function () {
@@ -353,8 +359,73 @@ describe('the booking policy a visitor is shown', function () {
             ->and($keys)->not->toContain('lead_time_minutes')
             ->and($keys)->not->toContain('booking_window_minutes')
             ->and($keys)->not->toContain('slot_granularity_minutes')
-            ->and($keys)->not->toContain('cancellation_window_minutes')
             ->and($keys)->not->toContain('display_on_booking_page');
+    });
+});
+
+describe('how long a visitor may still cancel', function () {
+    it('sends the cancellation window as minutes at the top level, outside the booking policy', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            cancellationWindow: PublicCancellationWindow::ofMinutes(90),
+        ));
+
+        expect($serialized['cancellation_window_minutes'])->toBe(90)
+            ->and($serialized['booking_policy'])->not->toHaveKey('cancellation_window_minutes');
+    });
+
+    it('sends null rather than dropping the key when the business allows no cancellation', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            cancellationWindow: PublicCancellationWindow::notAllowed(),
+        ));
+
+        expect($serialized)->toHaveKey('cancellation_window_minutes')
+            ->and($serialized['cancellation_window_minutes'])->toBeNull()
+            ->and(json_encode($serialized, JSON_THROW_ON_ERROR))->toContain('"cancellation_window_minutes":null');
+    });
+
+    it('sends a window of zero as the integer zero, never as null or false', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            cancellationWindow: PublicCancellationWindow::ofMinutes(0),
+        ));
+
+        expect($serialized['cancellation_window_minutes'])->toBe(0)
+            ->and(json_encode($serialized, JSON_THROW_ON_ERROR))->toContain('"cancellation_window_minutes":0');
+    });
+
+    it('sends the window even when the business displays no booking policy', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::page(bookingPolicy: null));
+
+        expect($serialized)->not->toHaveKey('booking_policy')
+            ->and($serialized['cancellation_window_minutes'])->toBe(PublicCatalogFixtures::CANCELLATION_WINDOW_MINUTES);
+    });
+
+    it('is always present, even for a business that filled nothing in', function () {
+        $serialized = serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage());
+
+        expect($serialized)->toHaveKey('cancellation_window_minutes')
+            ->and($serialized['cancellation_window_minutes'])->toBe(PublicCatalogFixtures::CANCELLATION_WINDOW_MINUTES);
+    });
+
+    it('serializes an empty business with the window right after the contact fields', function () {
+        expect(array_keys(serializedPublicBusinessPage(PublicCatalogFixtures::emptyPage())))->toBe([
+            'id',
+            'name',
+            'slug',
+            'about',
+            'timezone',
+            'currency_code',
+            'logo_url',
+            'brand',
+            'schedule',
+            'open_state',
+            'last_bookable_date',
+            'services',
+            'team',
+            'location',
+            'contact',
+            'contact_fields',
+            'cancellation_window_minutes',
+        ]);
     });
 });
 

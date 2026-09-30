@@ -62,6 +62,15 @@
         "saturday": "Sábado",
         "sunday": "Domingo"
     },
+    "weekdaysShort": {
+        "monday": "lun",
+        "tuesday": "mar",
+        "wednesday": "mié",
+        "thursday": "jue",
+        "friday": "vie",
+        "saturday": "sáb",
+        "sunday": "dom"
+    },
     "hours": {
         "closed": "Cerrado"
     },

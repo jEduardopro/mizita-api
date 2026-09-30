@@ -99,6 +99,7 @@ export type PublicBusinessPage = {
     contact: PublicContact;
     contact_fields: PublicContactFields;
     booking_policy?: PublicBookingPolicy;
+    cancellation_window_minutes: number | null;
 };
 
 export type PublicAvailableDay = {

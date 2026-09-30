@@ -8,14 +8,15 @@ type Props = {
     days: BookingDayHours[];
     today: WeekdayNumber | null;
     accent: BrandColorClasses;
+    className?: string;
 };
 
-export function BookingHours({ days, today, accent }: Props) {
+export function BookingHours({ days, today, accent, className }: Props) {
     const { t } = useTranslation('public');
     const { t: tCommon } = useTranslation('common');
 
     return (
-        <ul className="grid max-w-md gap-0.5 text-sm">
+        <ul className={cn('grid max-w-md gap-0.5 text-sm', className)}>
             {days.map((day) => {
                 const isToday = day.weekday === today;
 

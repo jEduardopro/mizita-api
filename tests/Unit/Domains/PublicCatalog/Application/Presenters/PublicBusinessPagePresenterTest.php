@@ -9,6 +9,7 @@ use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
+use App\Domains\PublicCatalog\Contracts\PublishedCancellationWindow;
 use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
 use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
@@ -20,6 +21,7 @@ use App\Domains\PublicCatalog\ValueObjects\GuestFieldRequirement;
 use App\Domains\PublicCatalog\ValueObjects\GuestFormFields;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
+use App\Domains\PublicCatalog\ValueObjects\PublicCancellationWindow;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
 use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
 use App\Shared\ValueObjects\DomainFailureKind;
@@ -37,6 +39,7 @@ beforeEach(function () {
     $this->contact = Mockery::mock(PublishedContact::class);
     $this->bookingPolicy = Mockery::mock(PublishedBookingPolicy::class);
     $this->contactFields = Mockery::mock(GuestContactFields::class);
+    $this->cancellationWindow = Mockery::mock(PublishedCancellationWindow::class);
 
     $this->presenter = new PublicBusinessPagePresenter(
         $this->businesses,
@@ -50,6 +53,7 @@ beforeEach(function () {
         $this->contact,
         $this->bookingPolicy,
         $this->contactFields,
+        $this->cancellationWindow,
     );
 
     $this->publish = function (?PublicBusinessProfile $profile = null): void {
@@ -69,6 +73,8 @@ beforeEach(function () {
             ->andReturn(PublicCatalogFixtures::bookingPolicy());
         $this->contactFields->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::contactFields());
+        $this->cancellationWindow->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::cancellationWindow());
     };
 
     $this->describe = fn (string $slug = PublicCatalogFixtures::SLUG): PublicBusinessPageData => $this->presenter
@@ -137,10 +143,12 @@ describe('assembling the page a visitor reads', function () {
             ->with(Mockery::on($record))->andReturnNull();
         $this->contactFields->shouldReceive('forBusiness')->once()
             ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::contactFields());
+        $this->cancellationWindow->shouldReceive('forBusiness')->once()
+            ->with(Mockery::on($record))->andReturn(PublicCatalogFixtures::cancellationWindow());
 
         ($this->describe)();
 
-        expect($asked)->toBe(array_fill(0, 10, PublicCatalogFixtures::BUSINESS_ID));
+        expect($asked)->toBe(array_fill(0, 11, PublicCatalogFixtures::BUSINESS_ID));
     });
 
     it('carries the section each port answered with, without rewriting it', function () {
@@ -164,6 +172,8 @@ describe('assembling the page a visitor reads', function () {
         $this->contact->shouldReceive('forBusiness')->once()->andReturn($contact);
         $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contactFields->shouldReceive('forBusiness')->once()->andReturn($contactFields);
+        $this->cancellationWindow->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::cancellationWindow());
 
         $page = ($this->describe)();
 
@@ -189,6 +199,8 @@ describe('assembling the page a visitor reads', function () {
         $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contactFields->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::contactFields());
+        $this->cancellationWindow->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::cancellationWindow());
 
         $page = ($this->describe)();
 
@@ -259,6 +271,8 @@ describe('the staff a service may be booked with', function () {
             $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
             $this->contactFields->shouldReceive('forBusiness')->once()
                 ->andReturn(PublicCatalogFixtures::contactFields());
+            $this->cancellationWindow->shouldReceive('forBusiness')->once()
+                ->andReturn(PublicCatalogFixtures::cancellationWindow());
         };
     });
 
@@ -355,6 +369,8 @@ describe('whether the doors are open right now', function () {
         $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
         $this->contactFields->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::contactFields());
+        $this->cancellationWindow->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::cancellationWindow());
 
         $page = ($this->describe)();
 
@@ -387,6 +403,58 @@ describe('the contact fields a visitor is asked for', function () {
         $this->businesses->shouldReceive('findBySlug')->once()
             ->andThrow(BusinessPageNotFound::withSlug(PublicCatalogFixtures::UNKNOWN_SLUG));
         $this->contactFields->shouldNotReceive('forBusiness');
+
+        expect(fn () => ($this->describe)(PublicCatalogFixtures::UNKNOWN_SLUG))->toThrow(BusinessPageNotFound::class);
+    });
+});
+
+describe('how long a visitor may still cancel', function () {
+    beforeEach(function () {
+        $this->publishWindow = function (PublicCancellationWindow $window): void {
+            $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
+            $this->brand->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::brand());
+            $this->schedule->shouldReceive('forBusiness')->once()->andReturn([]);
+            $this->openState->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::openState());
+            $this->bookingHorizon->shouldReceive('lastBookableDateFor')->once()
+                ->andReturn(PublicCatalogFixtures::LAST_BOOKABLE_DATE);
+            $this->services->shouldReceive('forBusiness')->once()->andReturn([]);
+            $this->team->shouldReceive('forBusiness')->once()->andReturn([]);
+            $this->location->shouldReceive('forBusiness')->once()->andReturnNull();
+            $this->contact->shouldReceive('forBusiness')->once()->andReturn(PublicCatalogFixtures::contact());
+            $this->bookingPolicy->shouldReceive('forBusiness')->once()->andReturnNull();
+            $this->contactFields->shouldReceive('forBusiness')->once()
+                ->andReturn(PublicCatalogFixtures::contactFields());
+            $this->cancellationWindow->shouldReceive('forBusiness')->once()
+                ->with(PublicCatalogFixtures::BUSINESS_ID)->andReturn($window);
+        };
+    });
+
+    it('carries the window the port answered with, without rewriting it', function (PublicCancellationWindow $window, ?int $minutes) {
+        ($this->publishWindow)($window);
+
+        $page = ($this->describe)();
+
+        expect($page->cancellationWindow)->toBe($window)
+            ->and($page->cancellationWindow->minutes)->toBe($minutes);
+    })->with([
+        'a window of two hours' => [fn () => PublicCancellationWindow::ofMinutes(120), 120],
+        'until the appointment starts' => [fn () => PublicCancellationWindow::ofMinutes(0), 0],
+        'no cancellation allowed' => [fn () => PublicCancellationWindow::notAllowed(), null],
+    ]);
+
+    it('carries the window even when the business displays no booking policy', function () {
+        ($this->publishWindow)(PublicCancellationWindow::ofMinutes(45));
+
+        $page = ($this->describe)();
+
+        expect($page->bookingPolicy)->toBeNull()
+            ->and($page->cancellationWindow->minutes)->toBe(45);
+    });
+
+    it('asks nothing about the window of a business the slug does not answer to', function () {
+        $this->businesses->shouldReceive('findBySlug')->once()
+            ->andThrow(BusinessPageNotFound::withSlug(PublicCatalogFixtures::UNKNOWN_SLUG));
+        $this->cancellationWindow->shouldNotReceive('forBusiness');
 
         expect(fn () => ($this->describe)(PublicCatalogFixtures::UNKNOWN_SLUG))->toThrow(BusinessPageNotFound::class);
     });
@@ -430,6 +498,7 @@ describe('the ports it is built from', function () {
             PublishedContact::class,
             PublishedBookingPolicy::class,
             GuestContactFields::class,
+            PublishedCancellationWindow::class,
         ])->and(array_filter($types, static fn (string $type): bool => ! interface_exists($type)))->toBe([]);
     });
 

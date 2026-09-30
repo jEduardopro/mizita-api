@@ -8,6 +8,7 @@ use App\Domains\PublicCatalog\ValueObjects\GuestFormFields;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingPolicy;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
+use App\Domains\PublicCatalog\ValueObjects\PublicCancellationWindow;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
 use App\Domains\PublicCatalog\ValueObjects\PublicLocation;
 use App\Domains\PublicCatalog\ValueObjects\PublicOpenState;
@@ -34,5 +35,6 @@ final readonly class PublicBusinessPageData
         public PublicContact $contact,
         public ?PublicBookingPolicy $bookingPolicy,
         public GuestFormFields $contactFields,
+        public PublicCancellationWindow $cancellationWindow,
     ) {}
 }

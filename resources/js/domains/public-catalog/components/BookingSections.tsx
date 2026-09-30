@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { BrandColorClasses, WeekdayNumber } from '@/lib/booking-brand';
 import type { PublicBusinessPage } from '../types';
 import type { BookingDayHours } from './booking-schedule';
-import { aboutTextFrom, BOOKING_SECTION_IDS, hasAboutSection } from './booking-sections';
+import { aboutTextFrom, BOOKING_SECTION_IDS } from './booking-sections';
 import { BookingAbout } from './BookingAbout';
 import { BookingGallery } from './BookingGallery';
 import { BookingHours } from './BookingHours';
@@ -30,8 +30,6 @@ export function BookingSections({
 }: Props) {
     const { t } = useTranslation('public');
 
-    const about = aboutTextFrom(page);
-
     return (
         <div className="divide-y divide-border rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
             {page.services.length === 0 ? null : (
@@ -56,15 +54,15 @@ export function BookingSections({
                 </BookingSection>
             )}
 
-            {! hasAboutSection(page) ? null : (
-                <BookingSection id={BOOKING_SECTION_IDS.about} title={t('booking.nav.about')}>
-                    <BookingAbout
-                        about={about}
-                        phone={page.contact.phone}
-                        links={page.contact.links}
-                    />
-                </BookingSection>
-            )}
+            <BookingSection id={BOOKING_SECTION_IDS.about} title={t('booking.nav.about')}>
+                <BookingAbout
+                    about={aboutTextFrom(page)}
+                    phone={page.contact.phone}
+                    links={page.contact.links}
+                    cancellationWindowMinutes={page.cancellation_window_minutes}
+                    themeScope={themeScope}
+                />
+            </BookingSection>
 
             {page.brand.gallery.length === 0 ? null : (
                 <BookingSection id={BOOKING_SECTION_IDS.gallery} title={t('booking.nav.gallery')}>

@@ -14,6 +14,7 @@ use App\Domains\PublicCatalog\ValueObjects\PublicBookingRequest;
 use App\Domains\PublicCatalog\ValueObjects\PublicBookingStatus;
 use App\Domains\PublicCatalog\ValueObjects\PublicBrand;
 use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
+use App\Domains\PublicCatalog\ValueObjects\PublicCancellationWindow;
 use App\Domains\PublicCatalog\ValueObjects\PublicContact;
 use App\Domains\PublicCatalog\ValueObjects\PublicGalleryImage;
 use App\Domains\PublicCatalog\ValueObjects\PublicGuestAddress;
@@ -94,6 +95,8 @@ final class PublicCatalogFixtures
     public const INSTAGRAM_URL = 'https://instagram.com/ada.salon';
 
     public const POLICY_MESSAGE = 'Cancela con 24 horas de anticipación.';
+
+    public const CANCELLATION_WINDOW_MINUTES = 120;
 
     public const REFERENCE_CODE = 'A2B3C4D5';
 
@@ -332,6 +335,11 @@ final class PublicCatalogFixtures
         return new PublicBookingPolicy(policyMessage: $policyMessage);
     }
 
+    public static function cancellationWindow(int $minutes = self::CANCELLATION_WINDOW_MINUTES): PublicCancellationWindow
+    {
+        return PublicCancellationWindow::ofMinutes($minutes);
+    }
+
     public static function teamMember(
         string $id = self::TEAM_MEMBER_ID,
         string $name = 'Ada Lovelace',
@@ -400,6 +408,7 @@ final class PublicCatalogFixtures
         ?PublicContact $contact = null,
         ?PublicBookingPolicy $bookingPolicy = new PublicBookingPolicy(self::POLICY_MESSAGE),
         ?GuestFormFields $contactFields = null,
+        ?PublicCancellationWindow $cancellationWindow = null,
     ): PublicBusinessPageData {
         return new PublicBusinessPageData(
             profile: $profile ?? self::profile(),
@@ -413,6 +422,7 @@ final class PublicCatalogFixtures
             contact: $contact ?? self::contact(),
             bookingPolicy: $bookingPolicy,
             contactFields: $contactFields ?? self::contactFields(),
+            cancellationWindow: $cancellationWindow ?? self::cancellationWindow(),
         );
     }
 
@@ -430,6 +440,7 @@ final class PublicCatalogFixtures
             contact: self::contact(phone: null, links: []),
             bookingPolicy: null,
             contactFields: self::contactFields(),
+            cancellationWindow: self::cancellationWindow(),
         );
     }
 }

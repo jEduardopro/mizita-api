@@ -48,6 +48,7 @@ final class PublicBusinessPageResource extends JsonResource
             'location' => self::describeLocation($this->resource->location),
             'contact' => self::describeContact($this->resource->contact),
             'contact_fields' => self::describeContactFields($this->resource->contactFields),
+            'cancellation_window_minutes' => $this->resource->cancellationWindow->minutes,
             ...self::describeBookingPolicy($this->resource->bookingPolicy),
         ];
     }

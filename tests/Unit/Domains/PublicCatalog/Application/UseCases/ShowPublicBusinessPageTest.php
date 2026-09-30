@@ -11,6 +11,7 @@ use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
+use App\Domains\PublicCatalog\Contracts\PublishedCancellationWindow;
 use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
 use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
@@ -63,6 +64,7 @@ beforeEach(function () {
     $this->contact = Mockery::mock(PublishedContact::class);
     $this->bookingPolicy = Mockery::mock(PublishedBookingPolicy::class);
     $this->contactFields = Mockery::mock(GuestContactFields::class);
+    $this->cancellationWindow = Mockery::mock(PublishedCancellationWindow::class);
 
     $this->useCase = new ShowPublicBusinessPage(new PublicBusinessPagePresenter(
         $this->businesses,
@@ -76,6 +78,7 @@ beforeEach(function () {
         $this->contact,
         $this->bookingPolicy,
         $this->contactFields,
+        $this->cancellationWindow,
     ));
 
     $this->sectionPorts = fn (): array => [
@@ -88,6 +91,7 @@ beforeEach(function () {
         $this->contact,
         $this->bookingPolicy,
         $this->contactFields,
+        $this->cancellationWindow,
     ];
 
     $this->publish = function (): void {
@@ -105,6 +109,8 @@ beforeEach(function () {
             ->andReturn(PublicCatalogFixtures::bookingPolicy());
         $this->contactFields->shouldReceive('forBusiness')->once()
             ->andReturn(PublicCatalogFixtures::contactFields());
+        $this->cancellationWindow->shouldReceive('forBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::cancellationWindow());
     };
 
     $this->show = fn (string $slug = PublicCatalogFixtures::SLUG): UseCaseResponse => $this->useCase
@@ -137,7 +143,8 @@ describe('showing the page a visitor opened', function () {
             ->and($page->contact->phone)->toBe('+525512345678')
             ->and($page->contactFields->phone)->toBe(GuestFieldRequirement::Required)
             ->and($page->contactFields->email)->toBe(GuestFieldRequirement::Optional)
-            ->and($page->contactFields->address)->toBe(GuestFieldRequirement::Hidden);
+            ->and($page->contactFields->address)->toBe(GuestFieldRequirement::Hidden)
+            ->and($page->cancellationWindow->minutes)->toBe(PublicCatalogFixtures::CANCELLATION_WINDOW_MINUTES);
     });
 
     it('sends every id on the page as a uuid, never an internal key', function () {

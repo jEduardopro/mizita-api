@@ -25,3 +25,15 @@ function windowDurationLabel(minutes: number, t: TFunction<'public'>): string {
 export function cancellationWindowNote(minutes: number, t: TFunction<'public'>): string {
     return t('booking.manage.window', { window: windowDurationLabel(minutes, t) });
 }
+
+export function policyCancellationNote(minutes: number | null, t: TFunction<'public'>): string {
+    if (minutes === null) {
+        return t('booking.policy.cancellationNotAllowed');
+    }
+
+    if (minutes === 0) {
+        return t('booking.policy.cancellationUntilStart');
+    }
+
+    return t('booking.policy.cancellationWindow', { window: windowDurationLabel(minutes, t) });
+}

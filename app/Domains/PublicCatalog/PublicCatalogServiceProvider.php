@@ -13,6 +13,7 @@ use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
+use App\Domains\PublicCatalog\Contracts\PublishedCancellationWindow;
 use App\Domains\PublicCatalog\Contracts\PublishedCity;
 use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
@@ -38,6 +39,7 @@ use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPagesPublishedBanne
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPagesPublishedBrand;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesGuestContactFields;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesPublishedBookingPolicy;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesPublishedCancellationWindow;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BusinessesPublishedBusinesses;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\PhonesLinksPublishedContact;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServiceLinks;
@@ -93,6 +95,7 @@ final class PublicCatalogServiceProvider extends ServiceProvider
         $this->app->bind(PublishedBrand::class, BookingPagesPublishedBrand::class);
         $this->app->bind(PublishedBanner::class, BookingPagesPublishedBanner::class);
         $this->app->bind(PublishedBookingPolicy::class, BookingPoliciesPublishedBookingPolicy::class);
+        $this->app->bind(PublishedCancellationWindow::class, BookingPoliciesPublishedCancellationWindow::class);
         $this->app->bind(PublishedLocation::class, AddressesPublishedLocation::class);
         $this->app->bind(PublishedCity::class, AddressesPublishedCity::class);
         $this->app->bind(PublishedStates::class, AddressesPublishedStates::class);

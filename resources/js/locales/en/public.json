@@ -153,7 +153,15 @@
             "book": "Book"
         },
         "policy": {
-            "title": "Before you book"
+            "title": "Before you book",
+            "goodToKnow": "Good to know",
+            "open": "Booking policy",
+            "dialogTitle": "Our booking policy",
+            "cancellationTitle": "Cancellation policy",
+            "cancellationWindow": "You can cancel or reschedule up to {{window}} before your appointment time.",
+            "cancellationUntilStart": "You can cancel or reschedule until your appointment starts.",
+            "cancellationNotAllowed": "Cancellations and rescheduling are not allowed once the appointment is booked.",
+            "acknowledge": "Got it"
         },
         "contact": {
             "title": "Get in touch",
@@ -169,7 +177,9 @@
         "hours": {
             "title": "Opening hours",
             "today": "Today",
-            "openNow": "Open now · closes at {{time}}"
+            "openNow": "Open now · closes at {{time}}",
+            "opensAt": "Opens {{time}}",
+            "opensOn": "Opens {{weekday}} {{time}}"
         },
         "gallery": {
             "title": "Photos",

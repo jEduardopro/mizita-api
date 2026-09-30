@@ -1,32 +1,44 @@
 import { cn } from 'cn';
-import { Clock, MapPin, Store } from 'lucide-react';
+import { MapPin, Store } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { brandColorClasses, BUTTON_SHAPE_CLASSES, type TimeInterval } from '@/lib/booking-brand';
+import { brandColorClasses, type WeekdayNumber } from '@/lib/booking-brand';
 import type { PublicBusinessPage } from '../types';
-import { addressLinesFrom } from './booking-address';
+import { addressLinesFrom, mapUrlFor } from './booking-address';
 import { socialLinksFrom, websiteLinkFrom } from './booking-links';
-import { intervalKeyFor, intervalLabelFor } from './booking-schedule';
+import type { BookingDayHours } from './booking-schedule';
 import { bookingStepUrl, businessPath } from './booking/booking-steps';
 import { BookingShareButton } from './booking/BookingShareButton';
 import { BookingContactPills } from './BookingContactPills';
 import { BookingCta } from './BookingCta';
 import { BookingOpenBadge } from './BookingOpenBadge';
+import { BookingSidebarHours } from './BookingSidebarHours';
 import { BookingSocialLinks } from './BookingSocialLinks';
 
 type Props = {
     page: PublicBusinessPage;
-    todayIntervals: TimeInterval[];
+    days: BookingDayHours[];
+    today: WeekdayNumber | null;
 };
 
-export function BookingSidebar({ page, todayIntervals }: Props) {
+export function BookingSidebar({ page, days, today }: Props) {
     const { t } = useTranslation('public');
-    const { t: tCommon } = useTranslation('common');
 
     const accent = brandColorClasses[page.brand.accent_color];
     const website = websiteLinkFrom(page.contact.links);
     const socialLinks = socialLinksFrom(page.contact.links);
     const addressLines = page.location === null ? [] : addressLinesFrom(page.location);
     const hasContactLinks = page.contact.phone !== null || page.contact.links.length > 0;
+
+    const shareButton = (
+        <BookingShareButton
+            url={`${window.location.origin}${businessPath(page.slug)}`}
+            title={t('booking.share.title', { name: page.name })}
+            label={t('booking.share.label')}
+            copied={t('booking.share.copied')}
+            copyFailed={t('booking.share.copyFailed')}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground"
+        />
+    );
 
     return (
         <div className="grid justify-items-center gap-5 rounded-2xl border border-border bg-card p-5 text-center text-card-foreground shadow-sm sm:p-6">
@@ -50,27 +62,12 @@ export function BookingSidebar({ page, todayIntervals }: Props) {
             </div>
 
             <div className="grid w-full justify-items-center gap-4">
-                <div className="flex w-full items-stretch gap-2">
-                    <BookingCta
-                        href={bookingStepUrl(page.slug, 'service', {})}
-                        accentColor={page.brand.accent_color}
-                        buttonShape={page.brand.button_shape}
-                        className="min-w-0 flex-1"
-                    />
-
-                    <BookingShareButton
-                        url={`${window.location.origin}${businessPath(page.slug)}`}
-                        title={t('booking.share.title', { name: page.name })}
-                        label={t('booking.share.label')}
-                        copied={t('booking.share.copied')}
-                        copyFailed={t('booking.share.copyFailed')}
-                        className={cn(
-                            'size-12 text-foreground',
-                            accent.surface,
-                            BUTTON_SHAPE_CLASSES[page.brand.button_shape],
-                        )}
-                    />
-                </div>
+                <BookingCta
+                    href={bookingStepUrl(page.slug, 'service', {})}
+                    accentColor={page.brand.accent_color}
+                    buttonShape={page.brand.button_shape}
+                    className="w-full"
+                />
 
                 {page.open_state.open ? (
                     <BookingOpenBadge closesAt={page.open_state.closes_at} accent={accent} />
@@ -78,30 +75,24 @@ export function BookingSidebar({ page, todayIntervals }: Props) {
             </div>
 
             {page.schedule.length === 0 ? null : (
-                <p className="flex flex-wrap items-center justify-center gap-x-2 text-sm">
-                    <Clock aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-
-                    <span className="text-muted-foreground">{t('booking.hours.today')}</span>
-
-                    {todayIntervals.length === 0 ? (
-                        <span>{tCommon('hours.closed')}</span>
-                    ) : (
-                        todayIntervals.map((interval) => (
-                            <span
-                                key={intervalKeyFor(interval)}
-                                className="whitespace-nowrap tabular-nums"
-                            >
-                                {intervalLabelFor(interval)}
-                            </span>
-                        ))
-                    )}
-                </p>
+                <BookingSidebarHours
+                    openState={page.open_state}
+                    days={days}
+                    today={today}
+                    timezone={page.timezone}
+                    accent={accent}
+                />
             )}
 
             {addressLines.length === 0 && ! hasContactLinks ? null : (
                 <div className="grid w-full justify-items-center gap-5 border-t border-border pt-5">
-                    {addressLines.length === 0 ? null : (
-                        <p className="flex items-start justify-center gap-2 text-sm leading-relaxed">
+                    {page.location === null || addressLines.length === 0 ? null : (
+                        <a
+                            href={mapUrlFor(page.location)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-start justify-center gap-2 rounded-lg text-sm leading-relaxed outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
                             <MapPin
                                 aria-hidden="true"
                                 className="mt-0.5 size-4 shrink-0 text-muted-foreground"
@@ -109,10 +100,17 @@ export function BookingSidebar({ page, todayIntervals }: Props) {
 
                             <span className="grid">
                                 {addressLines.map((line) => (
-                                    <span key={line}>{line}</span>
+                                    <span
+                                        key={line}
+                                        className="transition-colors group-hover:text-muted-foreground"
+                                    >
+                                        {line}
+                                    </span>
                                 ))}
+
+                                <span className="sr-only">{` (${t('booking.location.mapLink')})`}</span>
                             </span>
-                        </p>
+                        </a>
                     )}
 
                     {! hasContactLinks ? null : (
@@ -123,13 +121,19 @@ export function BookingSidebar({ page, todayIntervals }: Props) {
 
                             <BookingContactPills phone={page.contact.phone} website={website} />
 
-                            {socialLinks.length === 0 ? null : (
-                                <BookingSocialLinks links={socialLinks} />
-                            )}
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                                {socialLinks.length === 0 ? null : (
+                                    <BookingSocialLinks links={socialLinks} />
+                                )}
+
+                                {shareButton}
+                            </div>
                         </div>
                     )}
                 </div>
             )}
+
+            {hasContactLinks ? null : shareButton}
         </div>
     );
 }

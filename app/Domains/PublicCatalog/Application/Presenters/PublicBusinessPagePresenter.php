@@ -10,6 +10,7 @@ use App\Domains\PublicCatalog\Contracts\PublishedBookingHorizon;
 use App\Domains\PublicCatalog\Contracts\PublishedBookingPolicy;
 use App\Domains\PublicCatalog\Contracts\PublishedBrand;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
+use App\Domains\PublicCatalog\Contracts\PublishedCancellationWindow;
 use App\Domains\PublicCatalog\Contracts\PublishedContact;
 use App\Domains\PublicCatalog\Contracts\PublishedLocation;
 use App\Domains\PublicCatalog\Contracts\PublishedOpenState;
@@ -34,6 +35,7 @@ final class PublicBusinessPagePresenter
         private readonly PublishedContact $contact,
         private readonly PublishedBookingPolicy $bookingPolicy,
         private readonly GuestContactFields $contactFields,
+        private readonly PublishedCancellationWindow $cancellationWindow,
     ) {}
 
     /**
@@ -56,6 +58,7 @@ final class PublicBusinessPagePresenter
             contact: $this->contact->forBusiness($profile->id),
             bookingPolicy: $this->bookingPolicy->forBusiness($profile->id),
             contactFields: $this->contactFields->forBusiness($profile->id),
+            cancellationWindow: $this->cancellationWindow->forBusiness($profile->id),
         );
     }
 
