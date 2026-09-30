@@ -149,7 +149,7 @@ export default function Calendar() {
     );
 
     return (
-        <AdminLayout title={t('calendar.title')} fullBleed>
+        <AdminLayout title={t('calendar.title')} frame="bleed">
             <div className="flex h-full min-h-0 flex-1 flex-col">
                 <CalendarToolbar
                     label={monthYearLabel}

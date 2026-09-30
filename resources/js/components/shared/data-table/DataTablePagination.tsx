@@ -43,7 +43,7 @@ export function DataTablePagination({
     return (
         <nav
             aria-label={t('table.pagination')}
-            className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <Label id={pageSizeLabelId} htmlFor={pageSizeId} className="text-xs text-muted-foreground">

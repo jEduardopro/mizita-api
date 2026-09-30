@@ -48,6 +48,7 @@ export default function Team() {
     return (
         <AdminLayout
             title={t('team.title')}
+            frame="viewport"
             description={t('team.description')}
             breadcrumbs={[
                 { label: t('nav.settings'), href: BRAND_SETTINGS_URL },

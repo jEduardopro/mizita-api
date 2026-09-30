@@ -46,6 +46,7 @@ export default function CustomersIndex() {
     return (
         <AdminLayout
             title={t('customers.title')}
+            frame="viewport"
             actions={
                 can('create_customer') ? (
                     <Button asChild variant="brand" className="h-11 px-4 md:h-9">

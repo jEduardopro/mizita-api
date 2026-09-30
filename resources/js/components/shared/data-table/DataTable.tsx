@@ -109,7 +109,7 @@ export function DataTable<TData, TValue>({
     });
 
     return (
-        <div className="grid gap-4">
+        <div className="flex min-h-0 flex-col gap-4">
             <DataTableToolbarSlot
                 toolbar={toolbar}
                 status={status}
@@ -127,7 +127,7 @@ export function DataTable<TData, TValue>({
                 <div
                     aria-busy={isFetching}
                     className={cn(
-                        'motion-safe:transition-opacity',
+                        'flex min-h-0 flex-col motion-safe:transition-opacity',
                         isFetching ? 'opacity-60' : undefined,
                     )}
                 >
@@ -137,11 +137,11 @@ export function DataTable<TData, TValue>({
                         ))}
                     </div>
 
-                    <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
+                    <div className="hidden min-h-0 overflow-auto rounded-xl border border-border bg-card md:block [&_[data-slot=table-container]]:overflow-visible">
                         <Table>
                             <TableCaption className="sr-only">{caption}</TableCaption>
 
-                            <TableHeader>
+                            <TableHeader className="[&_tr]:border-b-0">
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id} className="hover:bg-transparent">
                                         {headerGroup.headers.map((header) => {
@@ -156,7 +156,7 @@ export function DataTable<TData, TValue>({
                                                 <TableHead
                                                     key={header.id}
                                                     aria-sort={ariaSortOf(canSort, sortState)}
-                                                    className="h-11 px-3 text-xs font-medium text-muted-foreground"
+                                                    className="sticky top-0 z-10 h-11 bg-card px-3 text-xs font-medium text-muted-foreground shadow-[inset_0_-1px_0_var(--color-border)]"
                                                 >
                                                     {canSort ? (
                                                         <button

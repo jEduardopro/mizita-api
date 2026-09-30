@@ -79,6 +79,7 @@ export default function ServicesIndex() {
     return (
         <AdminLayout
             title={t('services.title')}
+            frame={view === 'table' ? 'viewport' : 'page'}
             actions={
                 can('create_service') ? (
                     <Button asChild variant="brand" className="h-11 px-4 md:h-9">
@@ -90,7 +91,7 @@ export default function ServicesIndex() {
                 ) : undefined
             }
         >
-            <div className="grid gap-4">
+            <div className="flex min-h-0 flex-col gap-4">
                 <ActiveServiceQuotaMeter allowance={allowance} />
 
                 {view === 'table' ? (
