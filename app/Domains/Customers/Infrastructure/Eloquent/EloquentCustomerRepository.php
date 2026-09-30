@@ -13,11 +13,14 @@ use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
 use App\Domains\Customers\ValueObjects\CustomerEmail;
 use App\Domains\Customers\ValueObjects\CustomerQuery;
 use App\Domains\Customers\ValueObjects\CustomerSort;
+use App\Domains\Customers\ValueObjects\RegistrationWindow;
 use App\Shared\Contracts\BusinessTeamKey;
 use App\Shared\Infrastructure\Search\SearchableColumns;
 use App\Shared\Infrastructure\Search\TokenSearch;
 use App\Shared\ValueObjects\Paginated;
 use App\Shared\ValueObjects\SearchTerm;
+use DateTimeImmutable;
+use DateTimeZone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -29,6 +32,10 @@ final class EloquentCustomerRepository implements CustomerRepository
     private const BUSINESSES_TABLE = 'businesses';
 
     private const TIEBREAKER_COLUMN = 'id';
+
+    private const REGISTRATION_COLUMN = 'created_at';
+
+    private const STORAGE_TIMEZONE = 'UTC';
 
     public function __construct(
         private readonly CustomerMapper $mapper,
@@ -187,7 +194,7 @@ final class EloquentCustomerRepository implements CustomerRepository
      */
     private function matching(string $businessId, CustomerQuery $query): Builder
     {
-        $scoped = $this->ofBusiness($businessId);
+        $scoped = $this->registeredWithin($this->ofBusiness($businessId), $query->registeredWithin);
         $search = $query->search;
 
         if ($search === null) {
@@ -205,6 +212,26 @@ final class EloquentCustomerRepository implements CustomerRepository
 
             $matches->orWhereIn('uuid', $phoneMatches);
         });
+    }
+
+    /**
+     * @param  Builder<CustomerModel>  $query
+     * @return Builder<CustomerModel>
+     */
+    private function registeredWithin(Builder $query, ?RegistrationWindow $window): Builder
+    {
+        if ($window === null) {
+            return $query;
+        }
+
+        return $query
+            ->where(self::REGISTRATION_COLUMN, '>=', self::storedInstant($window->startsAt))
+            ->where(self::REGISTRATION_COLUMN, '<', self::storedInstant($window->endsAt));
+    }
+
+    private static function storedInstant(DateTimeImmutable $instant): string
+    {
+        return $instant->setTimezone(new DateTimeZone(self::STORAGE_TIMEZONE))->format(DATE_ATOM);
     }
 
     /**

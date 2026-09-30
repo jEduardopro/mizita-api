@@ -5,18 +5,20 @@ import { dataTableStatus } from '@/components/shared/data-table/status';
 import type { DataTableToolbar } from '@/components/shared/data-table/types';
 import type { DataTableQuery } from '@/components/shared/data-table/use-data-table-query';
 import { useCustomers } from '../queries';
-import type { CustomerSortField } from '../types';
+import type { CustomerRegistrationRange, CustomerSortField } from '../types';
 import { customerColumns } from './customer-columns';
+import { customerListFilters } from './customer-list-filters';
 import { CustomerListRow } from './CustomerListRow';
 import { CustomersEmptyState } from './CustomersEmptyState';
 
 type Props = {
     query: DataTableQuery<CustomerSortField>;
+    registrationRange: CustomerRegistrationRange | null;
     toolbar: DataTableToolbar;
-    onClearSearch: () => void;
+    onClearFilters: () => void;
 };
 
-export function CustomersTable({ query, toolbar, onClearSearch }: Props) {
+export function CustomersTable({ query, registrationRange, toolbar, onClearFilters }: Props) {
     const { t } = useTranslation('admin');
 
     const customers = useCustomers({
@@ -24,7 +26,7 @@ export function CustomersTable({ query, toolbar, onClearSearch }: Props) {
         per_page: query.perPage,
         sort: query.sort.field,
         direction: query.sort.direction,
-        search: query.search === '' ? undefined : query.search,
+        ...customerListFilters(query.search, registrationRange),
     });
 
     const columns = useMemo(() => customerColumns({ t }), [t]);
@@ -46,7 +48,11 @@ export function CustomersTable({ query, toolbar, onClearSearch }: Props) {
             showsPreviousRows={customers.isPlaceholderData}
             onRetry={() => void customers.refetch()}
             emptyState={
-                <CustomersEmptyState search={query.search} onClearSearch={onClearSearch} />
+                <CustomersEmptyState
+                    search={query.search}
+                    hasRegistrationRange={registrationRange !== null}
+                    onClearFilters={onClearFilters}
+                />
             }
             renderCard={(customer) => <CustomerListRow customer={customer} />}
             toolbar={toolbar}

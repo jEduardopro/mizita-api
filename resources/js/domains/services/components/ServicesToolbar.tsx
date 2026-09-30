@@ -1,5 +1,5 @@
 import { LayoutList, Search, Table2 } from 'lucide-react';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,11 +16,12 @@ function isServicesView(value: string): value is ServicesView {
 type Props = {
     search: string;
     onSearchChange: (value: string) => void;
+    filters: ReactNode;
     view: ServicesView;
     onViewChange: (view: ServicesView) => void;
 };
 
-export function ServicesToolbar({ search, onSearchChange, view, onViewChange }: Props) {
+export function ServicesToolbar({ search, onSearchChange, filters, view, onViewChange }: Props) {
     const { t } = useTranslation('admin');
     const searchId = useId();
 
@@ -46,6 +47,8 @@ export function ServicesToolbar({ search, onSearchChange, view, onViewChange }: 
                     className="h-11 pl-9 text-base md:h-9 md:text-base"
                 />
             </div>
+
+            {filters}
 
             <ToggleGroup
                 type="single"

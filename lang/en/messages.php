@@ -167,6 +167,7 @@ return [
         'invalid_customer_birth_date' => 'That date of birth is not valid.',
         'invalid_customer_notes' => 'Those notes are too long.',
         'invalid_customer_search' => 'That search is too long.',
+        'invalid_customer_registration_period' => 'That registration date range is not valid.',
         'customer_photo_too_large' => 'That photo is too large. Please use one under 2 MB.',
         'unsupported_customer_photo' => 'That file is not a photo we support. Please use a JPG, PNG or WebP.',
 

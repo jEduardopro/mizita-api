@@ -100,5 +100,21 @@
         "friday": "Friday",
         "saturday": "Saturday",
         "sunday": "Sunday"
+    },
+    "dateRange": {
+        "calendar": "Choose a date range",
+        "presetsLabel": "Quick ranges",
+        "presets": {
+            "today": "Today",
+            "yesterday": "Yesterday",
+            "last7Days": "Last 7 days",
+            "last30Days": "Last 30 days",
+            "thisMonth": "This month"
+        },
+        "previousMonth": "Previous month",
+        "nextMonth": "Next month",
+        "today": "Today",
+        "clear": "Clear dates",
+        "apply": "Apply"
     }
 }

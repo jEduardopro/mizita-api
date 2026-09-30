@@ -69,6 +69,18 @@ export async function listCustomerAppointments(
     return data;
 }
 
+export async function getCustomerLastAppointment(
+    customerId: string,
+    signal?: AbortSignal,
+): Promise<Appointment | null> {
+    const { data } = await api.get<{ data: Appointment | null }>(
+        `/customers/${customerId}/appointments/last`,
+        { signal },
+    );
+
+    return data.data;
+}
+
 export async function listBookableServices(signal?: AbortSignal): Promise<BookableService[]> {
     const { data } = await api.get<Paginated<BookableService>>('/services', {
         params: BOOKABLE_LOOKUP_PARAMS,

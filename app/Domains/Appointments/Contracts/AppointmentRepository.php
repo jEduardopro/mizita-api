@@ -29,6 +29,13 @@ interface AppointmentRepository
         CalendarScope $scope,
     ): Paginated;
 
+    public function lastAttendedForCustomer(
+        string $businessId,
+        string $customerId,
+        CalendarScope $scope,
+        DateTimeImmutable $now,
+    ): ?Appointment;
+
     /**
      * @throws AppointmentNotFound
      */

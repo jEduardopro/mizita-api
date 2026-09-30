@@ -24,6 +24,8 @@ final class ListServicesRequest extends FormRequest
             'direction' => ['sometimes', Rule::enum(SortDirection::class)],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PER_PAGE],
+            'staff_ids' => ['sometimes', 'array', 'max:'.ListServicesInput::MAXIMUM_STAFF_FILTER_SIZE],
+            'staff_ids.*' => ['uuid', 'distinct'],
         ];
     }
 }

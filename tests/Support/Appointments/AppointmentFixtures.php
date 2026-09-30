@@ -16,6 +16,7 @@ use App\Domains\Appointments\Application\Dtos\ListAppointmentsInput;
 use App\Domains\Appointments\Application\Dtos\ListCustomerAppointmentsInput;
 use App\Domains\Appointments\Application\Dtos\RescheduleGuestBookingInput;
 use App\Domains\Appointments\Application\Dtos\ShowAppointmentInput;
+use App\Domains\Appointments\Application\Dtos\ShowCustomerLastAppointmentInput;
 use App\Domains\Appointments\Application\Dtos\ShowGuestBookingInput;
 use App\Domains\Appointments\Application\Dtos\UpdateAppointmentInput;
 use App\Domains\Appointments\Entities\Appointment;
@@ -116,9 +117,9 @@ final class AppointmentFixtures
 
     public const REFERENCE_CODE = 'A2B3C4D5';
 
-    public const MANAGE_TOKEN = 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f';
+    public const MANAGE_TOKEN = 'abababababababababababababababababababababababababababababababab';
 
-    public const OTHER_MANAGE_TOKEN = 'f9e8d7c6b5a4039281706f5e4d3c2b1af9e8d7c6b5a4039281706f5e4d3c2b1a';
+    public const OTHER_MANAGE_TOKEN = 'cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd';
 
     public const MANAGE_TOKEN_EXPIRES_AT = '2026-03-17T09:00:00+00:00';
 
@@ -376,6 +377,13 @@ final class AppointmentFixtures
             perPage: $perPage,
             accountId: $accountId,
         );
+    }
+
+    public static function showCustomerLastInput(
+        string $customerId = self::CUSTOMER_ID,
+        string $accountId = self::ACCOUNT_ID,
+    ): ShowCustomerLastAppointmentInput {
+        return new ShowCustomerLastAppointmentInput(customerId: $customerId, accountId: $accountId);
     }
 
     public static function showInput(

@@ -48,12 +48,22 @@ export type Customer = {
     created_at: string;
 };
 
-export type CustomerListParams = {
+export type CustomerRegistrationRange = {
+    from: string;
+    to: string;
+};
+
+export type CustomerListFilters = {
+    search?: string;
+    created_from?: string;
+    created_to?: string;
+};
+
+export type CustomerListParams = CustomerListFilters & {
     page: number;
     per_page: number;
     sort: CustomerSortField;
     direction: 'asc' | 'desc';
-    search?: string;
 };
 
 export type CustomerPhonePayload = {

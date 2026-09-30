@@ -1,5 +1,5 @@
 import { LoaderCircle } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTableError } from '@/components/shared/data-table/DataTableError';
 import { DataTableToolbarSlot } from '@/components/shared/data-table/DataTableToolbarSlot';
@@ -10,19 +10,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIntersection } from '@/hooks/use-intersection';
 import { useInfiniteServices } from '../queries';
 import { ServiceListRow } from './ServiceListRow';
-import { ServicesEmptyState } from './ServicesEmptyState';
+import { serviceListFilters } from './service-list-filters';
 
 const PLACEHOLDER_ROWS = [0, 1, 2, 3, 4];
 
 type Props = {
     search: string;
-    onClearSearch: () => void;
+    staffIds: readonly string[];
     toolbar: DataTableToolbar;
+    emptyState: ReactNode;
 };
 
-export function ServicesList({ search, onClearSearch, toolbar }: Props) {
+export function ServicesList({ search, staffIds, toolbar, emptyState }: Props) {
     const { t } = useTranslation('common');
-    const services = useInfiniteServices(search);
+    const services = useInfiniteServices(serviceListFilters(search, staffIds));
 
     const { fetchNextPage, hasNextPage, isFetchingNextPage } = services;
 
@@ -57,9 +58,7 @@ export function ServicesList({ search, onClearSearch, toolbar }: Props) {
                 <DataTableError onRetry={() => void services.refetch()} />
             ) : null}
 
-            {status === 'ready' && rows.length === 0 ? (
-                <ServicesEmptyState search={search} onClearSearch={onClearSearch} />
-            ) : null}
+            {status === 'ready' && rows.length === 0 ? emptyState : null}
 
             {status === 'ready' && rows.length > 0 ? (
                 <div className="grid gap-3">

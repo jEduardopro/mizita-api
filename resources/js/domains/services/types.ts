@@ -36,7 +36,10 @@ export type ServiceListParams = {
     sort: ServiceSortField;
     direction: 'asc' | 'desc';
     search?: string;
+    staff_ids?: string[];
 };
+
+export type ServiceListFilters = Pick<ServiceListParams, 'search' | 'staff_ids'>;
 
 export type ServicePayload = {
     name: string;

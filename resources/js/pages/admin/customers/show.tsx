@@ -1,13 +1,18 @@
 import { router } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppointmentDetailsLauncher } from '@/domains/appointments/components/AppointmentDetailsLauncher';
 import { CustomerAppointmentsTimeline } from '@/domains/appointments/components/CustomerAppointmentsTimeline';
 import { NewAppointmentDialog } from '@/domains/appointments/components/NewAppointmentDialog';
-import { useRefreshAppointments } from '@/domains/appointments/queries';
+import {
+    useCustomerLastAppointment,
+    useRefreshAppointments,
+} from '@/domains/appointments/queries';
 import type { Appointment } from '@/domains/appointments/types';
 import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
 import { useCalendarSettings } from '@/domains/businesses/queries';
 import { CustomerAboutPanel } from '@/domains/customers/components/CustomerAboutPanel';
+import { CustomerLastAppointment } from '@/domains/customers/components/CustomerLastAppointment';
 import { CustomerLoadError } from '@/domains/customers/components/CustomerLoadError';
 import { CustomerNotesPanel } from '@/domains/customers/components/CustomerNotesPanel';
 import { CustomerShowActions } from '@/domains/customers/components/CustomerShowActions';
@@ -33,10 +38,12 @@ type Props = {
 export default function ShowCustomer({ customerId }: Props) {
     const { t } = useTranslation('admin');
     const customer = useCustomer(customerId);
+    const { data: lastAppointment } = useCustomerLastAppointment(customerId);
     const { data: calendarSettings } = useCalendarSettings();
     const { tab, setTab } = useCustomerShowTab();
     const [booking, setBooking] = useState(false);
     const [appointmentToCharge, setAppointmentToCharge] = useState<Appointment | null>(null);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const refreshAppointments = useRefreshAppointments();
 
     const timezone = calendarSettings?.timezone ?? resolvedTimezone();
@@ -75,6 +82,18 @@ export default function ShowCustomer({ customerId }: Props) {
                     <CustomerShowHeader
                         name={customer.data.name}
                         photoUrl={customer.data.photo_url}
+                        lastAppointment={
+                            lastAppointment ? (
+                                <CustomerLastAppointment
+                                    startsAt={lastAppointment.starts_at}
+                                    timezone={timezone}
+                                    serviceName={lastAppointment.service.name}
+                                    serviceColor={lastAppointment.service.color}
+                                    staffName={lastAppointment.staff_member.name}
+                                    onOpen={() => setSelectedAppointment(lastAppointment)}
+                                />
+                            ) : null
+                        }
                         actions={
                             <CustomerShowActions
                                 customer={customer.data}
@@ -106,6 +125,14 @@ export default function ShowCustomer({ customerId }: Props) {
                         appointment={null}
                         timezone={timezone}
                         initialCustomer={{ id: customer.data.id, name: customer.data.name }}
+                    />
+
+                    <AppointmentDetailsLauncher
+                        appointment={selectedAppointment}
+                        timezone={timezone}
+                        onClose={() => setSelectedAppointment(null)}
+                        onCharge={setAppointmentToCharge}
+                        renderPaymentPanel={renderPaymentPanel}
                     />
 
                     {appointmentToCharge !== null ? (

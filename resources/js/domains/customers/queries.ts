@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    keepPreviousData,
+    useInfiniteQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
 import {
     attachCustomerPhoto,
     createCustomer,
@@ -8,11 +14,16 @@ import {
     removeCustomerPhoto,
     updateCustomer,
 } from './api';
-import type { CustomerListParams, CustomerPayload } from './types';
+import type { CustomerListFilters, CustomerListParams, CustomerPayload } from './types';
+
+const INFINITE_PAGE_SIZE = 20;
+
+const FIRST_PAGE = 1;
 
 export const customerKeys = {
     all: ['customers'] as const,
     list: (params: CustomerListParams) => [...customerKeys.all, 'list', params] as const,
+    infinite: (filters: CustomerListFilters) => [...customerKeys.all, 'infinite', filters] as const,
     detail: (id: string) => [...customerKeys.all, 'detail', id] as const,
 };
 
@@ -21,6 +32,29 @@ export function useCustomers(params: CustomerListParams) {
         queryKey: customerKeys.list(params),
         queryFn: ({ signal }) => listCustomers(params, signal),
         placeholderData: keepPreviousData,
+    });
+}
+
+export function useInfiniteCustomers(filters: CustomerListFilters) {
+    return useInfiniteQuery({
+        queryKey: customerKeys.infinite(filters),
+        queryFn: ({ pageParam, signal }) =>
+            listCustomers(
+                {
+                    ...filters,
+                    page: pageParam,
+                    per_page: INFINITE_PAGE_SIZE,
+                    sort: 'name',
+                    direction: 'asc',
+                },
+                signal,
+            ),
+        placeholderData: keepPreviousData,
+        initialPageParam: FIRST_PAGE,
+        getNextPageParam: (lastPage) =>
+            lastPage.meta.current_page < lastPage.meta.last_page
+                ? lastPage.meta.current_page + 1
+                : undefined,
     });
 }
 

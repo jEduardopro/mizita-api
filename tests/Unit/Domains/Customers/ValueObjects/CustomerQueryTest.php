@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Customers\ValueObjects\CustomerQuery;
 use App\Domains\Customers\ValueObjects\CustomerSort;
+use App\Domains\Customers\ValueObjects\RegistrationWindow;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
@@ -47,4 +48,32 @@ it('names the sort and the direction with enums, so no caller string can reach t
 
     expect($query->sort)->toBeInstanceOf(CustomerSort::class)
         ->and($query->direction)->toBeInstanceOf(SortDirection::class);
+});
+
+it('carries no registration window unless one was given', function () {
+    $query = new CustomerQuery(
+        search: null,
+        sort: CustomerSort::Name,
+        direction: SortDirection::Ascending,
+        pagination: Pagination::of(1, 20),
+    );
+
+    expect($query->registeredWithin)->toBeNull();
+});
+
+it('carries the registration window it was given', function () {
+    $window = new RegistrationWindow(
+        startsAt: new DateTimeImmutable('2026-03-28T23:00:00+00:00'),
+        endsAt: new DateTimeImmutable('2026-03-29T22:00:00+00:00'),
+    );
+
+    $query = new CustomerQuery(
+        search: null,
+        sort: CustomerSort::Name,
+        direction: SortDirection::Ascending,
+        pagination: Pagination::of(1, 20),
+        registeredWithin: $window,
+    );
+
+    expect($query->registeredWithin)->toBe($window);
 });

@@ -167,6 +167,7 @@ return [
         'invalid_customer_birth_date' => 'Esa fecha de nacimiento no es válida.',
         'invalid_customer_notes' => 'Esas notas son demasiado largas.',
         'invalid_customer_search' => 'Esa búsqueda es demasiado larga.',
+        'invalid_customer_registration_period' => 'Ese rango de fechas de registro no es válido.',
         'customer_photo_too_large' => 'Esa foto es demasiado grande. Usa una de menos de 2 MB.',
         'unsupported_customer_photo' => 'Ese archivo no es una foto compatible. Usa un JPG, PNG o WebP.',
 

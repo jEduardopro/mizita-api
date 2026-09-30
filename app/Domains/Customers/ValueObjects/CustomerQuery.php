@@ -19,5 +19,6 @@ final readonly class CustomerQuery
         public SortDirection $direction,
         public Pagination $pagination,
         public array $phoneMatches = [],
+        public ?RegistrationWindow $registeredWithin = null,
     ) {}
 }

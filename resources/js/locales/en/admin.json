@@ -301,6 +301,17 @@
             "table": "Table view",
             "list": "List view"
         },
+        "filters": {
+            "staff": {
+                "label": "Staff",
+                "placeholder": "All staff",
+                "search": "Search staff",
+                "empty": "No results",
+                "clear": "Clear filter",
+                "selected_one": "{{count}} selected",
+                "selected_other": "{{count}} selected"
+            }
+        },
         "actions": {
             "create": "New service",
             "copyLink": "Copy link",
@@ -437,6 +448,17 @@
             "label": "Search customers",
             "placeholder": "Search by name, email or phone"
         },
+        "view": {
+            "label": "View",
+            "table": "Table view",
+            "list": "List view"
+        },
+        "filters": {
+            "registered": {
+                "label": "Registered",
+                "placeholder": "Select a date range"
+            }
+        },
         "actions": {
             "create": "New customer",
             "edit": "Edit {{name}}",
@@ -446,6 +468,9 @@
             "search": {
                 "title": "No customer matches",
                 "body": "Nothing matches “{{search}}”. Try another word."
+            },
+            "registered": {
+                "body": "No customer registered between those dates. Try other dates."
             },
             "first": {
                 "title": "No customers yet",
@@ -470,6 +495,9 @@
         },
         "show": {
             "title": "Customer",
+            "lastAppointment": {
+                "label": "Last appointment"
+            },
             "actions": {
                 "book": "Book an appointment"
             },
@@ -1656,14 +1684,7 @@
         },
         "range": {
             "label": "Period",
-            "placeholder": "Choose a period",
-            "apply": "Apply",
-            "picker": {
-                "calendar": "Choose a period",
-                "previousMonth": "Previous month",
-                "nextMonth": "Next month",
-                "today": "Today"
-            }
+            "placeholder": "Choose a period"
         },
         "shareOfTotal": "{{share}} of total",
         "collected": {

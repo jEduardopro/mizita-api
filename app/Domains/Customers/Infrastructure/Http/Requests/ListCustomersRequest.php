@@ -6,6 +6,7 @@ namespace App\Domains\Customers\Infrastructure\Http\Requests;
 
 use App\Domains\Customers\Application\Dtos\ListCustomersInput;
 use App\Domains\Customers\ValueObjects\CustomerSort;
+use App\Domains\Customers\ValueObjects\LocalDate;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SortDirection;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,6 +25,13 @@ final class ListCustomersRequest extends FormRequest
             'direction' => ['sometimes', Rule::enum(SortDirection::class)],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PER_PAGE],
+            'created_from' => ['nullable', 'date_format:'.LocalDate::FORMAT, 'required_with:created_to'],
+            'created_to' => [
+                'nullable',
+                'date_format:'.LocalDate::FORMAT,
+                'required_with:created_from',
+                'after_or_equal:created_from',
+            ],
         ];
     }
 }

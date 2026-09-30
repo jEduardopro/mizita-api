@@ -15,6 +15,11 @@ final class UnknownStaffMember extends DomainException implements DomainFailure
         return new self('One of the selected staff members is not assignable to this service.');
     }
 
+    public static function amongFilter(): self
+    {
+        return new self('The staff members to filter services by must be distinct uuids, and not too many.');
+    }
+
     public function errorCode(): string
     {
         return 'unknown_staff_member';

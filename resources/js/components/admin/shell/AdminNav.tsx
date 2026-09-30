@@ -61,8 +61,8 @@ const BRAND_SETTINGS_HREF = '/settings/business';
 const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
     { href: '/statistics', labelKey: 'nav.statistics', icon: ChartColumn, role: 'owner' },
-    { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     { href: '/customers', labelKey: 'nav.customers', icon: Users, permission: 'view_customers' },
+    { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     {
         href: '/integrations',
         labelKey: 'nav.integrations',

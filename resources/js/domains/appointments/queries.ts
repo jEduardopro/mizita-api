@@ -6,11 +6,13 @@ import {
     useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useAuthorization } from '@/hooks/use-authorization';
 import {
     cancelAppointment,
     createAppointment,
     deleteAppointment,
     getAppointment,
+    getCustomerLastAppointment,
     listAppointments,
     listBookableServices,
     listBookableStaffMembers,
@@ -31,6 +33,8 @@ export const appointmentKeys = {
     range: (range: AppointmentRange) => [...appointmentKeys.all, 'range', range] as const,
     detail: (id: string) => [...appointmentKeys.all, 'detail', id] as const,
     forCustomer: (customerId: string) => [...appointmentKeys.all, 'customer', customerId] as const,
+    customerLast: (customerId: string) =>
+        [...appointmentKeys.all, 'customer-last', customerId] as const,
     bookableServices: () => [...appointmentKeys.all, 'bookable-services'] as const,
     bookableStaff: () => [...appointmentKeys.all, 'bookable-staff'] as const,
     bookableCustomers: () => [...appointmentKeys.all, 'bookable-customers'] as const,
@@ -60,6 +64,16 @@ export function useInfiniteCustomerAppointments(customerId: string) {
             lastPage.meta.current_page < lastPage.meta.last_page
                 ? lastPage.meta.current_page + 1
                 : undefined,
+    });
+}
+
+export function useCustomerLastAppointment(customerId: string) {
+    const { can } = useAuthorization();
+
+    return useQuery({
+        queryKey: appointmentKeys.customerLast(customerId),
+        queryFn: ({ signal }) => getCustomerLastAppointment(customerId, signal),
+        enabled: can('view_appointments'),
     });
 }
 

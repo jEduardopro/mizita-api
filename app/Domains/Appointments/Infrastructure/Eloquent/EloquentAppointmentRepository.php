@@ -81,14 +81,7 @@ final class EloquentAppointmentRepository implements AppointmentRepository
         CustomerAppointmentQuery $query,
         CalendarScope $scope,
     ): Paginated {
-        $matching = $this->withinScope($this->ofBusiness($businessId), $scope)
-            ->whereIn(
-                'customer_id',
-                static fn (QueryBuilder $customers) => $customers
-                    ->select('id')
-                    ->from(self::CUSTOMERS_TABLE)
-                    ->where('uuid', $query->customerId),
-            )
+        $matching = $this->ofCustomer($this->withinScope($this->ofBusiness($businessId), $scope), $query->customerId)
             ->whereNull('cancelled_at');
 
         $total = $matching->count();
@@ -108,6 +101,23 @@ final class EloquentAppointmentRepository implements AppointmentRepository
             $total,
             $query->pagination,
         );
+    }
+
+    public function lastAttendedForCustomer(
+        string $businessId,
+        string $customerId,
+        CalendarScope $scope,
+        DateTimeImmutable $now,
+    ): ?Appointment {
+        $model = $this->ofCustomer($this->withinScope($this->ofBusiness($businessId), $scope), $customerId)
+            ->with(self::PARTICIPANT_RELATIONS)
+            ->whereNull('cancelled_at')
+            ->where('ends_at', '<=', $now->format(DATE_ATOM))
+            ->orderByDesc('starts_at')
+            ->orderByDesc(self::TIEBREAKER_COLUMN)
+            ->first();
+
+        return $model === null ? null : $this->mapper->toEntity($model, $businessId);
     }
 
     public function findForBusiness(string $businessId, string $id): Appointment
@@ -250,6 +260,21 @@ final class EloquentAppointmentRepository implements AppointmentRepository
         return $query
             ->whereNull('cancelled_at')
             ->where('ends_at', '>', $now->format(DATE_ATOM));
+    }
+
+    /**
+     * @param  Builder<AppointmentModel>  $query
+     * @return Builder<AppointmentModel>
+     */
+    private function ofCustomer(Builder $query, string $customerId): Builder
+    {
+        return $query->whereIn(
+            'customer_id',
+            static fn (QueryBuilder $customers) => $customers
+                ->select('id')
+                ->from(self::CUSTOMERS_TABLE)
+                ->where('uuid', $customerId),
+        );
     }
 
     /**

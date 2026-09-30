@@ -12,6 +12,7 @@ use App\Shared\ValueObjects\Paginated;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SortDirection;
 use Tests\Support\Customers\CustomerFixtures;
+use Tests\Support\Customers\FakeBusinessTimezone;
 use Tests\Support\Customers\FakeCustomerAddressBook;
 use Tests\Support\Customers\FakeCustomerPhoneBook;
 use Tests\Support\Customers\FakeCustomerPhotos;
@@ -24,12 +25,14 @@ beforeEach(function () {
     $this->phones = new FakeCustomerPhoneBook;
     $this->addresses = new FakeCustomerAddressBook;
     $this->photos = new FakeCustomerPhotos;
+    $this->timezones = new FakeBusinessTimezone;
 
     $this->build = fn (?FakeBusinessContext $business = null): ListCustomers => new ListCustomers(
         $this->customers,
         $this->phones,
         new CustomerPresenter($this->phones, $this->addresses, $this->photos),
         $business ?? new FakeBusinessContext,
+        $this->timezones,
     );
 
     $this->useCase = ($this->build)();
@@ -204,6 +207,101 @@ describe('the business it reads', function () {
 
         expect($this->customers->businessIdsSeen)->toBe([CustomerFixtures::OTHER_BUSINESS_ID]);
     });
+});
+
+describe('filtering by registration date', function () {
+    it('asks no timezone and filters on no window when no period was given', function () {
+        ($this->list)(['search' => 'ada']);
+
+        expect($this->timezones->lookups)->toBe([])
+            ->and($this->customers->queries[0]->registeredWithin)->toBeNull();
+    });
+
+    it('asks no timezone when both dates arrive blank', function () {
+        ($this->list)(['created_from' => '', 'created_to' => '   ']);
+
+        expect($this->timezones->lookups)->toBe([])
+            ->and($this->customers->queries[0]->registeredWithin)->toBeNull();
+    });
+
+    it('hands the repository the window the period covers in the business timezone', function () {
+        ($this->list)(['created_from' => '2026-03-29', 'created_to' => '2026-03-29']);
+
+        $window = $this->customers->queries[0]->registeredWithin;
+
+        expect($window?->startsAt->format(DATE_ATOM))->toBe('2026-03-28T23:00:00+00:00')
+            ->and($window?->endsAt->format(DATE_ATOM))->toBe('2026-03-29T22:00:00+00:00');
+    });
+
+    it('covers the twenty-five hours of a fall back day', function () {
+        ($this->list)(['created_from' => '2026-10-25', 'created_to' => '2026-10-25']);
+
+        $window = $this->customers->queries[0]->registeredWithin;
+
+        expect($window?->startsAt->format(DATE_ATOM))->toBe('2026-10-24T22:00:00+00:00')
+            ->and($window?->endsAt->format(DATE_ATOM))->toBe('2026-10-25T23:00:00+00:00');
+    });
+
+    it('reads the dates in the timezone of the business rather than in UTC', function () {
+        $this->timezones = new FakeBusinessTimezone('America/Mexico_City');
+
+        ($this->build)()->handle(ListCustomersInput::fromRequest([
+            'created_from' => '2026-03-01',
+            'created_to' => '2026-03-31',
+        ]));
+
+        $window = $this->customers->queries[0]->registeredWithin;
+
+        expect($window?->startsAt->format(DATE_ATOM))->toBe('2026-03-01T06:00:00+00:00')
+            ->and($window?->endsAt->format(DATE_ATOM))->toBe('2026-04-01T06:00:00+00:00');
+    });
+
+    it('asks the timezone of the business in context, once', function () {
+        ($this->list)(['created_from' => '2026-03-01', 'created_to' => '2026-03-31']);
+
+        expect($this->timezones->lookups)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('never asks the timezone of a business other than the one in context', function () {
+        ($this->build)(new FakeBusinessContext(CustomerFixtures::OTHER_BUSINESS_ID))->handle(ListCustomersInput::fromRequest([
+            'created_from' => '2026-03-01',
+            'created_to' => '2026-03-31',
+        ]));
+
+        expect($this->timezones->lookups)->toBe([CustomerFixtures::OTHER_BUSINESS_ID])
+            ->and($this->customers->businessIdsSeen)->toBe([CustomerFixtures::OTHER_BUSINESS_ID]);
+    });
+
+    it('carries the window alongside the search and its phone matches', function () {
+        $this->phones->store(CustomerFixtures::SECOND_CUSTOMER_ID, PhoneNumbers::mexican());
+
+        ($this->list)(['search' => '5512', 'created_from' => '2026-03-01', 'created_to' => '2026-03-31']);
+
+        $query = $this->customers->queries[0];
+
+        expect($query->search?->raw())->toBe('5512')
+            ->and($query->phoneMatches)->toBe([CustomerFixtures::SECOND_CUSTOMER_ID])
+            ->and($query->registeredWithin?->startsAt->format(DATE_ATOM))->toBe('2026-02-28T23:00:00+00:00')
+            ->and($query->registeredWithin?->endsAt->format(DATE_ATOM))->toBe('2026-03-31T22:00:00+00:00');
+    });
+
+    it('refuses a period it cannot use, without searching or asking anything', function (array $period) {
+        $response = ($this->list)(['search' => '5512', ...$period]);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('invalid_customer_registration_period')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+            ->and($this->customers->queries)->toBe([])
+            ->and($this->customers->businessIdsSeen)->toBe([])
+            ->and($this->timezones->lookups)->toBe([])
+            ->and($this->phones->fragmentLookups)->toBe([]);
+    })->with([
+        'a day the calendar does not have' => [['created_from' => '2026-02-30', 'created_to' => '2026-03-31']],
+        'a date without padding' => [['created_from' => '2026-3-1', 'created_to' => '2026-03-31']],
+        'only a from date' => [['created_from' => '2026-03-01']],
+        'only a to date' => [['created_to' => '2026-03-31']],
+        'a reversed period' => [['created_from' => '2026-03-31', 'created_to' => '2026-03-01']],
+    ]);
 });
 
 it('refuses a search term longer than it serves, without searching anything', function () {

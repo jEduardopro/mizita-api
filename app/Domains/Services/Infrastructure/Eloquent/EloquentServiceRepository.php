@@ -54,7 +54,7 @@ final class EloquentServiceRepository implements OfferedServices, ServiceReposit
      */
     public function search(string $businessId, ServiceQuery $query): Paginated
     {
-        $matching = $this->matching($businessId, $query->search);
+        $matching = $this->matching($businessId, $query);
         $total = $matching->count();
 
         $models = $this->mostRelevantFirst($matching, $query->search)
@@ -231,15 +231,30 @@ final class EloquentServiceRepository implements OfferedServices, ServiceReposit
     /**
      * @return Builder<ServiceModel>
      */
-    private function matching(string $businessId, ?SearchTerm $search): Builder
+    private function matching(string $businessId, ServiceQuery $query): Builder
     {
-        $query = $this->ofBusiness($businessId);
+        $scoped = self::offeredByAnyOf($this->ofBusiness($businessId), $query->staffIds);
 
-        if ($search === null) {
+        if ($query->search === null) {
+            return $scoped;
+        }
+
+        return $this->tokenSearch->apply($scoped, $query->search, self::searchableColumns());
+    }
+
+    /**
+     * @param  Builder<ServiceModel>  $query
+     * @param  list<string>  $staffIds
+     * @return Builder<ServiceModel>
+     */
+    private static function offeredByAnyOf(Builder $query, array $staffIds): Builder
+    {
+        if ($staffIds === []) {
             return $query;
         }
 
-        return $this->tokenSearch->apply($query, $search, self::searchableColumns());
+        return $query->whereHas('staffMembers', static fn (Builder $staff) => $staff
+            ->whereIn(self::STAFF_MEMBERS_TABLE.'.uuid', $staffIds));
     }
 
     /**

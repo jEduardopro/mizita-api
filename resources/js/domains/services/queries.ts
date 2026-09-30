@@ -20,7 +20,12 @@ import {
     unassignStaffFromService,
     updateService,
 } from './api';
-import type { DuplicateServicePayload, ServiceListParams, ServicePayload } from './types';
+import type {
+    DuplicateServicePayload,
+    ServiceListFilters,
+    ServiceListParams,
+    ServicePayload,
+} from './types';
 
 const INFINITE_PAGE_SIZE = 20;
 
@@ -38,7 +43,7 @@ const ASSIGNABLE_SERVICES_PARAMS: ServiceListParams = {
 export const serviceKeys = {
     all: ['services'] as const,
     list: (params: ServiceListParams) => [...serviceKeys.all, 'list', params] as const,
-    infinite: (search: string) => [...serviceKeys.all, 'infinite', search] as const,
+    infinite: (filters: ServiceListFilters) => [...serviceKeys.all, 'infinite', filters] as const,
     detail: (id: string) => [...serviceKeys.all, 'detail', id] as const,
     byStaff: (staffMemberId: string) => [...serviceKeys.all, 'staff', staffMemberId] as const,
     quota: () => [...serviceKeys.all, 'quota'] as const,
@@ -52,9 +57,9 @@ export function useServices(params: ServiceListParams) {
     });
 }
 
-export function useInfiniteServices(search: string) {
+export function useInfiniteServices(filters: ServiceListFilters) {
     return useInfiniteQuery({
-        queryKey: serviceKeys.infinite(search),
+        queryKey: serviceKeys.infinite(filters),
         queryFn: ({ pageParam, signal }) =>
             listServices(
                 {
@@ -62,7 +67,7 @@ export function useInfiniteServices(search: string) {
                     per_page: INFINITE_PAGE_SIZE,
                     sort: 'name',
                     direction: 'asc',
-                    search: search === '' ? undefined : search,
+                    ...filters,
                 },
                 signal,
             ),

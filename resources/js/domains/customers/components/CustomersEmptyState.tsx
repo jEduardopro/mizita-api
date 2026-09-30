@@ -7,15 +7,16 @@ import { NEW_CUSTOMER_URL } from './customer-urls';
 
 type Props = {
     search: string;
-    onClearSearch: () => void;
+    hasRegistrationRange: boolean;
+    onClearFilters: () => void;
 };
 
-export function CustomersEmptyState({ search, onClearSearch }: Props) {
+export function CustomersEmptyState({ search, hasRegistrationRange, onClearFilters }: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
     const { can } = useAuthorization();
 
-    if (search !== '') {
+    if (search !== '' || hasRegistrationRange) {
         return (
             <div className="grid justify-items-center gap-3 rounded-xl border border-dashed border-border px-5 py-12 text-center">
                 <SearchX aria-hidden="true" className="size-6 text-muted-foreground" />
@@ -23,13 +24,15 @@ export function CustomersEmptyState({ search, onClearSearch }: Props) {
                 <p className="font-medium">{t('customers.empty.search.title')}</p>
 
                 <p className="max-w-sm text-sm text-pretty text-muted-foreground">
-                    {t('customers.empty.search.body', { search })}
+                    {search === ''
+                        ? t('customers.empty.registered.body')
+                        : t('customers.empty.search.body', { search })}
                 </p>
 
                 <Button
                     type="button"
                     variant="outline"
-                    onClick={onClearSearch}
+                    onClick={onClearFilters}
                     className="h-11 px-4 md:h-9"
                 >
                     {tCommon('actions.clear')}

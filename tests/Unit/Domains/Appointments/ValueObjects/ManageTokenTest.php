@@ -6,9 +6,9 @@ use App\Domains\Appointments\Exceptions\InvalidManageToken;
 use App\Domains\Appointments\ValueObjects\ManageToken;
 use App\Shared\ValueObjects\DomainFailureKind;
 
-const MANAGE_TOKEN = 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f';
+const MANAGE_TOKEN = 'abababababababababababababababababababababababababababababababab';
 
-const OTHER_MANAGE_TOKEN = 'f9e8d7c6b5a4039281706f5e4d3c2b1af9e8d7c6b5a4039281706f5e4d3c2b1a';
+const OTHER_MANAGE_TOKEN = 'cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd';
 
 it('carries a credential of thirty two bytes written in hexadecimal', function () {
     expect(ManageToken::BYTE_LENGTH)->toBe(32)
@@ -20,9 +20,9 @@ it('refuses a credential that is not sixty four hexadecimal characters', functio
     expect(fn () => ManageToken::fromString($value))->toThrow(InvalidManageToken::class);
 })->with([
     'empty' => '',
-    'one character short' => 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9',
-    'one character long' => 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9fa',
-    'not hexadecimal' => 'z1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f',
+    'one character short' => 'abababababababababababababababababababababababababababababababa',
+    'one character long' => 'ababababababababababababababababababababababababababababababababa',
+    'not hexadecimal' => 'zbababababababababababababababababababababababababababababababab',
     'a uuid' => '01930000-0000-7000-8000-0000000000a1',
 ]);
 
@@ -65,9 +65,9 @@ it('rejects a credential the stored digest was not made from', function (string 
 })->with([
     'another token' => OTHER_MANAGE_TOKEN,
     'the same token uppercased' => strtoupper(MANAGE_TOKEN),
-    'the token with a character changed' => 'b1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f',
+    'the token with a character changed' => 'bbababababababababababababababababababababababababababababababab',
     'nothing at all' => '',
-    'the token with its last character cut off' => 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9',
+    'the token with its last character cut off' => 'abababababababababababababababababababababababababababababababa',
 ]);
 
 it('rejects every candidate when the stored digest is empty', function () {

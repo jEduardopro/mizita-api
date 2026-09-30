@@ -7,33 +7,59 @@ import { NEW_SERVICE_URL } from './service-urls';
 
 type Props = {
     search: string;
+    filteredByStaff: boolean;
     onClearSearch: () => void;
+    onClearStaffFilter: () => void;
 };
 
-export function ServicesEmptyState({ search, onClearSearch }: Props) {
+export function ServicesEmptyState({
+    search,
+    filteredByStaff,
+    onClearSearch,
+    onClearStaffFilter,
+}: Props) {
     const { t } = useTranslation('admin');
     const { t: tCommon } = useTranslation('common');
     const { can } = useAuthorization();
 
-    if (search !== '') {
+    const searched = search !== '';
+
+    if (searched || filteredByStaff) {
         return (
             <div className="grid justify-items-center gap-3 rounded-xl border border-dashed border-border px-5 py-12 text-center">
                 <SearchX aria-hidden="true" className="size-6 text-muted-foreground" />
 
                 <p className="font-medium">{t('services.empty.search.title')}</p>
 
-                <p className="max-w-sm text-sm text-pretty text-muted-foreground">
-                    {t('services.empty.search.body', { search })}
-                </p>
+                {searched ? (
+                    <p className="max-w-sm text-sm text-pretty text-muted-foreground">
+                        {t('services.empty.search.body', { search })}
+                    </p>
+                ) : null}
 
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onClearSearch}
-                    className="h-11 px-4 md:h-9"
-                >
-                    {tCommon('actions.clear')}
-                </Button>
+                <div className="flex flex-wrap justify-center gap-2">
+                    {searched ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onClearSearch}
+                            className="h-11 px-4 md:h-9"
+                        >
+                            {tCommon('actions.clear')}
+                        </Button>
+                    ) : null}
+
+                    {filteredByStaff ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onClearStaffFilter}
+                            className="h-11 px-4 md:h-9"
+                        >
+                            {t('services.filters.staff.clear')}
+                        </Button>
+                    ) : null}
+                </div>
             </div>
         );
     }

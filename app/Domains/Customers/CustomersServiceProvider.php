@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Customers;
 
+use App\Domains\Customers\Contracts\BusinessTimezone;
 use App\Domains\Customers\Contracts\CustomerAddressBook;
 use App\Domains\Customers\Contracts\CustomerPhoneBook;
 use App\Domains\Customers\Contracts\CustomerPhotos;
@@ -11,6 +12,7 @@ use App\Domains\Customers\Contracts\CustomerRepository;
 use App\Domains\Customers\Infrastructure\Eloquent\EloquentCustomerRepository;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
 use App\Domains\Customers\Infrastructure\Gateways\AddressesCustomerAddressBook;
+use App\Domains\Customers\Infrastructure\Gateways\BusinessesBusinessTimezone;
 use App\Domains\Customers\Infrastructure\Gateways\PhonesCustomerPhoneBook;
 use App\Domains\Customers\Infrastructure\Media\SpatieCustomerPhotos;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -34,6 +36,7 @@ final class CustomersServiceProvider extends ServiceProvider
         $this->app->bind(CustomerPhoneBook::class, PhonesCustomerPhoneBook::class);
         $this->app->bind(CustomerAddressBook::class, AddressesCustomerAddressBook::class);
         $this->app->bind(CustomerPhotos::class, SpatieCustomerPhotos::class);
+        $this->app->bind(BusinessTimezone::class, BusinessesBusinessTimezone::class);
     }
 
     public function boot(): void

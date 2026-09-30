@@ -82,6 +82,39 @@ it('hands the repository the query the input built', function () {
         ->and($query->pagination->perPage)->toBe(10);
 });
 
+it('hands the repository the staff ids to filter by', function () {
+    ($this->list)(['staff_ids' => [ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID]]);
+
+    expect($this->services->queries)->toHaveCount(1)
+        ->and($this->services->queries[0]->staffIds)->toBe([ServiceFixtures::STAFF_ID, ServiceFixtures::SECOND_STAFF_ID])
+        ->and($this->services->businessIdsSeen)->toBe([FakeBusinessContext::BUSINESS_ID]);
+});
+
+it('hands the repository no staff filter when none was asked for', function () {
+    ($this->list)();
+
+    expect($this->services->queries[0]->staffIds)->toBe([]);
+});
+
+it('refuses a staff filter it cannot trust without searching', function (array $staffIds) {
+    $response = ($this->list)(['staff_ids' => $staffIds]);
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('unknown_staff_member')
+        ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+        ->and($this->services->queries)->toBe([])
+        ->and($this->services->businessIdsSeen)->toBe([])
+        ->and($this->businesses->calls)->toBe([]);
+})->with([
+    'a malformed uuid' => [['staff-1']],
+    'an empty string' => [['']],
+    'the same id twice' => [[ServiceFixtures::STAFF_ID, ServiceFixtures::STAFF_ID]],
+    'more ids than it serves' => [array_map(
+        static fn (int $n): string => sprintf('01930000-0000-7000-8000-%012d', $n),
+        range(1, ListServicesInput::MAXIMUM_STAFF_FILTER_SIZE + 1),
+    )],
+]);
+
 it('resolves a sort and a page it does not serve instead of refusing them', function () {
     $response = ($this->list)(['sort' => 'whatever', 'direction' => 'sideways', 'page' => 0, 'per_page' => 9999]);
 

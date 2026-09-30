@@ -301,6 +301,17 @@
             "table": "Ver como tabla",
             "list": "Ver como lista"
         },
+        "filters": {
+            "staff": {
+                "label": "Staff",
+                "placeholder": "Todo el staff",
+                "search": "Buscar staff",
+                "empty": "Sin resultados",
+                "clear": "Limpiar filtro",
+                "selected_one": "{{count}} seleccionado",
+                "selected_other": "{{count}} seleccionados"
+            }
+        },
         "actions": {
             "create": "Nuevo servicio",
             "copyLink": "Copiar enlace",
@@ -437,6 +448,17 @@
             "label": "Buscar clientes",
             "placeholder": "Busca por nombre, correo o teléfono"
         },
+        "view": {
+            "label": "Vista",
+            "table": "Ver como tabla",
+            "list": "Ver como lista"
+        },
+        "filters": {
+            "registered": {
+                "label": "Registro",
+                "placeholder": "Selecciona un rango de fechas"
+            }
+        },
         "actions": {
             "create": "Nuevo cliente",
             "edit": "Editar a {{name}}",
@@ -446,6 +468,9 @@
             "search": {
                 "title": "Ningún cliente coincide",
                 "body": "Nada coincide con «{{search}}». Prueba con otra palabra."
+            },
+            "registered": {
+                "body": "Ningún cliente se registró en esas fechas. Prueba con otras."
             },
             "first": {
                 "title": "Todavía no tienes clientes",
@@ -470,6 +495,9 @@
         },
         "show": {
             "title": "Cliente",
+            "lastAppointment": {
+                "label": "Última cita"
+            },
             "actions": {
                 "book": "Reservar una cita"
             },
@@ -1656,14 +1684,7 @@
         },
         "range": {
             "label": "Periodo",
-            "placeholder": "Elige un periodo",
-            "apply": "Aplicar",
-            "picker": {
-                "calendar": "Elige un periodo",
-                "previousMonth": "Mes anterior",
-                "nextMonth": "Mes siguiente",
-                "today": "Hoy"
-            }
+            "placeholder": "Elige un periodo"
         },
         "shareOfTotal": "{{share}} del total",
         "collected": {

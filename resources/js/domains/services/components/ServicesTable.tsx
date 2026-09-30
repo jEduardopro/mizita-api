@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from '@/components/shared/data-table/DataTable';
 import { dataTableStatus } from '@/components/shared/data-table/status';
@@ -9,15 +9,16 @@ import { useServices } from '../queries';
 import type { ServiceSortField } from '../types';
 import { serviceColumns } from './service-columns';
 import { ServiceListRow } from './ServiceListRow';
-import { ServicesEmptyState } from './ServicesEmptyState';
+import { serviceListFilters } from './service-list-filters';
 
 type Props = {
     query: DataTableQuery<ServiceSortField>;
+    staffIds: readonly string[];
     toolbar: DataTableToolbar;
-    onClearSearch: () => void;
+    emptyState: ReactNode;
 };
 
-export function ServicesTable({ query, toolbar, onClearSearch }: Props) {
+export function ServicesTable({ query, staffIds, toolbar, emptyState }: Props) {
     const { t } = useTranslation('admin');
     const currencyCode = useBusinessCurrency();
 
@@ -26,7 +27,7 @@ export function ServicesTable({ query, toolbar, onClearSearch }: Props) {
         per_page: query.perPage,
         sort: query.sort.field,
         direction: query.sort.direction,
-        search: query.search === '' ? undefined : query.search,
+        ...serviceListFilters(query.search, staffIds),
     });
 
     const columns = useMemo(() => serviceColumns({ t, currencyCode }), [t, currencyCode]);
@@ -47,9 +48,7 @@ export function ServicesTable({ query, toolbar, onClearSearch }: Props) {
             isFetching={services.isFetching}
             showsPreviousRows={services.isPlaceholderData}
             onRetry={() => void services.refetch()}
-            emptyState={
-                <ServicesEmptyState search={query.search} onClearSearch={onClearSearch} />
-            }
+            emptyState={emptyState}
             renderCard={(service) => <ServiceListRow service={service} />}
             toolbar={toolbar}
         />

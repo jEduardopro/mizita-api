@@ -59,6 +59,11 @@ final class FakeAppointmentRepository implements AppointmentRepository
     public array $scopesSeen = [];
 
     /**
+     * @var list<array{businessId: string, customerId: string, now: string}>
+     */
+    public array $lastAttendedLookups = [];
+
+    /**
      * @var list<array{businessId: string, staffMemberId: string, now: string}>
      */
     public array $upcomingChecks = [];
@@ -146,6 +151,35 @@ final class FakeAppointmentRepository implements AppointmentRepository
             count($booked),
             $query->pagination,
         );
+    }
+
+    public function lastAttendedForCustomer(
+        string $businessId,
+        string $customerId,
+        CalendarScope $scope,
+        DateTimeImmutable $now,
+    ): ?Appointment {
+        $this->journal->record('appointments.lastAttendedForCustomer');
+        $this->businessIdsSeen[] = $businessId;
+        $this->scopesSeen[] = $scope;
+        $this->lastAttendedLookups[] = [
+            'businessId' => $businessId,
+            'customerId' => $customerId,
+            'now' => $now->format(DATE_ATOM),
+        ];
+
+        $attended = array_values(array_filter(
+            array_reverse($this->bookedOf($businessId, $customerId, $scope)),
+            static fn (Appointment $appointment): bool => $appointment->slot()->endsAt <= $now,
+        ));
+
+        usort(
+            $attended,
+            static fn (Appointment $left, Appointment $right): int => $right->slot()->startsAt->getTimestamp()
+                <=> $left->slot()->startsAt->getTimestamp(),
+        );
+
+        return $attended[0] ?? null;
     }
 
     /**

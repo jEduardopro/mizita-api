@@ -2,11 +2,14 @@ import { Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { comboboxOptionsStatus } from '@/components/form/ComboboxPanel';
 import type { DataTableSort, DataTableToolbar } from '@/components/shared/data-table/types';
 import { useDataTableQuery } from '@/components/shared/data-table/use-data-table-query';
 import { Button } from '@/components/ui/button';
 import { ActiveServiceQuotaMeter } from '@/domains/services/components/ActiveServiceQuotaMeter';
+import { ServicesEmptyState } from '@/domains/services/components/ServicesEmptyState';
 import { ServicesList } from '@/domains/services/components/ServicesList';
+import { ServiceStaffFilter } from '@/domains/services/components/ServiceStaffFilter';
 import { ServicesTable } from '@/domains/services/components/ServicesTable';
 import {
     SERVICES_VIEWS,
@@ -15,7 +18,9 @@ import {
 } from '@/domains/services/components/ServicesToolbar';
 import { NEW_SERVICE_URL } from '@/domains/services/components/service-urls';
 import { useActiveServiceAllowance } from '@/domains/services/components/use-active-service-allowance';
+import { useServiceStaffFilter } from '@/domains/services/components/use-service-staff-filter';
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from '@/domains/services/types';
+import { useStaffChoices } from '@/domains/staff/queries';
 import { useAuthorization } from '@/hooks/use-authorization';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
@@ -36,6 +41,8 @@ export default function ServicesIndex() {
     const { can } = useAuthorization();
     const isDesktop = useIsDesktop();
     const allowance = useActiveServiceAllowance();
+    const staff = useStaffChoices();
+    const { staffIds, setStaffIds } = useServiceStaffFilter();
 
     const query = useDataTableQuery({
         sortableFields: SERVICE_SORT_FIELDS,
@@ -69,12 +76,30 @@ export default function ServicesIndex() {
             <ServicesToolbar
                 search={searchInput}
                 onSearchChange={setSearchInput}
+                filters={
+                    <ServiceStaffFilter
+                        options={staff.options}
+                        status={comboboxOptionsStatus(staff.isPending, staff.isError)}
+                        onRetry={staff.refetch}
+                        value={staffIds}
+                        onChange={setStaffIds}
+                    />
+                }
                 view={view}
                 onViewChange={(next) => url.write({ view: next === DEFAULT_VIEW ? null : next })}
             />
         ),
-        hasActiveFilters: search !== '',
+        hasActiveFilters: search !== '' || staffIds.length > 0,
     };
+
+    const emptyState = (
+        <ServicesEmptyState
+            search={search}
+            filteredByStaff={staffIds.length > 0}
+            onClearSearch={() => setSearchInput('')}
+            onClearStaffFilter={() => setStaffIds([])}
+        />
+    );
 
     return (
         <AdminLayout
@@ -97,14 +122,16 @@ export default function ServicesIndex() {
                 {view === 'table' ? (
                     <ServicesTable
                         query={query}
+                        staffIds={staffIds}
                         toolbar={toolbar}
-                        onClearSearch={() => setSearchInput('')}
+                        emptyState={emptyState}
                     />
                 ) : (
                     <ServicesList
                         search={search}
-                        onClearSearch={() => setSearchInput('')}
+                        staffIds={staffIds}
                         toolbar={toolbar}
+                        emptyState={emptyState}
                     />
                 )}
             </div>

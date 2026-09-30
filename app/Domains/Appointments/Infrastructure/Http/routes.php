@@ -31,3 +31,7 @@ Route::delete('/appointments/{appointment}', [AppointmentController::class, 'des
 Route::get('/customers/{customer}/appointments', [CustomerAppointmentController::class, 'index'])
     ->middleware('permission:view_appointments')
     ->whereUuid('customer');
+
+Route::get('/customers/{customer}/appointments/last', [CustomerAppointmentController::class, 'last'])
+    ->middleware('permission:view_appointments')
+    ->whereUuid('customer');

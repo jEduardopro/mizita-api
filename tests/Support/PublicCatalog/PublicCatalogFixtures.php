@@ -100,7 +100,7 @@ final class PublicCatalogFixtures
 
     public const REFERENCE_CODE = 'A2B3C4D5';
 
-    public const MANAGE_TOKEN = 'a1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f';
+    public const MANAGE_TOKEN = 'abababababababababababababababababababababababababababababababab';
 
     public const STARTS_AT = '2026-03-10T09:00:00+00:00';
 

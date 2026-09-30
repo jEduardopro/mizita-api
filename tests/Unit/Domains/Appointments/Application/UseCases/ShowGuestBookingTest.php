@@ -191,7 +191,7 @@ describe('credentials that do not open a booking', function () {
     })->with([
         'empty' => '',
         'too short' => 'a1b2c3',
-        'not hexadecimal' => 'z1b2c3d4e5f6071829304a5b6c7d8e9fa1b2c3d4e5f6071829304a5b6c7d8e9f',
+        'not hexadecimal' => 'zbababababababababababababababababababababababababababababababab',
     ]);
 
     it('refuses a booking of a neighbouring business holding the very same code', function () {

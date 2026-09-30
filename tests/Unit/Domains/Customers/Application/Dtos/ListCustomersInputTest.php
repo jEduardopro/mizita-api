@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use App\Domains\Customers\Application\Dtos\ListCustomersInput;
+use App\Domains\Customers\Exceptions\InvalidCustomerRegistrationPeriod;
 use App\Domains\Customers\Exceptions\InvalidCustomerSearch;
 use App\Domains\Customers\ValueObjects\CustomerSort;
+use App\Domains\Customers\ValueObjects\RegistrationPeriod;
+use App\Domains\Customers\ValueObjects\RegistrationWindow;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use App\Shared\ValueObjects\Pagination;
@@ -35,7 +38,35 @@ describe('reading a query string', function () {
             ->and($input->sort)->toBeNull()
             ->and($input->direction)->toBeNull()
             ->and($input->page)->toBeNull()
-            ->and($input->perPage)->toBeNull();
+            ->and($input->perPage)->toBeNull()
+            ->and($input->createdFrom)->toBeNull()
+            ->and($input->createdTo)->toBeNull();
+    });
+
+    it('reads the registration dates a query string carries', function () {
+        $input = ListCustomersInput::fromRequest(['created_from' => '2026-03-01', 'created_to' => '2026-03-31']);
+
+        expect($input->createdFrom)->toBe('2026-03-01')
+            ->and($input->createdTo)->toBe('2026-03-31');
+    });
+
+    it('reads a blank registration date as no filter at all', function (string $blank) {
+        $input = ListCustomersInput::fromRequest(['created_from' => $blank, 'created_to' => $blank]);
+
+        expect($input->createdFrom)->toBeNull()
+            ->and($input->createdTo)->toBeNull();
+    })->with(['empty' => '', 'spaces' => '   ', 'tab' => "\t"]);
+
+    it('holds a registration date as it arrived, leaving the date to read it', function () {
+        expect(ListCustomersInput::fromRequest(['created_from' => ' 2026-3-1 '])->createdFrom)->toBe(' 2026-3-1 ');
+    });
+
+    it('filters on no registration date when built without one', function () {
+        $input = new ListCustomersInput(search: null, sort: null, direction: null, page: null, perPage: null);
+
+        expect($input->createdFrom)->toBeNull()
+            ->and($input->createdTo)->toBeNull()
+            ->and($input->registrationPeriod())->toBeNull();
     });
 
     it('reads the numbers a query string carries as strings', function () {
@@ -54,6 +85,10 @@ describe('reading a query string', function () {
         'page as a word' => [['page' => 'first'], 'page'],
         'page as an array' => [['page' => [2]], 'page'],
         'per page as a word' => [['per_page' => 'all'], 'perPage'],
+        'created from as an array' => [['created_from' => ['2026-03-01']], 'createdFrom'],
+        'created from as a number' => [['created_from' => 20260301], 'createdFrom'],
+        'created to as a boolean' => [['created_to' => true], 'createdTo'],
+        'created to as null' => [['created_to' => null], 'createdTo'],
     ]);
 
     it('holds a blank search as it arrived, leaving the search term to read it as nothing', function () {
@@ -116,6 +151,108 @@ describe('validating', function () {
         expect($refusal)->toBeInstanceOf(DomainFailure::class)
             ->and($refusal?->errorCode())->toBe('invalid_customer_search')
             ->and($refusal?->kind())->toBe(DomainFailureKind::Invalid);
+    });
+});
+
+describe('validating the registration period', function () {
+    it('accepts a period with both of its dates', function () {
+        expect(fn () => ListCustomersInput::fromRequest([
+            'created_from' => '2026-03-01',
+            'created_to' => '2026-03-31',
+        ])->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('accepts a period of a single day', function () {
+        expect(fn () => ListCustomersInput::fromRequest([
+            'created_from' => '2026-03-29',
+            'created_to' => '2026-03-29',
+        ])->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('accepts dates padded with whitespace', function () {
+        expect(fn () => ListCustomersInput::fromRequest([
+            'created_from' => ' 2026-03-01 ',
+            'created_to' => '2026-03-31  ',
+        ])->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('refuses a period it cannot read', function (array $payload, string $reason) {
+        expect(fn () => ListCustomersInput::fromRequest($payload)->validate())
+            ->toThrow(InvalidCustomerRegistrationPeriod::class, $reason);
+    })->with([
+        'a from date that is not a calendar day' => [
+            ['created_from' => '2026-02-30', 'created_to' => '2026-03-31'],
+            'The registration date [2026-02-30] is not a calendar date',
+        ],
+        'a to date that is not a calendar day' => [
+            ['created_from' => '2026-02-01', 'created_to' => '2026-02-30'],
+            'The registration date [2026-02-30] is not a calendar date',
+        ],
+        'a from date without padding' => [
+            ['created_from' => '2026-3-1', 'created_to' => '2026-03-31'],
+            'The registration date [2026-3-1] is not a calendar date',
+        ],
+        'a to date written day first' => [
+            ['created_from' => '2026-03-01', 'created_to' => '31/03/2026'],
+            'The registration date [31/03/2026] is not a calendar date',
+        ],
+        'only a from date' => [
+            ['created_from' => '2026-03-01'],
+            'needs both a from and a to date',
+        ],
+        'only a to date' => [
+            ['created_to' => '2026-03-31'],
+            'needs both a from and a to date',
+        ],
+        'a from date and a blank to date' => [
+            ['created_from' => '2026-03-01', 'created_to' => '   '],
+            'needs both a from and a to date',
+        ],
+        'a reversed period' => [
+            ['created_from' => '2026-03-31', 'created_to' => '2026-03-01'],
+            'got [2026-03-31] to [2026-03-01]',
+        ],
+    ]);
+
+    it('refuses a single malformed bound as incomplete before reading it', function () {
+        expect(fn () => ListCustomersInput::fromRequest(['created_from' => 'yesterday'])->validate())
+            ->toThrow(InvalidCustomerRegistrationPeriod::class, 'needs both a from and a to date');
+    });
+
+    it('refuses a period with a failure the responder can classify', function () {
+        $refusal = null;
+
+        try {
+            ListCustomersInput::fromRequest(['created_from' => '2026-03-01'])->validate();
+        } catch (InvalidCustomerRegistrationPeriod $caught) {
+            $refusal = $caught;
+        }
+
+        expect($refusal)->toBeInstanceOf(DomainFailure::class)
+            ->and($refusal?->errorCode())->toBe('invalid_customer_registration_period')
+            ->and($refusal?->kind())->toBe(DomainFailureKind::Invalid);
+    });
+});
+
+describe('the registration period it asks for', function () {
+    it('asks for no period when neither date was given', function () {
+        expect(ListCustomersInput::fromRequest([])->registrationPeriod())->toBeNull();
+    });
+
+    it('asks for the period between the two dates it was given', function () {
+        $period = ListCustomersInput::fromRequest([
+            'created_from' => '2026-03-01',
+            'created_to' => '2026-03-31',
+        ])->registrationPeriod();
+
+        expect($period)->toBeInstanceOf(RegistrationPeriod::class)
+            ->and($period?->from->toString())->toBe('2026-03-01')
+            ->and($period?->to->toString())->toBe('2026-03-31');
+    });
+
+    it('refuses to answer for a period missing one of its dates', function () {
+        expect(fn () => ListCustomersInput::fromRequest(['created_to' => '2026-03-31'])->registrationPeriod())
+            ->toThrow(InvalidCustomerRegistrationPeriod::class);
     });
 });
 
@@ -186,5 +323,24 @@ describe('turning itself into a query', function () {
 
     it('trims the search term it passes down', function () {
         expect(ListCustomersInput::fromRequest(['search' => '  Ada  '])->toQuery()->search->raw())->toBe('Ada');
+    });
+
+    it('carries no registration window unless it is handed one', function () {
+        expect(ListCustomersInput::fromRequest([
+            'created_from' => '2026-03-01',
+            'created_to' => '2026-03-31',
+        ])->toQuery()->registeredWithin)->toBeNull();
+    });
+
+    it('carries the registration window it is handed alongside the phone matches', function () {
+        $window = new RegistrationWindow(
+            startsAt: new DateTimeImmutable('2026-03-28T23:00:00+00:00'),
+            endsAt: new DateTimeImmutable('2026-03-29T22:00:00+00:00'),
+        );
+
+        $query = ListCustomersInput::fromRequest([])->toQuery(['01930000-0000-7000-8000-0000000000c1'], $window);
+
+        expect($query->registeredWithin)->toBe($window)
+            ->and($query->phoneMatches)->toBe(['01930000-0000-7000-8000-0000000000c1']);
     });
 });
