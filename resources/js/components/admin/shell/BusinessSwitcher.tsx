@@ -1,12 +1,15 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { cn } from 'cn';
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { ChevronsUpDown, LoaderCircle, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -17,8 +20,16 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMyBusinesses } from '@/domains/businesses/queries';
+import { useMyBusinesses, useSelectCurrentBusiness } from '@/domains/businesses/queries';
+import { useErrorToast } from '@/hooks/use-error-toast';
+import { formMessageFrom } from '@/lib/http';
 import { initialsFrom } from '@/lib/initials';
+
+const CALENDAR_URL = '/calendar';
+
+const ONBOARDING_URL = '/onboarding';
+
+const OWNER_ROLE = 'owner';
 
 type CrestProps = {
     name: string;
@@ -88,13 +99,58 @@ function BusinessIdentitySkeleton() {
     );
 }
 
+function currentOf<T extends { is_current: boolean }>(businesses: readonly T[]): T | undefined {
+    return businesses.find((business) => business.is_current) ?? businesses[0];
+}
+
+function ownsAnyOf(businesses: readonly { role: string }[]): boolean {
+    return businesses.some((business) => business.role === OWNER_ROLE);
+}
+
+function useBusinessSwitch() {
+    const { t } = useTranslation('admin');
+    const errorToast = useErrorToast();
+    const selectCurrentBusiness = useSelectCurrentBusiness();
+    const [isEntering, setIsEntering] = useState(false);
+
+    async function switchTo(businessId: string) {
+        errorToast.dismiss();
+
+        try {
+            await selectCurrentBusiness.mutateAsync(businessId);
+        } catch (error) {
+            errorToast.show(formMessageFrom(error, t('shell.switchFailed')));
+
+            return;
+        }
+
+        setIsEntering(true);
+        router.visit(CALENDAR_URL, { onFinish: () => setIsEntering(false) });
+    }
+
+    return {
+        switchTo,
+        isSwitching: selectCurrentBusiness.isPending || isEntering,
+    };
+}
+
 export function BusinessSwitcher() {
     const { t } = useTranslation('admin');
     const { name } = usePage().props;
     const { isMobile } = useSidebar();
-    const { data: businesses, isPending } = useMyBusinesses();
+    const { data: businesses = [], isPending } = useMyBusinesses();
+    const { switchTo, isSwitching } = useBusinessSwitch();
 
-    const current = businesses?.[0];
+    const current = currentOf(businesses);
+    const offersCreation = ! isPending && ! ownsAnyOf(businesses);
+
+    function selectBusiness(businessId: string) {
+        if (businessId === current?.id) {
+            return;
+        }
+
+        void switchTo(businessId);
+    }
 
     return (
         <SidebarMenu>
@@ -104,7 +160,9 @@ export function BusinessSwitcher() {
                         <SidebarMenuButton
                             size="lg"
                             aria-label={t('shell.businessSwitcher')}
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                            aria-busy={isSwitching}
+                            disabled={isSwitching}
+                            className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
                             {isPending ? (
                                 <BusinessIdentitySkeleton />
@@ -116,7 +174,14 @@ export function BusinessSwitcher() {
                                 />
                             )}
 
-                            <ChevronsUpDown className="ml-auto size-4 opacity-60" />
+                            {isSwitching ? (
+                                <LoaderCircle
+                                    aria-hidden="true"
+                                    className="ml-auto size-4 opacity-60 motion-safe:animate-spin"
+                                />
+                            ) : (
+                                <ChevronsUpDown className="ml-auto size-4 opacity-60" />
+                            )}
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
 
@@ -126,42 +191,51 @@ export function BusinessSwitcher() {
                         sideOffset={4}
                         className="min-w-60 rounded-lg"
                     >
-                        {businesses && businesses.length > 0 ? (
+                        {businesses.length > 0 ? (
                             <>
                                 <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                                    {t('shell.currentBusiness')}
+                                    {t('shell.businesses')}
                                 </DropdownMenuLabel>
 
-                                {businesses.map((business) => (
-                                    <DropdownMenuItem
-                                        key={business.id}
-                                        disabled
-                                        className="gap-2 py-3 md:py-2"
-                                    >
-                                        <BusinessCrest
-                                            name={business.name}
-                                            logoUrl={business.logo_url}
-                                            className="size-6 rounded-sm text-[0.625rem]"
-                                        />
-                                        <span className="truncate">{business.name}</span>
-                                        {business.id === current?.id ? (
-                                            <Check className="ml-auto size-4" />
-                                        ) : null}
-                                    </DropdownMenuItem>
-                                ))}
+                                <DropdownMenuRadioGroup
+                                    value={current?.id}
+                                    onValueChange={selectBusiness}
+                                >
+                                    {businesses.map((business) => (
+                                        <DropdownMenuRadioItem
+                                            key={business.id}
+                                            value={business.id}
+                                            disabled={isSwitching}
+                                            className="cursor-pointer gap-2 py-3 md:py-2"
+                                        >
+                                            <BusinessCrest
+                                                name={business.name}
+                                                logoUrl={business.logo_url}
+                                                className="size-6 rounded-sm text-[0.625rem]"
+                                            />
+                                            <span className="truncate">{business.name}</span>
+                                        </DropdownMenuRadioItem>
+                                    ))}
+                                </DropdownMenuRadioGroup>
 
-                                <DropdownMenuSeparator />
+                                {offersCreation ? <DropdownMenuSeparator /> : null}
                             </>
                         ) : null}
 
-                        <DropdownMenuItem asChild className="gap-2 py-3 md:py-2">
-                            <Link href="/onboarding">
-                                <Plus className="size-4" />
-                                {t('shell.createBusiness')}
-                            </Link>
-                        </DropdownMenuItem>
+                        {offersCreation ? (
+                            <DropdownMenuItem asChild className="cursor-pointer gap-2 py-3 md:py-2">
+                                <Link href={ONBOARDING_URL}>
+                                    <Plus className="size-4" />
+                                    {t('shell.createBusiness')}
+                                </Link>
+                            </DropdownMenuItem>
+                        ) : null}
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <span role="status" className="sr-only">
+                    {isSwitching ? t('shell.switchingBusiness') : null}
+                </span>
             </SidebarMenuItem>
         </SidebarMenu>
     );

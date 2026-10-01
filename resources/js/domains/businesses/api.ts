@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import type {
+    AccountBusiness,
     BookingPage,
     Business,
     BusinessNameAvailability,
@@ -7,6 +8,7 @@ import type {
     CalendarSettings,
     CreateBusinessPayload,
     ReorderGalleryPayload,
+    SelectCurrentBusinessPayload,
     UpdateBusinessSettingsPayload,
 } from './types';
 
@@ -24,10 +26,16 @@ export async function checkBusinessNameAvailability(
     return data.data;
 }
 
-export async function fetchMyBusinesses(signal?: AbortSignal): Promise<Business[]> {
-    const { data } = await api.get<{ data: Business[] }>('/me/businesses', { signal });
+export async function fetchMyBusinesses(signal?: AbortSignal): Promise<AccountBusiness[]> {
+    const { data } = await api.get<{ data: AccountBusiness[] }>('/me/businesses', { signal });
 
     return data.data;
+}
+
+export async function selectCurrentBusiness(businessId: string): Promise<void> {
+    const payload: SelectCurrentBusinessPayload = { business_id: businessId };
+
+    await api.put('/me/current-business', payload);
 }
 
 export async function createBusiness(payload: CreateBusinessPayload): Promise<Business> {

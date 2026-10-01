@@ -10,11 +10,12 @@ use App\Domains\Staff\Infrastructure\Permissions\StaffRoleAssignments;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Models\User;
 use App\Shared\Contracts\BusinessMembership;
+use App\Shared\Contracts\BusinessOwnership;
 use App\Shared\Contracts\PausedBusinessAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
 
-final class EloquentBusinessMembership implements BusinessMembership, PausedBusinessAccess
+final class EloquentBusinessMembership implements BusinessMembership, BusinessOwnership, PausedBusinessAccess
 {
     public function __construct(
         private readonly TeamAllowance $allowance,
@@ -32,6 +33,11 @@ final class EloquentBusinessMembership implements BusinessMembership, PausedBusi
             array_keys($memberships),
             static fn (string $businessId): bool => ! isset($paused[$businessId]),
         ));
+    }
+
+    public function ownsOpenBusiness(string $accountId): bool
+    {
+        return in_array(true, $this->accessGrantingMembershipsOf($accountId), strict: true);
     }
 
     /**

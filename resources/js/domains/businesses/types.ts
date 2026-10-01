@@ -30,6 +30,17 @@ export type Business = {
     created_at: string;
 };
 
+export type BusinessMembershipRole = 'owner' | 'staff';
+
+export type AccountBusiness = Business & {
+    role: BusinessMembershipRole;
+    is_current: boolean;
+};
+
+export type SelectCurrentBusinessPayload = {
+    business_id: string;
+};
+
 export type NameUnavailableReason = 'taken' | 'not_sluggable';
 
 export type BusinessNameAvailability = {

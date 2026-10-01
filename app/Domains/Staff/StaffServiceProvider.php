@@ -44,6 +44,7 @@ use App\Domains\Staff\Infrastructure\Permissions\StaffBusinessAuthorization;
 use App\Domains\Staff\Services\BookingLinks;
 use App\Shared\Contracts\BusinessAuthorization;
 use App\Shared\Contracts\BusinessMembership;
+use App\Shared\Contracts\BusinessOwnership;
 use App\Shared\Contracts\PausedBusinessAccess;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -82,6 +83,7 @@ final class StaffServiceProvider extends ServiceProvider
         $this->app->bind(StaffProfilePhotos::class, SpatieStaffProfilePhotos::class);
         $this->app->bind(StaffPhoneBook::class, PhonesStaffPhoneBook::class);
         $this->app->bind(BusinessMembership::class, EloquentBusinessMembership::class);
+        $this->app->bind(BusinessOwnership::class, EloquentBusinessMembership::class);
         $this->app->bind(PausedBusinessAccess::class, EloquentBusinessMembership::class);
         $this->app->bind(TeamAllowance::class, SubscriptionsTeamAllowance::class);
         $this->app->bind(AccountDirectory::class, AccountsAccountDirectory::class);

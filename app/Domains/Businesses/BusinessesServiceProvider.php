@@ -13,6 +13,7 @@ use App\Domains\Businesses\Contracts\BusinessLogo;
 use App\Domains\Businesses\Contracts\BusinessRepository;
 use App\Domains\Businesses\Contracts\BusinessSchedule;
 use App\Domains\Businesses\Contracts\IndustryCatalog;
+use App\Domains\Businesses\Contracts\MembershipRoles;
 use App\Domains\Businesses\Contracts\OwnerRegistrar;
 use App\Domains\Businesses\Contracts\PaymentMethodProvisioner;
 use App\Domains\Businesses\Contracts\PhoneBook;
@@ -33,6 +34,7 @@ use App\Domains\Businesses\Infrastructure\Gateways\IndustriesIndustryCatalog;
 use App\Domains\Businesses\Infrastructure\Gateways\LinksBusinessLinkList;
 use App\Domains\Businesses\Infrastructure\Gateways\PaymentsPaymentMethodProvisioner;
 use App\Domains\Businesses\Infrastructure\Gateways\PhonesPhoneBook;
+use App\Domains\Businesses\Infrastructure\Gateways\StaffMembershipRoles;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffOwnerRegistrar;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffRoleProvisioner;
 use App\Domains\Businesses\Infrastructure\Gateways\StaffTeamSignOut;
@@ -73,6 +75,7 @@ final class BusinessesServiceProvider extends ServiceProvider
         $this->app->bind(BookingPolicySettings::class, BookingPoliciesBookingPolicySettings::class);
         $this->app->bind(BookingRulesAllowance::class, SubscriptionsBookingRulesAllowance::class);
         $this->app->bind(TeamSignOut::class, StaffTeamSignOut::class);
+        $this->app->bind(MembershipRoles::class, StaffMembershipRoles::class);
         $this->app->bind(TenantDataEraser::class, DatabaseTenantDataEraser::class);
     }
 

@@ -16,7 +16,9 @@
         "toggleSidebar": "Show or hide the menu",
         "businessSwitcher": "Your business",
         "createBusiness": "Create business",
-        "currentBusiness": "Current business"
+        "businesses": "Businesses",
+        "switchingBusiness": "Switching business…",
+        "switchFailed": "Couldn't switch business. Try again."
     },
     "account": {
         "menu": "Your account",

@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Http\Exceptions\BusinessAccessDenied;
-use App\Http\Exceptions\TeamAccessPaused;
 use App\Shared\Contracts\BusinessContext;
-use App\Shared\Contracts\BusinessMembership;
 use App\Shared\Contracts\BusinessTeamKey;
-use App\Shared\Contracts\PausedBusinessAccess;
+use App\Shared\Contracts\CurrentBusinessResolver;
 use App\Shared\Infrastructure\RequestBusinessContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -18,12 +16,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class SetBusinessContext
 {
-    private const BUSINESS_HEADER = 'X-Business';
+    public const BUSINESS_HEADER = 'X-Business';
 
     public function __construct(
-        private readonly BusinessMembership $memberships,
+        private readonly CurrentBusinessResolver $currentBusiness,
         private readonly BusinessTeamKey $teamKeys,
-        private readonly PausedBusinessAccess $pausedAccess,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -47,40 +44,9 @@ final class SetBusinessContext
             throw BusinessAccessDenied::accountHasNoBusiness();
         }
 
-        $available = $this->memberships->businessIdsFor((string) $accountId);
-
-        if ($available === []) {
-            $this->guardAgainstEveryMembershipPaused((string) $accountId);
-
-            throw BusinessAccessDenied::accountHasNoBusiness();
-        }
-
-        $requested = $request->header(self::BUSINESS_HEADER);
-
-        if ($requested === null) {
-            return $available[0];
-        }
-
-        if (! in_array($requested, $available, strict: true)) {
-            $this->guardAgainstPausedBusiness((string) $accountId, $requested);
-
-            throw BusinessAccessDenied::businessNotAccessible($requested);
-        }
-
-        return $requested;
-    }
-
-    private function guardAgainstEveryMembershipPaused(string $accountId): void
-    {
-        if ($this->pausedAccess->pausedBusinessIdsFor($accountId) !== []) {
-            throw TeamAccessPaused::forEveryMembership();
-        }
-    }
-
-    private function guardAgainstPausedBusiness(string $accountId, string $businessId): void
-    {
-        if (in_array($businessId, $this->pausedAccess->pausedBusinessIdsFor($accountId), strict: true)) {
-            throw TeamAccessPaused::forBusiness($businessId);
-        }
+        return $this->currentBusiness->resolveFor(
+            (string) $accountId,
+            $request->header(self::BUSINESS_HEADER),
+        );
     }
 }

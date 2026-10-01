@@ -13,6 +13,7 @@ import {
     removeBusinessLogo,
     removeGalleryImage,
     reorderGallery,
+    selectCurrentBusiness,
     updateBusinessSettings,
 } from './api';
 import type { BookingPage, BusinessSettings } from './types';
@@ -34,6 +35,17 @@ export function useMyBusinesses() {
     return useQuery({
         queryKey: businessKeys.mine(),
         queryFn: ({ signal }) => fetchMyBusinesses(signal),
+    });
+}
+
+export function useSelectCurrentBusiness() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: selectCurrentBusiness,
+        onSuccess: () => {
+            queryClient.clear();
+        },
     });
 }
 

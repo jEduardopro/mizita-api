@@ -14,6 +14,7 @@ import { SubmitButton } from '@/components/form/SubmitButton';
 import {
     useBusinessNameAvailability,
     useCreateBusiness,
+    useSelectCurrentBusiness,
     type NameStatus,
 } from '@/domains/businesses/queries';
 import type { CreateBusinessPayload } from '@/domains/businesses/types';
@@ -126,6 +127,7 @@ export function BusinessOnboardingForm({ industries }: Props) {
 
     const availability = useBusinessNameAvailability(name);
     const createBusiness = useCreateBusiness();
+    const selectCurrentBusiness = useSelectCurrentBusiness();
 
     const verdict = nameVerdict(availability.status, availability.slug, t);
 
@@ -135,16 +137,22 @@ export function BusinessOnboardingForm({ industries }: Props) {
         }
     }
 
+    async function enterBusiness(businessId: string) {
+        await selectCurrentBusiness.mutateAsync(businessId).catch(() => undefined);
+
+        router.visit(DASHBOARD_URL);
+    }
+
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         reset();
 
         try {
-            await createBusiness.mutateAsync(
+            const business = await createBusiness.mutateAsync(
                 payloadFrom({ name, industryId, phoneCountry, phoneNumber }),
             );
 
-            router.visit(DASHBOARD_URL);
+            await enterBusiness(business.id);
         } catch (error) {
             capture(error, t('onboarding.errors.unexpected'));
         }
@@ -233,7 +241,7 @@ export function BusinessOnboardingForm({ industries }: Props) {
                     className="mt-2 h-12 w-full rounded-xl text-sm"
                     label={t('onboarding.submit')}
                     submittingLabel={t('onboarding.submitting')}
-                    isSubmitting={createBusiness.isPending}
+                    isSubmitting={createBusiness.isPending || selectCurrentBusiness.isPending}
                 />
             </div>
         </form>

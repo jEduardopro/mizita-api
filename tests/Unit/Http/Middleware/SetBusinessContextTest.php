@@ -7,10 +7,12 @@ use App\Http\Exceptions\TeamAccessPaused;
 use App\Http\Middleware\SetBusinessContext;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\DomainFailure;
+use App\Shared\Infrastructure\MembershipCurrentBusinessResolver;
 use Illuminate\Http\Request;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Support\FakeBusinessMembership;
+use Tests\Support\FakeBusinessSelection;
 use Tests\Support\FakeBusinessTeamKey;
 use Tests\Support\FakePausedBusinessAccess;
 use Tests\TestCase;
@@ -54,18 +56,24 @@ function contextPausedAccess(array $paused): FakePausedBusinessAccess
  * @param  list<string>  $accessible
  * @param  list<string>|FakePausedBusinessAccess  $paused
  */
-function businessContextMiddleware(array $accessible, array|FakePausedBusinessAccess $paused): SetBusinessContext
-{
+function businessContextMiddleware(
+    array $accessible,
+    array|FakePausedBusinessAccess $paused,
+    FakeBusinessSelection $selection = new FakeBusinessSelection,
+): SetBusinessContext {
     $pausedAccess = $paused instanceof FakePausedBusinessAccess ? $paused : contextPausedAccess($paused);
 
     return new SetBusinessContext(
-        new FakeBusinessMembership([CONTEXT_ACCOUNT_UUID => $accessible]),
+        new MembershipCurrentBusinessResolver(
+            new FakeBusinessMembership([CONTEXT_ACCOUNT_UUID => $accessible]),
+            $pausedAccess,
+            $selection,
+        ),
         new FakeBusinessTeamKey([
             CONTEXT_OWNED_BUSINESS_UUID => 11,
             CONTEXT_JOINED_BUSINESS_UUID => 12,
             CONTEXT_PAUSED_BUSINESS_UUID => 13,
         ]),
-        $pausedAccess,
     );
 }
 
@@ -110,6 +118,26 @@ describe('an account with an accessible business', function () {
             ->handle(businessContextRequest(requestedBusiness: CONTEXT_JOINED_BUSINESS_UUID), $this->next);
 
         expect(app(BusinessContext::class)->currentBusinessId())->toBe(CONTEXT_JOINED_BUSINESS_UUID);
+    });
+
+    it('binds the business the account selected earlier when no header names one', function () {
+        $selection = new FakeBusinessSelection([CONTEXT_ACCOUNT_UUID => CONTEXT_JOINED_BUSINESS_UUID]);
+
+        businessContextMiddleware([CONTEXT_OWNED_BUSINESS_UUID, CONTEXT_JOINED_BUSINESS_UUID], [], $selection)
+            ->handle(businessContextRequest(), $this->next);
+
+        expect(app(BusinessContext::class)->currentBusinessId())->toBe(CONTEXT_JOINED_BUSINESS_UUID)
+            ->and(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBe(12);
+    });
+
+    it('binds the business the header names over the one the account selected earlier', function () {
+        $selection = new FakeBusinessSelection([CONTEXT_ACCOUNT_UUID => CONTEXT_JOINED_BUSINESS_UUID]);
+
+        businessContextMiddleware([CONTEXT_OWNED_BUSINESS_UUID, CONTEXT_JOINED_BUSINESS_UUID], [], $selection)
+            ->handle(businessContextRequest(requestedBusiness: CONTEXT_OWNED_BUSINESS_UUID), $this->next);
+
+        expect(app(BusinessContext::class)->currentBusinessId())->toBe(CONTEXT_OWNED_BUSINESS_UUID)
+            ->and(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBe(11);
     });
 
     it('sets the permission team to the key of the bound business', function () {

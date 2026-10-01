@@ -103,6 +103,7 @@ return [
         'business_already_closed' => 'That business is already closed.',
         'business_not_closed' => 'That business is not closed.',
         'business_not_due_for_purge' => 'That business cannot be erased yet.',
+        'invalid_business_selection' => 'That is not a business you can switch to.',
 
         // One sentence for every way a phone number is turned down - a country
         // we do not operate in, or digits that are not a number within one we

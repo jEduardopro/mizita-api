@@ -6,8 +6,9 @@ namespace App\Domains\Businesses\Infrastructure\Http\Controllers;
 
 use App\Domains\Businesses\Application\Dtos\ListAccountBusinessesInput;
 use App\Domains\Businesses\Application\UseCases\ListAccountBusinesses;
-use App\Domains\Businesses\Infrastructure\Http\Resources\BusinessResource;
+use App\Domains\Businesses\Infrastructure\Http\Resources\AccountBusinessResource;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\SetBusinessContext;
 use App\Http\Responses\ApiResponder;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,10 @@ final class AccountBusinessesController extends Controller
 
         try {
             $response = $listAccountBusinesses->handle(
-                new ListAccountBusinessesInput($account->uuid),
+                new ListAccountBusinessesInput(
+                    $account->uuid,
+                    $request->header(SetBusinessContext::BUSINESS_HEADER),
+                ),
             );
 
             if ($response->failed()) {
@@ -36,7 +40,7 @@ final class AccountBusinessesController extends Controller
 
             return $responder->success(
                 $response,
-                BusinessResource::collection($response->value()),
+                AccountBusinessResource::collection($response->value()),
                 Response::HTTP_OK,
             );
         } catch (Throwable $unexpected) {

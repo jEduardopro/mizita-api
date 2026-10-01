@@ -103,6 +103,7 @@ return [
         'business_already_closed' => 'Ese negocio ya está cerrado.',
         'business_not_closed' => 'Ese negocio no está cerrado.',
         'business_not_due_for_purge' => 'Ese negocio todavía no se puede borrar.',
+        'invalid_business_selection' => 'Ese no es un negocio al que puedas cambiar.',
 
         // One sentence for every way a phone number is turned down - a country
         // we do not operate in, or digits that are not a number within one we

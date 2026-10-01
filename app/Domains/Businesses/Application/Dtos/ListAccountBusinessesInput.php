@@ -8,5 +8,6 @@ final readonly class ListAccountBusinessesInput
 {
     public function __construct(
         public string $accountId,
+        public ?string $requestedBusinessId = null,
     ) {}
 }
