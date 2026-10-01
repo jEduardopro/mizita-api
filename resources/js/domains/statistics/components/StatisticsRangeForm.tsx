@@ -1,25 +1,32 @@
 import { useTranslation } from 'react-i18next';
-import { DateRangePicker } from '@/components/form/DateRangePicker';
+import { DateRangeFilterChip } from '@/components/admin/filter-chips/DateRangeFilterChip';
+import { FilterChipRow } from '@/components/admin/filter-chips/FilterChipRow';
+import { useDateRangeChipMessages } from '@/components/admin/filter-chips/use-date-range-chip-messages';
 import type { StatisticsRange } from '../types';
 
 type Props = {
     value: StatisticsRange | null;
     latest: string;
     onApply: (range: StatisticsRange) => void;
+    onClear: () => void;
 };
 
-export function StatisticsRangeForm({ value, latest, onApply }: Props) {
+export function StatisticsRangeForm({ value, latest, onApply, onClear }: Props) {
     const { t } = useTranslation('admin');
+    const { t: tCommon } = useTranslation('common');
+    const messages = useDateRangeChipMessages();
 
     return (
-        <DateRangePicker
-            label={t('statistics.range.label')}
-            placeholder={t('statistics.range.placeholder')}
-            value={value}
-            onApply={onApply}
-            today={latest}
-            max={latest}
-            className="sm:w-80"
-        />
+        <FilterChipRow aria-label={t('statistics.range.filtersLabel')}>
+            <DateRangeFilterChip
+                label={tCommon('dateRange.label')}
+                value={value}
+                onApply={onApply}
+                onClear={onClear}
+                today={latest}
+                max={latest}
+                messages={messages}
+            />
+        </FilterChipRow>
     );
 }

@@ -13,15 +13,15 @@ import {
 import { useDateRangeDraft } from '@/components/form/use-date-range-draft';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { FilterChip } from './FilterChip';
-import { FilterChipApply } from './FilterChipApply';
+import { FilterChipActions, type FilterChipActionsMessages } from './FilterChipActions';
 import { dateRangeLabelFormatter } from './date-range-label';
 
-export type DateRangeFilterChipMessages = DateRangeCalendarMessages & {
-    apply: string;
-    clear: string;
-    presetsLabel: string;
-    presets: Record<DateRangePresetLabelKey, string>;
-};
+export type DateRangeFilterChipMessages = DateRangeCalendarMessages &
+    FilterChipActionsMessages & {
+        clear: string;
+        presetsLabel: string;
+        presets: Record<DateRangePresetLabelKey, string>;
+    };
 
 export type DateRangeFilterChipProps = {
     label: string;
@@ -61,10 +61,6 @@ export function DateRangeFilterChip({
     const resolvedPresets = useMemo(() => resolvePresets(presets, today, max), [presets, today, max]);
     const formatRange = useMemo(() => dateRangeLabelFormatter(i18n.language), [i18n.language]);
 
-    function selectPreset(range: DateRangeValue) {
-        picker.selectDays({ from: dateOrUndefined(range.from), to: dateOrUndefined(range.to) });
-    }
-
     return (
         <FilterChip
             label={label}
@@ -83,7 +79,7 @@ export function DateRangeFilterChip({
                         presets={resolvedPresets}
                         presetLabels={messages.presets}
                         draftRange={picker.draftRange}
-                        onSelect={selectPreset}
+                        onSelect={picker.applyPreset}
                         className="shrink-0"
                     />
                 ) : null}
@@ -100,9 +96,12 @@ export function DateRangeFilterChip({
                 />
             </div>
 
-            <FilterChipApply disabled={! picker.canApply} onClick={picker.apply}>
-                {messages.apply}
-            </FilterChipApply>
+            <FilterChipActions
+                canApply={picker.canApply}
+                onCancel={picker.cancel}
+                onApply={picker.apply}
+                messages={messages}
+            />
         </FilterChip>
     );
 }

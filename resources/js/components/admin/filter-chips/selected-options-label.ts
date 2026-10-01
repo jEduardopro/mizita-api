@@ -1,4 +1,4 @@
-import type { OptionsFilterOption } from '@/components/admin/filter-chips/OptionsFilterChip';
+import type { OptionsFilterOption } from './OptionsFilterChip';
 
 const VALUE_SEPARATOR = ', ';
 

@@ -1,7 +1,6 @@
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import type { ComboboxOptionsStatus } from '@/components/form/ComboboxPanel';
-import type { MultiComboboxOption } from '@/components/shared/multi-combobox/use-multi-combobox';
 import { Input } from '@/components/ui/input';
 import { foldForSearch } from '@/lib/text';
 import { FilterChip } from './FilterChip';
@@ -9,7 +8,10 @@ import { FilterChipApply } from './FilterChipApply';
 import { OptionsFilterList, type OptionsFilterListMessages } from './OptionsFilterList';
 import { useFilterDraft } from './use-filter-draft';
 
-export type OptionsFilterOption = MultiComboboxOption;
+export type OptionsFilterOption = {
+    value: string;
+    label: string;
+};
 
 export type OptionsFilterChipMessages = OptionsFilterListMessages & {
     apply: string;

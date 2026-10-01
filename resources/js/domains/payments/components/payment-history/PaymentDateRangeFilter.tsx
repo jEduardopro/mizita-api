@@ -1,9 +1,6 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-    DateRangeFilterChip,
-    type DateRangeFilterChipMessages,
-} from '@/components/admin/filter-chips/DateRangeFilterChip';
+import { DateRangeFilterChip } from '@/components/admin/filter-chips/DateRangeFilterChip';
+import { useDateRangeChipMessages } from '@/components/admin/filter-chips/use-date-range-chip-messages';
 import type { DateRangeValue } from '@/components/form/date-range';
 
 type Props = {
@@ -14,30 +11,16 @@ type Props = {
 };
 
 export function PaymentDateRangeFilter({ value, onApply, onClear, today }: Props) {
-    const { t } = useTranslation('admin');
-    const { t: tCommon } = useTranslation('common');
-
-    const messages = useMemo<DateRangeFilterChipMessages>(
-        () => ({
-            apply: tCommon('dateRange.apply'),
-            clear: tCommon('dateRange.clear'),
-            presetsLabel: tCommon('dateRange.presetsLabel'),
-            presets: tCommon('dateRange.presets', { returnObjects: true }),
-            previousMonth: tCommon('dateRange.previousMonth'),
-            nextMonth: tCommon('dateRange.nextMonth'),
-            today: tCommon('dateRange.today'),
-        }),
-        [tCommon],
-    );
+    const { t } = useTranslation('common');
+    const messages = useDateRangeChipMessages();
 
     return (
         <DateRangeFilterChip
-            label={t('payments.history.filters.date')}
+            label={t('dateRange.label')}
             value={value}
             onApply={onApply}
             onClear={onClear}
             today={today}
-            max={today}
             messages={messages}
         />
     );

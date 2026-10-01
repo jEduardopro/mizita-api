@@ -1,4 +1,4 @@
-import { startOfMonth, subDays } from 'date-fns';
+import { addDays, endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns';
 import { dateFromIso, isoFromDate } from '@/components/form/date-format';
 import type common from '@/locales/en/common.json';
 
@@ -29,11 +29,14 @@ export type ResolvedDateRangePreset = {
     id: string;
     labelKey: DateRangePresetLabelKey;
     range: DateRangeValue;
+    disabled: boolean;
 };
 
 const LAST_WEEK_LENGTH_IN_DAYS = 7;
 
-const LAST_MONTH_LENGTH_IN_DAYS = 30;
+const LAST_FORTNIGHT_LENGTH_IN_DAYS = 15;
+
+const LAST_QUARTER_LENGTH_IN_MONTHS = 3;
 
 function singleDay(day: Date): DateSpan {
     return { from: day, to: day };
@@ -43,12 +46,21 @@ function trailingDays(length: number): DateRangePreset['range'] {
     return (today) => ({ from: subDays(today, length - 1), to: today });
 }
 
+function trailingMonths(length: number): DateRangePreset['range'] {
+    return (today) => ({ from: addDays(subMonths(today, length), 1), to: today });
+}
+
+function wholeMonth(today: Date): DateSpan {
+    return { from: startOfMonth(today), to: endOfMonth(today) };
+}
+
 export const DEFAULT_DATE_RANGE_PRESETS: readonly DateRangePreset[] = [
     { id: 'today', labelKey: 'today', range: singleDay },
     { id: 'yesterday', labelKey: 'yesterday', range: (today) => singleDay(subDays(today, 1)) },
     { id: 'last-7-days', labelKey: 'last7Days', range: trailingDays(LAST_WEEK_LENGTH_IN_DAYS) },
-    { id: 'last-30-days', labelKey: 'last30Days', range: trailingDays(LAST_MONTH_LENGTH_IN_DAYS) },
-    { id: 'this-month', labelKey: 'thisMonth', range: (today) => ({ from: startOfMonth(today), to: today }) },
+    { id: 'last-15-days', labelKey: 'last15Days', range: trailingDays(LAST_FORTNIGHT_LENGTH_IN_DAYS) },
+    { id: 'this-month', labelKey: 'thisMonth', range: wholeMonth },
+    { id: 'last-3-months', labelKey: 'last3Months', range: trailingMonths(LAST_QUARTER_LENGTH_IN_MONTHS) },
 ];
 
 export function draftOfRange(range: DateRangeValue | null): DateRangeDraft {
@@ -67,19 +79,12 @@ export function isSameRange(left: DateRangeValue | null, right: DateRangeValue |
     return left?.from === right?.from && left?.to === right?.to;
 }
 
-function rangeWithin(span: DateSpan, max: string | undefined): DateRangeValue | null {
-    const from = isoFromDate(span.from);
-    const to = isoFromDate(span.to);
+function rangeOfSpan(span: DateSpan): DateRangeValue {
+    return { from: isoFromDate(span.from), to: isoFromDate(span.to) };
+}
 
-    if (max === undefined) {
-        return { from, to };
-    }
-
-    if (from > max) {
-        return null;
-    }
-
-    return { from, to: to > max ? max : to };
+function endsAfter(range: DateRangeValue, max: string | undefined): boolean {
+    return max !== undefined && range.to > max;
 }
 
 export function resolvePresets(
@@ -93,9 +98,9 @@ export function resolvePresets(
         return [];
     }
 
-    return presets.flatMap((preset) => {
-        const range = rangeWithin(preset.range(anchor), max);
+    return presets.map((preset) => {
+        const range = rangeOfSpan(preset.range(anchor));
 
-        return range === null ? [] : [{ id: preset.id, labelKey: preset.labelKey, range }];
+        return { id: preset.id, labelKey: preset.labelKey, range, disabled: endsAfter(range, max) };
     });
 }

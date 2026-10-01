@@ -10,6 +10,7 @@ const TO_PARAMETER = 'to';
 type StatisticsRangeState = {
     range: StatisticsRange | null;
     applyRange: (range: StatisticsRange) => void;
+    clearRange: () => void;
 };
 
 function isCalendarDate(value: string | null): value is string {
@@ -31,5 +32,10 @@ export function useStatisticsRange(): StatisticsRangeState {
         [urlQuery],
     );
 
-    return { range, applyRange };
+    const clearRange = useCallback(
+        () => urlQuery.write({ [FROM_PARAMETER]: null, [TO_PARAMETER]: null }),
+        [urlQuery],
+    );
+
+    return { range, applyRange, clearRange };
 }

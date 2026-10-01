@@ -19,7 +19,7 @@ const PRESET_LIST_CLASS =
     'flex gap-2 overflow-x-auto border-b border-border p-3 [contain:inline-size] [scrollbar-width:none] md:w-40 md:shrink-0 md:flex-col md:gap-0.5 md:overflow-visible md:border-r md:border-b-0 md:[contain:none] [&::-webkit-scrollbar]:hidden';
 
 const PRESET_CLASS =
-    'flex min-h-11 w-full items-center rounded-full border border-border px-4 text-left text-sm whitespace-nowrap text-foreground/80 transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:border-transparent aria-pressed:bg-muted aria-pressed:font-medium aria-pressed:text-foreground md:min-h-9 md:rounded-md md:border-transparent md:px-3';
+    'flex min-h-11 w-full items-center rounded-full border border-border px-4 text-left text-sm whitespace-nowrap text-foreground/80 transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:border-transparent aria-pressed:bg-muted aria-pressed:font-medium aria-pressed:text-foreground disabled:pointer-events-none disabled:opacity-50 md:min-h-9 md:rounded-md md:border-transparent md:px-3';
 
 export function DateRangePresetList({ label, presets, presetLabels, draftRange, onSelect, className }: Props) {
     return (
@@ -29,6 +29,7 @@ export function DateRangePresetList({ label, presets, presetLabels, draftRange, 
                     <button
                         type="button"
                         aria-pressed={isSameRange(preset.range, draftRange)}
+                        disabled={preset.disabled}
                         onClick={() => onSelect(preset.range)}
                         className={PRESET_CLASS}
                     >

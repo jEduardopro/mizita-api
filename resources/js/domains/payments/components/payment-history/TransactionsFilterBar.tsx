@@ -2,13 +2,13 @@ import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FilterChipRow } from '@/components/admin/filter-chips/FilterChipRow';
 import { OptionsFilterChip } from '@/components/admin/filter-chips/OptionsFilterChip';
+import { selectedOptionsLabel } from '@/components/admin/filter-chips/selected-options-label';
+import { useFilterChipMessages } from '@/components/admin/filter-chips/use-filter-chip-messages';
 import { comboboxOptionsStatus } from '@/components/form/ComboboxPanel';
 import { usePaymentMethodCatalog } from '../../queries';
 import { paymentMethodLabelKey } from '../payment-method-labels';
 import { TRANSACTION_TYPE_FILTERS, TRANSACTION_TYPE_LABEL_KEYS } from './payment-filter-values';
 import { PaymentDateRangeFilter } from './PaymentDateRangeFilter';
-import { selectedOptionsLabel } from './selected-options-label';
-import { useFilterChipMessages } from './use-filter-chip-messages';
 import type { TransactionsFilters } from './use-transactions-filters';
 
 type Props = {

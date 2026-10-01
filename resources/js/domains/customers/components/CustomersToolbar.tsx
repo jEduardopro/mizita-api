@@ -1,6 +1,7 @@
 import { LayoutList, Search, Table2 } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FilterChipRow } from '@/components/admin/filter-chips/FilterChipRow';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -62,12 +63,16 @@ export function CustomersToolbar({
                 />
             </div>
 
-            <CustomerRegistrationRangeFilter
-                value={registrationRange}
-                onApply={onRegistrationRangeApply}
-                onClear={onRegistrationRangeClear}
-                today={today}
-            />
+            {today === undefined ? null : (
+                <FilterChipRow aria-label={t('customers.filters.label')}>
+                    <CustomerRegistrationRangeFilter
+                        value={registrationRange}
+                        onApply={onRegistrationRangeApply}
+                        onClear={onRegistrationRangeClear}
+                        today={today}
+                    />
+                </FilterChipRow>
+            )}
 
             <ToggleGroup
                 type="single"

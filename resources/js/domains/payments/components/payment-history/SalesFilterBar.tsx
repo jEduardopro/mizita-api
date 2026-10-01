@@ -2,12 +2,12 @@ import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FilterChipRow } from '@/components/admin/filter-chips/FilterChipRow';
 import { OptionsFilterChip } from '@/components/admin/filter-chips/OptionsFilterChip';
+import { selectedOptionsLabel } from '@/components/admin/filter-chips/selected-options-label';
 import { TextFilterChip } from '@/components/admin/filter-chips/TextFilterChip';
+import { useFilterChipMessages } from '@/components/admin/filter-chips/use-filter-chip-messages';
 import { SALE_REFERENCE_MAX_LENGTH } from '../../types';
 import { PAYMENT_STATUS_LABEL_KEYS, SALE_STATUS_FILTERS } from './payment-filter-values';
 import { PaymentDateRangeFilter } from './PaymentDateRangeFilter';
-import { selectedOptionsLabel } from './selected-options-label';
-import { useFilterChipMessages } from './use-filter-chip-messages';
 import { normalizeReference } from './use-reference-filter';
 import type { SalesFilters } from './use-sales-filters';
 

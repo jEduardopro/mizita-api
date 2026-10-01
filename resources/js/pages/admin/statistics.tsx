@@ -13,7 +13,7 @@ function periodOf(statistics: BusinessStatistics | undefined): StatisticsRange |
 
 export default function Statistics() {
     const { t } = useTranslation('admin');
-    const { range, applyRange } = useStatisticsRange();
+    const { range, applyRange, clearRange } = useStatisticsRange();
     const { data: statistics, error, isPlaceholderData, refetch } = useStatistics(range);
 
     return (
@@ -23,6 +23,7 @@ export default function Statistics() {
                     value={range ?? periodOf(statistics)}
                     latest={statistics?.today.date ?? todayAsIsoDate()}
                     onApply={applyRange}
+                    onClear={clearRange}
                 />
 
                 <StatisticsContent

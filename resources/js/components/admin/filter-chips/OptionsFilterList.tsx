@@ -1,7 +1,7 @@
 import type { ComboboxOptionsStatus } from '@/components/form/ComboboxPanel';
-import type { MultiComboboxOption } from '@/components/shared/multi-combobox/use-multi-combobox';
 import { Button } from '@/components/ui/button';
 import { keepScrollableWhileModalOpen } from '@/lib/scrollable';
+import type { OptionsFilterOption } from './OptionsFilterChip';
 
 const SKELETON_ROWS = [0, 1, 2];
 
@@ -13,7 +13,7 @@ export type OptionsFilterListMessages = {
 
 type Props = {
     label: string;
-    options: readonly MultiComboboxOption[];
+    options: readonly OptionsFilterOption[];
     selected: readonly string[];
     onToggle: (value: string) => void;
     status: ComboboxOptionsStatus;

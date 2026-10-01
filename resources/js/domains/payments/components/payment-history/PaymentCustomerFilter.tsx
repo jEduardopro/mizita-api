@@ -3,8 +3,8 @@ import {
     OptionsFilterChip,
     type OptionsFilterOption,
 } from '@/components/admin/filter-chips/OptionsFilterChip';
+import { useFilterChipMessages } from '@/components/admin/filter-chips/use-filter-chip-messages';
 import type { ComboboxOptionsStatus } from '@/components/form/ComboboxPanel';
-import { useFilterChipMessages } from './use-filter-chip-messages';
 
 type Props = {
     options: readonly OptionsFilterOption[];

@@ -269,33 +269,27 @@
         "history": {
             "title": "Payment history",
             "tabs": {
-                "sales": "Sales",
+                "sales": "Revenue",
                 "transactions": "Transactions"
             },
             "filters": {
-                "salesLabel": "Filter sales",
+                "salesLabel": "Filter revenue",
                 "transactionsLabel": "Filter transactions",
-                "date": "Date",
                 "customer": "Customer",
                 "reference": "Booking ID",
                 "referencePlaceholder": "Enter the booking ID",
                 "status": "Status",
                 "type": "Type",
                 "method": "Method",
-                "apply": "Apply",
-                "clear": "Remove this filter",
-                "search": "Search...",
-                "noOptions": "Nothing to choose from.",
-                "optionsError": "We could not load the options.",
                 "noCustomers": "No customers match that search.",
                 "customersError": "We could not load your customers.",
                 "customerCount_one": "{{count}} customer",
                 "customerCount_other": "{{count}} customers"
             },
             "sales": {
-                "caption": "Sales",
+                "caption": "Revenue",
                 "columns": {
-                    "createdAt": "Sale created on",
+                    "createdAt": "Charge date",
                     "customer": "Customer",
                     "status": "Status",
                     "total": "Sale value",
@@ -365,10 +359,9 @@
             "list": "List view"
         },
         "filters": {
+            "label": "Filter services",
             "staff": {
                 "label": "Staff",
-                "placeholder": "All staff",
-                "search": "Search staff",
                 "empty": "No results",
                 "clear": "Clear filter",
                 "selected_one": "{{count}} selected",
@@ -517,10 +510,7 @@
             "list": "List view"
         },
         "filters": {
-            "registered": {
-                "label": "Registered",
-                "placeholder": "Select a date range"
-            }
+            "label": "Filter customers"
         },
         "actions": {
             "create": "New customer",
@@ -1746,8 +1736,7 @@
             "breakdown": "Breakdown"
         },
         "range": {
-            "label": "Period",
-            "placeholder": "Choose a period"
+            "filtersLabel": "Filter statistics"
         },
         "shareOfTotal": "{{share}} of total",
         "collected": {

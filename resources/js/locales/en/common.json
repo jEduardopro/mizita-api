@@ -102,19 +102,27 @@
         "sunday": "Sunday"
     },
     "dateRange": {
-        "calendar": "Choose a date range",
+        "label": "Date",
         "presetsLabel": "Quick ranges",
         "presets": {
             "today": "Today",
             "yesterday": "Yesterday",
             "last7Days": "Last 7 days",
-            "last30Days": "Last 30 days",
-            "thisMonth": "This month"
+            "last15Days": "Last 15 days",
+            "thisMonth": "This month",
+            "last3Months": "Last 3 months"
         },
         "previousMonth": "Previous month",
         "nextMonth": "Next month",
         "today": "Today",
         "clear": "Clear dates",
         "apply": "Apply"
+    },
+    "filters": {
+        "apply": "Apply",
+        "clear": "Remove this filter",
+        "search": "Search...",
+        "noOptions": "Nothing to choose from.",
+        "optionsError": "We could not load the options."
     }
 }

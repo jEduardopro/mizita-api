@@ -269,33 +269,27 @@
         "history": {
             "title": "Historial de pagos",
             "tabs": {
-                "sales": "Ventas",
+                "sales": "Ingresos",
                 "transactions": "Transacciones"
             },
             "filters": {
-                "salesLabel": "Filtrar ventas",
+                "salesLabel": "Filtrar ingresos",
                 "transactionsLabel": "Filtrar transacciones",
-                "date": "Fecha",
                 "customer": "Cliente",
                 "reference": "ID de reserva",
                 "referencePlaceholder": "Introduce el ID de la reserva",
                 "status": "Estado",
                 "type": "Tipo",
                 "method": "Método",
-                "apply": "Aplicar",
-                "clear": "Quitar este filtro",
-                "search": "Buscar...",
-                "noOptions": "No hay opciones.",
-                "optionsError": "No pudimos cargar las opciones.",
                 "noCustomers": "Ningún cliente coincide con la búsqueda.",
                 "customersError": "No pudimos cargar tus clientes.",
                 "customerCount_one": "{{count}} cliente",
                 "customerCount_other": "{{count}} clientes"
             },
             "sales": {
-                "caption": "Ventas",
+                "caption": "Ingresos",
                 "columns": {
-                    "createdAt": "Venta creada el",
+                    "createdAt": "Fecha de cobro",
                     "customer": "Cliente",
                     "status": "Estado",
                     "total": "Valor de la venta",
@@ -365,10 +359,9 @@
             "list": "Ver como lista"
         },
         "filters": {
+            "label": "Filtrar servicios",
             "staff": {
                 "label": "Staff",
-                "placeholder": "Todo el staff",
-                "search": "Buscar staff",
                 "empty": "Sin resultados",
                 "clear": "Limpiar filtro",
                 "selected_one": "{{count}} seleccionado",
@@ -517,10 +510,7 @@
             "list": "Ver como lista"
         },
         "filters": {
-            "registered": {
-                "label": "Registro",
-                "placeholder": "Selecciona un rango de fechas"
-            }
+            "label": "Filtrar clientes"
         },
         "actions": {
             "create": "Nuevo cliente",
@@ -1746,8 +1736,7 @@
             "breakdown": "Desglose"
         },
         "range": {
-            "label": "Periodo",
-            "placeholder": "Elige un periodo"
+            "filtersLabel": "Filtrar estadísticas"
         },
         "shareOfTotal": "{{share}} del total",
         "collected": {
