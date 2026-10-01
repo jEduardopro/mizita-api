@@ -1,23 +1,19 @@
 import { cn } from 'cn';
-import { enUS } from 'date-fns/locale/en-US';
-import { es } from 'date-fns/locale/es';
 import { CalendarRange, X } from 'lucide-react';
 import { useId, useMemo, useRef } from 'react';
-import type { DateRange, Locale } from 'react-day-picker';
 import { useTranslation } from 'react-i18next';
-import { dateFromIso, formatIsoDate, fullDateFormatter } from '@/components/form/date-format';
+import { DateRangeCalendar, type DateRangeCalendarMessages } from '@/components/form/DateRangeCalendar';
+import { DateRangePresetList } from '@/components/form/DateRangePresetList';
+import { dateFromIso, formatIsoDate } from '@/components/form/date-format';
 import {
     DEFAULT_DATE_RANGE_PRESETS,
-    isSameRange,
     resolvePresets,
     type DateRangePreset,
     type DateRangeValue,
-    type ResolvedDateRangePreset,
 } from '@/components/form/date-range';
 import { CONTROL_DENSITY_CLASSES, useFormDensity } from '@/components/form/form-density';
 import { useDateRangeDraft } from '@/components/form/use-date-range-draft';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
@@ -36,11 +32,6 @@ type Props = {
     labelDisplay?: DateRangeLabelDisplay;
     className?: string;
     fieldClassName?: string;
-};
-
-const CALENDAR_LOCALES: Record<string, Locale> = {
-    en: enUS,
-    es,
 };
 
 const DESKTOP_VISIBLE_MONTHS = 2;
@@ -62,17 +53,7 @@ const TRIGGER_CLASS = 'flex h-full min-w-0 flex-1 items-center gap-2 px-2.5 text
 const CLEAR_CLASS =
     'flex aspect-square h-full shrink-0 items-center justify-center text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:bg-muted focus-visible:text-foreground';
 
-const PRESET_LIST_CLASS =
-    'flex gap-2 overflow-x-auto border-b border-border p-3 [contain:inline-size] [scrollbar-width:none] md:w-40 md:shrink-0 md:flex-col md:gap-0.5 md:overflow-visible md:border-r md:border-b-0 md:[contain:none] [&::-webkit-scrollbar]:hidden';
-
-const PRESET_CLASS =
-    'flex min-h-11 w-full items-center rounded-full border border-border px-4 text-left text-sm whitespace-nowrap text-foreground/80 transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:border-transparent aria-pressed:bg-muted aria-pressed:font-medium aria-pressed:text-foreground md:min-h-9 md:rounded-md md:border-transparent md:px-3';
-
 const ACTION_CLASS = 'h-11 flex-1 px-4 md:h-9 md:flex-none';
-
-function calendarLocale(language: string): Locale {
-    return CALENDAR_LOCALES[language.split('-')[0]] ?? enUS;
-}
 
 function dateOrUndefined(value: string | undefined): Date | undefined {
     return value === undefined ? undefined : (dateFromIso(value) ?? undefined);
@@ -90,74 +71,6 @@ function shownRange(value: DateRangeValue | null, locale: string): string {
     }
 
     return `${from}${RANGE_SEPARATOR}${formatIsoDate(value.to, locale)}`;
-}
-
-type PresetListProps = {
-    presets: readonly ResolvedDateRangePreset[];
-    draftRange: DateRangeValue | null;
-    onSelect: (range: DateRangeValue) => void;
-};
-
-function DateRangePresetList({ presets, draftRange, onSelect }: PresetListProps) {
-    const { t } = useTranslation('common');
-
-    return (
-        <ul aria-label={t('dateRange.presetsLabel')} className={PRESET_LIST_CLASS}>
-            {presets.map((preset) => (
-                <li key={preset.id} className="shrink-0">
-                    <button
-                        type="button"
-                        aria-pressed={isSameRange(preset.range, draftRange)}
-                        onClick={() => onSelect(preset.range)}
-                        className={PRESET_CLASS}
-                    >
-                        {t(`dateRange.presets.${preset.labelKey}`)}
-                    </button>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-type CalendarProps = {
-    selected: DateRange;
-    onSelect: (days: DateRange) => void;
-    month: Date;
-    onMonthChange: (month: Date) => void;
-    visibleMonths: number;
-    today?: Date;
-    latest?: Date;
-};
-
-function DateRangeCalendar({ selected, onSelect, month, onMonthChange, visibleMonths, today, latest }: CalendarProps) {
-    const { t, i18n } = useTranslation('common');
-    const dayFormatter = useMemo(() => fullDateFormatter(i18n.language), [i18n.language]);
-
-    return (
-        <Calendar
-            mode="range"
-            required
-            resetOnSelect
-            selected={selected}
-            onSelect={onSelect}
-            month={month}
-            onMonthChange={onMonthChange}
-            numberOfMonths={visibleMonths}
-            today={today}
-            locale={calendarLocale(i18n.language)}
-            endMonth={latest}
-            disabled={latest === undefined ? undefined : { after: latest }}
-            labels={{
-                labelPrevious: () => t('dateRange.previousMonth'),
-                labelNext: () => t('dateRange.nextMonth'),
-                labelDayButton: (date, modifiers) =>
-                    modifiers.today
-                        ? `${t('dateRange.today')}, ${dayFormatter.format(date)}`
-                        : dayFormatter.format(date),
-            }}
-            className="mx-auto p-3 [--cell-size:min(--spacing(11),calc((100vw-3rem)/7))] md:[--cell-size:--spacing(9)]"
-        />
-    );
 }
 
 type ActionsProps = {
@@ -207,6 +120,14 @@ export function DateRangePicker({
     const shown = shownRange(value, i18n.language);
     const resolvedPresets = useMemo(() => resolvePresets(presets, today, max), [presets, today, max]);
     const canClear = onClear !== undefined && value !== null;
+    const calendarMessages = useMemo<DateRangeCalendarMessages>(
+        () => ({
+            previousMonth: t('dateRange.previousMonth'),
+            nextMonth: t('dateRange.nextMonth'),
+            today: t('dateRange.today'),
+        }),
+        [t],
+    );
 
     function handleClear() {
         onClear?.();
@@ -264,7 +185,9 @@ export function DateRangePicker({
                     <div className="flex flex-col md:flex-row">
                         {resolvedPresets.length > 0 ? (
                             <DateRangePresetList
+                                label={t('dateRange.presetsLabel')}
                                 presets={resolvedPresets}
+                                presetLabels={t('dateRange.presets', { returnObjects: true })}
                                 draftRange={picker.draftRange}
                                 onSelect={picker.applyPreset}
                             />
@@ -278,6 +201,7 @@ export function DateRangePicker({
                             visibleMonths={visibleMonths}
                             today={dateOrUndefined(today)}
                             latest={dateOrUndefined(max)}
+                            messages={calendarMessages}
                         />
                     </div>
 

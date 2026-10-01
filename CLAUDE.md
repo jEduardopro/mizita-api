@@ -44,16 +44,23 @@ Three route stacks follow, and the stack — not the controller — is what guar
 
 | Domain | Scope | Status | Purpose |
 | --- | --- | --- | --- |
-| `Businesses` | root | **exists** | The tenant: public profile, timezone, booking policy. Orchestrates onboarding |
-| `Customers` | tenant | planned | Per-business client records, optionally linked to an account. A first cut existed and was deleted unfinished, table included — start it again from `make:domain` |
+| `Businesses` | root | **exists** | The tenant: public profile, timezone, currency. Orchestrates onboarding |
+| `BookingPolicies` | tenant | **exists** | Lead time, horizon, granularity, cancellation window, policy message and guest `contact_fields` |
+| `BookingPages` | tenant | **exists** | The public page's look: accent color, button shape, theme, banner and gallery |
+| `Customers` | tenant | **exists** | Per-business client records, optionally linked to an account |
 | `Accounts` | root | **exists** | Authentication for both audiences, including Google sign-in |
-| `Staff` | tenant | **exists** (owner only) | People who work at the business — **also the access membership** |
+| `Staff` | tenant | **exists** | People who work at the business — **also the access membership**. Team invitations, profiles, booking links |
 | `Industries` | root | **exists** (read only) | Seeded catalog of business categories, keyed in English |
 | `Phones` | root | **exists** | Polymorphic phone numbers, one per owner |
-| `Services` | tenant | planned | Bookable offerings: duration, buffers, price, eligible staff |
-| `Availability` | tenant | planned | Weekly hours and time off for *both* businesses and staff; slot computation |
-| `Appointments` | tenant | planned | Booked intervals and their lifecycle |
-| `PublicCatalog` | root | planned | Cross-tenant search and the entire anonymous surface |
+| `Addresses` | root | **exists** | Polymorphic addresses, plus the read-only states catalog |
+| `Links` | root | **exists** | Polymorphic external links (social platforms) |
+| `Services` | tenant | **exists** | Bookable offerings: duration, buffers, price, eligible staff |
+| `Availability` | tenant | **exists** | Weekly hours and time off for *both* businesses and staff; slot computation |
+| `Appointments` | tenant | **exists** | Booked intervals and their lifecycle, admin-created and guest bookings |
+| `Payments` | tenant | **exists** | Sales and transactions recorded against an appointment (cash, bank transfer); the owner-only payment history report |
+| `Statistics` | tenant | **exists** (owner only) | Read-only reporting over appointments and payments |
+| `Integrations` | tenant | **exists** | Google Calendar connection: publishes appointments as events and reads busy time back |
+| `PublicCatalog` | root | **exists** (search planned) | The entire anonymous surface: business page, availability, guest booking and its manage link. Cross-tenant search is not built yet |
 | `Notifications` | tenant | planned | Confirmations and reminders |
 | `Subscriptions` | tenant | **exists** | The business's paid plan, billed by Stripe. One row per business; Stripe is the source of truth |
 

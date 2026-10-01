@@ -1,21 +1,34 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import {
     chargeAppointment,
     getAppointmentPayment,
+    listPaymentMethodCatalog,
     listPaymentMethods,
+    listSales,
+    listTransactions,
     recordPaymentTransaction,
     voidPaymentTransaction,
 } from './api';
-import type { ChargePayload, RecordTransactionPayload } from './types';
+import type {
+    ChargePayload,
+    RecordTransactionPayload,
+    SaleListParams,
+    TransactionListParams,
+} from './types';
 
 const PAYMENT_METHODS_LIFETIME_MS = 5 * 60 * 1000;
 
 export const paymentKeys = {
     all: ['payments'] as const,
     methods: () => [...paymentKeys.all, 'methods'] as const,
+    methodCatalog: () => [...paymentKeys.all, 'method-catalog'] as const,
     forAppointment: (appointmentId: string) =>
         [...paymentKeys.all, 'appointment', appointmentId] as const,
+    history: () => [...paymentKeys.all, 'history'] as const,
+    sales: (params: SaleListParams) => [...paymentKeys.history(), 'sales', params] as const,
+    transactions: (params: TransactionListParams) =>
+        [...paymentKeys.history(), 'transactions', params] as const,
 };
 
 export function usePaymentMethods() {
@@ -23,6 +36,30 @@ export function usePaymentMethods() {
         queryKey: paymentKeys.methods(),
         queryFn: ({ signal }) => listPaymentMethods(signal),
         staleTime: PAYMENT_METHODS_LIFETIME_MS,
+    });
+}
+
+export function usePaymentMethodCatalog() {
+    return useQuery({
+        queryKey: paymentKeys.methodCatalog(),
+        queryFn: ({ signal }) => listPaymentMethodCatalog(signal),
+        staleTime: PAYMENT_METHODS_LIFETIME_MS,
+    });
+}
+
+export function useSales(params: SaleListParams) {
+    return useQuery({
+        queryKey: paymentKeys.sales(params),
+        queryFn: ({ signal }) => listSales(params, signal),
+        placeholderData: keepPreviousData,
+    });
+}
+
+export function useTransactions(params: TransactionListParams) {
+    return useQuery({
+        queryKey: paymentKeys.transactions(params),
+        queryFn: ({ signal }) => listTransactions(params, signal),
+        placeholderData: keepPreviousData,
     });
 }
 
@@ -41,6 +78,7 @@ function useAppointmentPaymentInvalidation(appointmentId: string) {
         void queryClient.invalidateQueries({
             queryKey: paymentKeys.forAppointment(appointmentId),
         });
+        void queryClient.invalidateQueries({ queryKey: paymentKeys.history() });
     }, [queryClient, appointmentId]);
 }
 

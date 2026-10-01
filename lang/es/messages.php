@@ -271,6 +271,8 @@ return [
         'invalid_void_actor' => 'No hemos podido identificar quién anula esta transacción.',
         'invalid_money_amount' => 'Ese importe no es válido.',
         'currency_mismatch' => 'Esos importes están en monedas distintas.',
+        'invalid_payment_report_period' => 'Ese rango de fechas no es válido.',
+        'invalid_payment_report_filter' => 'Esos filtros de pagos no son válidos.',
         'calendar_connection_not_found' => 'No tienes ningún calendario conectado.',
         'calendar_already_connected' => 'Tu Google Calendar ya está conectado.',
         'calendar_authorization_state_invalid' => 'Ese enlace para conectar Google Calendar ha caducado. Vuelve a intentarlo.',

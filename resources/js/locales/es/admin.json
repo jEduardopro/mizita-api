@@ -4,6 +4,7 @@
         "statistics": "Estadísticas",
         "services": "Servicios",
         "customers": "Clientes",
+        "payments": "Pagos",
         "integrations": "Integraciones",
         "settings": "Configuración",
         "brand": "Tu marca",
@@ -264,6 +265,68 @@
             "itemAmount": "Ese importe no es válido.",
             "emptyTotal": "El total tiene que ser mayor que cero.",
             "amountAboveBalance": "Ese importe es mayor que el saldo pendiente."
+        },
+        "history": {
+            "title": "Historial de pagos",
+            "tabs": {
+                "sales": "Ventas",
+                "transactions": "Transacciones"
+            },
+            "filters": {
+                "salesLabel": "Filtrar ventas",
+                "transactionsLabel": "Filtrar transacciones",
+                "date": "Fecha",
+                "customer": "Cliente",
+                "reference": "ID de reserva",
+                "referencePlaceholder": "Introduce el ID de la reserva",
+                "status": "Estado",
+                "type": "Tipo",
+                "method": "Método",
+                "apply": "Aplicar",
+                "clear": "Quitar este filtro",
+                "search": "Buscar...",
+                "noOptions": "No hay opciones.",
+                "optionsError": "No pudimos cargar las opciones.",
+                "noCustomers": "Ningún cliente coincide con la búsqueda.",
+                "customersError": "No pudimos cargar tus clientes.",
+                "customerCount_one": "{{count}} cliente",
+                "customerCount_other": "{{count}} clientes"
+            },
+            "sales": {
+                "caption": "Ventas",
+                "columns": {
+                    "createdAt": "Venta creada el",
+                    "customer": "Cliente",
+                    "status": "Estado",
+                    "total": "Valor de la venta",
+                    "reference": "ID de reserva"
+                },
+                "empty": {
+                    "title": "Aún no hay ventas",
+                    "body": "Cada cita que cobres aparecerá aquí como una venta."
+                }
+            },
+            "transactions": {
+                "caption": "Transacciones",
+                "columns": {
+                    "processedAt": "Fecha del pago",
+                    "customer": "Cliente",
+                    "amount": "Monto",
+                    "type": "Tipo",
+                    "method": "Método"
+                },
+                "empty": {
+                    "title": "Aún no hay transacciones",
+                    "body": "Cada cobro y anulación que registres aparecerá aquí."
+                }
+            },
+            "empty": {
+                "filtered": {
+                    "title": "Ningún resultado con estos filtros",
+                    "body": "Prueba con otro rango de fechas o quita los filtros para verlo todo.",
+                    "action": "Quitar filtros"
+                }
+            }
         }
     },
     "services": {

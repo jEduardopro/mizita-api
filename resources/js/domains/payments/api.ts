@@ -1,10 +1,40 @@
 import { api } from '@/lib/api';
+import type { Paginated } from '@/types/api';
 import type {
     AppointmentPayment,
     ChargePayload,
     PaymentMethod,
+    PaymentMethodCatalogEntry,
+    PaymentTransactionReport,
     RecordTransactionPayload,
+    Sale,
+    SaleListParams,
+    TransactionListParams,
 } from './types';
+
+export async function listSales(params: SaleListParams, signal?: AbortSignal): Promise<Paginated<Sale>> {
+    const { data } = await api.get<Paginated<Sale>>('/payments/sales', { params, signal });
+
+    return data;
+}
+
+export async function listTransactions(
+    params: TransactionListParams,
+    signal?: AbortSignal,
+): Promise<Paginated<PaymentTransactionReport>> {
+    const { data } = await api.get<Paginated<PaymentTransactionReport>>('/payments/transactions', {
+        params,
+        signal,
+    });
+
+    return data;
+}
+
+export async function listPaymentMethodCatalog(signal?: AbortSignal): Promise<PaymentMethodCatalogEntry[]> {
+    const { data } = await api.get<{ data: PaymentMethodCatalogEntry[] }>('/payment-method-catalog', { signal });
+
+    return data.data;
+}
 
 export async function listPaymentMethods(signal?: AbortSignal): Promise<PaymentMethod[]> {
     const { data } = await api.get<{ data: PaymentMethod[] }>('/payment-methods', { signal });

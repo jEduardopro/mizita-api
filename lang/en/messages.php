@@ -271,6 +271,8 @@ return [
         'invalid_void_actor' => 'We could not identify who is voiding this transaction.',
         'invalid_money_amount' => 'That amount is not valid.',
         'currency_mismatch' => 'Those amounts are in different currencies.',
+        'invalid_payment_report_period' => 'That date range is not valid.',
+        'invalid_payment_report_filter' => 'Those payment filters are not valid.',
         'calendar_connection_not_found' => 'You have no calendar connected.',
         'calendar_already_connected' => 'Your Google Calendar is already connected.',
         'calendar_authorization_state_invalid' => 'That Google Calendar connection link has expired. Please try connecting again.',

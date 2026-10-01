@@ -6,6 +6,8 @@ use App\Domains\Payments\ValueObjects\DiscountType;
 use App\Domains\Payments\ValueObjects\PaymentMethodCode;
 use App\Domains\Payments\ValueObjects\PaymentStatus;
 use App\Domains\Payments\ValueObjects\PaymentTransactionType;
+use App\Domains\Payments\ValueObjects\SaleSort;
+use App\Domains\Payments\ValueObjects\TransactionSort;
 
 it('backs every payment status with the string the column and the client share', function () {
     expect(PaymentStatus::Pending->value)->toBe('pending')
@@ -38,6 +40,8 @@ it('holds the cases a stored value may be read back into and no others', functio
     'transaction type' => [PaymentTransactionType::class, ['approved', 'void', 'refund', 'failed']],
     'discount type' => [DiscountType::class, ['none', 'percentage', 'fixed']],
     'payment method code' => [PaymentMethodCode::class, ['cash', 'bank_transfer']],
+    'sale sort' => [SaleSort::class, ['created_at', 'total']],
+    'transaction sort' => [TransactionSort::class, ['processed_at', 'amount']],
 ]);
 
 it('reads a stored string back into the case that wrote it', function () {
@@ -70,4 +74,41 @@ describe('what each transaction type does to the money a payment holds', functio
         expect(PaymentTransactionType::Failed->countsTowardsPaid())->toBeFalse()
             ->and(PaymentTransactionType::Failed->reversesPaid())->toBeFalse();
     });
+});
+
+describe('the sign a transaction type carries in a report', function () {
+    it('reports only a void as money going back out', function (PaymentTransactionType $type, int $sign) {
+        expect($type->sign())->toBe($sign);
+    })->with([
+        'approved' => [PaymentTransactionType::Approved, 1],
+        'void' => [PaymentTransactionType::Void, -1],
+        'refund' => [PaymentTransactionType::Refund, 1],
+        'failed' => [PaymentTransactionType::Failed, 1],
+    ]);
+
+    it('signs an amount with the sign of its type', function (PaymentTransactionType $type, int $signed) {
+        expect($type->signedAmount(2_500))->toBe($signed);
+    })->with([
+        'approved' => [PaymentTransactionType::Approved, 2_500],
+        'void' => [PaymentTransactionType::Void, -2_500],
+        'refund' => [PaymentTransactionType::Refund, 2_500],
+        'failed' => [PaymentTransactionType::Failed, 2_500],
+    ]);
+
+    it('leaves a void of nothing at zero', function () {
+        expect(PaymentTransactionType::Void->signedAmount(0))->toBe(0);
+    });
+});
+
+describe('the status a sale is in', function () {
+    it('reads the status off what was collected against what is owed', function (int $paid, int $total, PaymentStatus $status) {
+        expect(PaymentStatus::forAmounts($paid, $total))->toBe($status);
+    })->with([
+        'nothing collected' => [0, 50_000, PaymentStatus::Pending],
+        'one cent collected' => [1, 50_000, PaymentStatus::PartiallyPaid],
+        'one cent short' => [49_999, 50_000, PaymentStatus::PartiallyPaid],
+        'exactly what is owed' => [50_000, 50_000, PaymentStatus::Paid],
+        'more than what is owed' => [50_001, 50_000, PaymentStatus::Paid],
+        'a sale of nothing' => [0, 0, PaymentStatus::Paid],
+    ]);
 });

@@ -37,6 +37,7 @@ Route::permanentRedirect('/dashboard', '/calendar')->name('dashboard');
 Route::middleware(['auth', 'onboarded', 'business'])->group(function (): void {
     Route::get('/calendar', fn () => Inertia::render('admin/calendar'))->name('calendar');
     Route::get('/statistics', fn () => Inertia::render('admin/statistics'))->middleware('owner')->name('statistics');
+    Route::get('/payments', fn () => Inertia::render('admin/payments/index'))->middleware('owner')->name('payments');
     Route::get('/services', fn () => Inertia::render('admin/services/index'))->name('services');
     Route::get('/services/new', fn () => Inertia::render('admin/services/create'))->name('services.create');
     Route::get('/services/{service}/edit', fn (string $service) => Inertia::render('admin/services/edit', ['serviceId' => $service]))->name('services.edit');

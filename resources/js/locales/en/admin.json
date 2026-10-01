@@ -4,6 +4,7 @@
         "statistics": "Statistics",
         "services": "Services",
         "customers": "Customers",
+        "payments": "Payments",
         "integrations": "Integrations",
         "settings": "Settings",
         "brand": "Your brand",
@@ -264,6 +265,68 @@
             "itemAmount": "That amount is not valid.",
             "emptyTotal": "The total has to be greater than zero.",
             "amountAboveBalance": "That amount is larger than the outstanding balance."
+        },
+        "history": {
+            "title": "Payment history",
+            "tabs": {
+                "sales": "Sales",
+                "transactions": "Transactions"
+            },
+            "filters": {
+                "salesLabel": "Filter sales",
+                "transactionsLabel": "Filter transactions",
+                "date": "Date",
+                "customer": "Customer",
+                "reference": "Booking ID",
+                "referencePlaceholder": "Enter the booking ID",
+                "status": "Status",
+                "type": "Type",
+                "method": "Method",
+                "apply": "Apply",
+                "clear": "Remove this filter",
+                "search": "Search...",
+                "noOptions": "Nothing to choose from.",
+                "optionsError": "We could not load the options.",
+                "noCustomers": "No customers match that search.",
+                "customersError": "We could not load your customers.",
+                "customerCount_one": "{{count}} customer",
+                "customerCount_other": "{{count}} customers"
+            },
+            "sales": {
+                "caption": "Sales",
+                "columns": {
+                    "createdAt": "Sale created on",
+                    "customer": "Customer",
+                    "status": "Status",
+                    "total": "Sale value",
+                    "reference": "Booking ID"
+                },
+                "empty": {
+                    "title": "No sales yet",
+                    "body": "Every appointment you charge shows up here as a sale."
+                }
+            },
+            "transactions": {
+                "caption": "Transactions",
+                "columns": {
+                    "processedAt": "Payment date",
+                    "customer": "Customer",
+                    "amount": "Amount",
+                    "type": "Type",
+                    "method": "Method"
+                },
+                "empty": {
+                    "title": "No transactions yet",
+                    "body": "Every payment and void you record shows up here."
+                }
+            },
+            "empty": {
+                "filtered": {
+                    "title": "Nothing matches these filters",
+                    "body": "Try another date range, or clear the filters to see everything.",
+                    "action": "Clear filters"
+                }
+            }
         }
     },
     "services": {

@@ -10,6 +10,8 @@ use App\Domains\Payments\Exceptions\InvalidPaymentActor;
 use App\Domains\Payments\Exceptions\InvalidPaymentDiscount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemAmount;
 use App\Domains\Payments\Exceptions\InvalidPaymentItemName;
+use App\Domains\Payments\Exceptions\InvalidPaymentReportFilter;
+use App\Domains\Payments\Exceptions\InvalidPaymentReportPeriod;
 use App\Domains\Payments\Exceptions\InvalidTransactionAmount;
 use App\Domains\Payments\Exceptions\InvalidVoidActor;
 use App\Domains\Payments\Exceptions\PaymentAccountNotFound;
@@ -106,6 +108,71 @@ function paymentFailures(): array
         'an item name too long' => [
             InvalidPaymentItemName::tooLong(120),
             'invalid_payment_item_name',
+            DomainFailureKind::Invalid,
+        ],
+        'a report filtered by a malformed customer' => [
+            InvalidPaymentReportFilter::malformedCustomer('42'),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report filtered by too many customers' => [
+            InvalidPaymentReportFilter::tooManyCustomers(100),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report filtered by a status no sale has' => [
+            InvalidPaymentReportFilter::unknownStatus('refunded'),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report filtered by a type no transaction has' => [
+            InvalidPaymentReportFilter::unknownTransactionType('chargeback'),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report filtered by a method outside the catalog' => [
+            InvalidPaymentReportFilter::unknownPaymentMethod('bitcoin'),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report filtered by a reference longer than any code' => [
+            InvalidPaymentReportFilter::referenceTooLong(8),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report sorted by a column it does not serve' => [
+            InvalidPaymentReportFilter::unknownSort('business_id'),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report sorted in a direction that does not exist' => [
+            InvalidPaymentReportFilter::unknownDirection('sideways'),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report page before the first' => [
+            InvalidPaymentReportFilter::pageOutOfRange(0),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report page of more rows than served' => [
+            InvalidPaymentReportFilter::perPageOutOfRange(101, 100),
+            'invalid_payment_report_filter',
+            DomainFailureKind::Invalid,
+        ],
+        'a report date that is no calendar date' => [
+            InvalidPaymentReportPeriod::malformed('2026-02-30'),
+            'invalid_payment_report_period',
+            DomainFailureKind::Invalid,
+        ],
+        'a report period missing one of its dates' => [
+            InvalidPaymentReportPeriod::incomplete(),
+            'invalid_payment_report_period',
+            DomainFailureKind::Invalid,
+        ],
+        'a report period that ends before it starts' => [
+            InvalidPaymentReportPeriod::inverted('2026-03-31', '2026-03-01'),
+            'invalid_payment_report_period',
             DomainFailureKind::Invalid,
         ],
         'a transaction of nothing' => [
@@ -250,6 +317,17 @@ it('says what it turned down without naming another business row', function () {
         ->toBe('Payment transaction [the-id] is not an approved charge.')
         ->and(VoidExceedsPaidAmount::byCents(6_000, 4_000)->getMessage())
         ->toBe('A void of [6000] exceeds the collected amount of [4000].');
+});
+
+it('says which report filter it turned down', function () {
+    expect(InvalidPaymentReportFilter::malformedCustomer('42')->getMessage())
+        ->toBe('The customer filter [42] is not a well-formed identifier.')
+        ->and(InvalidPaymentReportFilter::tooManyCustomers(100)->getMessage())
+        ->toBe('A payment report may filter by at most 100 customers.')
+        ->and(InvalidPaymentReportFilter::perPageOutOfRange(101, 100)->getMessage())
+        ->toBe('A report page holds between 1 and 100 rows, got [101].')
+        ->and(InvalidPaymentReportPeriod::inverted('2026-03-31', '2026-03-01')->getMessage())
+        ->toBe('A report period has to start on or before it ends, got [2026-03-31] to [2026-03-01].');
 });
 
 /**

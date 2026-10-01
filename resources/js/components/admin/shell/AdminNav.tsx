@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
+    Banknote,
     Blocks,
     Calendar,
     ChartColumn,
@@ -36,6 +37,7 @@ type NavLabelKey =
     | 'nav.statistics'
     | 'nav.services'
     | 'nav.customers'
+    | 'nav.payments'
     | 'nav.integrations'
     | 'nav.settings'
     | 'nav.brand'
@@ -62,6 +64,7 @@ const navItems: NavItem[] = [
     { href: '/calendar', labelKey: 'nav.calendar', icon: Calendar },
     { href: '/statistics', labelKey: 'nav.statistics', icon: ChartColumn, role: 'owner' },
     { href: '/customers', labelKey: 'nav.customers', icon: Users, permission: 'view_customers' },
+    { href: '/payments', labelKey: 'nav.payments', icon: Banknote, role: 'owner' },
     { href: '/services', labelKey: 'nav.services', icon: ListChecks, permission: 'view_services' },
     {
         href: '/integrations',

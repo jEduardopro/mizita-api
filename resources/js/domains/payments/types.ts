@@ -65,3 +65,67 @@ export type RecordTransactionPayload = {
     payment_method_id: string;
     amount_cents: number;
 };
+
+export const SALE_SORT_FIELDS = ['created_at', 'total'] as const;
+
+export type SaleSortField = (typeof SALE_SORT_FIELDS)[number];
+
+export const TRANSACTION_SORT_FIELDS = ['processed_at', 'amount'] as const;
+
+export type TransactionSortField = (typeof TRANSACTION_SORT_FIELDS)[number];
+
+export const SALE_REFERENCE_MAX_LENGTH = 8;
+
+export const PAYMENT_REPORT_CUSTOMER_FILTER_MAX_SIZE = 100;
+
+export type PaymentReportCustomer = {
+    id: string;
+    name: string;
+};
+
+export type Sale = {
+    id: string;
+    created_at: string;
+    customer: PaymentReportCustomer;
+    status: PaymentStatus;
+    total_cents: number;
+    currency_code: string;
+    reference_code: string;
+};
+
+export type PaymentTransactionReport = {
+    id: string;
+    processed_at: string;
+    customer: PaymentReportCustomer;
+    amount_cents: number;
+    currency_code: string;
+    type: PaymentTransactionType;
+    method: { code: string; name: string };
+};
+
+export type PaymentMethodCatalogEntry = {
+    id: string;
+    code: string;
+    name: string;
+};
+
+export type PaymentReportCriteria = {
+    from?: string;
+    to?: string;
+    customer_ids?: string[];
+    page: number;
+    per_page: number;
+    direction: 'asc' | 'desc';
+};
+
+export type SaleListParams = PaymentReportCriteria & {
+    reference?: string;
+    statuses?: PaymentStatus[];
+    sort: SaleSortField;
+};
+
+export type TransactionListParams = PaymentReportCriteria & {
+    types?: PaymentTransactionType[];
+    methods?: string[];
+    sort: TransactionSortField;
+};

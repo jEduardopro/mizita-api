@@ -2,6 +2,7 @@ import {
     keepPreviousData,
     useInfiniteQuery,
     useMutation,
+    useQueries,
     useQuery,
     useQueryClient,
 } from '@tanstack/react-query';
@@ -62,6 +63,15 @@ export function useCustomer(id: string) {
     return useQuery({
         queryKey: customerKeys.detail(id),
         queryFn: ({ signal }) => getCustomer(id, signal),
+    });
+}
+
+export function useCustomersById(ids: readonly string[]) {
+    return useQueries({
+        queries: ids.map((id) => ({
+            queryKey: customerKeys.detail(id),
+            queryFn: ({ signal }: { signal: AbortSignal }) => getCustomer(id, signal),
+        })),
     });
 }
 

@@ -28,6 +28,7 @@ final readonly class Slug
         'onboarding',
         'calendar',
         'statistics',
+        'payments',
         'services',
         'customers',
         'integrations',
