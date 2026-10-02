@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\PublicCatalog;
 
+use App\Domains\Platform\Infrastructure\Http\PlatformRoutes;
 use App\Domains\PublicCatalog\Contracts\BookingRulesAllowance;
 use App\Domains\PublicCatalog\Contracts\GuestBookingDesk;
 use App\Domains\PublicCatalog\Contracts\GuestBookings;
@@ -60,7 +61,7 @@ final class PublicCatalogServiceProvider extends ServiceProvider
 
     // Laravel registers /storage/{path} after routes/web.php, so the root catch-all
     // would swallow it without this exclusion.
-    public const BOOKING_PAGE_SLUG_PATTERN = '(?!storage$)'.self::SLUG_PATTERN;
+    public const BOOKING_PAGE_SLUG_PATTERN = '(?!(?:storage|'.PlatformRoutes::PATH.')$)'.self::SLUG_PATTERN;
 
     public const BOOKING_FLOW_SEGMENT = 'book';
 

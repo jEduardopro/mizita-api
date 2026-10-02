@@ -28,6 +28,13 @@
         "dark": "Dark",
         "system": "System"
     },
+    "impersonation": {
+        "viewing": "You're viewing <strong>{{business}}</strong> as <strong>{{owner}}</strong>",
+        "expiresIn": "Expires in {{count}} min",
+        "ending": "Ending the session…",
+        "exit": "Exit",
+        "stop": "Exit impersonation"
+    },
     "comingSoon": {
         "title": "Coming soon",
         "body": "We are still building this screen. It shows up right here as soon as it is ready."

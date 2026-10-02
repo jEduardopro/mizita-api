@@ -303,6 +303,18 @@ return [
         'checkout_session_not_found' => 'We could not find that checkout.',
         'checkout_already_started' => 'A checkout is already being prepared. Try again in a moment.',
 
+        'invalid_platform_business_filter' => 'Those filters are not valid.',
+        'invalid_platform_admin_email' => 'That email address is not valid.',
+        'invalid_platform_admin_name' => 'That name is not valid.',
+        'platform_admin_password_too_short' => 'The password must be at least 12 characters long.',
+        'invalid_platform_two_factor_code' => 'That verification code is not valid.',
+        'platform_admin_already_exists' => 'An admin with that email already exists.',
+        'impersonated_business_not_found' => 'We could not find that business.',
+        'business_has_no_owner' => 'This business has no owner to sign in as.',
+        'business_owner_deactivated' => 'The owner account of this business is deactivated.',
+        'platform_session_expired' => 'Your admin session has expired. Please sign in again.',
+        'impersonation_ended' => 'The owner session has ended.',
+
     ],
 
     /*

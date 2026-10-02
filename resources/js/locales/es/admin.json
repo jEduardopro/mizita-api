@@ -28,6 +28,13 @@
         "dark": "Oscuro",
         "system": "Sistema"
     },
+    "impersonation": {
+        "viewing": "Estás viendo <strong>{{business}}</strong> como <strong>{{owner}}</strong>",
+        "expiresIn": "Expira en {{count}} min",
+        "ending": "Terminando la sesión…",
+        "exit": "Salir",
+        "stop": "Salir de la suplantación"
+    },
     "comingSoon": {
         "title": "Muy pronto",
         "body": "Todavía estamos construyendo esta pantalla. Aparecerá aquí en cuanto esté lista."

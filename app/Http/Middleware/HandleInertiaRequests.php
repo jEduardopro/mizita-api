@@ -6,6 +6,8 @@ use App\Http\Preferences\CookiePreferences;
 use App\Shared\Contracts\BusinessAuthorization;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\BusinessPlan;
+use App\Shared\Contracts\ImpersonationStatus;
+use App\Shared\Contracts\SignedInPlatformAdmin;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -23,6 +25,8 @@ class HandleInertiaRequests extends Middleware
         private readonly CookiePreferences $preferences,
         private readonly BusinessAuthorization $authorization,
         private readonly BusinessPlan $plans,
+        private readonly ImpersonationStatus $impersonation,
+        private readonly SignedInPlatformAdmin $platformAdmin,
     ) {}
 
     public function version(Request $request): ?string
@@ -46,6 +50,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => fn () => ['error' => $request->session()->get('error')],
             'auth' => fn (): array => $this->grantsFor($request),
             'plan' => fn (): ?array => $this->planOfCurrentBusiness(),
+            'impersonation' => fn (): ?array => $this->impersonation->describe(),
+            'platformAdmin' => fn (): ?array => $this->platformAdmin->describe(),
         ];
     }
 

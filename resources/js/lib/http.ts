@@ -3,6 +3,8 @@ import type { ApiWarning } from '@/types/api';
 
 const VALIDATION_STATUS = 422;
 
+const UNAUTHENTICATED_STATUS = 401;
+
 const NOT_FOUND_STATUS = 404;
 
 const TOO_MANY_REQUESTS_STATUS = 429;
@@ -66,6 +68,10 @@ export function responseBodyFrom(error: unknown): unknown {
 
 export function isValidationError(error: unknown): boolean {
     return httpStatusFrom(error) === VALIDATION_STATUS;
+}
+
+export function isUnauthenticatedError(error: unknown): boolean {
+    return httpStatusFrom(error) === UNAUTHENTICATED_STATUS;
 }
 
 export function isNotFoundError(error: unknown): boolean {

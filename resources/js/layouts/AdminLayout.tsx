@@ -5,6 +5,7 @@ import type { Breadcrumb } from '@/components/admin/shell/AdminBreadcrumbs';
 import { AdminHeader } from '@/components/admin/shell/AdminHeader';
 import { AdminSubheader } from '@/components/admin/shell/AdminSubheader';
 import { AppSidebar } from '@/components/admin/shell/AppSidebar';
+import { ImpersonationBanner } from '@/components/admin/shell/ImpersonationBanner';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NewAppointmentLauncher } from '@/domains/appointments/components/NewAppointmentLauncher';
@@ -60,7 +61,7 @@ export function AdminLayout({
     children,
 }: Props) {
     const frameClasses = FRAME_CLASSES[frame];
-    const { sidebarOpen } = usePage().props;
+    const { sidebarOpen, impersonation } = usePage().props;
     const { data: calendarSettings } = useCalendarSettings();
     const currencyCode = calendarSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
 
@@ -77,6 +78,14 @@ export function AdminLayout({
 
                         <SidebarInset className={cn('min-w-0', frameClasses.inset)}>
                             <div className="sticky top-0 z-20 shrink-0 bg-background/90 backdrop-blur-sm">
+                                {impersonation ? (
+                                    <ImpersonationBanner
+                                        businessName={impersonation.business_name}
+                                        ownerName={impersonation.owner_name}
+                                        expiresAt={impersonation.expires_at}
+                                    />
+                                ) : null}
+
                                 <AdminHeader
                                     title={title}
                                     breadcrumbs={breadcrumbs}

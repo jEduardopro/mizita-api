@@ -1,0 +1,79 @@
+{
+    "marker": "Platform",
+    "shell": {
+        "toggleSidebar": "Show or hide the sidebar",
+        "accountMenu": "Your operator account menu",
+        "logOut": "Log out"
+    },
+    "nav": {
+        "businesses": "Clients"
+    },
+    "login": {
+        "title": "Platform sign-in",
+        "heading": "Operator sign-in",
+        "description": "Sign in with your Mizita administrator account. Next, we'll ask for the code from your authenticator app.",
+        "email": "Email",
+        "password": "Password",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password",
+        "submit": "Continue",
+        "submitting": "Checking…"
+    },
+    "twoFactor": {
+        "title": "Two-step verification",
+        "heading": "Confirm it's you",
+        "description": "Enter the 6-digit code shown in your authenticator app.",
+        "code": "Verification code",
+        "submit": "Verify",
+        "submitting": "Verifying…",
+        "backToLogin": "Back to sign-in"
+    },
+    "businesses": {
+        "title": "Clients",
+        "description": "Every business on Mizita, with its owner, activity and plan.",
+        "caption": "Businesses registered on Mizita",
+        "columns": {
+            "business": "Business",
+            "owner": "Owner",
+            "createdAt": "Created",
+            "services": "Services",
+            "customers": "Customers",
+            "plan": "Plan",
+            "actions": "Actions"
+        },
+        "noOwner": "No owner",
+        "createdOn": "Created {{date}}",
+        "servicesCount_one": "{{count}} service",
+        "servicesCount_other": "{{count}} services",
+        "customersCount_one": "{{count}} customer",
+        "customersCount_other": "{{count}} customers",
+        "plan": {
+            "free": "Free",
+            "complete": "Complete"
+        },
+        "search": {
+            "label": "Search businesses",
+            "placeholder": "Search by business, owner or email"
+        },
+        "empty": {
+            "first": {
+                "title": "No businesses yet",
+                "body": "When someone creates a business on Mizita, it will show up here."
+            },
+            "search": {
+                "title": "No business matches",
+                "body": "Nothing matches “{{search}}”. Try another name or email."
+            }
+        },
+        "impersonate": {
+            "action": "Enter as owner",
+            "shortAction": "Enter",
+            "actionFor": "Enter as the owner of {{business}}",
+            "title": "Enter as the owner of {{business}}?",
+            "body": "You'll see the {{business}} dashboard as {{owner}} sees it, for 60 minutes at most.",
+            "restrictions": "Sensitive actions stay blocked: passwords, account details, billing and integrations.",
+            "confirm": "Enter as owner",
+            "confirming": "Entering…"
+        }
+    }
+}

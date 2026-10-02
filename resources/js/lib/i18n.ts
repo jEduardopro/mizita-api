@@ -6,11 +6,13 @@ import adminEn from '@/locales/en/admin.json';
 import authEn from '@/locales/en/auth.json';
 import commonEn from '@/locales/en/common.json';
 import industriesEn from '@/locales/en/industries.json';
+import platformEn from '@/locales/en/platform.json';
 import publicEn from '@/locales/en/public.json';
 import adminEs from '@/locales/es/admin.json';
 import authEs from '@/locales/es/auth.json';
 import commonEs from '@/locales/es/common.json';
 import industriesEs from '@/locales/es/industries.json';
+import platformEs from '@/locales/es/platform.json';
 import publicEs from '@/locales/es/public.json';
 
 export type Locale = 'es' | 'en';
@@ -23,7 +25,7 @@ const FALLBACK_LOCALE: Locale = 'en';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
-export const namespaces = ['common', 'auth', 'public', 'admin', 'industries'] as const;
+export const namespaces = ['common', 'auth', 'public', 'admin', 'industries', 'platform'] as const;
 
 const resources = {
     es: {
@@ -32,6 +34,7 @@ const resources = {
         public: publicEs,
         admin: adminEs,
         industries: industriesEs,
+        platform: platformEs,
     },
     en: {
         common: commonEn,
@@ -39,6 +42,7 @@ const resources = {
         public: publicEn,
         admin: adminEn,
         industries: industriesEn,
+        platform: platformEn,
     },
 };
 

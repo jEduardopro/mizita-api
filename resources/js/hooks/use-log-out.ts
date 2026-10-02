@@ -1,11 +1,14 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useStopImpersonation } from '@/hooks/use-stop-impersonation';
 
 export function useLogOut(): () => void {
     const queryClient = useQueryClient();
+    const { impersonation } = usePage().props;
+    const stopImpersonation = useStopImpersonation();
 
-    return useCallback(() => {
+    const logOut = useCallback(() => {
         router.post(
             '/logout',
             {},
@@ -16,4 +19,6 @@ export function useLogOut(): () => void {
             },
         );
     }, [queryClient]);
+
+    return impersonation ? stopImpersonation : logOut;
 }

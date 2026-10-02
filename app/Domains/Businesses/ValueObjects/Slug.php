@@ -24,6 +24,7 @@ final readonly class Slug
     private const RESERVED = [
         'api',
         'admin',
+        'mizita-admin',
         'dashboard',
         'onboarding',
         'calendar',

@@ -1,6 +1,8 @@
 <?php
 
 use App\Domains\Accounts\Infrastructure\Auth\AccountsIncludingDeletedUserProvider;
+use App\Domains\Platform\Infrastructure\Auth\PlatformGuard;
+use App\Domains\Platform\Infrastructure\Eloquent\Models\PlatformAdminModel;
 use App\Models\User;
 
 return [
@@ -43,6 +45,11 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        PlatformGuard::NAME => [
+            'driver' => 'session',
+            'provider' => PlatformGuard::PROVIDER,
+        ],
     ],
 
     /*
@@ -71,6 +78,11 @@ return [
         'accounts_including_deleted' => [
             'driver' => AccountsIncludingDeletedUserProvider::DRIVER,
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        PlatformGuard::PROVIDER => [
+            'driver' => 'eloquent',
+            'model' => PlatformAdminModel::class,
         ],
 
         // 'users' => [

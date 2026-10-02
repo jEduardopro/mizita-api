@@ -1,5 +1,8 @@
 <?php
 
+use App\Domains\Platform\Infrastructure\Http\Middleware\EnforceImpersonation;
+use App\Domains\Platform\Infrastructure\Http\Middleware\RequirePlatformSession;
+use App\Domains\Platform\Infrastructure\Http\PlatformRoutes;
 use App\Http\Exceptions\RenderDomainFailure;
 use App\Http\Logging\LogUnexpectedFailure;
 use App\Http\Middleware\ForbidNonOwners;
@@ -34,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             append: [
                 HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
+                EnforceImpersonation::class,
             ],
             prepend: [
                 SetLocale::class,
@@ -41,9 +45,14 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
         );
 
-        $middleware->api(prepend: [
-            SetLocale::class,
-        ]);
+        $middleware->api(
+            append: [
+                EnforceImpersonation::class,
+            ],
+            prepend: [
+                SetLocale::class,
+            ],
+        );
 
         $middleware->encryptCookies(except: [
             'locale',
@@ -51,8 +60,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'sidebar_state',
         ]);
 
+        $middleware->redirectGuestsTo(
+            fn (Request $request): string => PlatformRoutes::owns($request)
+                ? route(PlatformRoutes::LOGIN)
+                : route('login'),
+        );
+
         $middleware->redirectUsersTo(
-            fn (): string => route(RequireBusinessMembership::ONBOARDING_ROUTE),
+            fn (Request $request): string => PlatformRoutes::owns($request)
+                ? route(PlatformRoutes::BUSINESSES)
+                : route(RequireBusinessMembership::ONBOARDING_ROUTE),
         );
 
         $middleware->group('business', [
@@ -66,6 +83,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'owner' => RequireBusinessOwner::class,
             'owner.api' => ForbidNonOwners::class,
             'permission' => RequirePermission::class,
+            PlatformRoutes::SESSION_MIDDLEWARE => RequirePlatformSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

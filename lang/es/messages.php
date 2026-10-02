@@ -303,6 +303,18 @@ return [
         'checkout_session_not_found' => 'No encontramos ese pago.',
         'checkout_already_started' => 'Ya se está preparando un pago. Inténtalo de nuevo en un momento.',
 
+        'invalid_platform_business_filter' => 'Esos filtros no son válidos.',
+        'invalid_platform_admin_email' => 'Ese email no es válido.',
+        'invalid_platform_admin_name' => 'Ese nombre no es válido.',
+        'platform_admin_password_too_short' => 'La contraseña debe tener al menos 12 caracteres.',
+        'invalid_platform_two_factor_code' => 'Ese código de verificación no es válido.',
+        'platform_admin_already_exists' => 'Ya existe un administrador con ese email.',
+        'impersonated_business_not_found' => 'No hemos encontrado ese negocio.',
+        'business_has_no_owner' => 'Este negocio no tiene un owner con el que entrar.',
+        'business_owner_deactivated' => 'La cuenta del owner de este negocio está desactivada.',
+        'platform_session_expired' => 'Tu sesión de administrador ha caducado. Vuelve a iniciar sesión.',
+        'impersonation_ended' => 'La sesión como owner ha terminado.',
+
     ],
 
     /*

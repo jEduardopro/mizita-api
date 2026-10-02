@@ -1,0 +1,79 @@
+{
+    "marker": "Plataforma",
+    "shell": {
+        "toggleSidebar": "Mostrar u ocultar la barra lateral",
+        "accountMenu": "Menú de tu cuenta de operador",
+        "logOut": "Cerrar sesión"
+    },
+    "nav": {
+        "businesses": "Clientes"
+    },
+    "login": {
+        "title": "Acceso a la plataforma",
+        "heading": "Acceso de operadores",
+        "description": "Entra con tu cuenta de administrador de Mizita. Después te pediremos el código de tu app de autenticación.",
+        "email": "Correo electrónico",
+        "password": "Contraseña",
+        "showPassword": "Mostrar contraseña",
+        "hidePassword": "Ocultar contraseña",
+        "submit": "Continuar",
+        "submitting": "Comprobando…"
+    },
+    "twoFactor": {
+        "title": "Verificación en dos pasos",
+        "heading": "Confirma que eres tú",
+        "description": "Escribe el código de 6 dígitos que muestra tu app de autenticación.",
+        "code": "Código de verificación",
+        "submit": "Verificar",
+        "submitting": "Verificando…",
+        "backToLogin": "Volver al inicio de sesión"
+    },
+    "businesses": {
+        "title": "Clientes",
+        "description": "Todos los negocios de Mizita, con su dueño, su actividad y su plan.",
+        "caption": "Negocios registrados en Mizita",
+        "columns": {
+            "business": "Negocio",
+            "owner": "Dueño",
+            "createdAt": "Creado",
+            "services": "Servicios",
+            "customers": "Clientes",
+            "plan": "Plan",
+            "actions": "Acciones"
+        },
+        "noOwner": "Sin dueño",
+        "createdOn": "Creado el {{date}}",
+        "servicesCount_one": "{{count}} servicio",
+        "servicesCount_other": "{{count}} servicios",
+        "customersCount_one": "{{count}} cliente",
+        "customersCount_other": "{{count}} clientes",
+        "plan": {
+            "free": "Gratis",
+            "complete": "Completo"
+        },
+        "search": {
+            "label": "Buscar negocios",
+            "placeholder": "Busca por negocio, dueño o email"
+        },
+        "empty": {
+            "first": {
+                "title": "Aún no hay negocios",
+                "body": "Cuando alguien cree un negocio en Mizita, aparecerá aquí."
+            },
+            "search": {
+                "title": "Ningún negocio coincide",
+                "body": "No hay resultados para «{{search}}». Prueba con otro nombre o email."
+            }
+        },
+        "impersonate": {
+            "action": "Entrar como dueño",
+            "shortAction": "Entrar",
+            "actionFor": "Entrar como dueño de {{business}}",
+            "title": "¿Entrar como dueño de {{business}}?",
+            "body": "Verás el panel de {{business}} tal como lo ve {{owner}}, durante 60 minutos como máximo.",
+            "restrictions": "Las acciones sensibles quedan bloqueadas: contraseñas, datos de la cuenta, facturación e integraciones.",
+            "confirm": "Entrar como dueño",
+            "confirming": "Entrando…"
+        }
+    }
+}

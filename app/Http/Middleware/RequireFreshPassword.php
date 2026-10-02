@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Domains\Accounts\Exceptions\PasswordChangeRequired;
 use App\Http\Responses\JsonFailureRendering;
 use App\Models\User;
+use App\Shared\Contracts\ImpersonationStatus;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,11 +16,15 @@ final class RequireFreshPassword
 {
     public const CHANGE_PASSWORD_ROUTE = 'password.change';
 
+    public function __construct(
+        private readonly ImpersonationStatus $impersonation,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
-        if (! $user instanceof User || ! $user->mustChangePassword()) {
+        if (! $user instanceof User || ! $user->mustChangePassword() || $this->impersonation->isActive()) {
             return $next($request);
         }
 

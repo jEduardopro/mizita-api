@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { ChevronsUpDown, LogOut, Palette, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -81,6 +81,8 @@ export function AccountMenu() {
     const { data: profile } = useMyProfile();
     const photoUrl = profile?.photo_url ?? null;
     const logOut = useLogOut();
+    const { impersonation } = usePage().props;
+    const logOutLabel = impersonation ? t('impersonation.stop') : tCommon('nav.logOut');
 
     return (
         <SidebarMenu>
@@ -138,7 +140,7 @@ export function AccountMenu() {
 
                         <DropdownMenuItem onSelect={logOut} className="gap-2 py-3 md:py-2">
                             <LogOut className="size-4" />
-                            {tCommon('nav.logOut')}
+                            {logOutLabel}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
