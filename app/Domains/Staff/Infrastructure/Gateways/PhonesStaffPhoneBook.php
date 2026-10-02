@@ -44,7 +44,7 @@ final class PhonesStaffPhoneBook implements StaffPhoneBook
     /**
      * @return list<string>
      */
-    public function profileIdsMatchingNumber(string $fragment): array
+    public function profileIdsMatchingNumber(string $businessId, string $fragment): array
     {
         $digits = PhoneNumberFragment::of($fragment);
 
@@ -52,7 +52,7 @@ final class PhonesStaffPhoneBook implements StaffPhoneBook
             return [];
         }
 
-        return $this->phones->ownerIdsMatchingNumber(PhoneOwnerType::StaffProfile, $digits);
+        return $this->phones->ownerIdsMatchingNumber(PhoneOwnerType::StaffProfile, $businessId, $digits);
     }
 
     public function replaceForProfile(string $profileId, ?PhoneNumber $phone): void

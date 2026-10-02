@@ -23,7 +23,7 @@ final class PaymentReportCriteriaRules
             'customer_ids' => ['sometimes', 'array', 'max:'.PaymentReportCriteriaInput::MAXIMUM_CUSTOMER_FILTER_SIZE],
             'customer_ids.*' => ['uuid'],
             'direction' => ['sometimes', Rule::enum(SortDirection::class)],
-            'page' => ['sometimes', 'integer', 'min:'.PaymentReportCriteriaInput::FIRST_PAGE],
+            'page' => ['sometimes', 'integer', 'min:'.PaymentReportCriteriaInput::FIRST_PAGE, 'max:'.Pagination::MAXIMUM_PAGE],
             'per_page' => [
                 'sometimes',
                 'integer',

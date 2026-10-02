@@ -55,8 +55,6 @@ final class GuestCustomerRegistrar
         $known = $this->knownCustomer($businessId, $email, $phone);
 
         if ($known !== null) {
-            $this->fillMissingAddress($known->id, $contact->address);
-
             return $this->presenter->describe($known);
         }
 
@@ -95,7 +93,7 @@ final class GuestCustomerRegistrar
 
         return $this->customers->findFirstAmong(
             $businessId,
-            $this->phones->customerIdsWithNumber($phone),
+            $this->phones->customerIdsWithNumber($businessId, $phone),
         );
     }
 
@@ -125,15 +123,6 @@ final class GuestCustomerRegistrar
         $this->recordAddress($customer->id, $contact->address);
 
         return $customer;
-    }
-
-    private function fillMissingAddress(string $customerId, ?GuestAddressInput $address): void
-    {
-        if ($address === null || $this->addresses->forCustomer($customerId) !== null) {
-            return;
-        }
-
-        $this->addresses->replaceForCustomer($customerId, $address->toSnapshot());
     }
 
     private function recordAddress(string $customerId, ?GuestAddressInput $address): void

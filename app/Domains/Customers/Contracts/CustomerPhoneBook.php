@@ -23,10 +23,10 @@ interface CustomerPhoneBook
     /**
      * @return list<string>
      */
-    public function customerIdsWithNumber(PhoneNumber $number): array;
+    public function customerIdsWithNumber(string $businessId, PhoneNumber $number): array;
 
     /**
      * @return list<string> customers whose number contains the digits typed in $fragment
      */
-    public function customerIdsMatchingNumber(string $fragment): array;
+    public function customerIdsMatchingNumber(string $businessId, string $fragment): array;
 }

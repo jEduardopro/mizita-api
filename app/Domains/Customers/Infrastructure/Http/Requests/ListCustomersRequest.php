@@ -23,7 +23,7 @@ final class ListCustomersRequest extends FormRequest
             'search' => ['sometimes', 'nullable', 'string', 'max:'.ListCustomersInput::MAXIMUM_SEARCH_LENGTH],
             'sort' => ['sometimes', Rule::enum(CustomerSort::class)],
             'direction' => ['sometimes', Rule::enum(SortDirection::class)],
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PAGE],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PER_PAGE],
             'created_from' => ['nullable', 'date_format:'.LocalDate::FORMAT, 'required_with:created_to'],
             'created_to' => [

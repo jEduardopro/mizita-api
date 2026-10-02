@@ -7,10 +7,17 @@ namespace App\Domains\Availability\Application\Dtos;
 use App\Domains\Availability\Exceptions\InvalidTimeOfDay;
 use App\Domains\Availability\Exceptions\InvalidWeekday;
 use App\Domains\Availability\Exceptions\ScheduleNotSubmitted;
+use App\Domains\Availability\Exceptions\TooManyScheduleIntervals;
 use App\Domains\Availability\ValueObjects\ScheduleInterval;
 
 final readonly class ReplaceMyScheduleInput
 {
+    public const MAXIMUM_INTERVALS = self::DAYS_PER_WEEK * self::MAXIMUM_INTERVALS_PER_DAY;
+
+    private const DAYS_PER_WEEK = 7;
+
+    private const MAXIMUM_INTERVALS_PER_DAY = 10;
+
     /**
      * @param  list<MyScheduleEntryInput>|null  $entries
      */
@@ -34,6 +41,7 @@ final readonly class ReplaceMyScheduleInput
 
     /**
      * @throws ScheduleNotSubmitted
+     * @throws TooManyScheduleIntervals
      * @throws InvalidWeekday
      * @throws InvalidTimeOfDay
      */
@@ -58,6 +66,7 @@ final readonly class ReplaceMyScheduleInput
 
     /**
      * @throws ScheduleNotSubmitted
+     * @throws TooManyScheduleIntervals
      * @throws InvalidWeekday
      * @throws InvalidTimeOfDay
      */
@@ -65,6 +74,10 @@ final readonly class ReplaceMyScheduleInput
     {
         if ($this->entries === null) {
             throw ScheduleNotSubmitted::forAccount($this->accountId);
+        }
+
+        if (count($this->entries) > self::MAXIMUM_INTERVALS) {
+            throw TooManyScheduleIntervals::submitted(count($this->entries), self::MAXIMUM_INTERVALS);
         }
 
         foreach ($this->entries as $entry) {

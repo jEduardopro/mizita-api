@@ -206,7 +206,7 @@ describe('the contacts that must stay unique', function () {
             id: CustomerFixtures::FOREIGN_CUSTOMER_ID,
             businessId: CustomerFixtures::OTHER_BUSINESS_ID,
         ));
-        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican());
+        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican(), CustomerFixtures::OTHER_BUSINESS_ID);
 
         expect(($this->update)()->succeeded())->toBeTrue();
     });

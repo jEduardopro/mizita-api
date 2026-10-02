@@ -208,7 +208,6 @@ final class PublicCatalogFixtures
 
     public static function guestBooking(
         string $referenceCode = self::REFERENCE_CODE,
-        string $customerName = self::GUEST_NAME,
         PublicBookingStatus $status = PublicBookingStatus::Booked,
         ?string $cancelledAt = null,
         ?int $cancellationWindowMinutes = 120,
@@ -216,7 +215,6 @@ final class PublicCatalogFixtures
     ): PublicGuestBooking {
         return new PublicGuestBooking(
             referenceCode: $referenceCode,
-            customerName: $customerName,
             serviceName: 'Corte de pelo',
             staffMemberName: 'Ada Lovelace',
             startsAt: new DateTimeImmutable(self::STARTS_AT),

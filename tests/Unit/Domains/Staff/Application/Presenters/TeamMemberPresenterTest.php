@@ -17,6 +17,7 @@ use Tests\Support\Staff\FakeServiceAssignments;
 use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\FakeTeamAccountSharing;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\FakeWorkingHours;
 use Tests\Support\Staff\StaffFixtures;
@@ -43,8 +44,9 @@ beforeEach(function () {
     $this->phones = (new FakeStaffPhoneBook)->store(StaffFixtures::PROFILE_ID, PhoneNumbers::mexican());
     $this->photos = (new FakeStaffProfilePhotos)->store(FakeBusinessContext::BUSINESS_ID, StaffFixtures::PROFILE_ID, StaffFixtures::PHOTO_URL);
     $this->temporaryPasswords = new FakeTeamTemporaryPasswords;
+    $this->sharing = new FakeTeamAccountSharing;
 
-    $this->presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, StaffFixtures::bookingLinkPresenter());
+    $this->presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, $this->sharing, StaffFixtures::bookingLinkPresenter());
 
     $this->owner = StaffFixtures::member();
     $this->invitee = StaffFixtures::member(
@@ -94,7 +96,7 @@ describe('describing one member', function () {
 
     it('describes a member with no profile with no description, no phone and no photo', function () {
         $this->profiles = new FakeStaffProfileRepository;
-        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, StaffFixtures::bookingLinkPresenter());
+        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, $this->sharing, StaffFixtures::bookingLinkPresenter());
 
         $data = $presenter->describe($this->owner);
 
@@ -190,6 +192,84 @@ describe('the temporary password an owner may copy', function () {
     });
 });
 
+describe('an account shared with other businesses', function () {
+    beforeEach(function () {
+        $this->temporaryPasswords->holds(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+        $this->sharing->memberOf(StaffFixtures::SECOND_ACCOUNT_ID, FakeBusinessContext::BUSINESS_ID, StaffFixtures::OTHER_BUSINESS_ID);
+    });
+
+    it('shows neither a pending invitation nor a temporary password to copy', function () {
+        $data = $this->presenter->describe($this->invitee);
+
+        expect($data->invitationPending)->toBeFalse()
+            ->and($data->temporaryPasswordAvailable)->toBeFalse()
+            ->and($data->level)->toBe(StaffRole::Member);
+    });
+
+    it('still offers the password of an exclusive account described in the same batch', function () {
+        $exclusive = StaffFixtures::member(
+            id: StaffFixtures::THIRD_MEMBER_ID,
+            accountId: StaffFixtures::THIRD_ACCOUNT_ID,
+            role: StaffRole::Member,
+        );
+        $this->accounts = new FakeAccountDirectory(
+            StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, awaitingPasswordChange: true),
+            StaffFixtures::account(id: StaffFixtures::THIRD_ACCOUNT_ID, name: 'Linus Pauling', email: 'linus@example.com', awaitingPasswordChange: true),
+        );
+        $this->temporaryPasswords->holds(StaffFixtures::THIRD_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, $this->sharing, StaffFixtures::bookingLinkPresenter());
+
+        [$shared, $owned] = $presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->invitee, $exclusive]);
+
+        expect($shared->id)->toBe(StaffFixtures::SECOND_MEMBER_ID)
+            ->and($shared->invitationPending)->toBeFalse()
+            ->and($shared->temporaryPasswordAvailable)->toBeFalse()
+            ->and($owned->id)->toBe(StaffFixtures::THIRD_MEMBER_ID)
+            ->and($owned->invitationPending)->toBeTrue()
+            ->and($owned->temporaryPasswordAvailable)->toBeTrue();
+    });
+
+    it('asks which accounts are shared once for the whole batch, against the business it was asked about', function () {
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->owner, $this->invitee]);
+
+        expect($this->sharing->batchLookups)->toBe([[
+            'accountIds' => [StaffFixtures::ACCOUNT_ID, StaffFixtures::SECOND_ACCOUNT_ID],
+            'businessId' => FakeBusinessContext::BUSINESS_ID,
+        ]])
+            ->and($this->sharing->lookups)->toBe([]);
+    });
+
+    it('asks once for a whole page', function () {
+        $this->presenter->describePage(FakeBusinessContext::BUSINESS_ID, Paginated::of([$this->owner, $this->invitee], 2, Pagination::of(1, 10)));
+
+        expect($this->sharing->batchLookups)->toHaveCount(1);
+    });
+
+    it('asks about an account shared by two members only once', function () {
+        $twin = StaffFixtures::member(id: StaffFixtures::THIRD_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::Member);
+
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, [$this->invitee, $twin]);
+
+        expect($this->sharing->batchLookups[0]['accountIds'])->toBe([StaffFixtures::SECOND_ACCOUNT_ID]);
+    });
+
+    it('asks nothing for no members', function () {
+        $this->presenter->describeMany(FakeBusinessContext::BUSINESS_ID, []);
+
+        expect($this->sharing->batchLookups)->toBe([]);
+    });
+
+    it('treats the account as exclusive when the only other membership is in the business it was asked about', function () {
+        $this->sharing = (new FakeTeamAccountSharing)->memberOf(StaffFixtures::SECOND_ACCOUNT_ID, FakeBusinessContext::BUSINESS_ID);
+        $presenter = new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, $this->photos, $this->temporaryPasswords, $this->sharing, StaffFixtures::bookingLinkPresenter());
+
+        $data = $presenter->describe($this->invitee);
+
+        expect($data->invitationPending)->toBeTrue()
+            ->and($data->temporaryPasswordAvailable)->toBeTrue();
+    });
+});
+
 describe('tenant isolation', function () {
     it('reads profiles and photos only from the business it was asked about', function () {
         $this->profiles->store(StaffFixtures::profile(
@@ -242,6 +322,7 @@ describe('the booking link of each member', function () {
             $this->phones,
             $this->photos,
             $this->temporaryPasswords,
+            $this->sharing,
             StaffFixtures::bookingLinkPresenter($this->services, $this->workingHours, $this->businesses),
         );
     });

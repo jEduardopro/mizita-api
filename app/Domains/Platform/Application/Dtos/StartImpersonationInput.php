@@ -13,6 +13,7 @@ final readonly class StartImpersonationInput
     public function __construct(
         public string $adminId,
         public string $businessId,
+        public ?string $ipAddress,
     ) {}
 
     /**

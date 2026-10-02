@@ -32,6 +32,7 @@ final class ImpersonationController extends Controller
             $response = $startImpersonation->handle(new StartImpersonationInput(
                 adminId: (string) $guards->signedInAdmin()?->uuid,
                 businessId: $business,
+                ipAddress: $request->ip(),
             ));
 
             if ($response->failed()) {

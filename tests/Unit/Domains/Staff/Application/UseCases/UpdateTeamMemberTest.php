@@ -27,6 +27,7 @@ use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamAccountSharing;
 use Tests\Support\Staff\FakeTeamAllowance;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
@@ -67,6 +68,7 @@ beforeEach(function () {
     $this->provisioner = (new FakeTeamAccountProvisioner($this->journal))
         ->issues(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
     $this->allowance = new FakeTeamAllowance;
+    $this->sharing = new FakeTeamAccountSharing;
     $this->phones = new FakeStaffPhoneBook($this->journal);
     $this->photos = new FakeStaffProfilePhotos($this->journal);
     $this->parser = FakePhoneNumberParser::accepting(PhoneNumbers::mexican(), PhoneNumbers::american());
@@ -83,9 +85,10 @@ beforeEach(function () {
         $this->profiles,
         $this->accounts,
         $this->provisioner,
+        $this->sharing,
         $this->allowance,
         $this->phones,
-        new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
+        new TeamMemberPresenter($this->presenterAccounts, $this->profiles, $this->phones, $this->photos, new FakeTeamTemporaryPasswords, $this->sharing, StaffFixtures::bookingLinkPresenter()),
         $this->parser,
         $business ?? new FakeBusinessContext,
         $this->transactions,
@@ -269,6 +272,26 @@ describe('changing the level', function () {
             ->and($this->dispatched[0]->temporaryPassword)->toBeNull();
     });
 
+    it('asks whether the account is shared against the business of the member before issuing a password', function () {
+        $this->members->store(StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::NoAccess));
+
+        ($this->update)(['level' => 'staff']);
+
+        expect($this->sharing->lookups)->toBe([['accountId' => StaffFixtures::SECOND_ACCOUNT_ID, 'businessId' => FakeBusinessContext::BUSINESS_ID]]);
+    });
+
+    it('asks nobody whether the account is shared when no access is granted', function (StaffRole $from, string $to) {
+        $this->members->store(StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: $from));
+
+        ($this->update)(['level' => $to]);
+
+        expect($this->sharing->lookups)->toBe([]);
+    })->with([
+        'staff to no access' => [StaffRole::Member, 'no_access'],
+        'staff to staff' => [StaffRole::Member, 'staff'],
+        'no access to no access' => [StaffRole::NoAccess, 'no_access'],
+    ]);
+
     it('invites nobody when access is taken away or left as it was', function (StaffRole $from, string $to) {
         $this->members->store(StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: $from));
 
@@ -292,6 +315,53 @@ describe('changing the level', function () {
 
         ($this->nothingWasWritten)();
     })->with(['staff', 'no_access']);
+});
+
+describe('giving access to an account shared with another business', function () {
+    beforeEach(function () {
+        $this->members->store(StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::NoAccess));
+        $this->sharing->memberOf(StaffFixtures::SECOND_ACCOUNT_ID, FakeBusinessContext::BUSINESS_ID, StaffFixtures::OTHER_BUSINESS_ID);
+    });
+
+    it('still gives the member access', function () {
+        $response = ($this->update)(['level' => 'staff']);
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($response->value()->level)->toBe(StaffRole::Member)
+            ->and($this->members->saved)->toHaveCount(1)
+            ->and($this->members->saved[0]->role())->toBe(StaffRole::Member);
+    });
+
+    it('never issues a temporary password over the sign in the other business manages', function () {
+        ($this->update)(['level' => 'staff']);
+
+        expect($this->provisioner->issued)->toBe([])
+            ->and($this->journal->entries)->not->toContain('accounts.issue_password');
+    });
+
+    it('announces the invitation once, with no password to send', function () {
+        ($this->update)(['level' => 'staff']);
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(TeamMemberInvited::class)
+            ->and($this->dispatched[0]->staffMemberId)->toBe(StaffFixtures::SECOND_MEMBER_ID)
+            ->and($this->dispatched[0]->businessId)->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->dispatched[0]->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
+            ->and($this->dispatched[0]->temporaryPassword)->toBeNull()
+            ->and($this->journal->outsideTransaction)->toBe(['events.dispatch']);
+    });
+
+    it('answers with no invitation the owner could resend or reveal', function () {
+        $this->accounts = (new FakeAccountDirectory(
+            StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, name: 'Grace Hopper', email: 'grace@example.com', awaitingPasswordChange: true),
+        ))->recordingInto($this->journal);
+        $this->presenterAccounts = $this->accounts;
+
+        $data = ($this->update)(['level' => 'staff'])->value();
+
+        expect($data->invitationPending)->toBeFalse()
+            ->and($data->temporaryPasswordAvailable)->toBeFalse();
+    });
 });
 
 describe('refusals decided before anything is written', function () {

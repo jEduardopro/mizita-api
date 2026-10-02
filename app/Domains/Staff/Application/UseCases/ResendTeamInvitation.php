@@ -8,6 +8,7 @@ use App\Domains\Staff\Application\Dtos\ResendTeamInvitationInput;
 use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
+use App\Domains\Staff\Contracts\TeamAccountSharing;
 use App\Domains\Staff\Contracts\TeamAllowance;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
@@ -24,6 +25,7 @@ final class ResendTeamInvitation
         private readonly StaffMemberRepository $members,
         private readonly AccountDirectory $accounts,
         private readonly TeamAccountProvisioner $provisioner,
+        private readonly TeamAccountSharing $sharing,
         private readonly TeamAllowance $allowance,
         private readonly BusinessContext $business,
         private readonly Dispatcher $events,
@@ -44,6 +46,7 @@ final class ResendTeamInvitation
             $member = $this->members->findForBusiness($businessId, $input->staffMemberId);
 
             $member->ensureInvitationPending($this->accountOf($member));
+            $member->ensureTemporaryPasswordManageable($this->sharing->sharingOf($member->accountId, $businessId));
 
             $invitations = $member->invitationFor(
                 $this->provisioner->issueTemporaryPassword($member->accountId),

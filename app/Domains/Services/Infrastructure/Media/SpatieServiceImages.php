@@ -57,7 +57,7 @@ final class SpatieServiceImages implements ServiceImages
     {
         return $this->modelOrFail($businessId, $serviceId)
             ->addMedia($sourcePath)
-            ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
+            ->usingFileName(SafeFileName::from($sourcePath, $fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(ServiceModel::IMAGE_COLLECTION)
             ->getUrl();
     }

@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Domains\Accounts\Application\UseCases\AuthenticateWithGoogle;
+use App\Domains\Accounts\Contracts\AccountPasskeys;
 use App\Domains\Accounts\Contracts\PasskeyDirectory;
 use App\Domains\Accounts\Contracts\SecondFactorVerifier;
+use App\Domains\Accounts\Infrastructure\Eloquent\EloquentAccountPasskeys;
 use App\Domains\Accounts\Infrastructure\Eloquent\EloquentPasskeyDirectory;
 use App\Domains\Accounts\Infrastructure\Eloquent\Models\PasskeyModel;
 use App\Domains\Accounts\Infrastructure\Http\Controllers\SignInSecurityController;
@@ -36,7 +39,14 @@ describe('the second factor and passkey ports', function () {
     })->with([
         'second factor verifier' => [SecondFactorVerifier::class, FortifySecondFactorVerifier::class],
         'passkey directory' => [PasskeyDirectory::class, EloquentPasskeyDirectory::class],
+        'account passkeys' => [AccountPasskeys::class, EloquentAccountPasskeys::class],
     ]);
+});
+
+describe('the Google sign in use case', function () {
+    it('resolves with every port it revokes access through', function () {
+        expect($this->app->make(AuthenticateWithGoogle::class))->toBeInstanceOf(AuthenticateWithGoogle::class);
+    });
 });
 
 describe('the passkey registration response', function () {

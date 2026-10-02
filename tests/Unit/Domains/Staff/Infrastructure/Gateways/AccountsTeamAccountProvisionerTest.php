@@ -102,44 +102,25 @@ describe('provisioning a new account', function () {
 });
 
 describe('provisioning an account that already exists', function () {
-    it('issues a temporary password to an existing account given access that never chose one', function (PasswordStatus $status) {
-        $this->accounts->shouldReceive('findByEmail')->once()->andReturn(existingTeamAccount($status));
-        $this->accounts->shouldReceive('findById')->once()->with(StaffFixtures::SECOND_ACCOUNT_ID)->andReturn(existingTeamAccount($status));
-        $this->accounts->shouldReceive('save')->once();
-
-        $provisioned = $this->provisioner->provision(StaffRole::Member, 'Grace Hopper', 'grace@example.com');
-
-        expect($provisioned->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
-            ->and($provisioned->temporaryPassword)->toBe(PROVISIONED_TEMPORARY_PASSWORD)
-            ->and($this->vault->reveal(StaffFixtures::SECOND_ACCOUNT_ID))->toBe(PROVISIONED_TEMPORARY_PASSWORD);
-    })->with([
-        'no password' => PasswordStatus::Absent,
-        'a temporary password' => PasswordStatus::Temporary,
-    ]);
-
-    it('sends no password to an existing account that chose its own', function () {
-        $this->accounts->shouldReceive('findByEmail')->once()->andReturn(existingTeamAccount(PasswordStatus::Chosen));
-        $this->accounts->shouldReceive('findById')->once()->andReturn(existingTeamAccount(PasswordStatus::Chosen));
-        $this->accounts->shouldNotReceive('save');
-        $this->passwords->shouldNotReceive('generate');
-
-        expect($this->provisioner->provision(StaffRole::Member, 'Grace Hopper', 'grace@example.com')->temporaryPassword)->toBeNull();
-
-        expect($this->vault->kept)->toBe([]);
-    });
-
-    it('never issues a password to an existing account joining with no access', function () {
-        $this->accounts->shouldReceive('findByEmail')->once()->andReturn(existingTeamAccount(PasswordStatus::Absent));
+    it('hands back the existing account without touching its password, whatever its level and its password', function (StaffRole $level, PasswordStatus $status) {
+        $this->accounts->shouldReceive('findByEmail')->once()->with('grace@example.com')->andReturn(existingTeamAccount($status));
         $this->accounts->shouldNotReceive('findById');
         $this->accounts->shouldNotReceive('save');
         $this->passwords->shouldNotReceive('generate');
+        $this->hasher->shouldNotReceive('hash');
 
-        $provisioned = $this->provisioner->provision(StaffRole::NoAccess, 'Grace Hopper', 'grace@example.com');
+        $provisioned = $this->provisioner->provision($level, 'Grace Hopper', 'grace@example.com');
 
         expect($provisioned->accountId)->toBe(StaffFixtures::SECOND_ACCOUNT_ID)
             ->and($provisioned->temporaryPassword)->toBeNull()
             ->and($this->vault->kept)->toBe([]);
-    });
+    })->with([
+        'staff with no password' => [StaffRole::Member, PasswordStatus::Absent],
+        'staff with a temporary password' => [StaffRole::Member, PasswordStatus::Temporary],
+        'staff with a chosen password' => [StaffRole::Member, PasswordStatus::Chosen],
+        'no access with no password' => [StaffRole::NoAccess, PasswordStatus::Absent],
+        'no access with a temporary password' => [StaffRole::NoAccess, PasswordStatus::Temporary],
+    ]);
 });
 
 describe('translating refusals', function () {

@@ -48,6 +48,8 @@ final class EloquentAppointmentRepository implements AppointmentRepository
 
     private const TIEBREAKER_COLUMN = 'id';
 
+    private const PERIOD_OVERLAPS_RANGE = 'tstzrange(starts_at, ends_at) && tstzrange(cast(? as timestamptz), cast(? as timestamptz))';
+
     public function __construct(
         private readonly AppointmentMapper $mapper,
         private readonly BusinessTeamKey $businessKeys,
@@ -61,8 +63,10 @@ final class EloquentAppointmentRepository implements AppointmentRepository
     {
         $models = $this->withinScope($this->ofBusiness($businessId), $scope)
             ->with(self::PARTICIPANT_RELATIONS)
-            ->where('starts_at', '<', $range->to->format(DATE_ATOM))
-            ->where('ends_at', '>', $range->from->format(DATE_ATOM))
+            ->whereRaw(self::PERIOD_OVERLAPS_RANGE, [
+                $range->from->format(DATE_ATOM),
+                $range->to->format(DATE_ATOM),
+            ])
             ->orderBy('starts_at')
             ->orderBy(self::TIEBREAKER_COLUMN)
             ->get();
@@ -227,8 +231,9 @@ final class EloquentAppointmentRepository implements AppointmentRepository
      */
     private function ofBusiness(string $businessId): Builder
     {
-        return AppointmentModel::query()->whereIn(
+        return AppointmentModel::query()->where(
             'business_id',
+            '=',
             static fn (QueryBuilder $query) => $query
                 ->select('id')
                 ->from(self::BUSINESSES_TABLE)

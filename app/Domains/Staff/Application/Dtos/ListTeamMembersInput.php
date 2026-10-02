@@ -7,6 +7,7 @@ namespace App\Domains\Staff\Application\Dtos;
 use App\Domains\Staff\Exceptions\InvalidTeamSearch;
 use App\Domains\Staff\ValueObjects\TeamQuery;
 use App\Domains\Staff\ValueObjects\TeamSort;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
@@ -43,10 +44,12 @@ final readonly class ListTeamMembersInput
 
     /**
      * @throws InvalidTeamSearch
+     * @throws PageOutOfRange
      */
     public function validate(): void
     {
         $this->validateSearch();
+        $this->validatePage();
     }
 
     /**
@@ -78,5 +81,13 @@ final readonly class ListTeamMembersInput
         if ($this->search !== null && mb_strlen(trim($this->search)) > self::MAXIMUM_SEARCH_LENGTH) {
             throw InvalidTeamSearch::tooLong(self::MAXIMUM_SEARCH_LENGTH);
         }
+    }
+
+    /**
+     * @throws PageOutOfRange
+     */
+    private function validatePage(): void
+    {
+        Pagination::ensureValidPage($this->page);
     }
 }

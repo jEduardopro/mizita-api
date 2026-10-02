@@ -25,12 +25,12 @@ final class FakeStaffPhoneBook implements StaffPhoneBook
     public array $batchReads = [];
 
     /**
-     * @var array<string, list<string>>
+     * @var array<string, array<string, list<string>>>
      */
     private array $matches = [];
 
     /**
-     * @var list<string>
+     * @var list<array{businessId: string, fragment: string}>
      */
     public array $numberSearches = [];
 
@@ -50,9 +50,9 @@ final class FakeStaffPhoneBook implements StaffPhoneBook
         return $this;
     }
 
-    public function matching(string $fragment, string ...$profileIds): self
+    public function matching(string $businessId, string $fragment, string ...$profileIds): self
     {
-        $this->matches[$fragment] = array_values($profileIds);
+        $this->matches[$businessId][$fragment] = array_values($profileIds);
 
         return $this;
     }
@@ -71,11 +71,11 @@ final class FakeStaffPhoneBook implements StaffPhoneBook
     /**
      * @return list<string>
      */
-    public function profileIdsMatchingNumber(string $fragment): array
+    public function profileIdsMatchingNumber(string $businessId, string $fragment): array
     {
-        $this->numberSearches[] = $fragment;
+        $this->numberSearches[] = ['businessId' => $businessId, 'fragment' => $fragment];
 
-        return $this->matches[$fragment] ?? [];
+        return $this->matches[$businessId][$fragment] ?? [];
     }
 
     public function forProfile(string $profileId): ?PhoneNumber

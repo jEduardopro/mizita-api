@@ -11,6 +11,7 @@ use App\Domains\Subscriptions\Contracts\BillingContacts;
 use App\Domains\Subscriptions\Contracts\BillingCustomers;
 use App\Domains\Subscriptions\Contracts\BillingPortal;
 use App\Domains\Subscriptions\Contracts\BillingSubscriptions;
+use App\Domains\Subscriptions\Contracts\PaymentGraceEnforcementQueue;
 use App\Domains\Subscriptions\Contracts\PlanCatalog;
 use App\Domains\Subscriptions\Contracts\SubscriptionRepository;
 use App\Domains\Subscriptions\Contracts\SubscriptionSyncQueue;
@@ -21,12 +22,14 @@ use App\Domains\Subscriptions\Infrastructure\Eloquent\EloquentSubscriptionReposi
 use App\Domains\Subscriptions\Infrastructure\Gateways\BusinessOwnerBillingContacts;
 use App\Domains\Subscriptions\Infrastructure\Http\Controllers\StripeWebhookController;
 use App\Domains\Subscriptions\Infrastructure\Plans\SubscriptionsBusinessPlan;
+use App\Domains\Subscriptions\Infrastructure\Queue\QueuedPaymentGraceEnforcement;
 use App\Domains\Subscriptions\Infrastructure\Queue\QueuedSubscriptionSync;
 use App\Domains\Subscriptions\Infrastructure\Stripe\StripeApi;
 use App\Domains\Subscriptions\Infrastructure\Stripe\StripeBillingCheckout;
 use App\Domains\Subscriptions\Infrastructure\Stripe\StripeBillingCustomers;
 use App\Domains\Subscriptions\Infrastructure\Stripe\StripeBillingPortal;
 use App\Domains\Subscriptions\Infrastructure\Stripe\StripeBillingSubscriptions;
+use App\Providers\AppServiceProvider;
 use App\Shared\Contracts\BusinessPlan;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -40,11 +43,15 @@ final class SubscriptionsServiceProvider extends ServiceProvider
 {
     public const WEBHOOK_RATE_LIMITER = 'stripe-webhook';
 
+    public const BILLING_RATE_LIMITER = 'subscription-billing';
+
     private const API_MIDDLEWARE = ['api', 'auth:sanctum', 'business', 'owner.api'];
 
     private const WEBHOOK_MIDDLEWARE = ['api', 'throttle:'.self::WEBHOOK_RATE_LIMITER];
 
     private const WEBHOOK_REQUESTS_PER_MINUTE = 300;
+
+    private const BILLING_REQUESTS_PER_MINUTE = 5;
 
     private const PLAN_PAGE_PATH = '/settings/plan';
 
@@ -66,6 +73,7 @@ final class SubscriptionsServiceProvider extends ServiceProvider
         $this->app->bind(BillingSubscriptions::class, StripeBillingSubscriptions::class);
         $this->app->bind(BillingPortal::class, StripeBillingPortal::class);
         $this->app->bind(SubscriptionSyncQueue::class, QueuedSubscriptionSync::class);
+        $this->app->bind(PaymentGraceEnforcementQueue::class, QueuedPaymentGraceEnforcement::class);
         $this->app->bind(BusinessPlan::class, SubscriptionsBusinessPlan::class);
 
         $this->registerStripeClient();
@@ -86,6 +94,7 @@ final class SubscriptionsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerWebhookLimiter();
+        $this->registerBillingLimiter();
 
         Route::prefix('api')
             ->middleware(self::API_MIDDLEWARE)
@@ -93,6 +102,7 @@ final class SubscriptionsServiceProvider extends ServiceProvider
 
         Route::prefix('api')
             ->middleware(self::WEBHOOK_MIDDLEWARE)
+            ->withoutMiddleware('throttle:'.AppServiceProvider::API_RATE_LIMITER)
             ->group(__DIR__.'/Infrastructure/Http/webhooks.php');
 
         if ($this->app->runningInConsole()) {
@@ -125,6 +135,22 @@ final class SubscriptionsServiceProvider extends ServiceProvider
             static fn (Request $request): Limit => Limit::perMinute(self::WEBHOOK_REQUESTS_PER_MINUTE)
                 ->by('stripe-webhook:'.(string) $request->ip()),
         );
+    }
+
+    private function registerBillingLimiter(): void
+    {
+        RateLimiter::for(
+            self::BILLING_RATE_LIMITER,
+            static fn (Request $request): Limit => Limit::perMinute(self::BILLING_REQUESTS_PER_MINUTE)
+                ->by(self::billingLimiterKeyFor($request)),
+        );
+    }
+
+    private static function billingLimiterKeyFor(Request $request): string
+    {
+        $accountId = $request->user()?->uuid;
+
+        return $accountId === null ? 'ip:'.(string) $request->ip() : 'account:'.(string) $accountId;
     }
 
     private static function planPageUrl(): string

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
-const PRESERVED_BUSINESS_SCOPED_TABLE = 'subscriptions';
+const PRESERVED_BUSINESS_SCOPED_TABLES = ['platform_impersonations', 'subscriptions'];
 
 /**
  * @return list<string>
@@ -73,15 +73,15 @@ it('classifies every table exactly once', function () {
     expect(array_values(array_diff_assoc($classified, array_unique($classified))))->toBe([]);
 });
 
-it('erases every table that carries a business column, save the subscription history a purge keeps', function () {
+it('erases every table that carries a business column, save the subscription history and the impersonation audit a purge keeps', function () {
     expect(array_values(array_diff(
         schemaTablesWithBusinessColumn(),
         DatabaseTenantDataEraser::coveredTables(),
-        [PRESERVED_BUSINESS_SCOPED_TABLE],
+        PRESERVED_BUSINESS_SCOPED_TABLES,
     )))->toBe([]);
 });
 
-it('preserves no table that carries a business column but the subscription history', function () {
+it('preserves no table that carries a business column but the subscription history and the impersonation audit', function () {
     expect(array_values(array_intersect(schemaTablesWithBusinessColumn(), DatabaseTenantDataEraser::PRESERVED_TABLES)))
-        ->toBe([PRESERVED_BUSINESS_SCOPED_TABLE]);
+        ->toBe(PRESERVED_BUSINESS_SCOPED_TABLES);
 });

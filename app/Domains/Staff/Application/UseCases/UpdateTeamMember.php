@@ -13,6 +13,7 @@ use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffPhoneBook;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
+use App\Domains\Staff\Contracts\TeamAccountSharing;
 use App\Domains\Staff\Contracts\TeamAllowance;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
@@ -22,6 +23,7 @@ use App\Domains\Staff\Exceptions\InvalidProfileJobTitle;
 use App\Domains\Staff\Exceptions\InvalidProfilePhone;
 use App\Domains\Staff\Exceptions\InvalidTeamLevel;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
+use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Domains\Staff\ValueObjects\AccessTransition;
 use App\Shared\Application\UseCaseResponse;
@@ -40,6 +42,7 @@ final class UpdateTeamMember
         private readonly StaffProfileRepository $profiles,
         private readonly AccountDirectory $accounts,
         private readonly TeamAccountProvisioner $provisioner,
+        private readonly TeamAccountSharing $sharing,
         private readonly TeamAllowance $allowance,
         private readonly StaffPhoneBook $phones,
         private readonly TeamMemberPresenter $presenter,
@@ -158,7 +161,21 @@ final class UpdateTeamMember
             return [];
         }
 
-        return $member->invitationFor($this->provisioner->issueTemporaryPassword($member->accountId));
+        return $member->invitationFor($this->temporaryPasswordFor($member));
+    }
+
+    /**
+     * @throws StaffMemberNotFound
+     */
+    private function temporaryPasswordFor(StaffMember $member): ?string
+    {
+        $sharing = $this->sharing->sharingOf($member->accountId, $member->businessId);
+
+        if (! $member->mayManageTemporaryPassword($sharing)) {
+            return null;
+        }
+
+        return $this->provisioner->issueTemporaryPassword($member->accountId);
     }
 
     /**

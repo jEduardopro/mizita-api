@@ -8,7 +8,7 @@ use App\Shared\Contracts\DomainFailure;
 use Tests\Support\Platform\ImpersonationFixtures;
 
 it('accepts a business uuid', function (string $businessId) {
-    $input = new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, $businessId);
+    $input = new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, $businessId, ImpersonationFixtures::IP_ADDRESS);
 
     expect(fn () => $input->validate())->not->toThrow(Throwable::class);
 })->with([
@@ -16,8 +16,14 @@ it('accepts a business uuid', function (string $businessId) {
     'uppercase' => [strtoupper(ImpersonationFixtures::BUSINESS_ID)],
 ]);
 
+it('accepts a request whose address is unknown', function () {
+    $input = new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, ImpersonationFixtures::BUSINESS_ID, null);
+
+    expect(fn () => $input->validate())->not->toThrow(Throwable::class);
+});
+
 it('reads a business id that is no uuid as a business that does not exist', function (string $businessId) {
-    $input = new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, $businessId);
+    $input = new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, $businessId, ImpersonationFixtures::IP_ADDRESS);
 
     expect(fn () => $input->validate())->toThrow(ImpersonatedBusinessNotFound::class);
 })->with([
@@ -33,7 +39,7 @@ it('reads a business id that is no uuid as a business that does not exist', func
 
 it('refuses with a domain failure, so the edge renders a 404 rather than a 500', function () {
     try {
-        (new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, '42'))->validate();
+        (new StartImpersonationInput(ImpersonationFixtures::ADMIN_ID, '42', ImpersonationFixtures::IP_ADDRESS))->validate();
     } catch (ImpersonatedBusinessNotFound $failure) {
         expect($failure)->toBeInstanceOf(DomainFailure::class);
 

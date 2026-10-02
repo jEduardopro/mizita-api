@@ -10,6 +10,7 @@ dataset('registration period refusals', fn () => [
     'malformed' => [InvalidCustomerRegistrationPeriod::malformed('2026-3-1')],
     'incomplete' => [InvalidCustomerRegistrationPeriod::incomplete()],
     'inverted' => [InvalidCustomerRegistrationPeriod::inverted('2026-03-02', '2026-03-01')],
+    'too wide' => [InvalidCustomerRegistrationPeriod::tooWide('2020-01-01', '2026-01-01', 5)],
 ]);
 
 it('quotes the date it could not read', function () {
@@ -25,6 +26,11 @@ it('says a period needs both of its bounds', function () {
 it('names both dates of a reversed period', function () {
     expect(InvalidCustomerRegistrationPeriod::inverted('2026-03-02', '2026-03-01')->getMessage())
         ->toBe('A registration period has to start on or before it ends, got [2026-03-02] to [2026-03-01].');
+});
+
+it('names both dates of a period wider than the cap, and the cap itself', function () {
+    expect(InvalidCustomerRegistrationPeriod::tooWide('2020-01-01', '2026-01-01', 5)->getMessage())
+        ->toBe('A registration period may span at most [5] years, got [2020-01-01] to [2026-01-01].');
 });
 
 it('answers with one stable error code whatever the reason', function (InvalidCustomerRegistrationPeriod $refusal) {

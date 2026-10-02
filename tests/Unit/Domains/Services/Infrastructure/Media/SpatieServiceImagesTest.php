@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Services\Contracts\ServiceImages;
 use App\Domains\Services\Infrastructure\Media\SpatieServiceImages;
 use App\Shared\Infrastructure\Media\SafeFileName;
+use Tests\Support\Shared\ImageFiles;
 
 function serviceImagesMethod(string $method): ReflectionMethod
 {
@@ -196,11 +197,11 @@ describe('keeping Illuminate\Http out of the application layer', function () {
 });
 
 describe('the file name it stores an upload under', function () {
-    it('delegates the naming rule to the shared helper instead of carrying a copy of its own', function () {
+    it('delegates the naming rule to the shared helper, handing it the stored file to sniff', function () {
         $reflection = new ReflectionClass(SpatieServiceImages::class);
 
         expect(serviceImagesSource())
-            ->toContain('SafeFileName::from($fileName, self::FALLBACK_FILE_NAME)')
+            ->toContain('SafeFileName::from($sourcePath, $fileName, self::FALLBACK_FILE_NAME)')
             ->and($reflection->hasMethod('safeFileName'))->toBeFalse()
             ->and($reflection->hasMethod('slugged'))->toBeFalse();
     });
@@ -209,7 +210,7 @@ describe('the file name it stores an upload under', function () {
         $fallbackName = (string) (new ReflectionClass(SpatieServiceImages::class))->getConstant('FALLBACK_FILE_NAME');
 
         expect($fallbackName)->toBe('image')
-            ->and(SafeFileName::from('***.png', $fallbackName))->toBe('image.png');
+            ->and(SafeFileName::from(ImageFiles::png(), '***.png', $fallbackName))->toBe('image.png');
     });
 
     it('names the helper on every method that accepts an upload', function () {

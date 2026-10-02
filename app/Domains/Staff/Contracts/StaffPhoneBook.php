@@ -19,7 +19,7 @@ interface StaffPhoneBook
     /**
      * @return list<string>
      */
-    public function profileIdsMatchingNumber(string $fragment): array;
+    public function profileIdsMatchingNumber(string $businessId, string $fragment): array;
 
     public function replaceForProfile(string $profileId, ?PhoneNumber $phone): void;
 }

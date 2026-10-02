@@ -15,4 +15,9 @@ final readonly class AvailableDay
         public string $date,
         public array $starts,
     ) {}
+
+    public static function withoutSlots(string $date): self
+    {
+        return new self($date, []);
+    }
 }

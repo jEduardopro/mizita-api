@@ -11,9 +11,11 @@ final readonly class AuthenticationOutcome
 {
     /**
      * @param  list<AccountRegistered|SocialIdentityLinked>  $events
+     * @param  list<string>  $accountsToSignOut
      */
     public function __construct(
         public AuthenticatedAccountData $account,
         public array $events,
+        public array $accountsToSignOut = [],
     ) {}
 }

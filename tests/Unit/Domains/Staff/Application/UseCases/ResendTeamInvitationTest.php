@@ -7,6 +7,7 @@ use App\Domains\Staff\Application\UseCases\ResendTeamInvitation;
 use App\Domains\Staff\Events\TeamMemberInvited;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
+use App\Domains\Staff\Exceptions\TemporaryPasswordManagedElsewhere;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseError;
 use App\Shared\Application\UseCaseResponse;
@@ -16,6 +17,7 @@ use Tests\Support\FakeBusinessContext;
 use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffMemberRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamAccountSharing;
 use Tests\Support\Staff\FakeTeamAllowance;
 use Tests\Support\Staff\StaffFixtures;
 
@@ -23,14 +25,18 @@ beforeEach(function () {
     $this->members = (new FakeStaffMemberRepository)->store(
         StaffFixtures::member(),
         StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::Member),
-        StaffFixtures::member(id: StaffFixtures::THIRD_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, businessId: StaffFixtures::OTHER_BUSINESS_ID, role: StaffRole::Member),
+        StaffFixtures::member(id: StaffFixtures::THIRD_MEMBER_ID, accountId: StaffFixtures::THIRD_ACCOUNT_ID, businessId: StaffFixtures::OTHER_BUSINESS_ID, role: StaffRole::Member),
     );
     $this->accounts = new FakeAccountDirectory(
         StaffFixtures::account(awaitingPasswordChange: true),
         StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, name: 'Grace Hopper', email: 'grace@example.com', awaitingPasswordChange: true),
+        StaffFixtures::account(id: StaffFixtures::THIRD_ACCOUNT_ID, name: 'Linus Pauling', email: 'linus@example.com', awaitingPasswordChange: true),
     );
-    $this->provisioner = (new FakeTeamAccountProvisioner)->issues(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD);
+    $this->provisioner = (new FakeTeamAccountProvisioner)
+        ->issues(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD)
+        ->issues(StaffFixtures::THIRD_ACCOUNT_ID, 'Other-Pa55word!');
     $this->allowance = new FakeTeamAllowance;
+    $this->sharing = new FakeTeamAccountSharing;
 
     $this->dispatched = [];
     $this->events = Mockery::mock(Dispatcher::class);
@@ -42,6 +48,7 @@ beforeEach(function () {
         $this->members,
         $this->accounts,
         $this->provisioner,
+        $this->sharing,
         $this->allowance,
         $business ?? new FakeBusinessContext,
         $this->events,
@@ -138,6 +145,63 @@ it('announces the invitation without a password when the account took one of its
 
     expect($this->dispatched)->toHaveCount(1)
         ->and($this->dispatched[0]->temporaryPassword)->toBeNull();
+});
+
+describe('an account shared with another business', function () {
+    beforeEach(function () {
+        $this->sharing->memberOf(StaffFixtures::SECOND_ACCOUNT_ID, FakeBusinessContext::BUSINESS_ID, StaffFixtures::OTHER_BUSINESS_ID);
+    });
+
+    it('refuses to resend, since the temporary password is not this business to manage', function () {
+        $error = ($this->refusal)();
+
+        expect($error->code)->toBe('temporary_password_managed_elsewhere')
+            ->and($error->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($error->cause())->toBeInstanceOf(TemporaryPasswordManagedElsewhere::class);
+    });
+
+    it('issues no password when it refuses', function () {
+        ($this->refusal)();
+
+        expect($this->provisioner->issued)->toBe([]);
+    });
+
+    it('asks about the account behind the member against the business of the context', function () {
+        ($this->refusal)();
+
+        expect($this->sharing->lookups)->toBe([['accountId' => StaffFixtures::SECOND_ACCOUNT_ID, 'businessId' => FakeBusinessContext::BUSINESS_ID]]);
+    });
+
+    it('refuses from whichever business sends it, so another business cannot reset the sign in either', function () {
+        $this->members->store(StaffFixtures::member(
+            id: StaffFixtures::FOURTH_MEMBER_ID,
+            accountId: StaffFixtures::SECOND_ACCOUNT_ID,
+            businessId: StaffFixtures::OTHER_BUSINESS_ID,
+            role: StaffRole::Member,
+        ));
+
+        $response = ($this->resend)(StaffFixtures::FOURTH_MEMBER_ID, ($this->build)(new FakeBusinessContext(StaffFixtures::OTHER_BUSINESS_ID)));
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('temporary_password_managed_elsewhere')
+            ->and($this->provisioner->issued)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('names an invitation that is not pending before asking who else shares the account', function () {
+        $this->accounts = new FakeAccountDirectory(StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, awaitingPasswordChange: false));
+
+        expect(($this->refusal)()->code)->toBe('team_invitation_not_pending')
+            ->and($this->sharing->lookups)->toBe([]);
+    });
+
+    it('resends once the other membership is the only one left', function () {
+        $this->sharing = (new FakeTeamAccountSharing)->memberOf(StaffFixtures::SECOND_ACCOUNT_ID, FakeBusinessContext::BUSINESS_ID);
+
+        expect(($this->resend)()->succeeded())->toBeTrue()
+            ->and($this->provisioner->issued)->toBe([StaffFixtures::SECOND_ACCOUNT_ID])
+            ->and($this->dispatched)->toHaveCount(1);
+    });
 });
 
 describe('tenant isolation', function () {

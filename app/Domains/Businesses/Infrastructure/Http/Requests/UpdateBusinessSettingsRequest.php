@@ -9,6 +9,7 @@ use App\Domains\BookingPolicies\ValueObjects\PolicyMessage;
 use App\Domains\Businesses\Application\Dtos\BrandDetailsInput;
 use App\Domains\Businesses\Application\Dtos\ContactFieldsInput;
 use App\Domains\Businesses\Application\Dtos\LocationInput;
+use App\Domains\Businesses\Application\Dtos\ScheduleInput;
 use App\Domains\Businesses\ValueObjects\About;
 use App\Domains\Businesses\ValueObjects\ContactEmail;
 use App\Domains\Businesses\ValueObjects\ContactFieldPreference;
@@ -192,7 +193,7 @@ final class UpdateBusinessSettingsRequest extends FormRequest
     private function scheduleRules(): array
     {
         return [
-            'schedule' => ['sometimes', 'array'],
+            'schedule' => ['sometimes', 'array', 'max:'.ScheduleInput::MAXIMUM_ENTRIES],
             'schedule.*.weekday' => ['required', 'integer'],
             'schedule.*.starts_at' => ['required', 'string'],
             'schedule.*.ends_at' => ['required', 'string'],

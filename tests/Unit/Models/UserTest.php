@@ -3,8 +3,14 @@
 declare(strict_types=1);
 
 use App\Domains\Accounts\Infrastructure\Eloquent\Models\PasskeyModel;
+use App\Domains\Accounts\Infrastructure\Notifications\QueuedResetPassword;
 use App\Models\User;
+use Illuminate\Notifications\SendQueuedNotifications;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Tests\TestCase;
 
@@ -116,5 +122,72 @@ describe('the passkey contract', function () {
 
         expect($passkeys->getRelated())->toBeInstanceOf(PasskeyModel::class)
             ->and($passkeys->getForeignKeyName())->toBe('user_id');
+    });
+});
+
+const USER_RESET_TOKEN = '9b1e4c7a2f8d3065e1c4b7a9d2f6e803';
+
+function accountAskingForReset(): User
+{
+    return (new User)->forceFill([
+        'uuid' => '01930000-0000-7000-8000-0000000000c4',
+        'email' => 'ada@example.com',
+    ]);
+}
+
+describe('the password reset email', function () {
+    it('sends the queued reset notification', function () {
+        Notification::fake();
+        $account = accountAskingForReset();
+
+        $account->sendPasswordResetNotification(USER_RESET_TOKEN);
+
+        Notification::assertSentTo($account, QueuedResetPassword::class);
+        Notification::assertCount(1);
+    });
+
+    it('links it to the reset page for that token and address', function () {
+        Notification::fake();
+        $account = accountAskingForReset();
+
+        $account->sendPasswordResetNotification(USER_RESET_TOKEN);
+
+        Notification::assertSentTo(
+            $account,
+            QueuedResetPassword::class,
+            fn (QueuedResetPassword $notification): bool => str_contains($notification->toMail($account)->actionUrl, USER_RESET_TOKEN)
+                && str_contains($notification->toMail($account)->actionUrl, urlencode('ada@example.com')),
+        );
+    });
+
+    it('writes it in the locale of the request that asked for it', function (string $locale) {
+        Notification::fake();
+        App::setLocale($locale);
+        $account = accountAskingForReset();
+
+        $account->sendPasswordResetNotification(USER_RESET_TOKEN);
+
+        Notification::assertSentTo(
+            $account,
+            QueuedResetPassword::class,
+            fn (QueuedResetPassword $notification): bool => $notification->locale === $locale,
+        );
+    })->with(['en', 'es']);
+
+    it('puts it on the queue encrypted, after commit and in that locale, instead of mailing it inline', function () {
+        Queue::fake();
+        Mail::fake();
+        App::setLocale('es');
+
+        accountAskingForReset()->sendPasswordResetNotification(USER_RESET_TOKEN);
+
+        Queue::assertPushed(
+            SendQueuedNotifications::class,
+            fn (SendQueuedNotifications $job): bool => $job->notification instanceof QueuedResetPassword
+                && $job->shouldBeEncrypted === true
+                && $job->afterCommit === true
+                && $job->notification->locale === 'es',
+        );
+        Mail::assertNothingOutgoing();
     });
 });

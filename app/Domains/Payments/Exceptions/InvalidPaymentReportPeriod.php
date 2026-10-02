@@ -25,6 +25,11 @@ final class InvalidPaymentReportPeriod extends DomainException implements Domain
         return new self("A report period has to start on or before it ends, got [{$from}] to [{$to}].");
     }
 
+    public static function tooWide(string $from, string $to, int $maximumYears): self
+    {
+        return new self("A report period may span at most [{$maximumYears}] years, got [{$from}] to [{$to}].");
+    }
+
     public function errorCode(): string
     {
         return 'invalid_payment_report_period';

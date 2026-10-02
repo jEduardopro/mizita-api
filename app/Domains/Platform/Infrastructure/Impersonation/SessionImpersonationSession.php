@@ -22,6 +22,8 @@ final class SessionImpersonationSession implements ImpersonationSession, Imperso
 
     private const OWNER_PASSWORD_HASH_KEY = 'password_hash_'.PlatformGuard::OWNER_GUARD;
 
+    private const IMPERSONATION_ID = 'impersonation_uuid';
+
     private const ADMIN_ID = 'admin_uuid';
 
     private const ACCOUNT_ID = 'account_uuid';
@@ -133,6 +135,7 @@ final class SessionImpersonationSession implements ImpersonationSession, Imperso
     private function serialize(Impersonation $impersonation): array
     {
         return [
+            self::IMPERSONATION_ID => $impersonation->id,
             self::ADMIN_ID => $impersonation->adminId,
             self::ACCOUNT_ID => $impersonation->accountId,
             self::BUSINESS_ID => $impersonation->businessId,
@@ -148,7 +151,7 @@ final class SessionImpersonationSession implements ImpersonationSession, Imperso
      */
     private function restore(array $payload): ?Impersonation
     {
-        $texts = [self::ADMIN_ID, self::ACCOUNT_ID, self::BUSINESS_ID, self::BUSINESS_NAME, self::OWNER_NAME];
+        $texts = [self::IMPERSONATION_ID, self::ADMIN_ID, self::ACCOUNT_ID, self::BUSINESS_ID, self::BUSINESS_NAME, self::OWNER_NAME];
 
         foreach ($texts as $key) {
             if (! is_string($payload[$key] ?? null)) {
@@ -164,6 +167,7 @@ final class SessionImpersonationSession implements ImpersonationSession, Imperso
         }
 
         return Impersonation::restore(
+            id: $payload[self::IMPERSONATION_ID],
             adminId: $payload[self::ADMIN_ID],
             accountId: $payload[self::ACCOUNT_ID],
             businessId: $payload[self::BUSINESS_ID],

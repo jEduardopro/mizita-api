@@ -10,6 +10,7 @@ use App\Domains\Customers\ValueObjects\RegistrationPeriod;
 use App\Domains\Customers\ValueObjects\RegistrationWindow;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
@@ -130,9 +131,8 @@ describe('validating', function () {
         ])->validate())->not->toThrow(Throwable::class);
     });
 
-    it('never refuses a navigation value, however absurd', function () {
+    it('never refuses a page size, a sort or a direction, however absurd', function () {
         expect(fn () => ListCustomersInput::fromRequest([
-            'page' => -9999,
             'per_page' => 9999,
             'sort' => 'business_id',
             'direction' => 'sideways',
@@ -342,5 +342,39 @@ describe('turning itself into a query', function () {
 
         expect($query->registeredWithin)->toBe($window)
             ->and($query->phoneMatches)->toBe(['01930000-0000-7000-8000-0000000000c1']);
+    });
+});
+
+describe('validating the page', function () {
+    it('accepts every page it serves, and no page at all', function (?int $page) {
+        expect(fn () => ListCustomersInput::fromRequest(['page' => $page])->validate())->not->toThrow(Throwable::class);
+    })->with([
+        'no page' => [null],
+        'the first page' => [1],
+        'the deepest page' => [Pagination::MAXIMUM_PAGE],
+    ]);
+
+    it('refuses a page that cannot exist', function (int $page) {
+        expect(fn () => ListCustomersInput::fromRequest(['page' => $page])->validate())->toThrow(PageOutOfRange::class);
+    })->with([
+        'the zeroth page' => [0],
+        'a negative page' => [-1],
+        'one past the deepest page' => [Pagination::MAXIMUM_PAGE + 1],
+    ]);
+
+    it('refuses with an invalid failure under the shared page code', function () {
+        $page = Pagination::MAXIMUM_PAGE + 1;
+
+        try {
+            ListCustomersInput::fromRequest(['page' => $page])->validate();
+        } catch (PageOutOfRange $failure) {
+            expect($failure)->toBeInstanceOf(DomainFailure::class)
+                ->and($failure->errorCode())->toBe('page_out_of_range')
+                ->and($failure->kind())->toBe(DomainFailureKind::Invalid);
+
+            return;
+        }
+
+        $this->fail('validate() accepted a page past the deepest one.');
     });
 });

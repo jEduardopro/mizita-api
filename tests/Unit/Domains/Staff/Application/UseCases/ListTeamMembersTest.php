@@ -17,6 +17,7 @@ use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
+use Tests\Support\Staff\FakeTeamAccountSharing;
 use Tests\Support\Staff\FakeTeamRoster;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
@@ -38,7 +39,7 @@ beforeEach(function () {
     $this->build = fn (?FakeBusinessContext $business = null): ListTeamMembers => new ListTeamMembers(
         $this->roster,
         $this->phones,
-        new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
+        new TeamMemberPresenter($this->accounts, $this->profiles, $this->phones, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords, new FakeTeamAccountSharing, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
     );
 
@@ -75,11 +76,11 @@ it('hands the roster the query the input asked for', function () {
 });
 
 it('widens a search to the profiles whose phone matches it', function () {
-    $this->phones->matching('5512', StaffFixtures::PROFILE_ID);
+    $this->phones->matching(FakeBusinessContext::BUSINESS_ID, '5512', StaffFixtures::PROFILE_ID);
 
     ($this->list)(['search' => '5512']);
 
-    expect($this->phones->numberSearches)->toBe(['5512'])
+    expect($this->phones->numberSearches)->toBe([['businessId' => FakeBusinessContext::BUSINESS_ID, 'fragment' => '5512']])
         ->and($this->roster->searches[0]['query']->profileIdsMatchingPhone)->toBe([StaffFixtures::PROFILE_ID]);
 });
 
@@ -115,6 +116,15 @@ describe('tenant isolation', function () {
         expect($this->roster->searches[0]['businessId'])->toBe(FakeBusinessContext::BUSINESS_ID)
             ->and(array_map(static fn (TeamMemberData $member): string => $member->id, $page->items))
             ->toBe([StaffFixtures::MEMBER_ID, StaffFixtures::SECOND_MEMBER_ID]);
+    });
+
+    it('searches phones only among the profiles of the business in context', function () {
+        $this->phones->matching(FakeBusinessContext::BUSINESS_ID, '5512', StaffFixtures::PROFILE_ID);
+
+        ($this->list)(['search' => '5512'], ($this->build)(new FakeBusinessContext(StaffFixtures::OTHER_BUSINESS_ID)));
+
+        expect($this->phones->numberSearches)->toBe([['businessId' => StaffFixtures::OTHER_BUSINESS_ID, 'fragment' => '5512']])
+            ->and($this->roster->searches[0]['query']->profileIdsMatchingPhone)->toBe([]);
     });
 
     it('lists the other business team when that is the business in context', function () {

@@ -15,6 +15,7 @@ use Tests\Support\Platform\PlatformSessionHarness;
 function impersonationPayload(array $overrides = []): array
 {
     return [
+        'impersonation_uuid' => ImpersonationFixtures::IMPERSONATION_ID,
         'admin_uuid' => ImpersonationFixtures::ADMIN_ID,
         'account_uuid' => ImpersonationFixtures::ACCOUNT_ID,
         'business_uuid' => ImpersonationFixtures::BUSINESS_ID,
@@ -49,11 +50,14 @@ describe('describing the impersonation to the page', function () {
     it('describes nothing for a stored impersonation it cannot read', function (mixed $payload) {
         $this->harness->holdingImpersonationPayload($payload);
 
-        expect($this->harness->impersonations->describe())->toBeNull()
+        expect($this->harness->impersonations->current())->toBeNull()
+            ->and($this->harness->impersonations->describe())->toBeNull()
             ->and($this->harness->impersonations->isActive())->toBeFalse()
             ->and($this->harness->impersonations->isPresent())->toBeTrue();
     })->with([
         'not an array' => ['impersonating'],
+        'stored before impersonations carried an audit id' => [array_diff_key(impersonationPayload(), ['impersonation_uuid' => true])],
+        'an int audit id' => [impersonationPayload(['impersonation_uuid' => 12])],
         'no admin' => [array_diff_key(impersonationPayload(), ['admin_uuid' => true])],
         'an int account id' => [impersonationPayload(['account_uuid' => 7])],
         'no expiry' => [array_diff_key(impersonationPayload(), ['expires_at' => true])],
@@ -61,7 +65,7 @@ describe('describing the impersonation to the page', function () {
         'a start that is no instant' => [impersonationPayload(['started_at' => 'yesterday'])],
     ]);
 
-    it('restores every field it stored', function () {
+    it('restores every field it stored, the audit id included', function () {
         $this->harness->impersonating(ImpersonationFixtures::begun());
 
         expect($this->harness->impersonations->current())->toEqual(ImpersonationFixtures::begun());

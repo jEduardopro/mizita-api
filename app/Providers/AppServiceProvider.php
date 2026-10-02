@@ -16,12 +16,19 @@ use App\Shared\Infrastructure\MembershipCurrentBusinessResolver;
 use App\Shared\Infrastructure\SessionBusinessSelection;
 use App\Shared\Infrastructure\SystemClock;
 use App\Shared\Infrastructure\UuidGenerator;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
+    public const API_RATE_LIMITER = 'api';
+
+    private const API_REQUESTS_PER_MINUTE = 120;
+
     private const MINIMUM_PASSWORD_LENGTH = 8;
 
     public function register(): void
@@ -40,5 +47,23 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap(['user' => User::class]);
 
         Password::defaults(fn (): Password => Password::min(self::MINIMUM_PASSWORD_LENGTH)->mixedCase()->numbers()->symbols());
+
+        $this->registerApiLimiter();
+    }
+
+    private function registerApiLimiter(): void
+    {
+        RateLimiter::for(
+            self::API_RATE_LIMITER,
+            static fn (Request $request): Limit => Limit::perMinute(self::API_REQUESTS_PER_MINUTE)
+                ->by(self::apiLimiterKeyFor($request)),
+        );
+    }
+
+    private static function apiLimiterKeyFor(Request $request): string
+    {
+        $accountId = $request->user()?->uuid;
+
+        return $accountId === null ? 'ip:'.(string) $request->ip() : 'account:'.(string) $accountId;
     }
 }

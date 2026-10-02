@@ -15,7 +15,7 @@ final class ListCustomerAppointmentsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PAGE],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PER_PAGE],
         ];
     }

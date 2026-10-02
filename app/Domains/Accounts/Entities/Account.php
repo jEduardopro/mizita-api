@@ -13,6 +13,7 @@ use App\Domains\Accounts\Exceptions\AccountSignsInWithSocialIdentity;
 use App\Domains\Accounts\Exceptions\InvalidAccountEmail;
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
 use App\Domains\Accounts\ValueObjects\DeletionGracePeriod;
+use App\Domains\Accounts\ValueObjects\IdentityClaim;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
@@ -21,6 +22,8 @@ use DateTimeImmutable;
 final class Account
 {
     public const MAXIMUM_NAME_LENGTH = 255;
+
+    private bool $pendingAccessRevocation = false;
 
     /**
      * @param  list<SocialProvider>  $linkedSocialProviders
@@ -35,7 +38,7 @@ final class Account
         private ?string $issuedPasswordHash,
         private readonly array $linkedSocialProviders,
         private ?DateTimeImmutable $deletionRequestedAt,
-        private readonly TwoFactorStatus $twoFactorStatus,
+        private TwoFactorStatus $twoFactorStatus,
     ) {}
 
     public static function registerWithVerifiedEmail(
@@ -127,13 +130,21 @@ final class Account
         );
     }
 
-    public function verifyEmail(DateTimeImmutable $now): void
+    public function claimWithVerifiedIdentity(DateTimeImmutable $now): IdentityClaim
     {
         if ($this->emailVerifiedAt !== null) {
-            return;
+            return IdentityClaim::ProvenOwnerKeptAccess;
         }
 
         $this->emailVerifiedAt = $now;
+        $this->revokePriorAccess();
+
+        return IdentityClaim::UnprovenAccessRevoked;
+    }
+
+    public function hasPendingAccessRevocation(): bool
+    {
+        return $this->pendingAccessRevocation;
     }
 
     public function rename(string $name): void
@@ -273,6 +284,14 @@ final class Account
     public function issuedPasswordHash(): ?string
     {
         return $this->issuedPasswordHash;
+    }
+
+    private function revokePriorAccess(): void
+    {
+        $this->passwordStatus = PasswordStatus::Absent;
+        $this->issuedPasswordHash = null;
+        $this->twoFactorStatus = TwoFactorStatus::Disabled;
+        $this->pendingAccessRevocation = true;
     }
 
     private function signsInWithSocialIdentity(): bool

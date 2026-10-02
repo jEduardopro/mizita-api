@@ -6,6 +6,8 @@ use App\Domains\Staff\Application\Dtos\ListTeamMembersInput;
 use App\Domains\Staff\Exceptions\InvalidTeamSearch;
 use App\Domains\Staff\ValueObjects\TeamSort;
 use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SortDirection;
 
@@ -124,5 +126,39 @@ describe('the query it hands the roster', function () {
         $query = ListTeamMembersInput::fromRequest(['search' => '5512'])->toQuery(['profile-1', 'profile-2']);
 
         expect($query->profileIdsMatchingPhone)->toBe(['profile-1', 'profile-2']);
+    });
+});
+
+describe('validating the page', function () {
+    it('accepts every page it serves, and no page at all', function (?int $page) {
+        expect(fn () => ListTeamMembersInput::fromRequest(['page' => $page])->validate())->not->toThrow(Throwable::class);
+    })->with([
+        'no page' => [null],
+        'the first page' => [1],
+        'the deepest page' => [Pagination::MAXIMUM_PAGE],
+    ]);
+
+    it('refuses a page that cannot exist', function (int $page) {
+        expect(fn () => ListTeamMembersInput::fromRequest(['page' => $page])->validate())->toThrow(PageOutOfRange::class);
+    })->with([
+        'the zeroth page' => [0],
+        'a negative page' => [-1],
+        'one past the deepest page' => [Pagination::MAXIMUM_PAGE + 1],
+    ]);
+
+    it('refuses with an invalid failure under the shared page code', function () {
+        $page = Pagination::MAXIMUM_PAGE + 1;
+
+        try {
+            ListTeamMembersInput::fromRequest(['page' => $page])->validate();
+        } catch (PageOutOfRange $failure) {
+            expect($failure)->toBeInstanceOf(DomainFailure::class)
+                ->and($failure->errorCode())->toBe('page_out_of_range')
+                ->and($failure->kind())->toBe(DomainFailureKind::Invalid);
+
+            return;
+        }
+
+        $this->fail('validate() accepted a page past the deepest one.');
     });
 });

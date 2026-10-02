@@ -147,7 +147,7 @@ final readonly class PaymentReportCriteriaInput
 
     private function validatePage(): void
     {
-        if ($this->page !== null && $this->page < self::FIRST_PAGE) {
+        if ($this->page !== null && ($this->page < self::FIRST_PAGE || $this->page > Pagination::MAXIMUM_PAGE)) {
             throw InvalidPaymentReportFilter::pageOutOfRange($this->page);
         }
     }

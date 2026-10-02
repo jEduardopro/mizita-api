@@ -10,6 +10,8 @@ use DateTimeImmutable;
 
 final class ImpersonationFixtures
 {
+    public const IMPERSONATION_ID = '01930000-0000-7000-8000-0000000a1001';
+
     public const ADMIN_ID = '01930000-0000-7000-8000-0000000ad001';
 
     public const OTHER_ADMIN_ID = '01930000-0000-7000-8000-0000000ad002';
@@ -19,6 +21,10 @@ final class ImpersonationFixtures
     public const OTHER_ACCOUNT_ID = '01930000-0000-7000-8000-0000000ac002';
 
     public const BUSINESS_ID = '01930000-0000-7000-8000-0000000ab001';
+
+    public const OTHER_BUSINESS_ID = '01930000-0000-7000-8000-0000000ab002';
+
+    public const IP_ADDRESS = '203.0.113.7';
 
     public const BUSINESS_NAME = 'Barbería Ñandú';
 
@@ -50,7 +56,8 @@ final class ImpersonationFixtures
     public static function begun(
         DateTimeImmutable $now = new DateTimeImmutable(self::NOW),
         string $adminId = self::ADMIN_ID,
+        string $id = self::IMPERSONATION_ID,
     ): Impersonation {
-        return Impersonation::begin($adminId, self::owner(), $now);
+        return Impersonation::begin($id, $adminId, self::owner(), $now);
     }
 }

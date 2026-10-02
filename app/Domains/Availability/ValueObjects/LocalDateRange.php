@@ -51,6 +51,18 @@ final readonly class LocalDateRange
         return new self($start->format(self::FORMAT), $end->format(self::FORMAT));
     }
 
+    public function clampedTo(DateTimeImmutable $earliest, DateTimeImmutable $latest, DateTimeZone $zone): ?self
+    {
+        $from = max($this->from, $earliest->setTimezone($zone)->format(self::FORMAT));
+        $to = min($this->to, $latest->setTimezone($zone)->format(self::FORMAT));
+
+        if ($from > $to) {
+            return null;
+        }
+
+        return new self($from, $to);
+    }
+
     public function startsAtIn(DateTimeZone $zone): DateTimeImmutable
     {
         return new DateTimeImmutable($this->from.self::DAY_START, $zone);

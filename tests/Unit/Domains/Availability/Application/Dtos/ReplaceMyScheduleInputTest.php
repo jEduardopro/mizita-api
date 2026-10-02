@@ -7,10 +7,19 @@ use App\Domains\Availability\Application\Dtos\ReplaceMyScheduleInput;
 use App\Domains\Availability\Exceptions\InvalidTimeOfDay;
 use App\Domains\Availability\Exceptions\InvalidWeekday;
 use App\Domains\Availability\Exceptions\ScheduleNotSubmitted;
+use App\Domains\Availability\Exceptions\TooManyScheduleIntervals;
 use App\Domains\Availability\ValueObjects\ScheduleInterval;
 use App\Domains\Availability\ValueObjects\Weekday;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
+
+/**
+ * @return list<array{weekday: int, starts_at: string, ends_at: string}>
+ */
+function weeklyScheduleOf(int $intervals): array
+{
+    return array_fill(0, $intervals, ['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '10:00']);
+}
 
 beforeEach(function () {
     $this->accountId = '01930000-0000-7000-8000-0000000000a1';
@@ -199,6 +208,40 @@ describe('validating itself', function () {
         }
 
         $this->fail('validate() accepted an unpadded hour.');
+    });
+});
+
+describe('capping the week', function () {
+    it('caps a week at ten intervals a day', function () {
+        expect(ReplaceMyScheduleInput::MAXIMUM_INTERVALS)->toBe(70);
+    });
+
+    it('accepts a week holding exactly the most intervals it may', function () {
+        expect(fn () => ($this->input)(['schedule' => weeklyScheduleOf(70)])->validate())->not->toThrow(Throwable::class);
+    });
+
+    it('refuses a week one interval past the cap', function () {
+        expect(fn () => ($this->input)(['schedule' => weeklyScheduleOf(71)])->validate())->toThrow(TooManyScheduleIntervals::class);
+    });
+
+    it('refuses with an invalid domain failure under its own code', function () {
+        try {
+            ($this->input)(['schedule' => weeklyScheduleOf(71)])->validate();
+        } catch (TooManyScheduleIntervals $failure) {
+            expect($failure)->toBeInstanceOf(DomainFailure::class)
+                ->and($failure->errorCode())->toBe('too_many_schedule_intervals')
+                ->and($failure->kind())->toBe(DomainFailureKind::Invalid);
+
+            return;
+        }
+
+        $this->fail('validate() accepted a week past the cap.');
+    });
+
+    it('counts the intervals before it reads a single one of them', function () {
+        $oversized = array_fill(0, 71, ['weekday' => 99, 'starts_at' => 'nine', 'ends_at' => 'ten']);
+
+        expect(fn () => ($this->input)(['schedule' => $oversized])->validate())->toThrow(TooManyScheduleIntervals::class);
     });
 });
 

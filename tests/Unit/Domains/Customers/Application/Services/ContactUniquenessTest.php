@@ -109,27 +109,29 @@ describe('the phone a customer may carry', function () {
             id: CustomerFixtures::FOREIGN_CUSTOMER_ID,
             businessId: CustomerFixtures::OTHER_BUSINESS_ID,
         ));
-        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, $this->number);
+        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, $this->number, CustomerFixtures::OTHER_BUSINESS_ID);
 
         $this->uniqueness->ensurePhoneIsFree(FakeBusinessContext::BUSINESS_ID, $this->number);
 
-        expect($this->customers->membershipChecks)->toBe([[
-            'businessId' => FakeBusinessContext::BUSINESS_ID,
-            'customerIds' => [CustomerFixtures::FOREIGN_CUSTOMER_ID],
-            'exceptId' => null,
-        ]]);
+        expect($this->customers->membershipChecks)->toBe([]);
     });
 
-    it('hands the repository every holder the phone book named, tenant or not', function () {
+    it('asks the phone book only about the holders of the business it was handed', function (string $businessId) {
+        $this->uniqueness->ensurePhoneIsFree($businessId, $this->number);
+
+        expect($this->phones->lookupBusinessIds)->toBe([$businessId]);
+    })->with([
+        'the business in context' => FakeBusinessContext::BUSINESS_ID,
+        'another business' => CustomerFixtures::OTHER_BUSINESS_ID,
+    ]);
+
+    it('hands the repository only the holders of its own business', function () {
         $this->phones->store(CustomerFixtures::CUSTOMER_ID, $this->number)
-            ->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, $this->number);
+            ->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, $this->number, CustomerFixtures::OTHER_BUSINESS_ID);
 
         $this->uniqueness->ensurePhoneIsFree(FakeBusinessContext::BUSINESS_ID, $this->number);
 
-        expect($this->customers->membershipChecks[0]['customerIds'])->toBe([
-            CustomerFixtures::CUSTOMER_ID,
-            CustomerFixtures::FOREIGN_CUSTOMER_ID,
-        ]);
+        expect($this->customers->membershipChecks[0]['customerIds'])->toBe([CustomerFixtures::CUSTOMER_ID]);
     });
 
     it('lets a customer keep the number it already holds', function () {

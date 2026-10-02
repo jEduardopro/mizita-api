@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Appointments\Application\Presenters;
 
 use App\Domains\Appointments\Application\Dtos\GuestBookingData;
-use App\Domains\Appointments\Contracts\CustomerDirectory;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
 use App\Domains\Appointments\Entities\Appointment;
-use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentServiceNotFound;
 use App\Domains\Appointments\Exceptions\AppointmentStaffNotFound;
 use App\Domains\Appointments\Exceptions\GuestBookingNotFound;
@@ -20,13 +18,11 @@ final class GuestBookingPresenter
 {
     public function __construct(
         private readonly ServiceCatalog $services,
-        private readonly CustomerDirectory $customers,
         private readonly StaffDirectory $staff,
     ) {}
 
     /**
      * @throws GuestBookingNotFound
-     * @throws AppointmentCustomerNotFound
      * @throws AppointmentServiceNotFound
      * @throws AppointmentStaffNotFound
      */
@@ -39,7 +35,6 @@ final class GuestBookingPresenter
         return GuestBookingData::fromEntity(
             $appointment,
             self::referenceCodeOf($appointment),
-            $this->customers->describe($businessId, $appointment->customerId()),
             $this->services->describe($businessId, $appointment->serviceId()),
             $this->staff->describe($businessId, $appointment->staffMemberId()),
             $rule,

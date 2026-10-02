@@ -9,10 +9,12 @@ use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffPhoneBook;
 use App\Domains\Staff\Contracts\StaffProfilePhotos;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
+use App\Domains\Staff\Contracts\TeamAccountSharing;
 use App\Domains\Staff\Contracts\TeamTemporaryPasswords;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
+use App\Domains\Staff\ValueObjects\AccountSharing;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
 use App\Shared\ValueObjects\Paginated;
 
@@ -24,6 +26,7 @@ final class TeamMemberPresenter
         private readonly StaffPhoneBook $phones,
         private readonly StaffProfilePhotos $photos,
         private readonly TeamTemporaryPasswords $temporaryPasswords,
+        private readonly TeamAccountSharing $sharing,
         private readonly BookingLinkPresenter $bookingLinks,
     ) {}
 
@@ -58,6 +61,7 @@ final class TeamMemberPresenter
         $accountIds = self::accountIdsOf($members);
         $accounts = $this->accountsOf($accountIds);
         $holdingTemporaryPassword = array_flip($this->temporaryPasswords->availableAmong($accountIds));
+        $sharedWithOtherBusinesses = array_flip($this->sharing->sharedAmong($accountIds, $businessId));
         $memberIds = self::idsOf($members);
         $profiles = $this->profiles->findForStaffMembers($businessId, $memberIds);
         $profileIds = self::profileIdsOf($profiles);
@@ -80,6 +84,7 @@ final class TeamMemberPresenter
                 $member,
                 $profile,
                 $account,
+                self::sharingOf($member->accountId, $sharedWithOtherBusinesses),
                 $profile === null ? null : ($phones[$profile->id] ?? null),
                 $profile === null ? null : ($photoUrls[$profile->id] ?? null),
                 $bookingLinks[$member->id],
@@ -103,6 +108,18 @@ final class TeamMemberPresenter
         }
 
         return $accounts;
+    }
+
+    /**
+     * @param  array<string, int>  $sharedWithOtherBusinesses
+     */
+    private static function sharingOf(string $accountId, array $sharedWithOtherBusinesses): AccountSharing
+    {
+        if (isset($sharedWithOtherBusinesses[$accountId])) {
+            return AccountSharing::SharedWithOtherBusinesses;
+        }
+
+        return AccountSharing::ExclusiveToBusiness;
     }
 
     /**

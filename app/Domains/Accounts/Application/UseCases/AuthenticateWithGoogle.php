@@ -7,8 +7,10 @@ namespace App\Domains\Accounts\Application\UseCases;
 use App\Domains\Accounts\Application\Dtos\AuthenticatedAccountData;
 use App\Domains\Accounts\Application\Dtos\AuthenticateWithGoogleInput;
 use App\Domains\Accounts\Application\Dtos\AuthenticationOutcome;
+use App\Domains\Accounts\Contracts\AccountPasskeys;
 use App\Domains\Accounts\Contracts\AccountRepository;
 use App\Domains\Accounts\Contracts\SocialIdentityRepository;
+use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Entities\SocialIdentity;
 use App\Domains\Accounts\Events\AccountRegistered;
@@ -19,6 +21,7 @@ use App\Domains\Accounts\Exceptions\GoogleEmailNotVerified;
 use App\Domains\Accounts\Exceptions\SocialIdentityAlreadyLinked;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Shared\Application\UseCaseResponse;
+use App\Shared\Contracts\AccountSessions;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\IdGenerator;
@@ -30,6 +33,9 @@ final class AuthenticateWithGoogle
     public function __construct(
         private readonly AccountRepository $accounts,
         private readonly SocialIdentityRepository $socialIdentities,
+        private readonly TemporaryPasswordVault $temporaryPasswords,
+        private readonly AccountPasskeys $passkeys,
+        private readonly AccountSessions $sessions,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
         private readonly TransactionManager $transactions,
@@ -47,11 +53,25 @@ final class AuthenticateWithGoogle
             return UseCaseResponse::failure($failure);
         }
 
+        $this->signOut($outcome->accountsToSignOut);
+
         foreach ($outcome->events as $event) {
             $this->events->dispatch($event);
         }
 
         return UseCaseResponse::success($outcome->account);
+    }
+
+    /**
+     * @param  list<string>  $accountIds
+     */
+    private function signOut(array $accountIds): void
+    {
+        if ($accountIds === []) {
+            return;
+        }
+
+        $this->sessions->endAll($accountIds);
     }
 
     /**
@@ -132,12 +152,25 @@ final class AuthenticateWithGoogle
 
     private function claim(Account $account, string $googleUserId): AuthenticationOutcome
     {
-        $account->verifyEmail($this->clock->now());
+        $claim = $account->claimWithVerifiedIdentity($this->clock->now());
         $this->accounts->save($account);
+
+        $linked = $this->link($account, $googleUserId);
+
+        if (! $claim->revokedPriorAccess()) {
+            return new AuthenticationOutcome(
+                AuthenticatedAccountData::forExistingAccount($account),
+                [$linked],
+            );
+        }
+
+        $this->temporaryPasswords->discard($account->id);
+        $this->passkeys->deleteAllOf($account->id);
 
         return new AuthenticationOutcome(
             AuthenticatedAccountData::forExistingAccount($account),
-            [$this->link($account, $googleUserId)],
+            [$linked],
+            accountsToSignOut: [$account->id],
         );
     }
 

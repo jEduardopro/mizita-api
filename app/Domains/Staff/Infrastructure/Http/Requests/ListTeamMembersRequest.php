@@ -22,7 +22,7 @@ final class ListTeamMembersRequest extends FormRequest
             'search' => ['sometimes', 'nullable', 'string', 'max:'.ListTeamMembersInput::MAXIMUM_SEARCH_LENGTH],
             'sort' => ['sometimes', Rule::enum(TeamSort::class)],
             'direction' => ['sometimes', Rule::enum(SortDirection::class)],
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PAGE],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PER_PAGE],
         ];
     }

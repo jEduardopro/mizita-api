@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Staff\Application\Dtos\BookingLinkData;
 use App\Domains\Staff\Application\Dtos\BookingLinkStatus;
 use App\Domains\Staff\Application\Dtos\TeamMemberData;
+use App\Domains\Staff\ValueObjects\AccountSharing;
 use App\Domains\Staff\ValueObjects\BookingLinkBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use Tests\Support\Staff\StaffFixtures;
@@ -20,6 +21,7 @@ it('offers the temporary password only when the invitation is pending and the ac
         StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: $role),
         null,
         StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, awaitingPasswordChange: $awaitingPasswordChange),
+        AccountSharing::ExclusiveToBusiness,
         null,
         null,
         new BookingLinkStatus(null, []),
@@ -37,6 +39,26 @@ it('offers the temporary password only when the invitation is pending and the ac
     'the owner holding one' => [StaffRole::Owner, true, true, false, false],
 ]);
 
+it('neither marks as pending nor offers the password of an account shared with other businesses', function (bool $holdsTemporaryPassword) {
+    $data = TeamMemberData::fromEntities(
+        StaffFixtures::member(id: StaffFixtures::SECOND_MEMBER_ID, accountId: StaffFixtures::SECOND_ACCOUNT_ID, role: StaffRole::Member),
+        null,
+        StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, awaitingPasswordChange: true),
+        AccountSharing::SharedWithOtherBusinesses,
+        null,
+        null,
+        new BookingLinkStatus(null, []),
+        $holdsTemporaryPassword,
+    );
+
+    expect($data->invitationPending)->toBeFalse()
+        ->and($data->temporaryPasswordAvailable)->toBeFalse()
+        ->and($data->level)->toBe(StaffRole::Member);
+})->with([
+    'holding a temporary password' => true,
+    'holding none' => false,
+]);
+
 it('carries the booking link status it was handed, untouched', function () {
     $status = new BookingLinkStatus(
         new BookingLinkData(StaffFixtures::BOOKING_SLUG, StaffFixtures::BOOKING_URL),
@@ -47,6 +69,7 @@ it('carries the booking link status it was handed, untouched', function () {
         StaffFixtures::member(),
         StaffFixtures::profile(bookingSlug: StaffFixtures::BOOKING_SLUG),
         StaffFixtures::account(),
+        AccountSharing::ExclusiveToBusiness,
         null,
         null,
         $status,

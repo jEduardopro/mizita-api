@@ -9,6 +9,7 @@ use App\Domains\Services\Exceptions\InvalidServiceSearch;
 use App\Domains\Services\Exceptions\UnknownStaffMember;
 use App\Domains\Services\ValueObjects\ServiceQuery;
 use App\Domains\Services\ValueObjects\ServiceSort;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
@@ -61,11 +62,13 @@ final readonly class ListServicesInput
     /**
      * @throws InvalidServiceSearch
      * @throws UnknownStaffMember
+     * @throws PageOutOfRange
      */
     public function validate(): void
     {
         $this->validateSearch();
         $this->validateStaffIds();
+        $this->validatePage();
     }
 
     public function toQuery(): ServiceQuery
@@ -139,5 +142,13 @@ final readonly class ListServicesInput
         if (count(array_unique($this->staffIds)) !== count($this->staffIds)) {
             throw UnknownStaffMember::amongFilter();
         }
+    }
+
+    /**
+     * @throws PageOutOfRange
+     */
+    private function validatePage(): void
+    {
+        Pagination::ensureValidPage($this->page);
     }
 }

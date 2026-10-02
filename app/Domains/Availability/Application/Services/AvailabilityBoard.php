@@ -20,9 +20,11 @@ use App\Domains\Availability\Exceptions\InvalidBookingBlock;
 use App\Domains\Availability\Exceptions\InvalidSlotQuery;
 use App\Domains\Availability\Exceptions\StaffMemberNotBookable;
 use App\Domains\Availability\Services\SlotCalculator;
+use App\Domains\Availability\ValueObjects\AvailableDay;
 use App\Domains\Availability\ValueObjects\BookedInterval;
 use App\Domains\Availability\ValueObjects\BookingBlock;
 use App\Domains\Availability\ValueObjects\LocalDateRange;
+use App\Domains\Availability\ValueObjects\WeeklyIntervals;
 use App\Shared\Contracts\Clock;
 use DateTimeZone;
 
@@ -56,23 +58,53 @@ final class AvailabilityBoard
 
         $this->staff->confirmBookable($businessId, $query->staffId);
 
-        $range = $query->range();
+        $block = $this->blockFor($businessId, $query);
+        $requested = $query->range();
         $zone = new DateTimeZone($this->businessClock->timezoneOf($businessId));
-        $workingHours = $this->schedules
-            ->forStaffMember($query->staffId)
-            ->orInheritedFrom($this->schedules->forBusiness($businessId));
+        $rules = $this->rules->forBusiness($businessId);
+        $now = $this->clock->now();
+        $bookable = $requested->clampedTo($now, $rules->lastBookableStart($now, $zone), $zone);
 
-        $days = $this->calculator->slotsBetween(
-            $range,
-            $workingHours,
-            $this->busyWithin($businessId, $query, $range, $zone),
-            $this->blockFor($businessId, $query),
-            $this->rules->forBusiness($businessId),
+        if ($bookable === null) {
+            return $this->describe($requested, []);
+        }
+
+        return $this->describe($requested, $this->calculator->slotsBetween(
+            $bookable,
+            $this->workingHoursOf($businessId, $query->staffId),
+            $this->busyWithin($businessId, $query, $bookable, $zone),
+            $block,
+            $rules,
             $zone,
-            $this->clock->now(),
-        );
+            $now,
+        ));
+    }
 
-        return array_map(AvailableDayData::fromDay(...), $days);
+    /**
+     * @param  list<AvailableDay>  $computed
+     * @return list<AvailableDayData>
+     */
+    private function describe(LocalDateRange $requested, array $computed): array
+    {
+        $computedByDate = [];
+
+        foreach ($computed as $day) {
+            $computedByDate[$day->date] = $day;
+        }
+
+        return array_map(
+            static fn (string $date): AvailableDayData => AvailableDayData::fromDay(
+                $computedByDate[$date] ?? AvailableDay::withoutSlots($date),
+            ),
+            $requested->dates(),
+        );
+    }
+
+    private function workingHoursOf(string $businessId, string $staffId): WeeklyIntervals
+    {
+        return $this->schedules
+            ->forStaffMember($staffId)
+            ->orInheritedFrom($this->schedules->forBusiness($businessId));
     }
 
     /**

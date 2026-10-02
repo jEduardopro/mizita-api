@@ -5,16 +5,21 @@ declare(strict_types=1);
 namespace Tests\Support\Customers;
 
 use App\Domains\Customers\Contracts\CustomerPhoneBook;
+use App\Domains\Phones\ValueObjects\PhoneNumberFragment;
 use App\Shared\ValueObjects\PhoneNumber;
+use Tests\Support\FakeBusinessContext;
 
 final class FakeCustomerPhoneBook implements CustomerPhoneBook
 {
-    private const NON_DIGITS = '/\D+/u';
-
     /**
      * @var array<string, PhoneNumber>
      */
     private array $numbers = [];
+
+    /**
+     * @var array<string, string>
+     */
+    private array $businessOf = [];
 
     /**
      * @var list<string>
@@ -46,13 +51,22 @@ final class FakeCustomerPhoneBook implements CustomerPhoneBook
      */
     public array $fragmentLookups = [];
 
+    /**
+     * @var list<string>
+     */
+    public array $lookupBusinessIds = [];
+
     public function __construct(
         public readonly CustomerJournal $journal = new CustomerJournal,
     ) {}
 
-    public function store(string $customerId, PhoneNumber $number): self
-    {
+    public function store(
+        string $customerId,
+        PhoneNumber $number,
+        string $businessId = FakeBusinessContext::BUSINESS_ID,
+    ): self {
         $this->numbers[$customerId] = $number;
+        $this->businessOf[$customerId] = $businessId;
 
         return $this;
     }
@@ -110,12 +124,14 @@ final class FakeCustomerPhoneBook implements CustomerPhoneBook
     /**
      * @return list<string>
      */
-    public function customerIdsWithNumber(PhoneNumber $number): array
+    public function customerIdsWithNumber(string $businessId, PhoneNumber $number): array
     {
         $this->journal->record('phones.idsWithNumber');
         $this->numberLookups[] = $number->e164();
+        $this->lookupBusinessIds[] = $businessId;
 
         return $this->holders(
+            $businessId,
             static fn (PhoneNumber $stored): bool => $stored->e164() === $number->e164(),
         );
     }
@@ -123,18 +139,20 @@ final class FakeCustomerPhoneBook implements CustomerPhoneBook
     /**
      * @return list<string>
      */
-    public function customerIdsMatchingNumber(string $fragment): array
+    public function customerIdsMatchingNumber(string $businessId, string $fragment): array
     {
         $this->journal->record('phones.idsMatchingNumber');
         $this->fragmentLookups[] = $fragment;
+        $this->lookupBusinessIds[] = $businessId;
 
-        $digits = (string) preg_replace(self::NON_DIGITS, '', $fragment);
+        $digits = PhoneNumberFragment::of($fragment)?->digits;
 
-        if ($digits === '') {
+        if ($digits === null) {
             return [];
         }
 
         return $this->holders(
+            $businessId,
             static fn (PhoneNumber $stored): bool => str_contains($stored->e164(), $digits),
         );
     }
@@ -143,8 +161,15 @@ final class FakeCustomerPhoneBook implements CustomerPhoneBook
      * @param  callable(PhoneNumber): bool  $matches
      * @return list<string>
      */
-    private function holders(callable $matches): array
+    private function holders(string $businessId, callable $matches): array
     {
-        return array_values(array_keys(array_filter($this->numbers, $matches)));
+        $holders = array_filter(
+            $this->numbers,
+            fn (PhoneNumber $stored, string $customerId): bool => ($this->businessOf[$customerId] ?? null) === $businessId
+                && $matches($stored),
+            ARRAY_FILTER_USE_BOTH,
+        );
+
+        return array_values(array_map(strval(...), array_keys($holders)));
     }
 }

@@ -40,24 +40,49 @@ final class AccountMapper
      */
     public function toAttributes(Account $account): array
     {
-        $attributes = [
+        return [
             'uuid' => $account->id,
             'name' => $account->name(),
             'email' => $account->email(),
             'email_verified_at' => $account->emailVerifiedAt(),
             'deleted_at' => $account->deletionRequestedAt(),
+            ...$this->issuedPasswordAttributesOf($account),
+            ...$this->revokedAccessAttributesOf($account),
         ];
+    }
 
+    /**
+     * @return array<string, string|bool>
+     */
+    private function issuedPasswordAttributesOf(Account $account): array
+    {
         $issuedPasswordHash = $account->issuedPasswordHash();
 
         if ($issuedPasswordHash === null) {
-            return $attributes;
+            return [];
         }
 
         return [
-            ...$attributes,
             'password' => $issuedPasswordHash,
             'must_change_password' => $account->mustChangePassword(),
+        ];
+    }
+
+    /**
+     * @return array<string, bool|null>
+     */
+    private function revokedAccessAttributesOf(Account $account): array
+    {
+        if (! $account->hasPendingAccessRevocation()) {
+            return [];
+        }
+
+        return [
+            'password' => null,
+            'must_change_password' => false,
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
         ];
     }
 

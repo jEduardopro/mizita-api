@@ -9,6 +9,7 @@ use App\Domains\Phones\ValueObjects\PhoneNumberFragment;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
 use App\Domains\Staff\Infrastructure\Gateways\PhonesStaffPhoneBook;
 use App\Shared\ValueObjects\PhoneNumber;
+use Tests\Support\FakeBusinessContext;
 use Tests\Support\FakeClock;
 use Tests\Support\FixedIdGenerator;
 use Tests\Support\PhoneNumbers;
@@ -120,21 +121,45 @@ describe('searching profiles by phone', function () {
     it('searches the digits of the fragment among staff profile phones', function () {
         $fragment = null;
         $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()
-            ->with(PhoneOwnerType::StaffProfile, Mockery::capture($fragment))
+            ->with(PhoneOwnerType::StaffProfile, FakeBusinessContext::BUSINESS_ID, Mockery::capture($fragment))
             ->andReturn([StaffFixtures::PROFILE_ID]);
 
-        expect($this->phoneBook->profileIdsMatchingNumber('(55) 12-34'))->toBe([StaffFixtures::PROFILE_ID])
+        expect($this->phoneBook->profileIdsMatchingNumber(FakeBusinessContext::BUSINESS_ID, '(55) 12-34'))->toBe([StaffFixtures::PROFILE_ID])
             ->and($fragment)->toBeInstanceOf(PhoneNumberFragment::class)
             ->and($fragment->digits)->toBe('551234');
     });
 
-    it('searches nothing for a fragment with no digits in it', function (string $fragment) {
+    it('searches only among the profiles of the business it was asked about', function () {
+        $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()
+            ->with(PhoneOwnerType::StaffProfile, StaffFixtures::OTHER_BUSINESS_ID, Mockery::type(PhoneNumberFragment::class))
+            ->andReturn([]);
+
+        expect($this->phoneBook->profileIdsMatchingNumber(StaffFixtures::OTHER_BUSINESS_ID, '5512'))->toBe([]);
+    });
+
+    it('searches a fragment of exactly the minimum number of digits', function () {
+        $fragment = null;
+        $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()
+            ->with(PhoneOwnerType::StaffProfile, FakeBusinessContext::BUSINESS_ID, Mockery::capture($fragment))
+            ->andReturn([StaffFixtures::PROFILE_ID]);
+
+        $this->phoneBook->profileIdsMatchingNumber(FakeBusinessContext::BUSINESS_ID, '55-12');
+
+        expect($fragment->digits)->toBe('5512')
+            ->and(strlen($fragment->digits))->toBe(PhoneNumberFragment::MINIMUM_DIGITS);
+    });
+
+    it('searches nothing for a fragment with fewer than four digits in it', function (string $fragment) {
         $this->phones->shouldNotReceive('ownerIdsMatchingNumber');
 
-        expect($this->phoneBook->profileIdsMatchingNumber($fragment))->toBe([]);
+        expect($this->phoneBook->profileIdsMatchingNumber(FakeBusinessContext::BUSINESS_ID, $fragment))->toBe([]);
     })->with([
         'a name' => 'grace',
         'empty' => '',
         'punctuation only' => '(-) +',
+        'one digit' => '5',
+        'three digits' => '551',
+        'three digits among punctuation' => '(5) 5-1',
+        'three digits inside a name' => 'grace 551',
     ]);
 });

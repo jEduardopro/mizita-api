@@ -22,7 +22,7 @@ final class ListServicesRequest extends FormRequest
             'search' => ['sometimes', 'nullable', 'string', 'max:'.ListServicesInput::MAXIMUM_SEARCH_LENGTH],
             'sort' => ['sometimes', Rule::enum(ServiceSort::class)],
             'direction' => ['sometimes', Rule::enum(SortDirection::class)],
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PAGE],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.Pagination::MAXIMUM_PER_PAGE],
             'staff_ids' => ['sometimes', 'array', 'max:'.ListServicesInput::MAXIMUM_STAFF_FILTER_SIZE],
             'staff_ids.*' => ['uuid', 'distinct'],

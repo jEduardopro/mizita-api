@@ -72,7 +72,7 @@ return [
      * in `shell.php.jpg`) is rejected even if the final extension is allowed.
      * Leave `null` to disable allowlisting.
      */
-    'allowed_extensions' => null,
+    'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
 
     /*
      * This queue connection will be used to generate derived and responsive images.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Availability\Infrastructure\Http\Requests;
 
+use App\Domains\Availability\Application\Dtos\ReplaceMyScheduleInput;
 use App\Domains\Availability\ValueObjects\Weekday;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -17,7 +18,7 @@ final class ReplaceMyScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'schedule' => ['present', 'array'],
+            'schedule' => ['present', 'array', 'max:'.ReplaceMyScheduleInput::MAXIMUM_INTERVALS],
             'schedule.*' => ['array'],
             'schedule.*.weekday' => [
                 'required',

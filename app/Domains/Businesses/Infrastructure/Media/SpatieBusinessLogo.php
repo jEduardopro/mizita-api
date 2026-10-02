@@ -30,7 +30,7 @@ final class SpatieBusinessLogo implements BusinessLogo
     {
         return $this->modelOrFail($businessId)
             ->addMedia($sourcePath)
-            ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
+            ->usingFileName(SafeFileName::from($sourcePath, $fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(BusinessModel::LOGO_COLLECTION)
             ->getUrl();
     }

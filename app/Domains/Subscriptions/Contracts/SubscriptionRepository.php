@@ -26,9 +26,9 @@ interface SubscriptionRepository
     public function forManyBusinesses(array $businessIds): array;
 
     /**
-     * @return list<Subscription>
+     * @return iterable<string>
      */
-    public function pastPaymentGrace(DateTimeImmutable $now): array;
+    public function businessIdsPastPaymentGrace(DateTimeImmutable $now): iterable;
 
     /**
      * @return list<Subscription>

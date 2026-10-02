@@ -67,7 +67,7 @@ final class SpatieBookingPageImages implements BookingPageImages
     {
         return $this->modelOrFail($businessId, $bookingPageId)
             ->addMedia($sourcePath)
-            ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
+            ->usingFileName(SafeFileName::from($sourcePath, $fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(BookingPageModel::BANNER_COLLECTION)
             ->getUrl();
     }
@@ -81,7 +81,7 @@ final class SpatieBookingPageImages implements BookingPageImages
     {
         $image = $this->modelOrFail($businessId, $bookingPageId)
             ->addMedia($sourcePath)
-            ->usingFileName(SafeFileName::from($fileName, self::FALLBACK_FILE_NAME))
+            ->usingFileName(SafeFileName::from($sourcePath, $fileName, self::FALLBACK_FILE_NAME))
             ->toMediaCollection(BookingPageModel::GALLERY_COLLECTION);
 
         return new BookingPageImage(

@@ -60,7 +60,7 @@ beforeEach(function () {
         new GuestBookingFinder($this->appointments),
         $this->policies,
         new AppointmentChangeWindow,
-        new GuestBookingPresenter($this->services, $this->customers, $this->staff),
+        new GuestBookingPresenter($this->services, $this->staff),
         new FakeClock(AppointmentFixtures::instant($now)),
         $this->events,
     );

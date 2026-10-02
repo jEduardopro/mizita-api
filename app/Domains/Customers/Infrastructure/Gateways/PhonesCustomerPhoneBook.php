@@ -64,15 +64,15 @@ final class PhonesCustomerPhoneBook implements CustomerPhoneBook
     /**
      * @return list<string>
      */
-    public function customerIdsWithNumber(PhoneNumber $number): array
+    public function customerIdsWithNumber(string $businessId, PhoneNumber $number): array
     {
-        return $this->phones->ownerIdsWithNumber(PhoneOwnerType::Customer, $number);
+        return $this->phones->ownerIdsWithNumber(PhoneOwnerType::Customer, $businessId, $number);
     }
 
     /**
      * @return list<string>
      */
-    public function customerIdsMatchingNumber(string $fragment): array
+    public function customerIdsMatchingNumber(string $businessId, string $fragment): array
     {
         $digits = PhoneNumberFragment::of($fragment);
 
@@ -80,6 +80,6 @@ final class PhonesCustomerPhoneBook implements CustomerPhoneBook
             return [];
         }
 
-        return $this->phones->ownerIdsMatchingNumber(PhoneOwnerType::Customer, $digits);
+        return $this->phones->ownerIdsMatchingNumber(PhoneOwnerType::Customer, $businessId, $digits);
     }
 }

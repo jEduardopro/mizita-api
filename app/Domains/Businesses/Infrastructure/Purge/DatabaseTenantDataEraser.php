@@ -58,6 +58,7 @@ final class DatabaseTenantDataEraser implements TenantDataEraser
         'subscriptions',
         'plans',
         'platform_admins',
+        'platform_impersonations',
         'cache',
         'cache_locks',
         'jobs',

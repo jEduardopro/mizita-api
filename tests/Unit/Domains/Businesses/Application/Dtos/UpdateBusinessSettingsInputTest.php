@@ -17,6 +17,7 @@ use App\Domains\Businesses\Exceptions\InvalidBusinessContactEmail;
 use App\Domains\Businesses\Exceptions\InvalidBusinessCoordinates;
 use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\Exceptions\InvalidContactFieldRequirement;
+use App\Domains\Businesses\Exceptions\TooManyScheduleIntervals;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Businesses\OnboardingFixtures;
@@ -557,13 +558,26 @@ describe('validating', function () {
         ))->validate())->toThrow(InvalidBusinessContactEmail::class);
     });
 
-    it('leaves the appearance, the schedule and the links to the ports that own their vocabulary', function (string $section) {
+    it('leaves the appearance and the links to the ports that own their vocabulary', function (string $section) {
         expect(method_exists($section, 'validate'))->toBeFalse();
     })->with([
         'the appearance' => AppearanceInput::class,
-        'the schedule' => ScheduleInput::class,
         'the links' => LinksInput::class,
     ]);
+
+    it('delegates to the schedule, which caps how many intervals a week may hold', function () {
+        $tooMany = array_fill(0, ScheduleInput::MAXIMUM_ENTRIES + 1, ['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '10:00']);
+
+        expect(fn () => UpdateBusinessSettingsInput::fromRequest(['schedule' => $tooMany])->validate())
+            ->toThrow(TooManyScheduleIntervals::class);
+    });
+
+    it('accepts a schedule holding exactly the most intervals a week may hold', function () {
+        $full = array_fill(0, ScheduleInput::MAXIMUM_ENTRIES, ['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '10:00']);
+
+        expect(fn () => UpdateBusinessSettingsInput::fromRequest(['schedule' => $full])->validate())
+            ->not->toThrow(Throwable::class);
+    });
 
     it('refuses nothing about an appearance, a schedule or a link the client made up', function () {
         $input = UpdateBusinessSettingsInput::fromRequest(SettingsFixtures::payload([

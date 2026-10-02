@@ -10,16 +10,27 @@ use App\Domains\Phones\Infrastructure\Eloquent\Mappers\PhoneMapper;
 use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
 use App\Domains\Phones\ValueObjects\PhoneNumberFragment;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
+use App\Shared\Contracts\BusinessTeamKey;
 use App\Shared\ValueObjects\PhoneNumber;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\JoinClause;
 
 final class EloquentPhoneRepository implements PhoneRepository
 {
+    private const PHONES_TABLE = 'phones';
+
+    private const PHONE_NUMBER_COLUMN = self::PHONES_TABLE.'.e164';
+
+    private const OWNER_BUSINESS_COLUMN = 'business_id';
+
+    private const OWNER_IDENTITY_COLUMN = 'uuid';
+
     public function __construct(
         private readonly PhoneMapper $mapper,
+        private readonly BusinessTeamKey $businessKeys,
     ) {}
 
     public function findForOwner(PhoneOwnerType $ownerType, string $ownerId): ?Phone
@@ -68,29 +79,23 @@ final class EloquentPhoneRepository implements PhoneRepository
     /**
      * @return list<string>
      */
-    public function ownerIdsWithNumber(PhoneOwnerType $ownerType, PhoneNumber $number): array
+    public function ownerIdsWithNumber(PhoneOwnerType $ownerType, string $businessId, PhoneNumber $number): array
     {
-        $ownerKeys = PhoneModel::query()
-            ->where('phoneable_type', $ownerType->value)
-            ->where('e164', $number->e164())
-            ->pluck('phoneable_id')
-            ->all();
-
-        return $this->ownerIdsForKeys($ownerType, $ownerKeys);
+        return $this->ownerIdsOf(
+            $this->businessOwnersWithPhone($ownerType, $businessId)
+                ->where(self::PHONE_NUMBER_COLUMN, $number->e164()),
+        );
     }
 
     /**
      * @return list<string>
      */
-    public function ownerIdsMatchingNumber(PhoneOwnerType $ownerType, PhoneNumberFragment $fragment): array
+    public function ownerIdsMatchingNumber(PhoneOwnerType $ownerType, string $businessId, PhoneNumberFragment $fragment): array
     {
-        $ownerKeys = PhoneModel::query()
-            ->where('phoneable_type', $ownerType->value)
-            ->where('e164', 'like', '%'.$fragment->digits.'%')
-            ->pluck('phoneable_id')
-            ->all();
-
-        return $this->ownerIdsForKeys($ownerType, $ownerKeys);
+        return $this->ownerIdsOf(
+            $this->businessOwnersWithPhone($ownerType, $businessId)
+                ->where(self::PHONE_NUMBER_COLUMN, 'like', '%'.$fragment->digits.'%'),
+        );
     }
 
     public function save(Phone $phone): void
@@ -117,20 +122,32 @@ final class EloquentPhoneRepository implements PhoneRepository
     }
 
     /**
-     * @param  list<mixed>  $ownerKeys
+     * @return Builder<Model>
+     */
+    private function businessOwnersWithPhone(PhoneOwnerType $ownerType, string $businessId): Builder
+    {
+        $ownerClass = $this->ownerModel($ownerType, []);
+        $owner = new $ownerClass;
+
+        return $owner->newQuery()
+            ->join(self::PHONES_TABLE, static function (JoinClause $join) use ($owner, $ownerType): void {
+                $join->on(self::PHONES_TABLE.'.phoneable_id', '=', $owner->getQualifiedKeyName())
+                    ->where(self::PHONES_TABLE.'.phoneable_type', '=', $ownerType->value)
+                    ->whereNull(self::PHONES_TABLE.'.deleted_at');
+            })
+            ->where($owner->qualifyColumn(self::OWNER_BUSINESS_COLUMN), $this->businessKeys->teamKeyFor($businessId))
+            ->orderBy($owner->getQualifiedKeyName())
+            ->limit(PhoneRepository::MAXIMUM_OWNER_MATCHES);
+    }
+
+    /**
+     * @param  Builder<Model>  $owners
      * @return list<string>
      */
-    private function ownerIdsForKeys(PhoneOwnerType $ownerType, array $ownerKeys): array
+    private function ownerIdsOf(Builder $owners): array
     {
-        if ($ownerKeys === []) {
-            return [];
-        }
-
-        $owner = $this->ownerModel($ownerType, []);
-
-        return $owner::query()
-            ->whereIn('id', $ownerKeys)
-            ->pluck('uuid')
+        return $owners
+            ->pluck($owners->getModel()->qualifyColumn(self::OWNER_IDENTITY_COLUMN))
             ->map(static fn (mixed $uuid): string => (string) $uuid)
             ->values()
             ->all();

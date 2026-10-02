@@ -16,6 +16,7 @@ use App\Http\Middleware\RequirePermission;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetLocale;
 use App\Http\Responses\JsonFailureRendering;
+use App\Providers\AppServiceProvider;
 use App\Shared\Contracts\DomainFailure;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -32,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+
+        $middleware->throttleApi(AppServiceProvider::API_RATE_LIMITER);
 
         $middleware->web(
             append: [

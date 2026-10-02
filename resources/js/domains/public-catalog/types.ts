@@ -118,7 +118,6 @@ export type PublicBookingStatus = 'booked' | 'cancelled';
 
 export type PublicBooking = {
     reference_code: string;
-    customer_name: string;
     service_name: string;
     staff_member_name: string;
     starts_at: string;

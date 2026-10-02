@@ -10,6 +10,8 @@ final readonly class Pagination
 
     public const MAXIMUM_PER_PAGE = 100;
 
+    public const MAXIMUM_PAGE = 10000;
+
     private const FIRST_PAGE = 1;
 
     private const MINIMUM_PER_PAGE = 1;
@@ -22,12 +24,25 @@ final readonly class Pagination
     public static function of(?int $page, ?int $perPage): self
     {
         return new self(
-            page: max(self::FIRST_PAGE, $page ?? self::FIRST_PAGE),
+            page: min(
+                self::MAXIMUM_PAGE,
+                max(self::FIRST_PAGE, $page ?? self::FIRST_PAGE),
+            ),
             perPage: min(
                 self::MAXIMUM_PER_PAGE,
                 max(self::MINIMUM_PER_PAGE, $perPage ?? self::DEFAULT_PER_PAGE),
             ),
         );
+    }
+
+    /**
+     * @throws PageOutOfRange
+     */
+    public static function ensureValidPage(?int $page): void
+    {
+        if ($page !== null && ($page < self::FIRST_PAGE || $page > self::MAXIMUM_PAGE)) {
+            throw PageOutOfRange::forPage($page, self::MAXIMUM_PAGE);
+        }
     }
 
     public function offset(): int

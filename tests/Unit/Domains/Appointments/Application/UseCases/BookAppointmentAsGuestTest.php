@@ -78,7 +78,7 @@ beforeEach(function () {
         $this->customers,
         $this->slots,
         $this->policies,
-        new GuestBookingPresenter($this->services, $this->customers, $this->staff),
+        new GuestBookingPresenter($this->services, $this->staff),
         $this->referenceCodes,
         $this->manageTokens,
         new FixedIdGenerator(AppointmentFixtures::GENERATED_APPOINTMENT_ID),
@@ -99,7 +99,6 @@ describe('a visitor booking as a guest', function () {
         expect($confirmation)->toBeInstanceOf(GuestBookingConfirmationData::class)
             ->and($confirmation->booking)->toBeInstanceOf(GuestBookingData::class)
             ->and($confirmation->booking->referenceCode)->toBe(AppointmentFixtures::REFERENCE_CODE)
-            ->and($confirmation->booking->customerName)->toBe(AppointmentFixtures::CUSTOMER_NAME)
             ->and($confirmation->booking->serviceName)->toBe(AppointmentFixtures::SERVICE_NAME)
             ->and($confirmation->booking->staffMemberName)->toBe(AppointmentFixtures::STAFF_NAME)
             ->and($confirmation->booking->startsAt)->toEqual(AppointmentFixtures::instant(AppointmentFixtures::STARTS_AT))
@@ -185,7 +184,6 @@ describe('a visitor booking as a guest', function () {
             'services.describe',
             'customers.findOrCreateGuest',
             'appointments.save',
-            'customers.describe',
             'services.describe',
             'staff.describe',
             'events.dispatch',
@@ -216,7 +214,6 @@ describe('what the guest is never shown back', function () {
 
         expect($fields)->toBe([
             'referenceCode',
-            'customerName',
             'serviceName',
             'staffMemberName',
             'startsAt',
@@ -227,6 +224,7 @@ describe('what the guest is never shown back', function () {
             'cancellationWindowMinutes',
             'changeable',
         ])
+            ->and($fields)->not->toContain('customerName')
             ->and($fields)->not->toContain('customerEmail')
             ->and($fields)->not->toContain('customerPhone')
             ->and($fields)->not->toContain('notes')
@@ -249,6 +247,48 @@ describe('what the guest is never shown back', function () {
 
         expect(json_encode(($this->book)()->value()->booking, JSON_THROW_ON_ERROR))
             ->not->toContain(AppointmentFixtures::GUEST_EMAIL);
+    });
+});
+
+describe('a guest whose contact matches a customer already on file', function () {
+    beforeEach(function () {
+        $customerOnFile = AppointmentFixtures::customerSnapshot(name: AppointmentFixtures::SECOND_CUSTOMER_NAME);
+
+        $this->customers
+            ->add(FakeBusinessContext::BUSINESS_ID, $customerOnFile)
+            ->registeringGuestAs($customerOnFile);
+    });
+
+    it('books the appointment against the customer that matched', function () {
+        ($this->allowBooking)();
+
+        ($this->book)();
+
+        expect($this->appointments->saved[0]->customerId())->toBe(AppointmentFixtures::CUSTOMER_ID);
+    });
+
+    it('never discloses the name stored on the matched customer', function () {
+        ($this->allowBooking)();
+
+        expect(json_encode(($this->book)()->value(), JSON_THROW_ON_ERROR))
+            ->not->toContain(AppointmentFixtures::SECOND_CUSTOMER_NAME);
+    });
+
+    it('carries no customer name at all, not even the one the visitor typed', function () {
+        ($this->allowBooking)();
+
+        expect(json_encode(($this->book)()->value(), JSON_THROW_ON_ERROR))
+            ->not->toContain(AppointmentFixtures::GUEST_NAME)
+            ->not->toContain('customerName');
+    });
+
+    it('never reads the stored customer back to answer the visitor', function () {
+        ($this->allowBooking)();
+
+        ($this->book)();
+
+        expect($this->customers->reads)->toBe([])
+            ->and($this->journal->entries)->not->toContain('customers.describe');
     });
 });
 
@@ -351,7 +391,6 @@ describe('the details a guest left', function () {
         $guest = $this->customers->guestRegistrations[0]['guest'] ?? null;
 
         expect($response->succeeded())->toBeTrue()
-            ->and($response->value()->booking->customerName)->toBe(AppointmentFixtures::GUEST_NAME)
             ->and($guest?->name)->toBe(AppointmentFixtures::GUEST_NAME)
             ->and($guest?->email)->toBeNull()
             ->and($guest?->phone)->toBeNull()

@@ -8,6 +8,7 @@ use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\CalendarNotAccessible;
 use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
 use App\Domains\Appointments\ValueObjects\Identifier;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 
 final readonly class ListCustomerAppointmentsInput
@@ -35,11 +36,13 @@ final readonly class ListCustomerAppointmentsInput
     /**
      * @throws AppointmentCustomerNotFound
      * @throws CalendarNotAccessible
+     * @throws PageOutOfRange
      */
     public function validate(): void
     {
         $this->validateCustomerId();
         $this->validateAccountId();
+        $this->validatePage();
     }
 
     public function toQuery(): CustomerAppointmentQuery
@@ -67,5 +70,13 @@ final readonly class ListCustomerAppointmentsInput
         if (! Identifier::isWellFormed($this->accountId)) {
             throw CalendarNotAccessible::forAccount($this->accountId);
         }
+    }
+
+    /**
+     * @throws PageOutOfRange
+     */
+    private function validatePage(): void
+    {
+        Pagination::ensureValidPage($this->page);
     }
 }

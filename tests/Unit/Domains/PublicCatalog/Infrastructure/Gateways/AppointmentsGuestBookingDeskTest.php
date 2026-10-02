@@ -56,7 +56,7 @@ beforeEach(function () {
     $events->shouldReceive('dispatch')->andReturn([]);
 
     $clock = new FakeClock(AppointmentFixtures::now());
-    $presenter = new GuestBookingPresenter($services, $this->customers, $staff);
+    $presenter = new GuestBookingPresenter($services, $staff);
     $finder = new GuestBookingFinder($this->appointments);
 
     $this->desk = new AppointmentsGuestBookingDesk(

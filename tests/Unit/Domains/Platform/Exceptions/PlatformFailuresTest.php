@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domains\Platform\Exceptions\BusinessHasNoOwner;
 use App\Domains\Platform\Exceptions\BusinessOwnerDeactivated;
 use App\Domains\Platform\Exceptions\ImpersonatedBusinessNotFound;
+use App\Domains\Platform\Exceptions\ImpersonationConfinedToBusiness;
 use App\Domains\Platform\Exceptions\ImpersonationEnded;
 use App\Domains\Platform\Exceptions\InvalidPlatformAdminEmail;
 use App\Domains\Platform\Exceptions\InvalidPlatformAdminName;
@@ -36,6 +37,7 @@ function platformFailures(): array
         'a deactivated owner' => [BusinessOwnerDeactivated::forBusiness(ImpersonationFixtures::BUSINESS_ID), 'business_owner_deactivated', DomainFailureKind::Conflict],
         'an expired admin session' => [PlatformSessionExpired::signedOut(), 'platform_session_expired', DomainFailureKind::Unauthenticated],
         'an impersonation that ended' => [ImpersonationEnded::noLongerValid(), 'impersonation_ended', DomainFailureKind::Unauthenticated],
+        'a business outside the impersonation' => [ImpersonationConfinedToBusiness::outside(ImpersonationFixtures::BUSINESS_ID, ImpersonationFixtures::OTHER_BUSINESS_ID), 'business_not_accessible', DomainFailureKind::Forbidden],
     ];
 }
 

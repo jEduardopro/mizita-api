@@ -9,8 +9,10 @@ use App\Domains\Staff\Exceptions\InvalidTeamLevel;
 use App\Domains\Staff\Exceptions\OwnerCannotBeRemoved;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
+use App\Domains\Staff\Exceptions\TemporaryPasswordManagedElsewhere;
 use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\ValueObjects\AccessTransition;
+use App\Domains\Staff\ValueObjects\AccountSharing;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
 use App\Domains\Staff\ValueObjects\RemovalBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
@@ -143,6 +145,26 @@ final class StaffMember
     {
         if (! $this->hasPendingInvitation($account)) {
             throw TemporaryPasswordUnavailable::for($this->id);
+        }
+    }
+
+    public function hasManageablePendingInvitation(AccountSnapshot $account, AccountSharing $sharing): bool
+    {
+        return $this->hasPendingInvitation($account) && $this->mayManageTemporaryPassword($sharing);
+    }
+
+    public function mayManageTemporaryPassword(AccountSharing $sharing): bool
+    {
+        return $this->role->grantsAccess() && $sharing === AccountSharing::ExclusiveToBusiness;
+    }
+
+    /**
+     * @throws TemporaryPasswordManagedElsewhere
+     */
+    public function ensureTemporaryPasswordManageable(AccountSharing $sharing): void
+    {
+        if (! $this->mayManageTemporaryPassword($sharing)) {
+            throw TemporaryPasswordManagedElsewhere::for($this->id);
         }
     }
 

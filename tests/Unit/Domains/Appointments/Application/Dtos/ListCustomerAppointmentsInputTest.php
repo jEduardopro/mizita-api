@@ -6,7 +6,9 @@ use App\Domains\Appointments\Application\Dtos\ListCustomerAppointmentsInput;
 use App\Domains\Appointments\Exceptions\AppointmentCustomerNotFound;
 use App\Domains\Appointments\Exceptions\CalendarNotAccessible;
 use App\Domains\Appointments\ValueObjects\CustomerAppointmentQuery;
+use App\Shared\Contracts\DomainFailure;
 use App\Shared\ValueObjects\DomainFailureKind;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 use Tests\Support\Appointments\AppointmentFixtures;
 
@@ -156,4 +158,38 @@ describe('the query it builds', function () {
         'exactly the maximum' => [1, Pagination::MAXIMUM_PER_PAGE, 1, Pagination::MAXIMUM_PER_PAGE],
         'fewer rows than one' => [1, 0, 1, 1],
     ]);
+});
+
+describe('validating the page', function () {
+    it('accepts every page it serves, and no page at all', function (?int $page) {
+        expect(fn () => ListCustomerAppointmentsInput::fromRequest(['page' => $page], AppointmentFixtures::CUSTOMER_ID, AppointmentFixtures::ACCOUNT_ID)->validate())->not->toThrow(Throwable::class);
+    })->with([
+        'no page' => [null],
+        'the first page' => [1],
+        'the deepest page' => [Pagination::MAXIMUM_PAGE],
+    ]);
+
+    it('refuses a page that cannot exist', function (int $page) {
+        expect(fn () => ListCustomerAppointmentsInput::fromRequest(['page' => $page], AppointmentFixtures::CUSTOMER_ID, AppointmentFixtures::ACCOUNT_ID)->validate())->toThrow(PageOutOfRange::class);
+    })->with([
+        'the zeroth page' => [0],
+        'a negative page' => [-1],
+        'one past the deepest page' => [Pagination::MAXIMUM_PAGE + 1],
+    ]);
+
+    it('refuses with an invalid failure under the shared page code', function () {
+        $page = Pagination::MAXIMUM_PAGE + 1;
+
+        try {
+            ListCustomerAppointmentsInput::fromRequest(['page' => $page], AppointmentFixtures::CUSTOMER_ID, AppointmentFixtures::ACCOUNT_ID)->validate();
+        } catch (PageOutOfRange $failure) {
+            expect($failure)->toBeInstanceOf(DomainFailure::class)
+                ->and($failure->errorCode())->toBe('page_out_of_range')
+                ->and($failure->kind())->toBe(DomainFailureKind::Invalid);
+
+            return;
+        }
+
+        $this->fail('validate() accepted a page past the deepest one.');
+    });
 });

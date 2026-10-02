@@ -14,11 +14,16 @@ use App\Domains\Accounts\Exceptions\AccountAlreadyRegistered;
 use App\Domains\Accounts\Exceptions\AccountNotFound;
 use App\Domains\Accounts\Exceptions\GoogleEmailNotVerified;
 use App\Domains\Accounts\Exceptions\SocialIdentityAlreadyLinked;
+use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Illuminate\Contracts\Events\Dispatcher;
+use Tests\Support\Accounts\AccountJournal;
+use Tests\Support\Accounts\FakeAccountPasskeys;
+use Tests\Support\Accounts\FakeAccountSessions;
+use Tests\Support\Accounts\FakeTemporaryPasswordVault;
 use Tests\Support\Accounts\GoogleFixtures;
 use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
@@ -29,15 +34,28 @@ beforeEach(function () {
     $this->socialIdentities = Mockery::mock(SocialIdentityRepository::class);
     $this->events = Mockery::mock(Dispatcher::class);
     $this->transactions = new FakeTransactionManager;
+    $this->journal = new AccountJournal;
+    $this->temporaryPasswords = new FakeTemporaryPasswordVault($this->journal, $this->transactions);
+    $this->passkeys = new FakeAccountPasskeys($this->journal, $this->transactions);
+    $this->sessions = new FakeAccountSessions($this->journal, $this->transactions);
 
     $this->useCase = new AuthenticateWithGoogle(
         $this->accounts,
         $this->socialIdentities,
+        $this->temporaryPasswords,
+        $this->passkeys,
+        $this->sessions,
         new FixedIdGenerator(GoogleFixtures::GENERATED_ACCOUNT_ID, GoogleFixtures::GENERATED_IDENTITY_ID),
         new FakeClock(GoogleFixtures::now()),
         $this->transactions,
         $this->events,
     );
+
+    $this->revokedNothing = function (): void {
+        expect($this->temporaryPasswords->discarded)->toBe([])
+            ->and($this->passkeys->deletedFor)->toBe([])
+            ->and($this->sessions->endedForAll)->toBe([]);
+    };
 
     $this->insideTransaction = [];
     $this->recordTransactionState = function (): bool {
@@ -88,6 +106,17 @@ describe('a returning person whose Google account is already linked', function (
         $this->useCase->handle(GoogleFixtures::input());
 
         expect($this->transactions->runs())->toBe(0);
+    });
+
+    it('revokes nothing and signs nobody out, even when the linked account was never verified', function () {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->andReturn(GoogleFixtures::storedIdentity());
+        $this->accounts->shouldReceive('findById')->andReturn(
+            GoogleFixtures::storedAccount(passwordStatus: PasswordStatus::Chosen, twoFactorStatus: TwoFactorStatus::Enabled),
+        );
+
+        $this->useCase->handle(GoogleFixtures::input());
+
+        ($this->revokedNothing)();
     });
 
     it('finds them by subject even when the Google email no longer matches the stored one', function () {
@@ -180,6 +209,12 @@ describe('the account takeover guard', function () {
 
         expect($this->useCase->handle(GoogleFixtures::input(emailVerified: false))->error()->code)
             ->toBe('google_email_not_verified');
+    });
+
+    it('revokes nothing and signs nobody out when it refuses', function () {
+        $this->useCase->handle(GoogleFixtures::input(emailVerified: false));
+
+        ($this->revokedNothing)();
     });
 
     it('refuses before opening a transaction', function () {
@@ -330,6 +365,164 @@ describe('an existing account claimed by Google for the first time', function ()
     });
 });
 
+describe('an unproven account claimed by Google', function () {
+    beforeEach(function () {
+        $this->unproven = GoogleFixtures::storedAccount(
+            emailVerifiedAt: null,
+            passwordStatus: PasswordStatus::Chosen,
+            twoFactorStatus: TwoFactorStatus::Enabled,
+        );
+        $this->temporaryPasswords->holds(GoogleFixtures::EXISTING_ACCOUNT_ID, 'Tq7mW2xK9pLr4ZvB8nYd');
+        $this->savedAccount = null;
+
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->with('ada@example.com')->andReturn($this->unproven);
+        $this->accounts->shouldReceive('save')->once()->andReturnUsing(function (Account $account): void {
+            $this->journal->record('accounts.save');
+            $this->savedAccount = $account;
+        });
+        $this->socialIdentities->shouldReceive('save')->once()->andReturnUsing(function (): void {
+            $this->journal->record('socialIdentities.save');
+        });
+        $this->events->shouldReceive('dispatch')->once()->with(Mockery::type(SocialIdentityLinked::class))
+            ->andReturnUsing(function (): void {
+                $this->journal->record('events.dispatch');
+            });
+    });
+
+    it('saves the account with its password and its second factor revoked', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->savedAccount)->toBe($this->unproven)
+            ->and($this->savedAccount->emailVerifiedAt())->toEqual(GoogleFixtures::now())
+            ->and($this->savedAccount->holdsPassword())->toBeFalse()
+            ->and($this->savedAccount->twoFactorStatus())->toBe(TwoFactorStatus::Disabled)
+            ->and($this->savedAccount->hasPendingAccessRevocation())->toBeTrue();
+    });
+
+    it('discards the temporary password an owner could still copy', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->temporaryPasswords->discarded)->toBe([GoogleFixtures::EXISTING_ACCOUNT_ID])
+            ->and($this->temporaryPasswords->reveal(GoogleFixtures::EXISTING_ACCOUNT_ID))->toBeNull();
+    });
+
+    it('deletes every passkey registered on the account', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->passkeys->deletedFor)->toBe([GoogleFixtures::EXISTING_ACCOUNT_ID]);
+    });
+
+    it('revokes the temporary password and the passkeys inside the transaction that links Google', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->transactions->runs())->toBe(1)
+            ->and($this->temporaryPasswords->discardedInsideTransaction)->toBe([true])
+            ->and($this->passkeys->deletedInsideTransaction)->toBe([true]);
+    });
+
+    it('signs the account out of every session once the claim has committed', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->sessions->endedForAll)->toBe([[GoogleFixtures::EXISTING_ACCOUNT_ID]])
+            ->and($this->sessions->endedInsideTransaction)->toBe([false])
+            ->and($this->sessions->endedExcept)->toBe([]);
+    });
+
+    it('saves, links and revokes before it signs out, and signs out before it announces the link', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->journal->entries)->toBe([
+            'accounts.save',
+            'socialIdentities.save',
+            'temporaryPasswords.discard',
+            'passkeys.deleteAllOf',
+            'sessions.endAll',
+            'events.dispatch',
+        ]);
+    });
+
+    it('answers with the existing account and asks for no second factor it just turned off', function () {
+        $data = $this->useCase->handle(GoogleFixtures::input())->value();
+
+        expect($data->id)->toBe(GoogleFixtures::EXISTING_ACCOUNT_ID)
+            ->and($data->email)->toBe('ada@example.com')
+            ->and($data->isNewAccount)->toBeFalse()
+            ->and($data->requiresSecondFactor)->toBeFalse();
+    });
+});
+
+describe('an unproven claim that never commits', function () {
+    beforeEach(function () {
+        $this->unproven = GoogleFixtures::storedAccount(emailVerifiedAt: null, passwordStatus: PasswordStatus::Chosen);
+    });
+
+    it('signs nobody out when the link loses a race and the account is adopted instead', function () {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()->andReturn(null, null);
+        $this->accounts->shouldReceive('findByEmail')->twice()->andReturn($this->unproven);
+        $this->accounts->shouldReceive('save')->once();
+        $this->socialIdentities->shouldReceive('save')->once()
+            ->andThrow(SocialIdentityAlreadyLinked::forProviderUser(SocialProvider::Google, GoogleFixtures::SUB));
+        $this->events->shouldNotReceive('dispatch');
+
+        expect($this->useCase->handle(GoogleFixtures::input())->succeeded())->toBeTrue();
+
+        ($this->revokedNothing)();
+    });
+
+    it('signs nobody out and announces nothing when the commit itself fails', function () {
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->andReturn($this->unproven);
+        $this->accounts->shouldReceive('save')->once();
+        $this->socialIdentities->shouldReceive('save')->once();
+        $this->events->shouldNotReceive('dispatch');
+        $this->transactions->failAtCommit(new RuntimeException('SQLSTATE[40001] serialization failure'));
+
+        expect(fn () => $this->useCase->handle(GoogleFixtures::input()))
+            ->toThrow(RuntimeException::class, 'SQLSTATE[40001] serialization failure');
+
+        expect($this->sessions->endedForAll)->toBe([]);
+    });
+});
+
+describe('a proven owner claimed by Google', function () {
+    beforeEach(function () {
+        $this->proven = GoogleFixtures::storedAccount(
+            emailVerifiedAt: new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            passwordStatus: PasswordStatus::Chosen,
+            twoFactorStatus: TwoFactorStatus::Enabled,
+        );
+        $this->temporaryPasswords->holds(GoogleFixtures::EXISTING_ACCOUNT_ID, 'Tq7mW2xK9pLr4ZvB8nYd');
+        $this->savedAccount = null;
+
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->andReturn($this->proven);
+        $this->accounts->shouldReceive('save')->once()->with(Mockery::capture($this->savedAccount));
+        $this->socialIdentities->shouldReceive('save')->once();
+        $this->events->shouldReceive('dispatch')->once()->with(Mockery::type(SocialIdentityLinked::class));
+    });
+
+    it('keeps the password and the second factor the owner set up', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        expect($this->savedAccount->holdsPassword())->toBeTrue()
+            ->and($this->savedAccount->twoFactorStatus())->toBe(TwoFactorStatus::Enabled)
+            ->and($this->savedAccount->hasPendingAccessRevocation())->toBeFalse();
+    });
+
+    it('discards no temporary password, deletes no passkey and signs nobody out', function () {
+        $this->useCase->handle(GoogleFixtures::input());
+
+        ($this->revokedNothing)();
+
+        expect($this->temporaryPasswords->reveal(GoogleFixtures::EXISTING_ACCOUNT_ID))->toBe('Tq7mW2xK9pLr4ZvB8nYd');
+    });
+
+    it('still asks for the second factor', function () {
+        expect($this->useCase->handle(GoogleFixtures::input())->value()->requiresSecondFactor)->toBeTrue();
+    });
+});
+
 describe('a first-time visitor', function () {
     beforeEach(function () {
         $this->socialIdentities->shouldReceive('findByProviderUserId')
@@ -412,6 +605,16 @@ describe('a first-time visitor', function () {
 
         expect($this->transactions->runs())->toBe(1)
             ->and($this->insideTransaction)->toBe([true, true]);
+    });
+
+    it('revokes nothing and signs nobody out', function () {
+        $this->accounts->shouldReceive('save')->once();
+        $this->socialIdentities->shouldReceive('save')->once();
+        $this->events->shouldReceive('dispatch')->twice();
+
+        $this->useCase->handle(GoogleFixtures::input());
+
+        ($this->revokedNothing)();
     });
 
     it('gives the account and the link distinct identifiers', function () {
@@ -693,6 +896,27 @@ describe('an account scheduled for deletion', function () {
         expect($unverified->emailVerifiedAt())->toBeNull();
     });
 
+    it('revokes nothing on a scheduled account it refuses to claim', function () {
+        $unverified = Account::restore(
+            GoogleFixtures::EXISTING_ACCOUNT_ID,
+            GoogleFixtures::NAME,
+            GoogleFixtures::EMAIL,
+            null,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            PasswordStatus::Chosen,
+            deletionRequestedAt: new DateTimeImmutable('2025-12-20T09:15:00+00:00'),
+        );
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->andReturn($unverified);
+        $this->accounts->shouldNotReceive('save');
+
+        $this->useCase->handle(GoogleFixtures::input());
+
+        ($this->revokedNothing)();
+
+        expect($unverified->holdsPassword())->toBeTrue();
+    });
+
     it('refuses the account it would have adopted after losing a registration race', function () {
         $this->socialIdentities->shouldReceive('findByProviderUserId')->twice()->andReturn(null, null);
         $this->accounts->shouldReceive('findByEmail')->twice()->with('ada@example.com')
@@ -742,6 +966,24 @@ describe('whether the account still owes a second factor', function () {
 
         expect($data->isNewAccount)->toBeFalse()
             ->and($data->requiresSecondFactor)->toBeTrue();
+    });
+
+    it('drops it for an unproven account Google claims, because the claim turned it off', function () {
+        $unproven = Account::restore(
+            GoogleFixtures::EXISTING_ACCOUNT_ID,
+            GoogleFixtures::NAME,
+            GoogleFixtures::EMAIL,
+            null,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            twoFactorStatus: TwoFactorStatus::Enabled,
+        );
+        $this->socialIdentities->shouldReceive('findByProviderUserId')->once()->andReturn(null);
+        $this->accounts->shouldReceive('findByEmail')->once()->andReturn($unproven);
+        $this->accounts->shouldReceive('save')->once();
+        $this->socialIdentities->shouldReceive('save')->once();
+        $this->events->shouldReceive('dispatch')->once();
+
+        expect($this->useCase->handle(GoogleFixtures::input())->value()->requiresSecondFactor)->toBeFalse();
     });
 
     it('reads it off the account adopted after losing a registration race', function () {

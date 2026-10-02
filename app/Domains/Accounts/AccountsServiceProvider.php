@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Accounts;
 
+use App\Domains\Accounts\Contracts\AccountPasskeys;
 use App\Domains\Accounts\Contracts\AccountRepository;
 use App\Domains\Accounts\Contracts\GoogleIdentityVerifier;
 use App\Domains\Accounts\Contracts\OwnedBusinesses;
@@ -19,6 +20,7 @@ use App\Domains\Accounts\Contracts\UpcomingBookings;
 use App\Domains\Accounts\Infrastructure\Auth\AccountsIncludingDeletedUserProvider;
 use App\Domains\Accounts\Infrastructure\Auth\DatabaseAccountSessions;
 use App\Domains\Accounts\Infrastructure\Auth\DiscardTemporaryPasswordOnLogin;
+use App\Domains\Accounts\Infrastructure\Eloquent\EloquentAccountPasskeys;
 use App\Domains\Accounts\Infrastructure\Eloquent\EloquentAccountRepository;
 use App\Domains\Accounts\Infrastructure\Eloquent\EloquentPasskeyDirectory;
 use App\Domains\Accounts\Infrastructure\Eloquent\EloquentSocialIdentityRepository;
@@ -66,6 +68,7 @@ final class AccountsServiceProvider extends ServiceProvider
         $this->app->bind(OwnedBusinesses::class, BusinessesOwnedBusinesses::class);
         $this->app->bind(SecondFactorVerifier::class, FortifySecondFactorVerifier::class);
         $this->app->bind(PasskeyDirectory::class, EloquentPasskeyDirectory::class);
+        $this->app->bind(AccountPasskeys::class, EloquentAccountPasskeys::class);
         $this->app->bind(PasskeyRegistrationResponse::class, PasskeyRegisteredResponse::class);
     }
 

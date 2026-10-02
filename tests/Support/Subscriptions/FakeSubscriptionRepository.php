@@ -14,7 +14,7 @@ final class FakeSubscriptionRepository implements SubscriptionRepository
     /** @var array<string, Subscription> */
     private array $subscriptions = [];
 
-    /** @var list<Subscription>|null */
+    /** @var list<string>|null */
     private ?array $reportedPastPaymentGrace = null;
 
     /** @var list<Subscription>|null */
@@ -53,9 +53,9 @@ final class FakeSubscriptionRepository implements SubscriptionRepository
         return $this;
     }
 
-    public function reportingPastPaymentGrace(Subscription ...$subscriptions): self
+    public function reportingPastPaymentGrace(string ...$businessIds): self
     {
-        $this->reportedPastPaymentGrace = array_values($subscriptions);
+        $this->reportedPastPaymentGrace = array_values($businessIds);
 
         return $this;
     }
@@ -126,13 +126,17 @@ final class FakeSubscriptionRepository implements SubscriptionRepository
         return $found;
     }
 
-    public function pastPaymentGrace(DateTimeImmutable $now): array
+    public function businessIdsPastPaymentGrace(DateTimeImmutable $now): iterable
     {
         $this->pastPaymentGraceLookups[] = $now;
 
-        return $this->reportedPastPaymentGrace ?? array_values(array_filter(
-            $this->subscriptions,
-            static fn (Subscription $subscription): bool => $subscription->isPastPaymentGraceAt($now),
+        return $this->reportedPastPaymentGrace ?? array_values(array_map(
+            static fn (Subscription $subscription): string => $subscription->businessId,
+            array_filter(
+                $this->subscriptions,
+                static fn (Subscription $subscription): bool => $subscription->billingSubscriptionId() !== null
+                    && $subscription->isPastPaymentGraceAt($now),
+            ),
         ));
     }
 

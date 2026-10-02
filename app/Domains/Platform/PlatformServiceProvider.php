@@ -7,6 +7,7 @@ namespace App\Domains\Platform;
 use App\Domains\Platform\Contracts\AuthenticatorApp;
 use App\Domains\Platform\Contracts\BusinessOwnerAccounts;
 use App\Domains\Platform\Contracts\BusinessPlans;
+use App\Domains\Platform\Contracts\ImpersonationAuditTrail;
 use App\Domains\Platform\Contracts\ImpersonationSession;
 use App\Domains\Platform\Contracts\PasswordHasher;
 use App\Domains\Platform\Contracts\PlatformAdminRepository;
@@ -15,17 +16,21 @@ use App\Domains\Platform\Infrastructure\Auth\GuardSignedInPlatformAdmin;
 use App\Domains\Platform\Infrastructure\Auth\PendingPlatformLogin;
 use App\Domains\Platform\Infrastructure\Auth\PlatformGuard;
 use App\Domains\Platform\Infrastructure\Console\CreatePlatformAdminCommand;
+use App\Domains\Platform\Infrastructure\Eloquent\EloquentImpersonationAuditTrail;
 use App\Domains\Platform\Infrastructure\Eloquent\EloquentPlatformAdminRepository;
 use App\Domains\Platform\Infrastructure\Gateways\EloquentPlatformBusinessDirectory;
 use App\Domains\Platform\Infrastructure\Gateways\StaffBusinessOwnerAccounts;
 use App\Domains\Platform\Infrastructure\Gateways\SubscriptionsBusinessPlans;
 use App\Domains\Platform\Infrastructure\Http\PlatformRoutes;
+use App\Domains\Platform\Infrastructure\Impersonation\ImpersonationConfinedBusinessResolver;
 use App\Domains\Platform\Infrastructure\Impersonation\SessionImpersonationSession;
 use App\Domains\Platform\Infrastructure\Passwords\FrameworkPasswordHasher;
 use App\Domains\Platform\Infrastructure\TwoFactor\FortifyAuthenticatorApp;
+use App\Shared\Contracts\CurrentBusinessResolver;
 use App\Shared\Contracts\ImpersonationStatus;
 use App\Shared\Contracts\SignedInPlatformAdmin;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +64,9 @@ final class PlatformServiceProvider extends ServiceProvider
         $this->app->bind(ImpersonationSession::class, SessionImpersonationSession::class);
         $this->app->bind(ImpersonationStatus::class, SessionImpersonationSession::class);
         $this->app->bind(SignedInPlatformAdmin::class, GuardSignedInPlatformAdmin::class);
+        $this->app->bind(ImpersonationAuditTrail::class, EloquentImpersonationAuditTrail::class);
+
+        $this->confineImpersonationToItsBusiness();
     }
 
     public function boot(): void
@@ -76,6 +84,17 @@ final class PlatformServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([CreatePlatformAdminCommand::class]);
         }
+    }
+
+    private function confineImpersonationToItsBusiness(): void
+    {
+        $this->app->extend(
+            CurrentBusinessResolver::class,
+            static fn (CurrentBusinessResolver $memberships, Application $app): CurrentBusinessResolver => new ImpersonationConfinedBusinessResolver(
+                $memberships,
+                $app->make(ImpersonationSession::class),
+            ),
+        );
     }
 
     private function registerLoginLimiter(): void

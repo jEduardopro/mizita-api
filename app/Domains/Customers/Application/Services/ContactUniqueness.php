@@ -41,7 +41,7 @@ final class ContactUniqueness
             return;
         }
 
-        $holders = $this->phones->customerIdsWithNumber($phone);
+        $holders = $this->phones->customerIdsWithNumber($businessId, $phone);
 
         if ($holders === []) {
             return;

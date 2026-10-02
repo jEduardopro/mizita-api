@@ -117,8 +117,8 @@ describe('the query it builds', function () {
             ->and($query->pagination->perPage)->toBe(10);
     });
 
-    it('resolves a sort and a page it does not serve instead of refusing them', function () {
-        $response = ($this->list)(['sort' => 'whatever', 'direction' => 'sideways', 'page' => 0, 'per_page' => 9999]);
+    it('resolves a sort and a page size it does not serve instead of refusing them', function () {
+        $response = ($this->list)(['sort' => 'whatever', 'direction' => 'sideways', 'per_page' => 9999]);
 
         expect($response->succeeded())->toBeTrue()
             ->and($this->customers->queries[0]->sort)->toBe(CustomerSort::Name)
@@ -126,6 +126,18 @@ describe('the query it builds', function () {
             ->and($this->customers->queries[0]->pagination->page)->toBe(1)
             ->and($this->customers->queries[0]->pagination->perPage)->toBe(Pagination::MAXIMUM_PER_PAGE);
     });
+
+    it('refuses a page that cannot exist without querying anything', function (int $page) {
+        $response = ($this->list)(['page' => $page]);
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('page_out_of_range')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+            ->and($this->customers->queries)->toBe([]);
+    })->with([
+        'the zeroth page' => [0],
+        'one past the deepest page' => [Pagination::MAXIMUM_PAGE + 1],
+    ]);
 });
 
 describe('searching by phone', function () {
@@ -153,14 +165,43 @@ describe('searching by phone', function () {
         expect($this->customers->queries[0]->phoneMatches)->toBe([]);
     });
 
-    it('carries the matches of every business through untouched, because the repository is what scopes them', function () {
-        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican());
+    it('searches the phones of the business in context and of no other', function () {
+        ($this->list)(['search' => '5512']);
+
+        expect($this->phones->lookupBusinessIds)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('never carries a customer of another business holding a matching number into the query', function () {
+        $this->phones->store(CustomerFixtures::SECOND_CUSTOMER_ID, PhoneNumbers::mexican());
+        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican(), CustomerFixtures::OTHER_BUSINESS_ID);
 
         ($this->list)(['search' => '5512345678']);
 
-        expect($this->customers->queries[0]->phoneMatches)->toBe([CustomerFixtures::FOREIGN_CUSTOMER_ID])
+        expect($this->customers->queries[0]->phoneMatches)->toBe([CustomerFixtures::SECOND_CUSTOMER_ID])
             ->and($this->customers->businessIdsSeen)->toBe([FakeBusinessContext::BUSINESS_ID]);
     });
+
+    it('searches the phones of whichever business the context names', function () {
+        $this->phones->store(CustomerFixtures::SECOND_CUSTOMER_ID, PhoneNumbers::mexican());
+        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican(), CustomerFixtures::OTHER_BUSINESS_ID);
+
+        ($this->build)(new FakeBusinessContext(CustomerFixtures::OTHER_BUSINESS_ID))
+            ->handle(ListCustomersInput::fromRequest(['search' => '5512']));
+
+        expect($this->phones->lookupBusinessIds)->toBe([CustomerFixtures::OTHER_BUSINESS_ID])
+            ->and($this->customers->queries[0]->phoneMatches)->toBe([CustomerFixtures::FOREIGN_CUSTOMER_ID]);
+    });
+
+    it('matches no phone for a term carrying fewer than four digits', function (string $search) {
+        $this->phones->store(CustomerFixtures::CUSTOMER_ID, PhoneNumbers::mexican());
+
+        ($this->list)(['search' => $search]);
+
+        expect($this->customers->queries[0]->phoneMatches)->toBe([]);
+    })->with([
+        'three digits' => '551',
+        'three digits among letters' => 'ada 55 1',
+    ]);
 });
 
 describe('the business it reads', function () {

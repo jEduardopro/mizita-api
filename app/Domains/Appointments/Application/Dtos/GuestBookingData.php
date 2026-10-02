@@ -7,7 +7,6 @@ namespace App\Domains\Appointments\Application\Dtos;
 use App\Domains\Appointments\Entities\Appointment;
 use App\Domains\Appointments\ValueObjects\AppointmentStatus;
 use App\Domains\Appointments\ValueObjects\CancellationRule;
-use App\Domains\Appointments\ValueObjects\CustomerSnapshot;
 use App\Domains\Appointments\ValueObjects\ServiceSnapshot;
 use App\Domains\Appointments\ValueObjects\StaffMemberSnapshot;
 use DateTimeImmutable;
@@ -16,7 +15,6 @@ final readonly class GuestBookingData
 {
     public function __construct(
         public string $referenceCode,
-        public string $customerName,
         public string $serviceName,
         public string $staffMemberName,
         public DateTimeImmutable $startsAt,
@@ -31,7 +29,6 @@ final readonly class GuestBookingData
     public static function fromEntity(
         Appointment $appointment,
         string $referenceCode,
-        CustomerSnapshot $customer,
         ServiceSnapshot $service,
         StaffMemberSnapshot $staffMember,
         CancellationRule $rule,
@@ -39,7 +36,6 @@ final readonly class GuestBookingData
     ): self {
         return new self(
             referenceCode: $referenceCode,
-            customerName: $customer->name,
             serviceName: $service->name,
             staffMemberName: $staffMember->name,
             startsAt: $appointment->slot()->startsAt,

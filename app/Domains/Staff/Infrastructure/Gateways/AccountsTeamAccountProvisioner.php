@@ -44,7 +44,7 @@ final class AccountsTeamAccountProvisioner implements TeamAccountProvisioner
 
         return new ProvisionedAccount(
             accountId: $account->accountId,
-            temporaryPassword: $this->credentialsFor($level, $account),
+            temporaryPassword: $account->temporaryPassword,
         );
     }
 
@@ -70,14 +70,5 @@ final class AccountsTeamAccountProvisioner implements TeamAccountProvisioner
         }
 
         return $this->provisionAccessLessAccount->handle($input)->value();
-    }
-
-    private function credentialsFor(StaffRole $level, InvitedAccountData $account): ?string
-    {
-        if ($account->created || ! $level->grantsAccess()) {
-            return $account->temporaryPassword;
-        }
-
-        return $this->issueTemporaryPassword($account->accountId);
     }
 }

@@ -8,6 +8,7 @@ use App\Domains\Availability\Exceptions\InvalidTimeOfDay;
 use App\Domains\Availability\Exceptions\InvalidWeekday;
 use App\Domains\Availability\Exceptions\ScheduleNotSubmitted;
 use App\Domains\Availability\Exceptions\StaffMemberNotFound;
+use App\Domains\Availability\Exceptions\TooManyScheduleIntervals;
 use App\Domains\Availability\ValueObjects\Identifier;
 use App\Domains\Availability\ValueObjects\ScheduleInterval;
 
@@ -37,6 +38,7 @@ final readonly class ReplaceStaffMemberScheduleInput
     /**
      * @throws StaffMemberNotFound
      * @throws ScheduleNotSubmitted
+     * @throws TooManyScheduleIntervals
      * @throws InvalidWeekday
      * @throws InvalidTimeOfDay
      */
@@ -72,6 +74,7 @@ final readonly class ReplaceStaffMemberScheduleInput
 
     /**
      * @throws ScheduleNotSubmitted
+     * @throws TooManyScheduleIntervals
      * @throws InvalidWeekday
      * @throws InvalidTimeOfDay
      */
@@ -79,6 +82,10 @@ final readonly class ReplaceStaffMemberScheduleInput
     {
         if ($this->entries === null) {
             throw ScheduleNotSubmitted::forStaffMember($this->staffMemberId);
+        }
+
+        if (count($this->entries) > ReplaceMyScheduleInput::MAXIMUM_INTERVALS) {
+            throw TooManyScheduleIntervals::submitted(count($this->entries), ReplaceMyScheduleInput::MAXIMUM_INTERVALS);
         }
 
         foreach ($this->entries as $entry) {

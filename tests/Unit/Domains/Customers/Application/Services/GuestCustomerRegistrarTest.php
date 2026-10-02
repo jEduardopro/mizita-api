@@ -233,9 +233,21 @@ describe('the business the guest booked at', function () {
             businessId: CustomerFixtures::OTHER_BUSINESS_ID,
             email: null,
         ));
-        $this->phones->store(CustomerFixtures::CUSTOMER_ID, PhoneNumbers::mexican());
+        $this->phones->store(CustomerFixtures::CUSTOMER_ID, PhoneNumbers::mexican(), CustomerFixtures::OTHER_BUSINESS_ID);
 
         expect(($this->register)(email: null)->id)->toBe(CustomerFixtures::GENERATED_CUSTOMER_ID);
+    });
+
+    it('asks the phone book only about the holders of the business the guest booked at', function () {
+        ($this->register)(email: null);
+
+        expect($this->phones->lookupBusinessIds)->toBe([FakeBusinessContext::BUSINESS_ID]);
+    });
+
+    it('scopes the phone lookup to whichever business the caller named', function () {
+        $this->registrar->register(CustomerFixtures::OTHER_BUSINESS_ID, CustomerFixtures::guestContact(email: null));
+
+        expect($this->phones->lookupBusinessIds)->toBe([CustomerFixtures::OTHER_BUSINESS_ID]);
     });
 
     it('asks every port about the business it was handed and about no other', function () {
@@ -391,24 +403,39 @@ describe('the address a guest typed', function () {
                 ->and($data->address?->street)->toBe(CustomerFixtures::STREET);
         });
 
-        it('fills in the address a customer on file never had', function () {
+        it('never writes an address onto a customer the email matched who had none', function () {
             $data = ($this->register)(address: CustomerFixtures::guestAddress(street: 'Calle Falsa 742'));
 
-            expect($this->addresses->replacements)->toHaveCount(1)
-                ->and($this->addresses->replacements[0]['customerId'])->toBe(CustomerFixtures::CUSTOMER_ID)
-                ->and($this->addresses->replacements[0]['address']->street)->toBe('Calle Falsa 742')
-                ->and($data->address?->street)->toBe('Calle Falsa 742')
+            expect($this->addresses->calls)->toBe([])
+                ->and($data->id)->toBe(CustomerFixtures::CUSTOMER_ID)
+                ->and($data->address)->toBeNull()
                 ->and($this->customers->saved)->toBe([]);
         });
 
-        it('fills in the address of a customer the phone matched', function () {
+        it('never writes an address onto a customer the phone matched who had none', function () {
             $this->customers->store(CustomerFixtures::customer(id: CustomerFixtures::SECOND_CUSTOMER_ID, email: null));
             $this->phones->store(CustomerFixtures::SECOND_CUSTOMER_ID, PhoneNumbers::mexican());
 
-            ($this->register)(email: null, address: CustomerFixtures::guestAddress());
+            $data = ($this->register)(email: null, address: CustomerFixtures::guestAddress());
 
-            expect($this->addresses->replacements)->toHaveCount(1)
-                ->and($this->addresses->replacements[0]['customerId'])->toBe(CustomerFixtures::SECOND_CUSTOMER_ID);
+            expect($data->id)->toBe(CustomerFixtures::SECOND_CUSTOMER_ID)
+                ->and($this->addresses->calls)->toBe([])
+                ->and($data->address)->toBeNull();
+        });
+
+        it('writes nothing at all through any port when it matched somebody', function () {
+            ($this->register)(
+                name: 'Somebody Else',
+                phone: CustomerFixtures::phoneInput(countryCode: 'US', nationalNumber: PhoneNumbers::US_NATIONAL_NUMBER),
+                notes: 'Typed by a stranger.',
+                address: CustomerFixtures::guestAddress(),
+            );
+
+            expect($this->customers->saved)->toBe([])
+                ->and($this->phones->replacements)->toBe([])
+                ->and($this->phones->removals)->toBe([])
+                ->and($this->addresses->calls)->toBe([])
+                ->and($this->transactions->runs())->toBe(0);
         });
 
         it('touches no address when the guest typed none', function () {

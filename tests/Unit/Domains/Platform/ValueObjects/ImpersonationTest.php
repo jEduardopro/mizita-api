@@ -2,18 +2,23 @@
 
 declare(strict_types=1);
 
+use App\Domains\Platform\Exceptions\ImpersonationConfinedToBusiness;
 use App\Domains\Platform\ValueObjects\Impersonation;
+use App\Shared\Contracts\DomainFailure;
+use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\Platform\ImpersonationFixtures;
 
 describe('beginning an impersonation', function () {
-    it('carries the admin, the owner account and the business it was begun for', function () {
+    it('carries its audit id, the admin, the owner account and the business it was begun for', function () {
         $impersonation = Impersonation::begin(
+            ImpersonationFixtures::IMPERSONATION_ID,
             ImpersonationFixtures::ADMIN_ID,
             ImpersonationFixtures::owner(),
             ImpersonationFixtures::now(),
         );
 
-        expect($impersonation->adminId)->toBe(ImpersonationFixtures::ADMIN_ID)
+        expect($impersonation->id)->toBe(ImpersonationFixtures::IMPERSONATION_ID)
+            ->and($impersonation->adminId)->toBe(ImpersonationFixtures::ADMIN_ID)
             ->and($impersonation->accountId)->toBe(ImpersonationFixtures::ACCOUNT_ID)
             ->and($impersonation->businessId)->toBe(ImpersonationFixtures::BUSINESS_ID)
             ->and($impersonation->businessName)->toBe(ImpersonationFixtures::BUSINESS_NAME)
@@ -121,6 +126,7 @@ describe('restoring from the session', function () {
         $begun = ImpersonationFixtures::begun();
 
         $restored = Impersonation::restore(
+            id: $begun->id,
             adminId: $begun->adminId,
             accountId: $begun->accountId,
             businessId: $begun->businessId,
@@ -135,6 +141,7 @@ describe('restoring from the session', function () {
 
     it('keeps the stored expiry instead of recomputing it from the start', function () {
         $restored = Impersonation::restore(
+            id: ImpersonationFixtures::IMPERSONATION_ID,
             adminId: ImpersonationFixtures::ADMIN_ID,
             accountId: ImpersonationFixtures::ACCOUNT_ID,
             businessId: ImpersonationFixtures::BUSINESS_ID,
@@ -147,4 +154,79 @@ describe('restoring from the session', function () {
         expect($restored->expiresAt)->toEqual(new DateTimeImmutable('2026-09-25T15:05:00+00:00'))
             ->and($restored->isExpiredAt(new DateTimeImmutable('2026-09-25T15:05:00+00:00')))->toBeTrue();
     });
+});
+
+describe('the business it may operate', function () {
+    beforeEach(function () {
+        $this->impersonation = ImpersonationFixtures::begun();
+    });
+
+    it('operates the business it was begun for when none is requested', function () {
+        expect($this->impersonation->businessToOperate(null))->toBe(ImpersonationFixtures::BUSINESS_ID);
+    });
+
+    it('operates the business it was begun for when that same business is requested', function () {
+        expect($this->impersonation->businessToOperate(ImpersonationFixtures::BUSINESS_ID))->toBe(ImpersonationFixtures::BUSINESS_ID);
+    });
+
+    it('refuses any other business the owner could otherwise switch to', function (string $requestedBusinessId) {
+        expect(fn () => $this->impersonation->businessToOperate($requestedBusinessId))
+            ->toThrow(ImpersonationConfinedToBusiness::class);
+    })->with([
+        'another business uuid' => [ImpersonationFixtures::OTHER_BUSINESS_ID],
+        'an empty header' => [''],
+        'an int primary key' => ['42'],
+        'the same uuid with a trailing space' => [ImpersonationFixtures::BUSINESS_ID.' '],
+    ]);
+
+    it('refuses as a forbidden business, the same refusal a missing membership gets', function () {
+        try {
+            $this->impersonation->businessToOperate(ImpersonationFixtures::OTHER_BUSINESS_ID);
+        } catch (ImpersonationConfinedToBusiness $refusal) {
+            expect($refusal)->toBeInstanceOf(DomainFailure::class)
+                ->and($refusal->errorCode())->toBe('business_not_accessible')
+                ->and($refusal->kind())->toBe(DomainFailureKind::Forbidden);
+
+            return;
+        }
+
+        test()->fail('Another business was operated while impersonating.');
+    });
+});
+
+describe('the instant it ended', function () {
+    beforeEach(function () {
+        $this->impersonation = ImpersonationFixtures::begun();
+        $this->expiresAt = new DateTimeImmutable(ImpersonationFixtures::EXPIRES_AT);
+    });
+
+    it('ended when it was stopped, while the hour had not run out', function (string $stoppedAt) {
+        expect($this->impersonation->endedAt(new DateTimeImmutable($stoppedAt)))->toEqual(new DateTimeImmutable($stoppedAt));
+    })->with([
+        'the moment it began' => [ImpersonationFixtures::NOW],
+        'ten minutes in' => ['2026-09-25T15:10:00+00:00'],
+        'one second before it expires' => ['2026-09-25T15:59:59+00:00'],
+    ]);
+
+    it('ended at its expiry when it was stopped after the hour ran out', function (string $stoppedAt) {
+        expect($this->impersonation->endedAt(new DateTimeImmutable($stoppedAt)))->toEqual($this->expiresAt);
+    })->with([
+        'exactly at the expiry' => [ImpersonationFixtures::EXPIRES_AT],
+        'one second after the expiry' => ['2026-09-25T16:00:01+00:00'],
+        'the next day' => ['2026-09-26T09:00:00+00:00'],
+    ]);
+
+    it('compares instants, not wall clocks, on a fall back day', function (string $stoppedAt, string $expectedEnd) {
+        $begunInMadrid = ImpersonationFixtures::begun(
+            (new DateTimeImmutable('2026-10-25T00:30:00+00:00'))->setTimezone(new DateTimeZone('Europe/Madrid')),
+        );
+
+        $stoppedInMadrid = (new DateTimeImmutable($stoppedAt))->setTimezone(new DateTimeZone('Europe/Madrid'));
+
+        expect($begunInMadrid->endedAt($stoppedInMadrid)->getTimestamp())
+            ->toBe((new DateTimeImmutable($expectedEnd))->getTimestamp());
+    })->with([
+        'stopped at 02:15 local in the repeated hour, earlier on the wall than the 02:30 start' => ['2026-10-25T01:15:00+00:00', '2026-10-25T01:15:00+00:00'],
+        'stopped at 02:31 local in the repeated hour, a minute past the start on the wall' => ['2026-10-25T01:31:00+00:00', '2026-10-25T01:30:00+00:00'],
+    ]);
 });

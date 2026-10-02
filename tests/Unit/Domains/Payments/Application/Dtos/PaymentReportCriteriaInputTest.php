@@ -117,6 +117,7 @@ describe('validating', function () {
         expect(fn () => PaymentReportCriteriaInput::fromRequest($payload)->validate())->not->toThrow(Throwable::class);
     })->with([
         'the first page' => [['page' => PaymentReportCriteriaInput::FIRST_PAGE]],
+        'the deepest page' => [['page' => Pagination::MAXIMUM_PAGE]],
         'a page of one row' => [['per_page' => PaymentReportCriteriaInput::MINIMUM_PER_PAGE]],
         'the largest page' => [['per_page' => Pagination::MAXIMUM_PER_PAGE]],
         'as many customers as it filters by' => [['customer_ids' => PaymentReportFixtures::customerIds(PaymentReportCriteriaInput::MAXIMUM_CUSTOMER_FILTER_SIZE)]],
@@ -181,7 +182,18 @@ describe('validating', function () {
         'only a to date' => [['to' => '2026-03-31'], 'needs both a from and a to date'],
         'a from date and a blank to date' => [['from' => '2026-03-01', 'to' => '   '], 'needs both a from and a to date'],
         'a reversed period' => [['from' => '2026-03-31', 'to' => '2026-03-01'], 'got [2026-03-31] to [2026-03-01]'],
+        'a period wider than five years' => [['from' => '2020-01-01', 'to' => '2026-03-31'], 'may span at most [5] years'],
     ]);
+
+    it('accepts a period of exactly five years', function () {
+        expect(fn () => PaymentReportCriteriaInput::fromRequest(['from' => '2021-03-31', 'to' => '2026-03-31'])->validate())
+            ->not->toThrow(Throwable::class);
+    });
+
+    it('refuses a page past the deepest one the form request lets through', function () {
+        expect(fn () => PaymentReportCriteriaInput::fromRequest(['page' => Pagination::MAXIMUM_PAGE + 1])->validate())
+            ->toThrow(InvalidPaymentReportFilter::class, 'The page [10001]');
+    });
 
     it('refuses a single malformed bound as incomplete before reading it', function () {
         expect(fn () => PaymentReportCriteriaInput::fromRequest(['from' => 'yesterday'])->validate())

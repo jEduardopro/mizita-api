@@ -85,7 +85,6 @@ describe('a visitor booking from the public page', function () {
         expect($confirmation)->toBeInstanceOf(PublicGuestBookingConfirmation::class)
             ->and($confirmation->booking)->toBeInstanceOf(PublicGuestBooking::class)
             ->and($confirmation->booking->referenceCode)->toBe(PublicCatalogFixtures::REFERENCE_CODE)
-            ->and($confirmation->booking->customerName)->toBe(PublicCatalogFixtures::GUEST_NAME)
             ->and($confirmation->booking->status)->toBe(PublicBookingStatus::Booked)
             ->and($confirmation->booking->durationMinutes)->toBe(45)
             ->and($confirmation->manageToken)->toBe(PublicCatalogFixtures::MANAGE_TOKEN);
@@ -303,7 +302,6 @@ describe('what the confirmation may not carry', function () {
 
         expect($fields)->toBe([
             'referenceCode',
-            'customerName',
             'serviceName',
             'staffMemberName',
             'startsAt',
@@ -318,6 +316,7 @@ describe('what the confirmation may not carry', function () {
             ->and($fields)->not->toContain('businessId')
             ->and($fields)->not->toContain('customerId')
             ->and($fields)->not->toContain('appointmentId')
+            ->and($fields)->not->toContain('customerName')
             ->and($fields)->not->toContain('customerEmail')
             ->and($fields)->not->toContain('notes');
     });

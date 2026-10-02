@@ -20,7 +20,10 @@ use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Illuminate\Contracts\Events\Dispatcher;
+use Tests\Support\Accounts\FakeAccountPasskeys;
+use Tests\Support\Accounts\FakeAccountSessions;
 use Tests\Support\Accounts\FakeSecondFactorVerifier;
+use Tests\Support\Accounts\FakeTemporaryPasswordVault;
 use Tests\Support\Accounts\GoogleFixtures;
 use Tests\Support\FakeClock;
 use Tests\Support\FakeTransactionManager;
@@ -38,6 +41,9 @@ beforeEach(function () {
         new AuthenticateWithGoogle(
             $this->accounts,
             $this->socialIdentities,
+            new FakeTemporaryPasswordVault,
+            new FakeAccountPasskeys,
+            new FakeAccountSessions,
             new FixedIdGenerator(GoogleFixtures::GENERATED_ACCOUNT_ID, GoogleFixtures::GENERATED_IDENTITY_ID),
             new FakeClock(GoogleFixtures::now()),
             new FakeTransactionManager,

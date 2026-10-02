@@ -8,8 +8,10 @@ use App\Domains\Staff\Exceptions\InvalidTeamLevel;
 use App\Domains\Staff\Exceptions\OwnerCannotBeRemoved;
 use App\Domains\Staff\Exceptions\OwnerLevelIsFixed;
 use App\Domains\Staff\Exceptions\TeamInvitationNotPending;
+use App\Domains\Staff\Exceptions\TemporaryPasswordManagedElsewhere;
 use App\Domains\Staff\Exceptions\TemporaryPasswordUnavailable;
 use App\Domains\Staff\ValueObjects\AccessTransition;
+use App\Domains\Staff\ValueObjects\AccountSharing;
 use App\Domains\Staff\ValueObjects\RemovalBlocker;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use Tests\Support\Staff\StaffFixtures;
@@ -255,6 +257,58 @@ describe('a temporary password an owner may copy', function () {
         'the owner' => [StaffRole::Owner, true],
         'the owner with a password' => [StaffRole::Owner, false],
     ]);
+});
+
+describe('a temporary password this business may manage', function () {
+    it('may be managed only for a member given access whose account no other business uses', function (StaffRole $role, AccountSharing $sharing, bool $manageable) {
+        expect(staffMemberWithRole($role)->mayManageTemporaryPassword($sharing))->toBe($manageable);
+    })->with([
+        'staff, exclusive' => [StaffRole::Member, AccountSharing::ExclusiveToBusiness, true],
+        'staff, shared' => [StaffRole::Member, AccountSharing::SharedWithOtherBusinesses, false],
+        'the owner, exclusive' => [StaffRole::Owner, AccountSharing::ExclusiveToBusiness, true],
+        'the owner, shared' => [StaffRole::Owner, AccountSharing::SharedWithOtherBusinesses, false],
+        'no access, exclusive' => [StaffRole::NoAccess, AccountSharing::ExclusiveToBusiness, false],
+        'no access, shared' => [StaffRole::NoAccess, AccountSharing::SharedWithOtherBusinesses, false],
+    ]);
+
+    it('lets the password of a member with access and an exclusive account be managed', function (StaffRole $role) {
+        expect(fn () => staffMemberWithRole($role)->ensureTemporaryPasswordManageable(AccountSharing::ExclusiveToBusiness))
+            ->not->toThrow(Throwable::class);
+    })->with([
+        'staff' => StaffRole::Member,
+        'the owner' => StaffRole::Owner,
+    ]);
+
+    it('refuses to manage the password of an account other businesses use, or of a member with no access', function (StaffRole $role, AccountSharing $sharing) {
+        expect(fn () => staffMemberWithRole($role)->ensureTemporaryPasswordManageable($sharing))
+            ->toThrow(TemporaryPasswordManagedElsewhere::class);
+    })->with([
+        'staff, shared' => [StaffRole::Member, AccountSharing::SharedWithOtherBusinesses],
+        'the owner, shared' => [StaffRole::Owner, AccountSharing::SharedWithOtherBusinesses],
+        'no access, exclusive' => [StaffRole::NoAccess, AccountSharing::ExclusiveToBusiness],
+        'no access, shared' => [StaffRole::NoAccess, AccountSharing::SharedWithOtherBusinesses],
+    ]);
+
+    it('counts an invitation as manageable only when it is pending and the account is exclusive', function (StaffRole $role, bool $awaitingPasswordChange, AccountSharing $sharing, bool $manageable) {
+        $account = StaffFixtures::account(id: STAFF_ACCOUNT_ID, awaitingPasswordChange: $awaitingPasswordChange);
+
+        expect(staffMemberWithRole($role)->hasManageablePendingInvitation($account, $sharing))->toBe($manageable);
+    })->with([
+        'pending staff, exclusive' => [StaffRole::Member, true, AccountSharing::ExclusiveToBusiness, true],
+        'pending staff, shared' => [StaffRole::Member, true, AccountSharing::SharedWithOtherBusinesses, false],
+        'staff who chose a password, exclusive' => [StaffRole::Member, false, AccountSharing::ExclusiveToBusiness, false],
+        'staff who chose a password, shared' => [StaffRole::Member, false, AccountSharing::SharedWithOtherBusinesses, false],
+        'no access awaiting a change, exclusive' => [StaffRole::NoAccess, true, AccountSharing::ExclusiveToBusiness, false],
+        'the owner awaiting a change, exclusive' => [StaffRole::Owner, true, AccountSharing::ExclusiveToBusiness, false],
+    ]);
+
+    it('keeps the plain pending invitation unaware of sharing, so only the manageable one hides it', function () {
+        $member = staffMemberWithRole(StaffRole::Member);
+        $account = StaffFixtures::account(id: STAFF_ACCOUNT_ID, awaitingPasswordChange: true);
+
+        expect($member->hasPendingInvitation($account))->toBeTrue()
+            ->and($member->hasManageablePendingInvitation($account, AccountSharing::SharedWithOtherBusinesses))->toBeFalse();
+    });
 });
 
 describe('the invitation a member is owed', function () {

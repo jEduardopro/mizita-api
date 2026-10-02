@@ -158,6 +158,12 @@ describe('the owner logout while impersonating', function () {
     it('keeps the admin signed in', function () {
         expect($this->harness->admins->check())->toBeTrue();
     });
+
+    it('closes the audit row at the instant of the logout', function () {
+        expect($this->harness->auditTrail->ended)->toEqual([
+            ['impersonationId' => ImpersonationFixtures::IMPERSONATION_ID, 'endedAt' => new DateTimeImmutable(ENFORCE_TEN_MINUTES_IN)],
+        ]);
+    });
 });
 
 describe('an impersonation that no longer holds', function () {
@@ -207,6 +213,27 @@ describe('an impersonation that no longer holds', function () {
         expect($harness->admins->check())->toBeTrue()
             ->and($harness->businessSelection->forgotten)->toBe([ImpersonationFixtures::ACCOUNT_ID]);
     });
+
+    it('closes the audit row at the expiry, not at the request that noticed it ran out', function () {
+        $harness = impersonatingOwner('/calendar', 'GET', ENFORCE_INERTIA_HEADERS)
+            ->lastActiveAt(new DateTimeImmutable(ENFORCE_TEN_MINUTES_BEFORE_EXPIRY));
+
+        $harness->enforceImpersonation(new FakeClock(new DateTimeImmutable('2026-09-25T16:10:00+00:00')))
+            ->handle($harness->request, $this->next);
+
+        expect($harness->auditTrail->ended)->toEqual([
+            ['impersonationId' => ImpersonationFixtures::IMPERSONATION_ID, 'endedAt' => new DateTimeImmutable(ImpersonationFixtures::EXPIRES_AT)],
+        ]);
+    });
+
+    it('closes no audit row for a stored impersonation it cannot read', function () {
+        $harness = impersonatingOwner('/calendar', 'GET', ENFORCE_INERTIA_HEADERS)
+            ->holdingImpersonationPayload(['admin_uuid' => ImpersonationFixtures::ADMIN_ID]);
+
+        $harness->enforceImpersonation($this->clock)->handle($harness->request, $this->next);
+
+        expect($harness->auditTrail->ended)->toBe([]);
+    });
 });
 
 describe('an idle admin behind the impersonation', function () {
@@ -223,6 +250,17 @@ describe('an idle admin behind the impersonation', function () {
             ->and($harness->holdsImpersonation())->toBeFalse()
             ->and($harness->session->has(PlatformActivity::SESSION_KEY))->toBeFalse()
             ->and($this->ranTheRestOfTheStack)->toBeFalse();
+    });
+
+    it('closes the audit row when the idle admin is signed out', function () {
+        $harness = impersonatingOwner('/calendar', 'GET', ENFORCE_INERTIA_HEADERS)
+            ->lastActiveAt(new DateTimeImmutable('2026-09-25T14:39:59+00:00'));
+
+        $harness->enforceImpersonation($this->clock)->handle($harness->request, $this->next);
+
+        expect($harness->auditTrail->ended)->toEqual([
+            ['impersonationId' => ImpersonationFixtures::IMPERSONATION_ID, 'endedAt' => new DateTimeImmutable(ENFORCE_TEN_MINUTES_IN)],
+        ]);
     });
 
     it('refuses an api request as an expired admin session', function () {

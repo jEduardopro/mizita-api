@@ -6,6 +6,7 @@ namespace Tests\Support\Accounts;
 
 use App\Domains\Accounts\Contracts\TemporaryPasswordVault;
 use SensitiveParameter;
+use Tests\Support\FakeTransactionManager;
 
 final class FakeTemporaryPasswordVault implements TemporaryPasswordVault
 {
@@ -29,6 +30,16 @@ final class FakeTemporaryPasswordVault implements TemporaryPasswordVault
      */
     public array $batchReads = [];
 
+    /**
+     * @var list<bool>
+     */
+    public array $discardedInsideTransaction = [];
+
+    public function __construct(
+        public readonly AccountJournal $journal = new AccountJournal,
+        private readonly ?FakeTransactionManager $transactions = null,
+    ) {}
+
     public function holds(string $accountId, string $temporaryPassword): self
     {
         $this->temporaryPasswords[$accountId] = $temporaryPassword;
@@ -49,7 +60,9 @@ final class FakeTemporaryPasswordVault implements TemporaryPasswordVault
 
     public function discard(string $accountId): void
     {
+        $this->journal->record('temporaryPasswords.discard');
         $this->discarded[] = $accountId;
+        $this->discardedInsideTransaction[] = $this->transactions?->isRunning() ?? false;
         unset($this->temporaryPasswords[$accountId]);
     }
 

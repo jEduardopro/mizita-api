@@ -12,11 +12,13 @@ use App\Domains\Staff\Application\Presenters\TeamMemberPresenter;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
 use App\Domains\Staff\Contracts\StaffProfileRepository;
 use App\Domains\Staff\Contracts\TeamAccountProvisioner;
+use App\Domains\Staff\Contracts\TeamAccountSharing;
 use App\Domains\Staff\Contracts\TeamAllowance;
 use App\Domains\Staff\Contracts\TeamRoster;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
 use App\Domains\Staff\Events\TeamMemberInvited;
+use App\Domains\Staff\Exceptions\StaffMemberNotFound;
 use App\Domains\Staff\Exceptions\TeamMemberAlreadyExists;
 use App\Domains\Staff\Exceptions\TeamRequiresCompletePlan;
 use App\Shared\Application\UseCaseResponse;
@@ -35,6 +37,7 @@ final class InviteTeamMembers
         private readonly StaffProfileRepository $profiles,
         private readonly TeamRoster $roster,
         private readonly TeamAccountProvisioner $accounts,
+        private readonly TeamAccountSharing $sharing,
         private readonly TeamAllowance $allowance,
         private readonly TeamMemberPresenter $presenter,
         private readonly BusinessContext $business,
@@ -130,7 +133,24 @@ final class InviteTeamMembers
             now: $now,
         ));
 
-        return new InvitedTeamMember($member, $member->invitationFor($account->temporaryPassword));
+        return new InvitedTeamMember(
+            $member,
+            $member->invitationFor($account->temporaryPassword ?? $this->temporaryPasswordFor($member)),
+        );
+    }
+
+    /**
+     * @throws StaffMemberNotFound
+     */
+    private function temporaryPasswordFor(StaffMember $member): ?string
+    {
+        $sharing = $this->sharing->sharingOf($member->accountId, $member->businessId);
+
+        if (! $member->mayManageTemporaryPassword($sharing)) {
+            return null;
+        }
+
+        return $this->accounts->issueTemporaryPassword($member->accountId);
     }
 
     /**

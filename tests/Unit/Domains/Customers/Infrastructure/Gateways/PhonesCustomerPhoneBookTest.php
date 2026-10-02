@@ -21,7 +21,9 @@ const CUSTOMER_PHONE_BOOK_CUSTOMER_ID = '01930000-0000-7000-8000-0000000000c1';
 
 const CUSTOMER_PHONE_BOOK_SECOND_CUSTOMER_ID = '01930000-0000-7000-8000-0000000000c2';
 
-const CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_CUSTOMER_ID = '01930000-0000-7000-8000-0000000000c9';
+const CUSTOMER_PHONE_BOOK_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b1';
+
+const CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_ID = '01930000-0000-7000-8000-0000000000b2';
 
 const CUSTOMER_PHONE_BOOK_PHONE_ID = '01930000-0000-7000-8000-0000000000e1';
 
@@ -222,38 +224,71 @@ describe('deleting the number a customer filed', function () {
     });
 });
 
-describe('looking a number up across every business', function () {
-    it('hands back every customer holding the number, whatever business they belong to', function () {
+describe('looking a number up inside one business', function () {
+    it('hands back the customers of the business holding the number', function () {
         $this->phones->shouldReceive('ownerIdsWithNumber')->once()
-            ->with(PhoneOwnerType::Customer, Mockery::type(PhoneNumber::class))
+            ->with(PhoneOwnerType::Customer, CUSTOMER_PHONE_BOOK_BUSINESS_ID, Mockery::type(PhoneNumber::class))
             ->andReturn([
                 CUSTOMER_PHONE_BOOK_CUSTOMER_ID,
-                CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_CUSTOMER_ID,
+                CUSTOMER_PHONE_BOOK_SECOND_CUSTOMER_ID,
             ]);
 
-        expect($this->phoneBook->customerIdsWithNumber(PhoneNumbers::mexican()))->toBe([
+        expect($this->phoneBook->customerIdsWithNumber(CUSTOMER_PHONE_BOOK_BUSINESS_ID, PhoneNumbers::mexican()))->toBe([
             CUSTOMER_PHONE_BOOK_CUSTOMER_ID,
-            CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_CUSTOMER_ID,
+            CUSTOMER_PHONE_BOOK_SECOND_CUSTOMER_ID,
         ]);
     });
 
-    it('hands back every customer whose number contains the fragment, whatever business they belong to', function () {
-        $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()->andReturn([
-            CUSTOMER_PHONE_BOOK_CUSTOMER_ID,
-            CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_CUSTOMER_ID,
-        ]);
+    it('hands back the customers of the business whose number contains the fragment', function () {
+        $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()
+            ->with(PhoneOwnerType::Customer, CUSTOMER_PHONE_BOOK_BUSINESS_ID, Mockery::type(PhoneNumberFragment::class))
+            ->andReturn([
+                CUSTOMER_PHONE_BOOK_CUSTOMER_ID,
+                CUSTOMER_PHONE_BOOK_SECOND_CUSTOMER_ID,
+            ]);
 
-        expect($this->phoneBook->customerIdsMatchingNumber('5512'))->toBe([
+        expect($this->phoneBook->customerIdsMatchingNumber(CUSTOMER_PHONE_BOOK_BUSINESS_ID, '5512'))->toBe([
             CUSTOMER_PHONE_BOOK_CUSTOMER_ID,
-            CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_CUSTOMER_ID,
+            CUSTOMER_PHONE_BOOK_SECOND_CUSTOMER_ID,
         ]);
     });
 
-    it('takes no business to narrow the lookup by, because the customer repository filters afterwards', function (string $method) {
+    it('narrows an exact lookup to the business it was handed and to no other', function (string $businessId) {
+        $asked = null;
+
+        $this->phones->shouldReceive('ownerIdsWithNumber')->once()
+            ->with(PhoneOwnerType::Customer, Mockery::capture($asked), Mockery::any())
+            ->andReturn([]);
+
+        $this->phoneBook->customerIdsWithNumber($businessId, PhoneNumbers::mexican());
+
+        expect($asked)->toBe($businessId);
+    })->with([
+        'the business in context' => CUSTOMER_PHONE_BOOK_BUSINESS_ID,
+        'another business' => CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_ID,
+    ]);
+
+    it('narrows a fragment search to the business it was handed and to no other', function (string $businessId) {
+        $asked = null;
+
+        $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()
+            ->with(PhoneOwnerType::Customer, Mockery::capture($asked), Mockery::any())
+            ->andReturn([]);
+
+        $this->phoneBook->customerIdsMatchingNumber($businessId, '5512');
+
+        expect($asked)->toBe($businessId);
+    })->with([
+        'the business in context' => CUSTOMER_PHONE_BOOK_BUSINESS_ID,
+        'another business' => CUSTOMER_PHONE_BOOK_OTHER_BUSINESS_ID,
+    ]);
+
+    it('declares the business as the first thing every lookup needs', function (string $method) {
         $parameters = (new ReflectionMethod(CustomerPhoneBook::class, $method))->getParameters();
 
-        expect($parameters)->toHaveCount(1)
-            ->and($parameters[0]->getName())->not->toContain('business');
+        expect($parameters)->toHaveCount(2)
+            ->and($parameters[0]->getName())->toBe('businessId')
+            ->and((string) $parameters[0]->getType())->toBe('string');
     })->with(['customerIdsWithNumber', 'customerIdsMatchingNumber']);
 
     it('carries the number itself to the repository, untouched', function () {
@@ -261,10 +296,10 @@ describe('looking a number up across every business', function () {
         $asked = null;
 
         $this->phones->shouldReceive('ownerIdsWithNumber')->once()
-            ->with(PhoneOwnerType::Customer, Mockery::capture($asked))
+            ->with(PhoneOwnerType::Customer, CUSTOMER_PHONE_BOOK_BUSINESS_ID, Mockery::capture($asked))
             ->andReturn([]);
 
-        $this->phoneBook->customerIdsWithNumber($number);
+        $this->phoneBook->customerIdsWithNumber(CUSTOMER_PHONE_BOOK_BUSINESS_ID, $number);
 
         expect($asked)->toBe($number);
     });
@@ -273,10 +308,10 @@ describe('looking a number up across every business', function () {
         $fragment = null;
 
         $this->phones->shouldReceive('ownerIdsMatchingNumber')->once()
-            ->with(PhoneOwnerType::Customer, Mockery::capture($fragment))
+            ->with(PhoneOwnerType::Customer, CUSTOMER_PHONE_BOOK_BUSINESS_ID, Mockery::capture($fragment))
             ->andReturn([]);
 
-        $this->phoneBook->customerIdsMatchingNumber($typed);
+        $this->phoneBook->customerIdsMatchingNumber(CUSTOMER_PHONE_BOOK_BUSINESS_ID, $typed);
 
         expect($fragment)->toBeInstanceOf(PhoneNumberFragment::class)
             ->and($fragment->digits)->toBe($digits);
@@ -284,23 +319,27 @@ describe('looking a number up across every business', function () {
         'plain digits' => ['5512', '5512'],
         'formatted' => ['+52 (55) 12-34', '52551234'],
         'padded' => ['  5512  ', '5512'],
+        'four digits spread by punctuation' => ['55-1-2', '5512'],
     ]);
 
-    it('matches nobody and asks nothing when the fragment carries no digit at all', function (string $typed) {
+    it('matches nobody and asks nothing when the fragment carries fewer than four digits', function (string $typed) {
         $this->phones->shouldNotReceive('ownerIdsMatchingNumber');
 
-        expect($this->phoneBook->customerIdsMatchingNumber($typed))->toBe([]);
+        expect($this->phoneBook->customerIdsMatchingNumber(CUSTOMER_PHONE_BOOK_BUSINESS_ID, $typed))->toBe([]);
     })->with([
         'empty' => '',
         'spaces' => '   ',
         'letters' => 'abc',
         'punctuation' => '+- ()',
+        'one digit' => '5',
+        'three digits' => '551',
+        'three digits among letters' => 'ada 551',
     ]);
 
-    it('hands back nobody when no customer holds that number', function () {
+    it('hands back nobody when no customer of the business holds that number', function () {
         $this->phones->shouldReceive('ownerIdsWithNumber')->once()->andReturn([]);
 
-        expect($this->phoneBook->customerIdsWithNumber(PhoneNumbers::mexican()))->toBe([]);
+        expect($this->phoneBook->customerIdsWithNumber(CUSTOMER_PHONE_BOOK_BUSINESS_ID, PhoneNumbers::mexican()))->toBe([]);
     });
 });
 

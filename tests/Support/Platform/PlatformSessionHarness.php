@@ -47,6 +47,8 @@ final class PlatformSessionHarness
 
     public readonly SessionImpersonationSession $impersonations;
 
+    public readonly RecordingImpersonationAuditTrail $auditTrail;
+
     /**
      * @param  array<string, string>  $headers
      */
@@ -70,6 +72,7 @@ final class PlatformSessionHarness
         $this->activity = new PlatformActivity($this->session);
         $this->businessSelection = new FakeBusinessSelection;
         $this->impersonations = new SessionImpersonationSession($this->request, $this->guards, $this->businessSelection);
+        $this->auditTrail = new RecordingImpersonationAuditTrail;
     }
 
     public function signInAdmin(string $adminId = ImpersonationFixtures::ADMIN_ID): self
@@ -101,6 +104,7 @@ final class PlatformSessionHarness
     public function impersonating(Impersonation $impersonation): self
     {
         return $this->holdingImpersonationPayload([
+            'impersonation_uuid' => $impersonation->id,
             'admin_uuid' => $impersonation->adminId,
             'account_uuid' => $impersonation->accountId,
             'business_uuid' => $impersonation->businessId,
@@ -134,7 +138,7 @@ final class PlatformSessionHarness
 
     public function enforceImpersonation(Clock $clock): EnforceImpersonation
     {
-        $stopImpersonation = new StopImpersonation($this->impersonations);
+        $stopImpersonation = new StopImpersonation($this->impersonations, $this->auditTrail, $clock);
 
         return new EnforceImpersonation(
             $this->impersonations,
@@ -149,7 +153,7 @@ final class PlatformSessionHarness
 
     public function requirePlatformSession(Clock $clock): RequirePlatformSession
     {
-        $stopImpersonation = new StopImpersonation($this->impersonations);
+        $stopImpersonation = new StopImpersonation($this->impersonations, $this->auditTrail, $clock);
 
         return new RequirePlatformSession(
             $this->guards,

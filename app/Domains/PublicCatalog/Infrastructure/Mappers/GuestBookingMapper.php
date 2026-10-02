@@ -14,7 +14,6 @@ final class GuestBookingMapper
     {
         return new PublicGuestBooking(
             referenceCode: $booking->referenceCode,
-            customerName: $booking->customerName,
             serviceName: $booking->serviceName,
             staffMemberName: $booking->staffMemberName,
             startsAt: $booking->startsAt,

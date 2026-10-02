@@ -10,7 +10,6 @@ final readonly class PublicGuestBooking
 {
     public function __construct(
         public string $referenceCode,
-        public string $customerName,
         public string $serviceName,
         public string $staffMemberName,
         public DateTimeImmutable $startsAt,

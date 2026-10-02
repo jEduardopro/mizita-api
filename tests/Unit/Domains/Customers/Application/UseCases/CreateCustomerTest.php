@@ -277,7 +277,7 @@ describe('the contacts that must stay unique', function () {
             businessId: CustomerFixtures::OTHER_BUSINESS_ID,
             email: 'grace@example.com',
         ));
-        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican());
+        $this->phones->store(CustomerFixtures::FOREIGN_CUSTOMER_ID, PhoneNumbers::mexican(), CustomerFixtures::OTHER_BUSINESS_ID);
 
         expect(($this->create)()->succeeded())->toBeTrue();
     });

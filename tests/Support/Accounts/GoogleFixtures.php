@@ -8,7 +8,9 @@ use App\Domains\Accounts\Application\Dtos\AuthenticateWithGoogleInput;
 use App\Domains\Accounts\Entities\Account;
 use App\Domains\Accounts\Entities\SocialIdentity;
 use App\Domains\Accounts\ValueObjects\GoogleIdentity;
+use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
+use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
 use DateTimeImmutable;
 
 final class GoogleFixtures
@@ -60,8 +62,18 @@ final class GoogleFixtures
         string $name = self::NAME,
         string $email = self::EMAIL,
         ?DateTimeImmutable $emailVerifiedAt = null,
+        PasswordStatus $passwordStatus = PasswordStatus::Absent,
+        TwoFactorStatus $twoFactorStatus = TwoFactorStatus::Disabled,
     ): Account {
-        return Account::restore($id, $name, $email, $emailVerifiedAt, new DateTimeImmutable('2025-05-01T08:30:00+00:00'));
+        return Account::restore(
+            $id,
+            $name,
+            $email,
+            $emailVerifiedAt,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            $passwordStatus,
+            twoFactorStatus: $twoFactorStatus,
+        );
     }
 
     public static function storedIdentity(string $accountId = self::EXISTING_ACCOUNT_ID): SocialIdentity

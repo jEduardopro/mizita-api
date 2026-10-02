@@ -281,6 +281,88 @@ describe('the two-factor status', function () {
     });
 });
 
+describe('the access an unproven holder loses when Google claims the account', function () {
+    beforeEach(function () {
+        $this->claimedAt = new DateTimeImmutable('2026-01-01T12:00:00+00:00');
+    });
+
+    it('clears the password, the change flag and every two-factor column', function () {
+        $account = $this->mapper->toEntity(storedAccountUser([
+            'password' => '$2y$04$stored.hash',
+            'must_change_password' => false,
+            'two_factor_secret' => 'encrypted-secret',
+            'two_factor_recovery_codes' => 'encrypted-codes',
+            'two_factor_confirmed_at' => new DateTimeImmutable('2025-06-01T10:00:00+00:00'),
+        ]), []);
+        $account->claimWithVerifiedIdentity($this->claimedAt);
+
+        expect($this->mapper->toAttributes($account))->toBe([
+            'uuid' => '01930000-0000-7000-8000-0000000000c1',
+            'name' => 'Ada',
+            'email' => 'ada@example.com',
+            'email_verified_at' => $this->claimedAt,
+            'deleted_at' => null,
+            'password' => null,
+            'must_change_password' => false,
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+        ]);
+    });
+
+    it('writes the clearing as explicit nulls, so a partial update cannot leave the old values behind', function (string $column) {
+        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable, PasswordStatus::Chosen);
+        $account->claimWithVerifiedIdentity($this->claimedAt);
+
+        expect($this->mapper->toAttributes($account))->toHaveKey($column)
+            ->and($this->mapper->toAttributes($account)[$column])->toBeNull();
+    })->with(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at']);
+
+    it('clears an invited temporary password rather than writing its hash', function () {
+        $account = Account::inviteWithTemporaryPassword('account-uuid', 'Ada', 'ada@example.com', 'temporary-hash', new DateTimeImmutable);
+        $account->claimWithVerifiedIdentity($this->claimedAt);
+
+        $attributes = $this->mapper->toAttributes($account);
+
+        expect($attributes['password'])->toBeNull()
+            ->and($attributes['must_change_password'])->toBeFalse();
+    });
+
+    it('clears them even for an account that held no password, because two-factor may still be stored', function () {
+        $account = $this->mapper->toEntity(storedAccountUser([
+            'password' => null,
+            'two_factor_secret' => 'encrypted-secret',
+            'two_factor_confirmed_at' => new DateTimeImmutable('2025-06-01T10:00:00+00:00'),
+        ]), []);
+        $account->claimWithVerifiedIdentity($this->claimedAt);
+
+        expect($this->mapper->toAttributes($account))
+            ->toHaveKey('password', null)
+            ->toHaveKey('two_factor_secret', null)
+            ->toHaveKey('two_factor_confirmed_at', null);
+    });
+
+    it('writes none of those columns when the owner had already proven the address', function () {
+        $account = $this->mapper->toEntity(storedAccountUser([
+            'email_verified_at' => new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            'password' => '$2y$04$stored.hash',
+            'two_factor_secret' => 'encrypted-secret',
+            'two_factor_confirmed_at' => new DateTimeImmutable('2025-06-01T10:00:00+00:00'),
+        ]), []);
+        $account->claimWithVerifiedIdentity($this->claimedAt);
+
+        expect(array_keys($this->mapper->toAttributes($account)))
+            ->toBe(['uuid', 'name', 'email', 'email_verified_at', 'deleted_at']);
+    });
+
+    it('writes none of those columns for a passwordless account nobody claimed', function () {
+        $account = $this->mapper->toEntity(storedAccountUser(['password' => null]), []);
+
+        expect(array_keys($this->mapper->toAttributes($account)))
+            ->toBe(['uuid', 'name', 'email', 'email_verified_at', 'deleted_at']);
+    });
+});
+
 it('preserves accents and case exactly as the entity holds them', function () {
     $account = Account::restore('account-uuid', 'José Álvarez', 'jose@example.com', null, new DateTimeImmutable);
 

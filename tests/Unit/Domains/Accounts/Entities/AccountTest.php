@@ -12,6 +12,7 @@ use App\Domains\Accounts\Exceptions\AccountSignsInWithSocialIdentity;
 use App\Domains\Accounts\Exceptions\InvalidAccountEmail;
 use App\Domains\Accounts\Exceptions\InvalidAccountName;
 use App\Domains\Accounts\ValueObjects\DeletionGracePeriod;
+use App\Domains\Accounts\ValueObjects\IdentityClaim;
 use App\Domains\Accounts\ValueObjects\PasswordStatus;
 use App\Domains\Accounts\ValueObjects\SocialProvider;
 use App\Domains\Accounts\ValueObjects\TwoFactorStatus;
@@ -159,36 +160,197 @@ describe('restore', function () {
     ]);
 });
 
-describe('verifyEmail', function () {
+describe('claimWithVerifiedIdentity on an account nobody had proven', function () {
+    beforeEach(function () {
+        $this->unproven = fn (
+            PasswordStatus $password = PasswordStatus::Absent,
+            TwoFactorStatus $twoFactor = TwoFactorStatus::Disabled,
+        ): Account => Account::restore(
+            'account-uuid',
+            'Ada',
+            'ada@example.com',
+            null,
+            new DateTimeImmutable('2025-05-01T08:30:00+00:00'),
+            $password,
+            twoFactorStatus: $twoFactor,
+        );
+    });
+
+    it('reports that the access it held was revoked', function () {
+        expect(($this->unproven)()->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00')))
+            ->toBe(IdentityClaim::UnprovenAccessRevoked);
+    });
+
     it('records the instant control of the address was proven', function () {
-        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable);
+        $account = ($this->unproven)();
         $verifiedAt = new DateTimeImmutable('2026-03-29T03:30:00+02:00');
 
-        $account->verifyEmail($verifiedAt);
+        $account->claimWithVerifiedIdentity($verifiedAt);
 
         expect($account->emailVerifiedAt())->toEqual($verifiedAt);
     });
 
-    it('keeps the first timestamp when the email was already verified', function () {
-        $originalVerification = new DateTimeImmutable('2025-01-01T00:00:00+00:00');
-        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', $originalVerification, new DateTimeImmutable);
+    it('revokes whatever password it held', function (PasswordStatus $status) {
+        $account = ($this->unproven)($status);
 
-        $account->verifyEmail(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
 
-        expect($account->emailVerifiedAt())->toEqual($originalVerification);
+        expect($account->holdsPassword())->toBeFalse()
+            ->and($account->mustChangePassword())->toBeFalse()
+            ->and($account->issuedPasswordHash())->toBeNull();
+    })->with([
+        'no password' => PasswordStatus::Absent,
+        'a temporary password' => PasswordStatus::Temporary,
+        'a chosen password' => PasswordStatus::Chosen,
+    ]);
+
+    it('drops the temporary password it was invited with, hash included', function () {
+        $account = Account::inviteWithTemporaryPassword('account-uuid', 'Ada', 'ada@example.com', 'temporary-hash', new DateTimeImmutable);
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->holdsPassword())->toBeFalse()
+            ->and($account->mustChangePassword())->toBeFalse()
+            ->and($account->issuedPasswordHash())->toBeNull();
     });
 
-    it('leaves the rest of the account untouched', function () {
-        $createdAt = new DateTimeImmutable('2025-05-01T08:30:00+00:00');
-        $account = Account::restore('account-uuid', 'Ada', 'ada@example.com', null, $createdAt);
+    it('turns two-factor off whatever state it was in', function (TwoFactorStatus $status) {
+        $account = ($this->unproven)(twoFactor: $status);
 
-        $account->verifyEmail(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->twoFactorStatus())->toBe(TwoFactorStatus::Disabled)
+            ->and($account->requiresSecondFactor())->toBeFalse();
+    })->with([
+        'disabled' => TwoFactorStatus::Disabled,
+        'pending confirmation' => TwoFactorStatus::Pending,
+        'enabled' => TwoFactorStatus::Enabled,
+    ]);
+
+    it('leaves the revocation pending for the next save to write', function () {
+        $account = ($this->unproven)(PasswordStatus::Chosen, TwoFactorStatus::Enabled);
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->hasPendingAccessRevocation())->toBeTrue();
+    });
+
+    it('leaves the identity, the name, the email and the creation instant untouched', function () {
+        $account = ($this->unproven)(PasswordStatus::Chosen, TwoFactorStatus::Enabled);
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
 
         expect($account->id)->toBe('account-uuid')
             ->and($account->name())->toBe('Ada')
             ->and($account->email())->toBe('ada@example.com')
-            ->and($account->createdAt)->toEqual($createdAt);
+            ->and($account->createdAt)->toEqual(new DateTimeImmutable('2025-05-01T08:30:00+00:00'))
+            ->and($account->isScheduledForDeletion())->toBeFalse();
     });
+
+    it('treats a second claim as the proven owner, keeping the first verification', function () {
+        $account = ($this->unproven)(PasswordStatus::Chosen);
+        $firstClaim = new DateTimeImmutable('2026-01-01T12:00:00+00:00');
+        $account->claimWithVerifiedIdentity($firstClaim);
+
+        $secondClaim = $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-02-01T12:00:00+00:00'));
+
+        expect($secondClaim)->toBe(IdentityClaim::ProvenOwnerKeptAccess)
+            ->and($account->emailVerifiedAt())->toEqual($firstClaim);
+    });
+});
+
+describe('claimWithVerifiedIdentity on an account whose owner already proved the address', function () {
+    beforeEach(function () {
+        $this->verifiedAt = new DateTimeImmutable('2025-01-01T00:00:00+00:00');
+        $this->proven = fn (
+            PasswordStatus $password = PasswordStatus::Absent,
+            TwoFactorStatus $twoFactor = TwoFactorStatus::Disabled,
+        ): Account => Account::restore(
+            'account-uuid',
+            'Ada',
+            'ada@example.com',
+            $this->verifiedAt,
+            new DateTimeImmutable('2024-12-01T08:30:00+00:00'),
+            $password,
+            twoFactorStatus: $twoFactor,
+        );
+    });
+
+    it('reports that the owner kept their access', function () {
+        expect(($this->proven)()->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00')))
+            ->toBe(IdentityClaim::ProvenOwnerKeptAccess);
+    });
+
+    it('keeps the first verification timestamp', function () {
+        $account = ($this->proven)();
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->emailVerifiedAt())->toEqual($this->verifiedAt);
+    });
+
+    it('keeps the password it holds', function (PasswordStatus $status, bool $holds, bool $mustChange) {
+        $account = ($this->proven)($status);
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->holdsPassword())->toBe($holds)
+            ->and($account->mustChangePassword())->toBe($mustChange);
+    })->with([
+        'no password' => [PasswordStatus::Absent, false, false],
+        'a temporary password' => [PasswordStatus::Temporary, true, true],
+        'a chosen password' => [PasswordStatus::Chosen, true, false],
+    ]);
+
+    it('keeps a temporary password issued but not yet saved', function () {
+        $account = ($this->proven)();
+        $account->issueTemporaryPassword('temporary-hash');
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->issuedPasswordHash())->toBe('temporary-hash')
+            ->and($account->mustChangePassword())->toBeTrue();
+    });
+
+    it('keeps its two-factor state', function (TwoFactorStatus $status, bool $requires) {
+        $account = ($this->proven)(twoFactor: $status);
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->twoFactorStatus())->toBe($status)
+            ->and($account->requiresSecondFactor())->toBe($requires);
+    })->with([
+        'disabled' => [TwoFactorStatus::Disabled, false],
+        'pending confirmation' => [TwoFactorStatus::Pending, false],
+        'enabled' => [TwoFactorStatus::Enabled, true],
+    ]);
+
+    it('leaves nothing pending for the next save to revoke', function () {
+        $account = ($this->proven)(PasswordStatus::Chosen, TwoFactorStatus::Enabled);
+
+        $account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->hasPendingAccessRevocation())->toBeFalse();
+    });
+
+    it('treats a freshly registered account as proven, because it was registered verified', function () {
+        $account = Account::registerWithVerifiedEmail('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable('2026-01-01T12:00:00+00:00'));
+
+        expect($account->claimWithVerifiedIdentity(new DateTimeImmutable('2026-01-02T12:00:00+00:00')))
+            ->toBe(IdentityClaim::ProvenOwnerKeptAccess)
+            ->and($account->hasPendingAccessRevocation())->toBeFalse();
+    });
+});
+
+describe('an access revocation that was never asked for', function () {
+    it('is not pending however the account was created', function (Account $account) {
+        expect($account->hasPendingAccessRevocation())->toBeFalse();
+    })->with([
+        'registered' => fn () => Account::registerWithVerifiedEmail('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable),
+        'invited with a temporary password' => fn () => Account::inviteWithTemporaryPassword('account-uuid', 'Ada', 'ada@example.com', 'temporary-hash', new DateTimeImmutable),
+        'invited without a password' => fn () => Account::inviteWithoutPassword('account-uuid', 'Ada', 'ada@example.com', new DateTimeImmutable),
+        'restored unverified' => fn () => Account::restore('account-uuid', 'Ada', 'ada@example.com', null, new DateTimeImmutable, PasswordStatus::Chosen),
+    ]);
 });
 
 describe('the name length limit', function () {

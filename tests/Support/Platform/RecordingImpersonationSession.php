@@ -6,6 +6,7 @@ namespace Tests\Support\Platform;
 
 use App\Domains\Platform\Contracts\ImpersonationSession;
 use App\Domains\Platform\ValueObjects\Impersonation;
+use Tests\Support\FakeTransactionManager;
 use Throwable;
 
 final class RecordingImpersonationSession implements ImpersonationSession
@@ -15,9 +16,27 @@ final class RecordingImpersonationSession implements ImpersonationSession
      */
     public array $started = [];
 
+    /**
+     * @var list<bool>
+     */
+    public array $startedInsideTransaction = [];
+
     public int $endings = 0;
 
+    private ?Impersonation $current = null;
+
     private ?Throwable $startRefusal = null;
+
+    public function __construct(
+        private readonly ?FakeTransactionManager $transactions = null,
+    ) {}
+
+    public function holding(Impersonation $impersonation): self
+    {
+        $this->current = $impersonation;
+
+        return $this;
+    }
 
     public function refusingToStartWith(Throwable $refusal): self
     {
@@ -33,10 +52,18 @@ final class RecordingImpersonationSession implements ImpersonationSession
         }
 
         $this->started[] = $impersonation;
+        $this->startedInsideTransaction[] = $this->transactions?->isRunning() ?? false;
+        $this->current = $impersonation;
+    }
+
+    public function current(): ?Impersonation
+    {
+        return $this->current;
     }
 
     public function end(): void
     {
         $this->endings++;
+        $this->current = null;
     }
 }

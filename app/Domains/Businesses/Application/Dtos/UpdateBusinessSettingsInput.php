@@ -12,6 +12,7 @@ use App\Domains\Businesses\Exceptions\InvalidBusinessName;
 use App\Domains\Businesses\Exceptions\InvalidBusinessSlug;
 use App\Domains\Businesses\Exceptions\InvalidBusinessTimezone;
 use App\Domains\Businesses\Exceptions\InvalidContactFieldRequirement;
+use App\Domains\Businesses\Exceptions\TooManyScheduleIntervals;
 use App\Domains\Businesses\Exceptions\UnknownIndustry;
 use App\Domains\Businesses\Exceptions\UnsupportedPhoneNumber;
 use App\Domains\Businesses\ValueObjects\BusinessLinkSnapshot;
@@ -60,12 +61,14 @@ final readonly class UpdateBusinessSettingsInput
      * @throws IncompleteBookingPolicy
      * @throws IncompleteContactFields
      * @throws InvalidContactFieldRequirement
+     * @throws TooManyScheduleIntervals
      */
     public function validate(): void
     {
         $this->brand?->validate();
         $this->contact?->validate();
         $this->location?->validate();
+        $this->schedule?->validate();
         $this->bookingPolicy?->validate();
         $this->contactFields?->validate();
     }

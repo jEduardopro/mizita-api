@@ -38,7 +38,7 @@ beforeEach(function () {
     $this->build = fn (string $now = AppointmentFixtures::NOW): ShowGuestBooking => new ShowGuestBooking(
         new GuestBookingFinder($this->appointments),
         $this->policies,
-        new GuestBookingPresenter($this->services, $this->customers, $this->staff),
+        new GuestBookingPresenter($this->services, $this->staff),
         new FakeClock(AppointmentFixtures::instant($now)),
     );
 
@@ -56,7 +56,6 @@ describe('a guest opening their booking link', function () {
 
         expect($booking)->toBeInstanceOf(GuestBookingData::class)
             ->and($booking->referenceCode)->toBe(AppointmentFixtures::REFERENCE_CODE)
-            ->and($booking->customerName)->toBe(AppointmentFixtures::CUSTOMER_NAME)
             ->and($booking->serviceName)->toBe(AppointmentFixtures::SERVICE_NAME)
             ->and($booking->staffMemberName)->toBe(AppointmentFixtures::STAFF_NAME)
             ->and($booking->startsAt)->toEqual(AppointmentFixtures::instant(AppointmentFixtures::STARTS_AT))

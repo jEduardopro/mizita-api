@@ -30,6 +30,8 @@ final class EloquentSubscriptionRepository implements SubscriptionRepository
 
     private const TIEBREAKER_COLUMN = 'id';
 
+    private const LAZY_CHUNK_SIZE = 500;
+
     public function __construct(
         private readonly SubscriptionMapper $mapper,
         private readonly BusinessTeamKey $businessKeys,
@@ -88,17 +90,22 @@ final class EloquentSubscriptionRepository implements SubscriptionRepository
     }
 
     /**
-     * @return list<Subscription>
+     * @return iterable<string>
      */
-    public function pastPaymentGrace(DateTimeImmutable $now): array
+    public function businessIdsPastPaymentGrace(DateTimeImmutable $now): iterable
     {
         $cutoff = $now->sub(new DateInterval(Subscription::PAYMENT_GRACE));
 
-        return $this->listOf(SubscriptionModel::query()
+        $models = SubscriptionModel::query()
+            ->with('business')
             ->where('status', SubscriptionStatus::PastDue->value)
             ->whereNotNull('stripe_subscription_id')
             ->where('payment_failed_at', '<=', $cutoff->format(DATE_ATOM))
-            ->orderBy('payment_failed_at'));
+            ->lazyById(self::LAZY_CHUNK_SIZE);
+
+        foreach ($models as $model) {
+            yield $model->business->uuid;
+        }
     }
 
     /**

@@ -5,12 +5,14 @@ declare(strict_types=1);
 use App\Domains\Staff\Application\Dtos\RevealedTemporaryPassword;
 use App\Domains\Staff\Application\Dtos\RevealTeamMemberTemporaryPasswordInput;
 use App\Domains\Staff\Application\UseCases\RevealTeamMemberTemporaryPassword;
+use App\Domains\Staff\Exceptions\TemporaryPasswordManagedElsewhere;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\FakeBusinessContext;
 use Tests\Support\Staff\FakeAccountDirectory;
 use Tests\Support\Staff\FakeStaffMemberRepository;
+use Tests\Support\Staff\FakeTeamAccountSharing;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
 use Tests\Support\Staff\StaffFixtures;
 
@@ -27,6 +29,7 @@ beforeEach(function () {
         StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, name: 'Grace Hopper', email: 'grace@example.com', awaitingPasswordChange: true),
         StaffFixtures::account(id: StaffFixtures::THIRD_ACCOUNT_ID, name: 'Linus Pauling', email: 'linus@example.com', awaitingPasswordChange: true),
     );
+    $this->sharing = new FakeTeamAccountSharing;
     $this->temporaryPasswords = (new FakeTeamTemporaryPasswords)
         ->holds(StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD)
         ->holds(StaffFixtures::THIRD_ACCOUNT_ID, OTHER_BUSINESS_TEMPORARY_PASSWORD);
@@ -34,6 +37,7 @@ beforeEach(function () {
     $this->build = fn (?FakeBusinessContext $business = null): RevealTeamMemberTemporaryPassword => new RevealTeamMemberTemporaryPassword(
         $this->members,
         $this->accounts,
+        $this->sharing,
         $this->temporaryPasswords,
         $business ?? new FakeBusinessContext,
     );
@@ -100,6 +104,62 @@ describe('a member with no pending invitation', function () {
         'a no access member' => [StaffFixtures::SECOND_MEMBER_ID, StaffFixtures::SECOND_ACCOUNT_ID, StaffRole::NoAccess, true],
         'the owner' => [StaffFixtures::MEMBER_ID, StaffFixtures::ACCOUNT_ID, StaffRole::Owner, true],
     ]);
+});
+
+describe('a member whose account is shared with another business', function () {
+    beforeEach(function () {
+        $this->sharing->memberOf(StaffFixtures::SECOND_ACCOUNT_ID, FakeBusinessContext::BUSINESS_ID, StaffFixtures::OTHER_BUSINESS_ID);
+    });
+
+    it('refuses to reveal the password, since it is not this business to manage', function () {
+        $response = ($this->reveal)();
+
+        expect($response->failed())->toBeTrue()
+            ->and($response->error()->code)->toBe('temporary_password_managed_elsewhere')
+            ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden)
+            ->and($response->error()->cause())->toBeInstanceOf(TemporaryPasswordManagedElsewhere::class);
+    });
+
+    it('never reads the vault when it refuses', function () {
+        ($this->reveal)();
+
+        expect($this->temporaryPasswords->reveals)->toBe([]);
+    });
+
+    it('asks about the account behind the member against the business of the context', function () {
+        ($this->reveal)();
+
+        expect($this->sharing->lookups)->toBe([['accountId' => StaffFixtures::SECOND_ACCOUNT_ID, 'businessId' => FakeBusinessContext::BUSINESS_ID]]);
+    });
+
+    it('refuses the other business just the same, so neither side can read the sign in of the other', function () {
+        $this->members->store(StaffFixtures::member(
+            id: StaffFixtures::FOURTH_MEMBER_ID,
+            accountId: StaffFixtures::SECOND_ACCOUNT_ID,
+            businessId: StaffFixtures::OTHER_BUSINESS_ID,
+            role: StaffRole::Member,
+        ));
+
+        $response = ($this->reveal)(StaffFixtures::FOURTH_MEMBER_ID, ($this->build)(new FakeBusinessContext(StaffFixtures::OTHER_BUSINESS_ID)));
+
+        expect($response->error()->code)->toBe('temporary_password_managed_elsewhere')
+            ->and($this->temporaryPasswords->reveals)->toBe([]);
+    });
+
+    it('names a password no longer pending before asking who else shares the account', function () {
+        $this->accounts = new FakeAccountDirectory(StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, awaitingPasswordChange: false));
+
+        $response = ($this->reveal)();
+
+        expect($response->error()->code)->toBe('temporary_password_unavailable')
+            ->and($this->sharing->lookups)->toBe([]);
+    });
+
+    it('still reveals the password of another member whose account belongs to that business alone', function () {
+        $revealed = ($this->reveal)(StaffFixtures::THIRD_MEMBER_ID, ($this->build)(new FakeBusinessContext(StaffFixtures::OTHER_BUSINESS_ID)))->value();
+
+        expect($revealed->temporaryPassword)->toBe(OTHER_BUSINESS_TEMPORARY_PASSWORD);
+    });
 });
 
 describe('a member it cannot find', function () {

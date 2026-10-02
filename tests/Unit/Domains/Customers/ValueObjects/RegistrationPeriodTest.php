@@ -49,6 +49,42 @@ describe('drawing a period', function () {
     });
 });
 
+describe('capping the span of a period', function () {
+    it('caps a period at five years', function () {
+        expect(RegistrationPeriod::MAXIMUM_YEARS)->toBe(5);
+    });
+
+    it('accepts a period ending exactly five years after it starts', function () {
+        $period = ($this->period)('2021-03-15', '2026-03-15');
+
+        expect($period->to->toString())->toBe('2026-03-15');
+    });
+
+    it('refuses a period one day wider than five years, quoting both dates and the cap', function () {
+        expect(fn () => ($this->period)('2021-03-15', '2026-03-16'))->toThrow(
+            InvalidCustomerRegistrationPeriod::class,
+            'A registration period may span at most [5] years, got [2021-03-15] to [2026-03-16].',
+        );
+    });
+
+    it('refuses a period spanning decades', function () {
+        expect(fn () => ($this->period)('1900-01-01', '2026-12-31'))->toThrow(InvalidCustomerRegistrationPeriod::class);
+    });
+
+    it('measures five years from a leap day without refusing the last day of February', function () {
+        $period = ($this->period)('2024-02-29', '2029-02-28');
+
+        expect($period->to->toString())->toBe('2029-02-28');
+    });
+
+    it('still refuses an inverted period as inverted rather than as too wide', function () {
+        expect(fn () => ($this->period)('2031-01-01', '2020-01-01'))->toThrow(
+            InvalidCustomerRegistrationPeriod::class,
+            'has to start on or before it ends',
+        );
+    });
+});
+
 describe('the window a period covers in a zone', function () {
     it('covers an ordinary day from local midnight to the next local midnight', function () {
         $window = ($this->period)('2026-01-15', '2026-01-15')->windowIn($this->madrid);

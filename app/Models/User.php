@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Accounts\Infrastructure\Notifications\QueuedResetPassword;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffProfileModel;
 use Database\Factories\UserFactory;
@@ -14,10 +15,12 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\App;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['uuid', 'name', 'email', 'email_verified_at', 'password', 'must_change_password'])]
@@ -38,6 +41,11 @@ class User extends Authenticatable implements PasskeyUser
     public function mustChangePassword(): bool
     {
         return $this->must_change_password === true;
+    }
+
+    public function sendPasswordResetNotification(#[SensitiveParameter] $token): void
+    {
+        $this->notify((new QueuedResetPassword($token, $this))->locale(App::getLocale()));
     }
 
     /**

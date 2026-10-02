@@ -27,6 +27,7 @@ use Tests\Support\Staff\FakeStaffPhoneBook;
 use Tests\Support\Staff\FakeStaffProfilePhotos;
 use Tests\Support\Staff\FakeStaffProfileRepository;
 use Tests\Support\Staff\FakeTeamAccountProvisioner;
+use Tests\Support\Staff\FakeTeamAccountSharing;
 use Tests\Support\Staff\FakeTeamAllowance;
 use Tests\Support\Staff\FakeTeamRoster;
 use Tests\Support\Staff\FakeTeamTemporaryPasswords;
@@ -51,9 +52,11 @@ beforeEach(function () {
     $this->profiles = new FakeStaffProfileRepository($this->journal);
     $this->roster = new FakeTeamRoster($this->journal);
     $this->allowance = new FakeTeamAllowance($this->journal);
+    $this->sharing = new FakeTeamAccountSharing;
     $this->provisioner = (new FakeTeamAccountProvisioner($this->journal))
         ->provides('grace@example.com', StaffFixtures::SECOND_ACCOUNT_ID, StaffFixtures::TEMPORARY_PASSWORD)
-        ->provides('linus@example.com', StaffFixtures::THIRD_ACCOUNT_ID, null);
+        ->provides('linus@example.com', StaffFixtures::THIRD_ACCOUNT_ID, null)
+        ->issues(StaffFixtures::THIRD_ACCOUNT_ID, null);
     $this->accounts = new FakeAccountDirectory(
         StaffFixtures::account(id: StaffFixtures::SECOND_ACCOUNT_ID, name: 'Grace Hopper', email: 'grace@example.com', awaitingPasswordChange: true),
         StaffFixtures::account(id: StaffFixtures::THIRD_ACCOUNT_ID, name: 'Linus Pauling', email: 'linus@example.com', hasPassword: false),
@@ -72,8 +75,9 @@ beforeEach(function () {
         $this->profiles,
         $this->roster,
         $this->provisioner,
+        $this->sharing,
         $this->allowance,
-        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords, StaffFixtures::bookingLinkPresenter()),
+        new TeamMemberPresenter($this->accounts, $this->profiles, new FakeStaffPhoneBook, new FakeStaffProfilePhotos, new FakeTeamTemporaryPasswords, $this->sharing, StaffFixtures::bookingLinkPresenter()),
         $business ?? new FakeBusinessContext,
         new FixedIdGenerator(
             StaffFixtures::SECOND_MEMBER_ID,
@@ -211,8 +215,8 @@ describe('announcing the invitations', function () {
             ->and($this->members->saved)->toHaveCount(1);
     });
 
-    it('announces an account that already existed with no password to send', function () {
-        $this->provisioner->provides('linus@example.com', StaffFixtures::THIRD_ACCOUNT_ID, null);
+    it('announces an existing account that chose its own password with no password to send', function () {
+        $this->provisioner->issues(StaffFixtures::THIRD_ACCOUNT_ID, null);
 
         ($this->invite)(['members' => [['name' => 'Linus Pauling', 'email' => 'linus@example.com', 'level' => 'staff']]]);
 
@@ -275,6 +279,103 @@ describe('announcing the invitations', function () {
             ->and($this->dispatched)->toHaveCount(1)
             ->and($this->dispatched[0]->staffMemberId)->toBe(StaffFixtures::SECOND_MEMBER_ID)
             ->and($this->dispatched[0]->temporaryPassword)->toBe(StaffFixtures::TEMPORARY_PASSWORD);
+    });
+});
+
+describe('the temporary password an invitation carries', function () {
+    beforeEach(function () {
+        $this->linusWithAccess = ['members' => [['name' => 'Linus Pauling', 'email' => 'linus@example.com', 'level' => 'staff']]];
+    });
+
+    it('sends the password a brand new account was provisioned with, asking nobody whether it is shared', function () {
+        ($this->invite)(['members' => [['name' => 'Grace Hopper', 'email' => 'grace@example.com', 'level' => 'staff']]]);
+
+        expect($this->dispatched[0]->temporaryPassword)->toBe(StaffFixtures::TEMPORARY_PASSWORD)
+            ->and($this->sharing->lookups)->toBe([])
+            ->and($this->provisioner->issued)->toBe([]);
+    });
+
+    it('issues a fresh password to an existing account this business alone manages', function () {
+        $this->provisioner->issues(StaffFixtures::THIRD_ACCOUNT_ID, 'Fresh-Pa55word!');
+
+        ($this->invite)($this->linusWithAccess);
+
+        expect($this->provisioner->issued)->toBe([StaffFixtures::THIRD_ACCOUNT_ID])
+            ->and($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0]->accountId)->toBe(StaffFixtures::THIRD_ACCOUNT_ID)
+            ->and($this->dispatched[0]->temporaryPassword)->toBe('Fresh-Pa55word!');
+    });
+
+    it('issues that password inside the transaction, right after the member is written', function () {
+        $this->provisioner->issues(StaffFixtures::THIRD_ACCOUNT_ID, 'Fresh-Pa55word!');
+
+        ($this->invite)($this->linusWithAccess);
+
+        expect($this->journal->entries)->toBe([
+            'allowance.team',
+            'roster.emails',
+            'accounts.provision', 'members.save', 'profiles.save', 'accounts.issue_password',
+            'events.dispatch',
+        ])
+            ->and($this->journal->outsideTransaction)->toBe(['allowance.team', 'roster.emails', 'events.dispatch']);
+    });
+
+    it('asks whether the existing account is shared against the business of the context', function () {
+        $this->provisioner->issues(StaffFixtures::THIRD_ACCOUNT_ID, 'Fresh-Pa55word!');
+
+        ($this->invite)($this->linusWithAccess, ($this->build)(new FakeBusinessContext(StaffFixtures::OTHER_BUSINESS_ID)));
+
+        expect($this->sharing->lookups)->toBe([['accountId' => StaffFixtures::THIRD_ACCOUNT_ID, 'businessId' => StaffFixtures::OTHER_BUSINESS_ID]]);
+    });
+
+    it('issues no password to an existing account another business also uses, announcing the invitation without one', function () {
+        $this->sharing->memberOf(StaffFixtures::THIRD_ACCOUNT_ID, StaffFixtures::OTHER_BUSINESS_ID);
+
+        $response = ($this->invite)($this->linusWithAccess);
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->members->saved)->toHaveCount(1)
+            ->and($this->members->saved[0]->role())->toBe(StaffRole::Member)
+            ->and($this->provisioner->issued)->toBe([])
+            ->and($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0]->staffMemberId)->toBe(StaffFixtures::SECOND_MEMBER_ID)
+            ->and($this->dispatched[0]->accountId)->toBe(StaffFixtures::THIRD_ACCOUNT_ID)
+            ->and($this->dispatched[0]->temporaryPassword)->toBeNull();
+    });
+
+    it('answers with no invitation the owner could resend or reveal for that shared account', function () {
+        $this->sharing->memberOf(StaffFixtures::THIRD_ACCOUNT_ID, StaffFixtures::OTHER_BUSINESS_ID);
+        $this->accounts = new FakeAccountDirectory(
+            StaffFixtures::account(id: StaffFixtures::THIRD_ACCOUNT_ID, name: 'Linus Pauling', email: 'linus@example.com', awaitingPasswordChange: true),
+        );
+
+        $data = ($this->invite)($this->linusWithAccess)->value();
+
+        expect($data[0]->invitationPending)->toBeFalse()
+            ->and($data[0]->temporaryPasswordAvailable)->toBeFalse();
+    });
+
+    it('never issues a password to a member invited with no access, whoever else uses the account', function (array $memberships) {
+        $this->sharing->memberOf(StaffFixtures::THIRD_ACCOUNT_ID, ...$memberships);
+        $this->provisioner->issues(StaffFixtures::THIRD_ACCOUNT_ID, 'Fresh-Pa55word!');
+
+        ($this->invite)(['members' => [['name' => 'Linus Pauling', 'email' => 'linus@example.com', 'level' => 'no_access']]]);
+
+        expect($this->provisioner->issued)->toBe([])
+            ->and($this->dispatched)->toBe([]);
+    })->with([
+        'an account this business alone uses' => [[]],
+        'an account another business also uses' => [[StaffFixtures::OTHER_BUSINESS_ID]],
+    ]);
+
+    it('lets an issuing refusal undo the whole batch, announcing nobody', function () {
+        $this->provisioner->refuseIssuingWith(StaffMemberNotFound::forAccount(StaffFixtures::THIRD_ACCOUNT_ID));
+
+        $error = ($this->refusal)($this->linusWithAccess);
+
+        expect($error->code)->toBe('staff_member_not_found')
+            ->and($this->dispatched)->toBe([])
+            ->and($this->journal->outsideTransaction)->toBe(['allowance.team', 'roster.emails']);
     });
 });
 

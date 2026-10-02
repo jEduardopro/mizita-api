@@ -34,7 +34,6 @@ describe('a visitor opening their booking link', function () {
 
         expect($booking)->toBeInstanceOf(PublicGuestBooking::class)
             ->and($booking->referenceCode)->toBe(PublicCatalogFixtures::REFERENCE_CODE)
-            ->and($booking->customerName)->toBe(PublicCatalogFixtures::GUEST_NAME)
             ->and($booking->status)->toBe(PublicBookingStatus::Booked)
             ->and($booking->cancelledAt)->toBeNull()
             ->and($booking->cancellationWindowMinutes)->toBe(120)

@@ -175,6 +175,11 @@ function paymentFailures(): array
             'invalid_payment_report_period',
             DomainFailureKind::Invalid,
         ],
+        'a report period wider than five years' => [
+            InvalidPaymentReportPeriod::tooWide('2020-01-01', '2026-01-01', 5),
+            'invalid_payment_report_period',
+            DomainFailureKind::Invalid,
+        ],
         'a transaction of nothing' => [
             InvalidTransactionAmount::notPositive(0),
             'invalid_transaction_amount',

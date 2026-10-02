@@ -6,6 +6,7 @@ namespace App\Domains\Staff\Application\Dtos;
 
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Entities\StaffProfile;
+use App\Domains\Staff\ValueObjects\AccountSharing;
 use App\Domains\Staff\ValueObjects\AccountSnapshot;
 use App\Domains\Staff\ValueObjects\StaffRole;
 use App\Shared\ValueObjects\PhoneNumber;
@@ -32,12 +33,13 @@ final readonly class TeamMemberData
         StaffMember $member,
         ?StaffProfile $profile,
         AccountSnapshot $account,
+        AccountSharing $sharing,
         ?PhoneNumber $phone,
         ?string $photoUrl,
         BookingLinkStatus $bookingLink,
         bool $holdsTemporaryPassword,
     ): self {
-        $invitationPending = $member->hasPendingInvitation($account);
+        $invitationPending = $member->hasManageablePendingInvitation($account, $sharing);
 
         return new self(
             id: $member->id,

@@ -11,6 +11,7 @@ use App\Domains\Customers\ValueObjects\CustomerSort;
 use App\Domains\Customers\ValueObjects\LocalDate;
 use App\Domains\Customers\ValueObjects\RegistrationPeriod;
 use App\Domains\Customers\ValueObjects\RegistrationWindow;
+use App\Shared\ValueObjects\PageOutOfRange;
 use App\Shared\ValueObjects\Pagination;
 use App\Shared\ValueObjects\SearchTerm;
 use App\Shared\ValueObjects\SortDirection;
@@ -52,11 +53,13 @@ final readonly class ListCustomersInput
     /**
      * @throws InvalidCustomerSearch
      * @throws InvalidCustomerRegistrationPeriod
+     * @throws PageOutOfRange
      */
     public function validate(): void
     {
         $this->validateSearch();
         $this->validateRegistrationPeriod();
+        $this->validatePage();
     }
 
     /**
@@ -118,5 +121,13 @@ final readonly class ListCustomersInput
     private function validateRegistrationPeriod(): void
     {
         $this->registrationPeriod();
+    }
+
+    /**
+     * @throws PageOutOfRange
+     */
+    private function validatePage(): void
+    {
+        Pagination::ensureValidPage($this->page);
     }
 }

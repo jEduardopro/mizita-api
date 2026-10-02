@@ -14,5 +14,7 @@ interface ImpersonationSession
      */
     public function start(Impersonation $impersonation): void;
 
+    public function current(): ?Impersonation;
+
     public function end(): void;
 }

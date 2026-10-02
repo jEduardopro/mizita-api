@@ -115,8 +115,8 @@ it('refuses a staff filter it cannot trust without searching', function (array $
     )],
 ]);
 
-it('resolves a sort and a page it does not serve instead of refusing them', function () {
-    $response = ($this->list)(['sort' => 'whatever', 'direction' => 'sideways', 'page' => 0, 'per_page' => 9999]);
+it('resolves a sort and a page size it does not serve instead of refusing them', function () {
+    $response = ($this->list)(['sort' => 'whatever', 'direction' => 'sideways', 'per_page' => 9999]);
 
     expect($response->succeeded())->toBeTrue()
         ->and($this->services->queries[0]->sort)->toBe(ServiceSort::Name)
@@ -124,6 +124,18 @@ it('resolves a sort and a page it does not serve instead of refusing them', func
         ->and($this->services->queries[0]->pagination->page)->toBe(1)
         ->and($this->services->queries[0]->pagination->perPage)->toBe(Pagination::MAXIMUM_PER_PAGE);
 });
+
+it('refuses a page that cannot exist without querying anything', function (int $page) {
+    $response = ($this->list)(['page' => $page]);
+
+    expect($response->failed())->toBeTrue()
+        ->and($response->error()->code)->toBe('page_out_of_range')
+        ->and($response->error()->kind)->toBe(DomainFailureKind::Invalid)
+        ->and($this->services->queries)->toBe([]);
+})->with([
+    'the zeroth page' => [0],
+    'one past the deepest page' => [Pagination::MAXIMUM_PAGE + 1],
+]);
 
 it('answers an empty page with a success, not a refusal', function () {
     $page = ($this->list)()->value();

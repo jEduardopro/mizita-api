@@ -8,6 +8,7 @@ use App\Domains\Staff\Application\Dtos\RevealedTemporaryPassword;
 use App\Domains\Staff\Application\Dtos\RevealTeamMemberTemporaryPasswordInput;
 use App\Domains\Staff\Contracts\AccountDirectory;
 use App\Domains\Staff\Contracts\StaffMemberRepository;
+use App\Domains\Staff\Contracts\TeamAccountSharing;
 use App\Domains\Staff\Contracts\TeamTemporaryPasswords;
 use App\Domains\Staff\Entities\StaffMember;
 use App\Domains\Staff\Exceptions\StaffMemberNotFound;
@@ -22,6 +23,7 @@ final class RevealTeamMemberTemporaryPassword
     public function __construct(
         private readonly StaffMemberRepository $members,
         private readonly AccountDirectory $accounts,
+        private readonly TeamAccountSharing $sharing,
         private readonly TeamTemporaryPasswords $temporaryPasswords,
         private readonly BusinessContext $business,
     ) {}
@@ -34,12 +36,11 @@ final class RevealTeamMemberTemporaryPassword
         try {
             $input->validate();
 
-            $member = $this->members->findForBusiness(
-                $this->business->currentBusinessId(),
-                $input->staffMemberId,
-            );
+            $businessId = $this->business->currentBusinessId();
+            $member = $this->members->findForBusiness($businessId, $input->staffMemberId);
 
             $member->ensureTemporaryPasswordRevealable($this->accountOf($member));
+            $member->ensureTemporaryPasswordManageable($this->sharing->sharingOf($member->accountId, $businessId));
 
             return UseCaseResponse::success(new RevealedTemporaryPassword($this->temporaryPasswordOf($member)));
         } catch (DomainFailure $failure) {

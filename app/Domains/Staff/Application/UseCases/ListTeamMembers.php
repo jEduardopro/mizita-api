@@ -35,7 +35,7 @@ final class ListTeamMembers
 
             $page = $this->roster->search(
                 $businessId,
-                $input->toQuery($this->profileIdsMatchingPhone($input->search)),
+                $input->toQuery($this->profileIdsMatchingPhone($businessId, $input->search)),
             );
 
             return UseCaseResponse::success($this->presenter->describePage($businessId, $page));
@@ -47,12 +47,12 @@ final class ListTeamMembers
     /**
      * @return list<string>
      */
-    private function profileIdsMatchingPhone(?string $search): array
+    private function profileIdsMatchingPhone(string $businessId, ?string $search): array
     {
         if ($search === null) {
             return [];
         }
 
-        return $this->phones->profileIdsMatchingNumber($search);
+        return $this->phones->profileIdsMatchingNumber($businessId, $search);
     }
 }

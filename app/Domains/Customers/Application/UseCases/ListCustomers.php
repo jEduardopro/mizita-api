@@ -40,7 +40,7 @@ final class ListCustomers
             $page = $this->customers->search(
                 $businessId,
                 $input->toQuery(
-                    $this->customerIdsMatchingPhone($input->search),
+                    $this->customerIdsMatchingPhone($businessId, $input->search),
                     $this->registrationWindowOf($businessId, $input->registrationPeriod()),
                 ),
             );
@@ -54,13 +54,13 @@ final class ListCustomers
     /**
      * @return list<string>
      */
-    private function customerIdsMatchingPhone(?string $search): array
+    private function customerIdsMatchingPhone(string $businessId, ?string $search): array
     {
         if ($search === null) {
             return [];
         }
 
-        return $this->phones->customerIdsMatchingNumber($search);
+        return $this->phones->customerIdsMatchingNumber($businessId, $search);
     }
 
     private function registrationWindowOf(string $businessId, ?RegistrationPeriod $period): ?RegistrationWindow
