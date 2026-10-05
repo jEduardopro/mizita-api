@@ -10,6 +10,8 @@ interface BusinessLogo
 {
     public function urlFor(string $businessId): ?string;
 
+    public function originalUrlFor(string $businessId): ?string;
+
     /**
      * @throws BusinessNotFound
      */

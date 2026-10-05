@@ -28,6 +28,11 @@ final class FakeBookingPageImages implements BookingPageImages
     private array $banners = [];
 
     /**
+     * @var array<string, array<string, string>>
+     */
+    private array $originalBanners = [];
+
+    /**
      * @var array<string, array<string, list<BookingPageImage>>>
      */
     private array $galleries = [];
@@ -36,6 +41,11 @@ final class FakeBookingPageImages implements BookingPageImages
      * @var list<array{businessId: string, bookingPageId: string}>
      */
     public array $bannerReads = [];
+
+    /**
+     * @var list<array{businessId: string, bookingPageId: string}>
+     */
+    public array $originalBannerReads = [];
 
     /**
      * @var list<array{businessId: string, bookingPageId: string}>
@@ -85,6 +95,15 @@ final class FakeBookingPageImages implements BookingPageImages
         return $this;
     }
 
+    public function withOriginalBanner(BookingPage $page, string $url): self
+    {
+        $this->withPage($page);
+
+        $this->originalBanners[$page->businessId][$page->id] = $url;
+
+        return $this;
+    }
+
     public function withGallery(BookingPage $page, BookingPageImage ...$images): self
     {
         $this->withPage($page);
@@ -114,6 +133,13 @@ final class FakeBookingPageImages implements BookingPageImages
         $this->bannerReads[] = ['businessId' => $businessId, 'bookingPageId' => $bookingPageId];
 
         return $this->banners[$businessId][$bookingPageId] ?? null;
+    }
+
+    public function originalBannerUrlFor(string $businessId, string $bookingPageId): ?string
+    {
+        $this->originalBannerReads[] = ['businessId' => $businessId, 'bookingPageId' => $bookingPageId];
+
+        return $this->originalBanners[$businessId][$bookingPageId] ?? null;
     }
 
     /**

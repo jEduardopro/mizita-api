@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domains\Businesses\ValueObjects\Slug;
 use App\Domains\PublicCatalog\Contracts\GuestBookingDesk;
+use App\Domains\PublicCatalog\PublicCatalogServiceProvider;
 use App\Shared\Contracts\BusinessContext;
 use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\Assert;
@@ -53,13 +54,24 @@ function mizitaPublicCatalogWritePorts(): array
 /**
  * @return list<string>
  */
+function mizitaSlugShapedRouteSegmentsIn(string $routes): array
+{
+    preg_match_all("#Route::[a-zA-Z]+\(\s*'/([^/'{]+)#", $routes, $matches);
+
+    $slugShape = '#^'.PublicCatalogServiceProvider::SLUG_PATTERN.'$#D';
+
+    return array_values(array_unique(array_filter(
+        $matches[1],
+        static fn (string $segment): bool => preg_match($slugShape, $segment) === 1,
+    )));
+}
+
+/**
+ * @return list<string>
+ */
 function mizitaWebRouteSegments(): array
 {
-    $web = (string) file_get_contents(dirname(__DIR__, 2).'/routes/web.php');
-
-    preg_match_all("#Route::[a-zA-Z]+\(\s*'/([a-z0-9-]+)#", $web, $matches);
-
-    return array_values(array_unique($matches[1]));
+    return mizitaSlugShapedRouteSegmentsIn((string) file_get_contents(dirname(__DIR__, 2).'/routes/web.php'));
 }
 
 it('adapts every neighbour through a port its own domain declares', function () {
@@ -186,4 +198,29 @@ it('reserves every url segment the application itself answers to', function () {
         "A business page lives at the site root, so any segment the application answers to must be unclaimable as a slug:\n  - "
         .implode("\n  - ", $claimable),
     );
+});
+
+describe('reading the url segments a route claims', function () {
+    it('leaves out a file path, since a slug can never carry a dot', function (string $path) {
+        expect(mizitaSlugShapedRouteSegmentsIn("Route::get('{$path}', Controller::class);"))->toBe([]);
+    })->with(['/robots.txt', '/sitemap.xml', '/favicon.ico']);
+
+    it('still flags the bare segment a slug could take', function (string $path, string $segment) {
+        expect(mizitaSlugShapedRouteSegmentsIn("Route::get('{$path}', Controller::class);"))->toBe([$segment]);
+    })->with([
+        'a bare word' => ['/sitemap', 'sitemap'],
+        'a nested path' => ['/settings/team', 'settings'],
+        'a hyphenated word' => ['/team-access/paused', 'team-access'],
+        'a redirect' => ['/dashboard', 'dashboard'],
+    ]);
+
+    it('leaves out a placeholder, which is the slug itself and not a claim on one', function () {
+        expect(mizitaSlugShapedRouteSegmentsIn("Route::get('/{slug}/book', fn () => null);"))->toBe([]);
+    });
+
+    it('reads every route of a file, once per segment', function () {
+        $routes = "Route::get('/calendar', A::class);\nRoute::get('/calendar/new', B::class);\nRoute::get('/robots.txt', C::class);";
+
+        expect(mizitaSlugShapedRouteSegmentsIn($routes))->toBe(['calendar']);
+    });
 });

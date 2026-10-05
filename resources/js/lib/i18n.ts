@@ -1,19 +1,5 @@
-import i18n from 'i18next';
-import LanguageDetector, { type CustomDetector } from 'i18next-browser-languagedetector';
+import i18n, { type ResourceKey, type ResourceLanguage } from 'i18next';
 import { initReactI18next } from 'react-i18next';
-
-import adminEn from '@/locales/en/admin.json';
-import authEn from '@/locales/en/auth.json';
-import commonEn from '@/locales/en/common.json';
-import industriesEn from '@/locales/en/industries.json';
-import platformEn from '@/locales/en/platform.json';
-import publicEn from '@/locales/en/public.json';
-import adminEs from '@/locales/es/admin.json';
-import authEs from '@/locales/es/auth.json';
-import commonEs from '@/locales/es/common.json';
-import industriesEs from '@/locales/es/industries.json';
-import platformEs from '@/locales/es/platform.json';
-import publicEs from '@/locales/es/public.json';
 
 export type Locale = 'es' | 'en';
 
@@ -27,26 +13,30 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 export const namespaces = ['common', 'auth', 'public', 'admin', 'industries', 'platform'] as const;
 
-const resources = {
+type Namespace = (typeof namespaces)[number];
+
+type BundleLoader = () => Promise<{ default: ResourceKey }>;
+
+const bundleLoaders: Record<Locale, Record<Namespace, BundleLoader>> = {
     es: {
-        common: commonEs,
-        auth: authEs,
-        public: publicEs,
-        admin: adminEs,
-        industries: industriesEs,
-        platform: platformEs,
+        common: () => import('@/locales/es/common.json'),
+        auth: () => import('@/locales/es/auth.json'),
+        public: () => import('@/locales/es/public.json'),
+        admin: () => import('@/locales/es/admin.json'),
+        industries: () => import('@/locales/es/industries.json'),
+        platform: () => import('@/locales/es/platform.json'),
     },
     en: {
-        common: commonEn,
-        auth: authEn,
-        public: publicEn,
-        admin: adminEn,
-        industries: industriesEn,
-        platform: platformEn,
+        common: () => import('@/locales/en/common.json'),
+        auth: () => import('@/locales/en/auth.json'),
+        public: () => import('@/locales/en/public.json'),
+        admin: () => import('@/locales/en/admin.json'),
+        industries: () => import('@/locales/en/industries.json'),
+        platform: () => import('@/locales/en/platform.json'),
     },
 };
 
-const bundledLocales = Object.keys(resources) as Locale[];
+const bundledLocales = Object.keys(bundleLoaders) as Locale[];
 
 function isBundledLocale(value: string | undefined): value is Locale {
     return value !== undefined && (bundledLocales as string[]).includes(value);
@@ -62,6 +52,54 @@ function resolveSupportedLocales(supportedLocales: string[] | undefined): Locale
     return supported.length > 0 ? supported : bundledLocales;
 }
 
+function readLocaleCookie(): string | undefined {
+    const prefix = `${LOCALE_COOKIE}=`;
+
+    return document.cookie
+        .split(';')
+        .map((entry) => entry.trim())
+        .find((entry) => entry.startsWith(prefix))
+        ?.slice(prefix.length);
+}
+
+function resolveInitialLocale(serverLocale: string | undefined, supported: Locale[]): Locale {
+    if (isBundledLocale(serverLocale)) {
+        return serverLocale;
+    }
+
+    const candidates = [readLocaleCookie(), DEFAULT_LOCALE];
+
+    return candidates.find((candidate): candidate is Locale =>
+        isBundledLocale(candidate) && supported.includes(candidate),
+    ) ?? FALLBACK_LOCALE;
+}
+
+async function loadLocaleBundles(locale: Locale): Promise<ResourceLanguage> {
+    const loaders = bundleLoaders[locale];
+
+    const bundles = await Promise.all(
+        namespaces.map(async (namespace) => [namespace, (await loaders[namespace]()).default] as const),
+    );
+
+    return Object.fromEntries(bundles);
+}
+
+function isLocaleLoaded(locale: Locale): boolean {
+    return namespaces.every((namespace) => i18n.hasResourceBundle(locale, namespace));
+}
+
+async function ensureLocaleLoaded(locale: Locale): Promise<void> {
+    if (isLocaleLoaded(locale)) {
+        return;
+    }
+
+    const bundles = await loadLocaleBundles(locale);
+
+    for (const namespace of namespaces) {
+        i18n.addResourceBundle(locale, namespace, bundles[namespace], true, true);
+    }
+}
+
 function syncDocumentLanguage(language: string): void {
     document.documentElement.lang = language;
 }
@@ -74,51 +112,45 @@ function writeLocaleCookie(locale: Locale): void {
     document.cookie = `${LOCALE_COOKIE}=${locale}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
 }
 
-const productDefaultDetector: CustomDetector = {
-    name: 'productDefault',
-    lookup: () => DEFAULT_LOCALE,
-};
+let initialization: Promise<typeof i18n> | undefined;
 
-const languageDetector = new LanguageDetector();
-
-languageDetector.addDetector(productDefaultDetector);
-
-export function initI18n(locale?: string, supportedLocales?: string[]): typeof i18n {
-    if (i18n.isInitialized) {
-        return i18n;
-    }
-
+async function initialize(locale: string | undefined, supportedLocales: string[] | undefined): Promise<typeof i18n> {
     const supported = resolveSupportedLocales(supportedLocales);
+    const language = resolveInitialLocale(locale, supported);
 
-    void i18n
-        .use(languageDetector)
-        .use(initReactI18next)
-        .init({
-            resources,
-            lng: isBundledLocale(locale) ? locale : undefined,
-            fallbackLng: FALLBACK_LOCALE,
-            supportedLngs: supported,
-            ns: namespaces,
-            defaultNS: 'common',
-            interpolation: {
-                escapeValue: false,
-            },
-            detection: {
-                order: ['cookie', 'productDefault'],
-                lookupCookie: LOCALE_COOKIE,
-                caches: [],
-            },
-            react: {
-                useSuspense: false,
-            },
-        });
+    await i18n.use(initReactI18next).init({
+        resources: { [language]: await loadLocaleBundles(language) },
+        lng: language,
+        fallbackLng: FALLBACK_LOCALE,
+        supportedLngs: supported,
+        ns: namespaces,
+        defaultNS: 'common',
+        interpolation: {
+            escapeValue: false,
+        },
+        react: {
+            useSuspense: false,
+        },
+    });
 
     syncDocumentLanguage(i18n.resolvedLanguage ?? DEFAULT_LOCALE);
 
     return i18n;
 }
 
+export function initI18n(locale?: string, supportedLocales?: string[]): Promise<typeof i18n> {
+    initialization ??= initialize(locale, supportedLocales).catch((error: unknown) => {
+        initialization = undefined;
+
+        throw error;
+    });
+
+    return initialization;
+}
+
 export async function changeLocale(locale: Locale): Promise<void> {
+    await ensureLocaleLoaded(locale);
+
     writeLocaleCookie(locale);
 
     await i18n.changeLanguage(locale);

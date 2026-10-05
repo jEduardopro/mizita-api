@@ -13,6 +13,8 @@ interface BookingPageImages
 {
     public function bannerUrlFor(string $businessId, string $bookingPageId): ?string;
 
+    public function originalBannerUrlFor(string $businessId, string $bookingPageId): ?string;
+
     /**
      * @return list<BookingPageImage>
      */

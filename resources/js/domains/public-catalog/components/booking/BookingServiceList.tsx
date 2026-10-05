@@ -1,17 +1,23 @@
 import { PackageOpen } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { brandColorClasses, type BrandColor, type ButtonShape } from '@/lib/booking-brand';
+import {
+    brandColorClasses,
+    THEME_SCOPES,
+    type BrandColor,
+    type ButtonShape,
+    type PageTheme,
+} from '@/lib/booking-brand';
 import type { PublicService } from '../../types';
 import { BookingServiceOption } from './BookingServiceOption';
 
 type Props = {
-    slug: string;
     services: PublicService[];
     currencyCode: string;
     selectedServiceId: string | null;
     accentColor: BrandColor;
     buttonShape: ButtonShape;
+    theme: PageTheme;
     onSelect(serviceId: string): void;
     emptyState?: ReactNode;
 };
@@ -31,12 +37,12 @@ function NoServicesAvailable() {
 }
 
 export function BookingServiceList({
-    slug,
     services,
     currencyCode,
     selectedServiceId,
     accentColor,
     buttonShape,
+    theme,
     onSelect,
     emptyState = <NoServicesAvailable />,
 }: Props) {
@@ -45,18 +51,19 @@ export function BookingServiceList({
     }
 
     const accent = brandColorClasses[accentColor];
+    const themeScope = THEME_SCOPES[theme];
 
     return (
         <ul className="grid gap-3">
             {services.map((service) => (
                 <BookingServiceOption
                     key={service.id}
-                    slug={slug}
                     service={service}
                     currencyCode={currencyCode}
                     isSelected={service.id === selectedServiceId}
                     accent={accent}
                     buttonShape={buttonShape}
+                    themeScope={themeScope}
                     onSelect={onSelect}
                 />
             ))}

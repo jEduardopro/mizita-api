@@ -27,6 +27,8 @@ use App\Domains\PublicCatalog\Contracts\PublishedStaffLinks;
 use App\Domains\PublicCatalog\Contracts\PublishedStaffServices;
 use App\Domains\PublicCatalog\Contracts\PublishedStates;
 use App\Domains\PublicCatalog\Contracts\PublishedTeam;
+use App\Domains\PublicCatalog\Contracts\SitemapBusinesses;
+use App\Domains\PublicCatalog\Infrastructure\Caching\CachedSitemapBusinesses;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedCity;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedLocation;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\AddressesPublishedStates;
@@ -42,6 +44,7 @@ use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesGuestContac
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesPublishedBookingPolicy;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BookingPoliciesPublishedCancellationWindow;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\BusinessesPublishedBusinesses;
+use App\Domains\PublicCatalog\Infrastructure\Gateways\BusinessesSitemapBusinesses;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\PhonesLinksPublishedContact;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServiceLinks;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\ServicesPublishedServices;
@@ -50,6 +53,8 @@ use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedStaffLinks;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\StaffPublishedTeam;
 use App\Domains\PublicCatalog\Infrastructure\Gateways\SubscriptionsBookingRulesAllowance;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -69,6 +74,8 @@ final class PublicCatalogServiceProvider extends ServiceProvider
 
     public const REFERENCE_CODE_PATTERN = '[A-Za-z0-9]{8}';
 
+    public const CRAWLER_LIMITER = 'public-crawler';
+
     private const PUBLIC_CATALOG_LIMITER = 'public-catalog';
 
     private const GUEST_BOOKING_LIMITER = 'public-booking';
@@ -80,6 +87,8 @@ final class PublicCatalogServiceProvider extends ServiceProvider
     private const BOOKINGS_PER_MINUTE = 5;
 
     private const BOOKINGS_PER_HOUR = 20;
+
+    private const CRAWLER_REQUESTS_PER_MINUTE = 30;
 
     public function register(): void
     {
@@ -105,12 +114,18 @@ final class PublicCatalogServiceProvider extends ServiceProvider
         $this->app->bind(GuestBookingDesk::class, AppointmentsGuestBookingDesk::class);
         $this->app->bind(GuestContactFields::class, BookingPoliciesGuestContactFields::class);
         $this->app->bind(BookingRulesAllowance::class, SubscriptionsBookingRulesAllowance::class);
+        $this->app->bind(SitemapBusinesses::class, static fn (Application $app): SitemapBusinesses => new CachedSitemapBusinesses(
+            source: $app->make(BusinessesSitemapBusinesses::class),
+            cache: $app->make(CacheRepository::class),
+            ttlSeconds: (int) config('seo.sitemap.cache_ttl_seconds'),
+        ));
     }
 
     public function boot(): void
     {
         $this->registerVisitorLimiter();
         $this->registerGuestBookingLimiter();
+        $this->registerCrawlerLimiter();
 
         Route::prefix('api')
             ->middleware(['api', 'throttle:'.self::PUBLIC_CATALOG_LIMITER])
@@ -135,6 +150,12 @@ final class PublicCatalogServiceProvider extends ServiceProvider
             Limit::perMinute(self::BOOKINGS_PER_MINUTE)->by('booking-minute:'.self::limiterKeyFor($request)),
             Limit::perHour(self::BOOKINGS_PER_HOUR)->by('booking-hour:'.self::limiterKeyFor($request)),
         ]);
+    }
+
+    private function registerCrawlerLimiter(): void
+    {
+        RateLimiter::for(self::CRAWLER_LIMITER, static fn (Request $request): Limit => Limit::perMinute(self::CRAWLER_REQUESTS_PER_MINUTE)
+            ->by('crawler-minute:'.self::limiterKeyFor($request)));
     }
 
     private static function limiterKeyFor(Request $request): string

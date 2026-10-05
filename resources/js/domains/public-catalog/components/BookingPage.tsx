@@ -15,10 +15,9 @@ import { useBusinessFavicon } from './use-business-favicon';
 
 type Props = {
     page: PublicBusinessPage;
-    openServiceSlug: string | null;
 };
 
-export function BookingPage({ page, openServiceSlug }: Props) {
+export function BookingPage({ page }: Props) {
     const { t } = useTranslation('public');
     useBusinessFavicon(page.logo_url);
 
@@ -28,9 +27,15 @@ export function BookingPage({ page, openServiceSlug }: Props) {
     const days = weeklyHoursFrom(page.schedule);
     const today = isoWeekdayIn(page.timezone, new Date());
 
+    const city = page.location?.city ?? '';
+    const documentTitle =
+        city === ''
+            ? t('booking.head.title', { name: page.name })
+            : t('booking.head.titleWithCity', { name: page.name, city });
+
     return (
         <div className={cn('flex min-h-svh flex-col bg-background text-foreground', themeScope)}>
-            <Head title={page.name} />
+            <Head title={documentTitle} />
 
             <BookingHeader
                 name={page.name}
@@ -68,7 +73,6 @@ export function BookingPage({ page, openServiceSlug }: Props) {
                             today={today}
                             accent={accent}
                             themeScope={themeScope}
-                            openServiceSlug={openServiceSlug}
                         />
                     </div>
                 </div>

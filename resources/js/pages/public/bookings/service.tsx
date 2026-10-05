@@ -30,12 +30,12 @@ export default function BookingServiceStep({ slug }: Props) {
             description={t('booking.flow.service.description')}
         >
             <BookingServiceList
-                slug={page.slug}
                 services={flow.services}
                 currencyCode={page.currency_code}
                 selectedServiceId={flow.service?.id ?? null}
                 accentColor={page.brand.accent_color}
                 buttonShape={page.brand.button_shape}
+                theme={page.brand.theme}
                 onSelect={(serviceId) => flow.advance({ service: serviceId })}
             />
         </BookingFlowLayout>

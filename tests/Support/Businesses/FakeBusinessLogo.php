@@ -14,6 +14,11 @@ final class FakeBusinessLogo implements BusinessLogo
      */
     private array $urls = [];
 
+    /**
+     * @var array<string, string>
+     */
+    private array $originalUrls = [];
+
     private ?Throwable $replaceFailure = null;
 
     private ?Throwable $removeFailure = null;
@@ -33,9 +38,21 @@ final class FakeBusinessLogo implements BusinessLogo
      */
     public array $reads = [];
 
+    /**
+     * @var list<string>
+     */
+    public array $originalReads = [];
+
     public function store(string $businessId, string $url): self
     {
         $this->urls[$businessId] = $url;
+
+        return $this;
+    }
+
+    public function storeOriginal(string $businessId, string $url): self
+    {
+        $this->originalUrls[$businessId] = $url;
 
         return $this;
     }
@@ -59,6 +76,13 @@ final class FakeBusinessLogo implements BusinessLogo
         $this->reads[] = $businessId;
 
         return $this->urls[$businessId] ?? null;
+    }
+
+    public function originalUrlFor(string $businessId): ?string
+    {
+        $this->originalReads[] = $businessId;
+
+        return $this->originalUrls[$businessId] ?? null;
     }
 
     public function replace(string $businessId, string $sourcePath, string $fileName): string

@@ -17,17 +17,9 @@ type Props = {
     today: WeekdayNumber | null;
     accent: BrandColorClasses;
     themeScope: string | undefined;
-    openServiceSlug: string | null;
 };
 
-export function BookingSections({
-    page,
-    days,
-    today,
-    accent,
-    themeScope,
-    openServiceSlug,
-}: Props) {
+export function BookingSections({ page, days, today, accent, themeScope }: Props) {
     const { t } = useTranslation('public');
 
     return (
@@ -43,7 +35,6 @@ export function BookingSections({
                         currencyCode={page.currency_code}
                         accentColor={page.brand.accent_color}
                         buttonShape={page.brand.button_shape}
-                        openServiceSlug={openServiceSlug}
                     />
                 </BookingSection>
             )}

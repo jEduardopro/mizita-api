@@ -20,7 +20,9 @@ function MemberIdentity({ name, photoUrl, accent }: MemberIdentityProps) {
     return (
         <>
             <Avatar size="lg">
-                {photoUrl === null ? null : <AvatarImage src={photoUrl} alt="" />}
+                {photoUrl === null ? null : (
+                    <AvatarImage src={photoUrl} alt="" loading="lazy" decoding="async" />
+                )}
 
                 <AvatarFallback className={accent.surface}>{initialsFrom(name)}</AvatarFallback>
             </Avatar>

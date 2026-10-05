@@ -4,6 +4,7 @@ use App\Domains\Platform\Infrastructure\Http\Middleware\EnforceImpersonation;
 use App\Domains\Platform\Infrastructure\Http\Middleware\RequirePlatformSession;
 use App\Domains\Platform\Infrastructure\Http\PlatformRoutes;
 use App\Http\Exceptions\RenderDomainFailure;
+use App\Http\Exceptions\RenderNotFoundPage;
 use App\Http\Logging\LogUnexpectedFailure;
 use App\Http\Middleware\ForbidNonOwners;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -13,6 +14,7 @@ use App\Http\Middleware\RequireBusinessMembership;
 use App\Http\Middleware\RequireBusinessOwner;
 use App\Http\Middleware\RequireFreshPassword;
 use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\RestrictSearchIndexing;
 use App\Http\Middleware\SetBusinessContext;
 use App\Http\Middleware\SetLocale;
 use App\Http\Responses\JsonFailureRendering;
@@ -23,6 +25,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -41,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
                 EnforceImpersonation::class,
+                RestrictSearchIndexing::class,
             ],
             prepend: [
                 SetLocale::class,
@@ -100,6 +104,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (DomainFailure $failure, Request $request) {
             return app(RenderDomainFailure::class)($failure, $request);
+        });
+
+        $exceptions->render(function (NotFoundHttpException $missing, Request $request) {
+            return app(RenderNotFoundPage::class)($request);
         });
 
         $exceptions->shouldRenderJsonWhen(

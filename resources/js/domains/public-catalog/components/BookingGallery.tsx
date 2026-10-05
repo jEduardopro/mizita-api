@@ -48,8 +48,12 @@ export function BookingGallery({ images, businessName, themeScope }: Props) {
                             >
                                 <img
                                     src={image.url}
-                                    alt=""
+                                    alt={t('booking.gallery.photoAlt', {
+                                        position,
+                                        business: businessName,
+                                    })}
                                     loading="lazy"
+                                    decoding="async"
                                     className="size-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.04]"
                                 />
 
@@ -58,10 +62,6 @@ export function BookingGallery({ images, businessName, themeScope }: Props) {
                                         {t('booking.gallery.more', { count: hiddenCount })}
                                     </span>
                                 ) : null}
-
-                                <span className="sr-only">
-                                    {t('booking.gallery.openPhoto', { position })}
-                                </span>
                             </button>
                         </li>
                     );

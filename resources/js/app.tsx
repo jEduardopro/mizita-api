@@ -4,27 +4,35 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { I18nextProvider } from 'react-i18next';
 import { AppToaster } from '@/components/shared/AppToaster';
 import { initializeAppearance } from '@/lib/appearance';
-import { initI18n } from '@/lib/i18n';
+import { i18n, initI18n } from '@/lib/i18n';
 import { queryClient } from '@/lib/query-client';
 
 const fallbackAppName = 'Mizita';
 
+function resolvePage(name: string): Promise<ResolvedComponent> {
+    return resolvePageComponent<ResolvedComponent>(
+        `./pages/${name}.tsx`,
+        import.meta.glob<ResolvedComponent>('./pages/**/*.tsx'),
+    );
+}
+
 void createInertiaApp({
-    resolve: (name) =>
-        resolvePageComponent<ResolvedComponent>(
-            `./pages/${name}.tsx`,
-            import.meta.glob<ResolvedComponent>('./pages/**/*.tsx'),
-        ),
+    // Translations load per locale on demand, so the first render waits for them here,
+    // in parallel with the page chunk; mounting earlier would paint raw translation keys.
+    resolve: async (name, page) => {
+        const [component] = await Promise.all([
+            resolvePage(name),
+            initI18n(page?.props.locale, page?.props.supportedLocales),
+        ]);
+
+        return component;
+    },
     title: (title, page) => {
         const appName = (page.props.name as string | undefined) ?? fallbackAppName;
 
         return title ? `${title} · ${appName}` : appName;
     },
-    // Inertia v3 creates the React root itself, so `withApp` is the only hook
-    // that runs before the first paint could flash the wrong language.
     withApp: (app, { page }) => {
-        const i18n = initI18n(page.props.locale, page.props.supportedLocales);
-
         initializeAppearance(page.props.appearance);
 
         return (

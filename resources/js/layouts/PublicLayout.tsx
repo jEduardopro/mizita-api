@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ABOUT_ID } from '@/components/public/landing/AboutPlatform';
 import { BENEFITS_ID } from '@/components/public/landing/BenefitGrid';
 import { HOW_IT_WORKS_ID } from '@/components/public/landing/HowItWorks';
 import { PRICING_ID } from '@/components/public/landing/PricingPlans';
@@ -14,13 +15,29 @@ import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 import { legalDocuments } from '@/content/legal/entity';
 import { useFlashToast } from '@/hooks/use-flash-toast';
+import { usePublicLinks } from '@/hooks/use-public-links';
+import type { PublicLinks } from '@/types/inertia';
 
-const socialProfiles: { network: string; href: string; Icon: (props: SocialIconProps) => ReactNode }[] = [
-    { network: 'Facebook', href: '#', Icon: FacebookIcon },
-    { network: 'Instagram', href: '#', Icon: InstagramIcon },
-];
+type SocialProfile = {
+    network: string;
+    href: string | null;
+    Icon: (props: SocialIconProps) => ReactNode;
+};
 
-const footerMenu = [
+function hasHref<T extends { href: string | null }>(link: T): link is T & { href: string } {
+    return link.href !== null;
+}
+
+function reachableSocialProfiles({ facebook, instagram }: PublicLinks) {
+    const socialProfiles: SocialProfile[] = [
+        { network: 'Facebook', href: facebook, Icon: FacebookIcon },
+        { network: 'Instagram', href: instagram, Icon: InstagramIcon },
+    ];
+
+    return socialProfiles.filter(hasHref);
+}
+
+const footerMenuWith = (contact: string | null) => [
     {
         id: 'product',
         title: 'footer.product.title',
@@ -34,8 +51,8 @@ const footerMenu = [
         id: 'company',
         title: 'footer.company.title',
         links: [
-            { label: 'footer.company.about', href: '#' },
-            { label: 'footer.company.contact', href: '#' },
+            { label: 'footer.company.about', href: `/#${ABOUT_ID}` },
+            { label: 'footer.company.contact', href: contact },
         ],
     },
     {
@@ -58,10 +75,12 @@ type Props = {
 export function PublicLayout({ title, sections, children }: Props) {
     const { name } = usePage().props;
     const { t } = useTranslation('common');
+    const publicLinks = usePublicLinks();
 
     useFlashToast();
 
     const year = new Date().getFullYear();
+    const socialProfiles = reachableSocialProfiles(publicLinks);
 
     return (
         <div className="flex min-h-svh flex-col bg-background text-foreground">
@@ -97,7 +116,7 @@ export function PublicLayout({ title, sections, children }: Props) {
                             </p>
                         </div>
 
-                        {footerMenu.map((column) => (
+                        {footerMenuWith(publicLinks.contact).map((column) => (
                             <nav key={column.id} aria-labelledby={`footer-${column.id}`}>
                                 <h2
                                     id={`footer-${column.id}`}
@@ -107,7 +126,7 @@ export function PublicLayout({ title, sections, children }: Props) {
                                 </h2>
 
                                 <ul className="mt-4 space-y-2.5">
-                                    {column.links.map((link) => (
+                                    {column.links.filter(hasHref).map((link) => (
                                         <li key={link.label}>
                                             <a
                                                 href={link.href}
@@ -123,21 +142,23 @@ export function PublicLayout({ title, sections, children }: Props) {
                     </div>
 
                     <div className="mt-12 flex flex-col gap-5 border-t border-border pt-6 sm:flex-row-reverse sm:items-center sm:justify-between">
-                        <ul aria-label={t('footer.social.title')} className="flex items-center gap-1">
-                            {socialProfiles.map(({ network, href, Icon }) => (
-                                <li key={network}>
-                                    <a
-                                        href={href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label={t('footer.social.followOn', { name, network })}
-                                        className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-brand-50 hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:bg-brand-950/60"
-                                    >
-                                        <Icon className="size-[1.125rem]" />
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
+                        {socialProfiles.length === 0 ? null : (
+                            <ul aria-label={t('footer.social.title')} className="flex items-center gap-1">
+                                {socialProfiles.map(({ network, href, Icon }) => (
+                                    <li key={network}>
+                                        <a
+                                            href={href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label={t('footer.social.followOn', { name, network })}
+                                            className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-brand-50 hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:bg-brand-950/60"
+                                        >
+                                            <Icon className="size-[1.125rem]" />
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
 
                         <p className="text-xs text-muted-foreground">
                             {t('footer.copyright', { year, name })}

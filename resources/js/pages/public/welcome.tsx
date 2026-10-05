@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { ABOUT_ID, AboutPlatform } from '@/components/public/landing/AboutPlatform';
 import { AccountCta } from '@/components/public/landing/AccountCta';
 import { BENEFITS_ID, BenefitGrid } from '@/components/public/landing/BenefitGrid';
 import { HOW_IT_WORKS_ID, HowItWorks } from '@/components/public/landing/HowItWorks';
@@ -12,6 +13,7 @@ const menu = [
     { id: HOW_IT_WORKS_ID, labelKey: 'welcome.steps.eyebrow' },
     { id: BENEFITS_ID, labelKey: 'welcome.benefits.eyebrow' },
     { id: PRICING_ID, labelKey: 'welcome.pricing.eyebrow' },
+    { id: ABOUT_ID, labelKey: 'welcome.about.nav' },
 ] as const;
 
 export default function Welcome() {
@@ -52,6 +54,8 @@ export default function Welcome() {
             <BenefitGrid />
 
             <PricingPlans />
+
+            <AboutPlatform />
 
             <Section tone="brand">
                 <div className="text-center">

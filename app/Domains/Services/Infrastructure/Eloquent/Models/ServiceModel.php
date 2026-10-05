@@ -8,6 +8,7 @@ use App\Domains\Services\Infrastructure\Eloquent\Factories\ServiceModelFactory;
 use App\Domains\Services\ValueObjects\ServiceColor;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Shared\Infrastructure\Media\BusinessScopedMediaOwner;
+use App\Shared\Infrastructure\Media\OptimizedImageConversion;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Fillable(['uuid', 'business_id', 'name', 'slug', 'description', 'duration_minutes', 'buffer_minutes', 'price', 'color', 'active'])]
 class ServiceModel extends Model implements BusinessScopedMediaOwner, HasMedia
@@ -38,6 +40,8 @@ class ServiceModel extends Model implements BusinessScopedMediaOwner, HasMedia
 
     public const STAFF_PIVOT_TABLE = 'service_staff';
 
+    private const OPTIMIZED_IMAGE_MAXIMUM_DIMENSION = 800;
+
     protected $table = 'services';
 
     public function registerMediaCollections(): void
@@ -45,6 +49,11 @@ class ServiceModel extends Model implements BusinessScopedMediaOwner, HasMedia
         $this->addMediaCollection(self::IMAGE_COLLECTION)
             ->singleFile()
             ->acceptsMimeTypes(self::ACCEPTED_IMAGE_MIME_TYPES);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        OptimizedImageConversion::register($this, self::OPTIMIZED_IMAGE_MAXIMUM_DIMENSION, self::IMAGE_COLLECTION);
     }
 
     /**

@@ -6,5 +6,5 @@ namespace App\Domains\PublicCatalog\Contracts;
 
 interface PublishedBanner
 {
-    public function urlForBusiness(string $businessId): ?string;
+    public function originalUrlForBusiness(string $businessId): ?string;
 }

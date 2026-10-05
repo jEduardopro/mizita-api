@@ -20,4 +20,6 @@ interface PublishedBusinesses
     public function identifyBySlug(string $slug): string;
 
     public function existsBySlug(string $slug): bool;
+
+    public function originalLogoUrlFor(string $businessId): ?string;
 }

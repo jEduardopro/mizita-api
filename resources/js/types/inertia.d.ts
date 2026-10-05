@@ -14,6 +14,12 @@ type SharedPlatformAdmin = {
     email: string;
 };
 
+export type PublicLinks = {
+    facebook: string | null;
+    instagram: string | null;
+    contact: string | null;
+};
+
 declare module '@inertiajs/core' {
     interface InertiaConfig {
         sharedPageProps: {
@@ -28,6 +34,7 @@ declare module '@inertiajs/core' {
             plan: SharedPlan | null;
             impersonation: SharedImpersonation | null;
             platformAdmin: SharedPlatformAdmin | null;
+            publicLinks: PublicLinks;
         };
     }
 }

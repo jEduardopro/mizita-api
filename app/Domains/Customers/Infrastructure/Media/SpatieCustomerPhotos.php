@@ -7,6 +7,7 @@ namespace App\Domains\Customers\Infrastructure\Media;
 use App\Domains\Customers\Contracts\CustomerPhotos;
 use App\Domains\Customers\Exceptions\CustomerNotFound;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
+use App\Shared\Infrastructure\Media\OptimizedImageUrl;
 use App\Shared\Infrastructure\Media\SafeFileName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -94,8 +95,6 @@ final class SpatieCustomerPhotos implements CustomerPhotos
 
     private static function urlOrNull(CustomerModel $model): ?string
     {
-        $url = $model->getFirstMediaUrl(CustomerModel::PHOTO_COLLECTION);
-
-        return $url === '' ? null : $url;
+        return OptimizedImageUrl::firstOf($model, CustomerModel::PHOTO_COLLECTION);
     }
 }

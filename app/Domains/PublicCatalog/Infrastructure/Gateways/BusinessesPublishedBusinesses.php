@@ -44,6 +44,11 @@ final class BusinessesPublishedBusinesses implements PublishedBusinesses
         return $this->businesses->existsBySlug($slug);
     }
 
+    public function originalLogoUrlFor(string $businessId): ?string
+    {
+        return $this->logo->originalUrlFor($businessId);
+    }
+
     /**
      * @throws BusinessPageNotFound
      */

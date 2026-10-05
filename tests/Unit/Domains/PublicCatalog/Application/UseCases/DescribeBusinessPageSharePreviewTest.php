@@ -25,16 +25,24 @@ beforeEach(function () {
     $this->describe = fn (string $slug = PublicCatalogFixtures::SLUG): UseCaseResponse => $this->useCase
         ->handle(new DescribeBusinessPageSharePreviewInput($slug));
 
+    $this->optimizedLogoUrl = 'https://cdn.mizita.test/businesses/conversions/logo-optimized.webp';
+
     $this->publish = function (
         ?string $about = 'Cortes y color desde 2019.',
-        ?string $logoUrl = PublicCatalogFixtures::LOGO_URL,
         ?string $bannerUrl = PublicCatalogFixtures::BANNER_URL,
+        ?string $originalLogoUrl = PublicCatalogFixtures::LOGO_URL,
         ?string $city = AddressFixtures::CITY,
     ): void {
         $this->businesses->shouldReceive('findBySlug')->once()
             ->with(PublicCatalogFixtures::SLUG)
-            ->andReturn(PublicCatalogFixtures::profile(about: $about, logoUrl: $logoUrl));
-        $this->banner->shouldReceive('urlForBusiness')->once()
+            ->andReturn(PublicCatalogFixtures::profile(
+                about: $about,
+                logoUrl: $originalLogoUrl === null ? null : $this->optimizedLogoUrl,
+            ));
+        $this->businesses->shouldReceive('originalLogoUrlFor')
+            ->with(PublicCatalogFixtures::BUSINESS_ID)
+            ->andReturn($originalLogoUrl);
+        $this->banner->shouldReceive('originalUrlForBusiness')->once()
             ->with(PublicCatalogFixtures::BUSINESS_ID)
             ->andReturn($bannerUrl);
         $this->city->shouldReceive('forBusiness')->once()
@@ -62,7 +70,8 @@ describe('a published business shared on a chat or a timeline', function () {
         $cityBusinessId = null;
 
         $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
-        $this->banner->shouldReceive('urlForBusiness')->once()
+        $this->businesses->shouldReceive('originalLogoUrlFor')->once()->andReturnNull();
+        $this->banner->shouldReceive('originalUrlForBusiness')->once()
             ->with(Mockery::capture($bannerBusinessId))
             ->andReturnNull();
         $this->city->shouldReceive('forBusiness')->once()
@@ -80,7 +89,8 @@ describe('a published business shared on a chat or a timeline', function () {
         $this->businesses->shouldReceive('findBySlug')->once()
             ->with('peluqueria-ambar')
             ->andReturn(PublicCatalogFixtures::profile(slug: 'peluqueria-ambar'));
-        $this->banner->shouldReceive('urlForBusiness')->once()->andReturnNull();
+        $this->businesses->shouldReceive('originalLogoUrlFor')->once()->andReturnNull();
+        $this->banner->shouldReceive('originalUrlForBusiness')->once()->andReturnNull();
         $this->city->shouldReceive('forBusiness')->once()->andReturnNull();
 
         expect(($this->describe)('peluqueria-ambar')->succeeded())->toBeTrue();
@@ -97,26 +107,54 @@ describe('a published business shared on a chat or a timeline', function () {
 });
 
 describe('the image a shared link unfurls with', function () {
-    it('prefers the banner over the logo', function () {
-        ($this->publish)(logoUrl: PublicCatalogFixtures::LOGO_URL, bannerUrl: PublicCatalogFixtures::BANNER_URL);
+    it('prefers the uploaded banner over the uploaded logo', function () {
+        ($this->publish)(bannerUrl: PublicCatalogFixtures::BANNER_URL, originalLogoUrl: PublicCatalogFixtures::LOGO_URL);
 
         expect(($this->describe)()->value()->imageUrl)->toBe(PublicCatalogFixtures::BANNER_URL);
     });
 
-    it('falls back to the logo for a business that uploaded no banner', function () {
-        ($this->publish)(logoUrl: PublicCatalogFixtures::LOGO_URL, bannerUrl: null);
+    it('asks for no logo once the banner answered', function () {
+        $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
+        $this->businesses->shouldNotReceive('originalLogoUrlFor');
+        $this->banner->shouldReceive('originalUrlForBusiness')->once()->andReturn(PublicCatalogFixtures::BANNER_URL);
+        $this->city->shouldReceive('forBusiness')->once()->andReturnNull();
 
-        expect(($this->describe)()->value()->imageUrl)->toBe(PublicCatalogFixtures::LOGO_URL);
+        expect(($this->describe)()->value()->imageUrl)->toBe(PublicCatalogFixtures::BANNER_URL);
+    });
+
+    it('falls back to the uploaded logo, never the compressed copy the profile carries', function () {
+        ($this->publish)(bannerUrl: null, originalLogoUrl: PublicCatalogFixtures::LOGO_URL);
+
+        $imageUrl = ($this->describe)()->value()->imageUrl;
+
+        expect($imageUrl)->toBe(PublicCatalogFixtures::LOGO_URL)
+            ->and($imageUrl)->not->toBe($this->optimizedLogoUrl);
+    });
+
+    it('asks for the uploaded logo under the business uuid the profile carried', function () {
+        $logoBusinessId = null;
+
+        $this->businesses->shouldReceive('findBySlug')->once()->andReturn(PublicCatalogFixtures::profile());
+        $this->businesses->shouldReceive('originalLogoUrlFor')->once()
+            ->with(Mockery::capture($logoBusinessId))
+            ->andReturnNull();
+        $this->banner->shouldReceive('originalUrlForBusiness')->once()->andReturnNull();
+        $this->city->shouldReceive('forBusiness')->once()->andReturnNull();
+
+        ($this->describe)();
+
+        expect($logoBusinessId)->toBe(PublicCatalogFixtures::BUSINESS_ID)
+            ->and(is_numeric($logoBusinessId))->toBeFalse();
     });
 
     it('uses the banner for a business that uploaded no logo', function () {
-        ($this->publish)(logoUrl: null, bannerUrl: PublicCatalogFixtures::BANNER_URL);
+        ($this->publish)(bannerUrl: PublicCatalogFixtures::BANNER_URL, originalLogoUrl: null);
 
         expect(($this->describe)()->value()->imageUrl)->toBe(PublicCatalogFixtures::BANNER_URL);
     });
 
     it('offers no image for a business that uploaded neither', function () {
-        ($this->publish)(logoUrl: null, bannerUrl: null);
+        ($this->publish)(bannerUrl: null, originalLogoUrl: null);
 
         expect(($this->describe)()->value()->imageUrl)->toBeNull();
     });
@@ -154,8 +192,9 @@ describe('a slug no published business answers to', function () {
             ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
     });
 
-    it('asks neither the banner nor the city about a business it never found', function () {
-        $this->banner->shouldNotReceive('urlForBusiness');
+    it('asks neither the banner, the logo nor the city about a business it never found', function () {
+        $this->banner->shouldNotReceive('originalUrlForBusiness');
+        $this->businesses->shouldNotReceive('originalLogoUrlFor');
         $this->city->shouldNotReceive('forBusiness');
 
         ($this->describe)(PublicCatalogFixtures::UNKNOWN_SLUG);
@@ -170,7 +209,8 @@ describe('a slug no published business answers to', function () {
 describe('a slug no business could own', function () {
     it('refuses it as not found before asking any port', function (string $slug) {
         $this->businesses->shouldNotReceive('findBySlug');
-        $this->banner->shouldNotReceive('urlForBusiness');
+        $this->businesses->shouldNotReceive('originalLogoUrlFor');
+        $this->banner->shouldNotReceive('originalUrlForBusiness');
         $this->city->shouldNotReceive('forBusiness');
 
         $response = ($this->describe)($slug);

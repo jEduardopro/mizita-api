@@ -9,9 +9,17 @@ import {
     PRICING_PER_MONTH_KEY,
     PRICING_PLANS,
     PRICING_RECOMMENDED_KEY,
+    type PricingPlanFeature,
 } from '@/lib/pricing-plans';
 
 export const PRICING_ID = 'pricing';
+
+function includedFeaturesFirst(features: readonly PricingPlanFeature[]): PricingPlanFeature[] {
+    return [
+        ...features.filter((feature) => ! feature.comingSoon),
+        ...features.filter((feature) => feature.comingSoon),
+    ];
+}
 
 export function PricingPlans() {
     const { t } = useTranslation('public');
@@ -34,7 +42,7 @@ export function PricingPlans() {
                     <article
                         key={plan.id}
                         className={cn(
-                            'flex flex-col rounded-xl border bg-card p-6 sm:p-7',
+                            'flex flex-col rounded-xl border bg-card p-6 sm:row-span-6 sm:grid sm:grid-rows-subgrid sm:gap-0 sm:p-7',
                             plan.recommended
                                 ? 'border-primary/30 shadow-lg shadow-primary/5 ring-1 ring-primary/15'
                                 : 'border-border',
@@ -70,12 +78,20 @@ export function PricingPlans() {
                             </span>
                         </p>
 
+                        <AccountCta
+                            className="mt-7 w-full *:w-full *:rounded-lg"
+                            size="xl"
+                            variant={plan.recommended ? 'brand' : 'brand-outline'}
+                            showLogIn={false}
+                            label={t(plan.ctaKey)}
+                        />
+
                         <p className="mt-7 border-t border-border pt-6 text-[0.6875rem] tracking-[0.14em] text-muted-foreground uppercase">
                             {t(plan.includesKey)}
                         </p>
 
                         <ul className="mt-4 space-y-2.5">
-                            {plan.features.map((feature) => (
+                            {includedFeaturesFirst(plan.features).map((feature) => (
                                 <li key={feature.key} className="flex gap-3 text-sm leading-relaxed text-muted-foreground">
                                     <span
                                         aria-hidden="true"
@@ -95,14 +111,6 @@ export function PricingPlans() {
                                 </li>
                             ))}
                         </ul>
-
-                        <AccountCta
-                            className="mt-auto w-full pt-8 *:w-full *:rounded-lg"
-                            size="xl"
-                            variant={plan.recommended ? 'brand' : 'brand-outline'}
-                            showLogIn={false}
-                            label={t(plan.ctaKey)}
-                        />
                     </article>
                 ))}
             </div>

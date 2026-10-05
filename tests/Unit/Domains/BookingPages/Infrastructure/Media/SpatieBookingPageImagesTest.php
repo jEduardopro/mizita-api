@@ -6,6 +6,7 @@ use App\Domains\BookingPages\Contracts\BookingPageImages;
 use App\Domains\BookingPages\Infrastructure\Media\SpatieBookingPageImages;
 use App\Domains\BookingPages\ValueObjects\BookingPageImage;
 use App\Shared\Infrastructure\Media\SafeFileName;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\Support\FakeTransactionManager;
 use Tests\Support\Shared\ImageFiles;
 
@@ -42,8 +43,14 @@ function bookingPageImagesSource(?string $method = null): string
     ));
 }
 
+function bookingPageImagesCompactSource(string $method): string
+{
+    return (string) preg_replace('/\s+/', '', bookingPageImagesSource($method));
+}
+
 dataset('every port method', [
     'reading the banner url' => 'bannerUrlFor',
+    'reading the original banner url' => 'originalBannerUrlFor',
     'reading the gallery' => 'galleryFor',
     'replacing the banner' => 'replaceBanner',
     'removing the banner' => 'removeBanner',
@@ -66,6 +73,7 @@ describe('the port it stands behind', function () {
             ->and((string) (new ReflectionMethod(BookingPageImages::class, $method))->getReturnType())->toBe($returnType);
     })->with([
         'reading the banner url' => ['bannerUrlFor', '?string'],
+        'reading the original banner url' => ['originalBannerUrlFor', '?string'],
         'reading the gallery' => ['galleryFor', 'array'],
         'replacing the banner' => ['replaceBanner', 'string'],
         'removing the banner' => ['removeBanner', 'void'],
@@ -90,6 +98,7 @@ describe('the port it stands behind', function () {
 
         expect($public)->toBe([
             'bannerUrlFor',
+            'originalBannerUrlFor',
             'galleryFor',
             'replaceBanner',
             'removeBanner',
@@ -161,11 +170,20 @@ describe('the business every call is scoped to', function () {
             ->and($source)->not->toContain('->get(');
     });
 
-    it('reads the banner url the same way, one lookup narrowed by the business', function () {
-        $source = bookingPageImagesSource('bannerUrlFor');
+    it('reads both banner urls off one lookup, so the two can never disagree on which file it is', function (string $method) {
+        $source = bookingPageImagesCompactSource($method);
 
-        expect($source)->toContain("self::ofBusiness(\$businessId)->with('media')->where('uuid', \$bookingPageId)->first()")
-            ->and(substr_count($source, '->first()'))->toBe(1);
+        expect($source)->toContain('self::bannerOf($businessId,$bookingPageId)')
+            ->and($source)->not->toContain('->first()')
+            ->and($source)->not->toContain('ofBusiness(');
+    })->with(['bannerUrlFor', 'originalBannerUrlFor']);
+
+    it('finds that banner through one lookup narrowed by the business', function () {
+        $source = bookingPageImagesCompactSource('bannerOf');
+
+        expect($source)->toContain("self::ofBusiness(\$businessId)->with('media')->where('uuid',\$bookingPageId)->first()")
+            ->and(substr_count($source, '->first()'))->toBe(1)
+            ->and($source)->toContain('getFirstMedia(BookingPageModel::BANNER_COLLECTION)');
     });
 
     it('resolves the image a client named inside the page it already narrowed', function () {
@@ -189,10 +207,36 @@ describe('the page it refuses to find', function () {
     });
 
     it('answers a read about a page of another business with nothing, rather than refusing', function () {
-        expect(bookingPageImagesSource('bannerUrlFor'))->toContain('return null;')
+        expect((string) bookingPageImagesMethod('bannerOf')->getReturnType())->toBe('?'.Media::class)
+            ->and(bookingPageImagesCompactSource('bannerOf'))->toContain('->first()?->getFirstMedia(')
             ->and(bookingPageImagesSource('galleryFor'))->toContain('return [];')
+            ->and(bookingPageImagesSource('bannerOf'))->not->toContain('throw ')
             ->and(bookingPageImagesSource('bannerUrlFor'))->not->toContain('throw ')
+            ->and(bookingPageImagesSource('originalBannerUrlFor'))->not->toContain('throw ')
             ->and(bookingPageImagesSource('galleryFor'))->not->toContain('throw ');
+    });
+});
+
+describe('the url it hands out', function () {
+    it('serves the compressed copy wherever the dashboard and the public page show an image', function (string $method, string $call) {
+        expect(bookingPageImagesCompactSource($method))->toContain($call);
+    })->with([
+        'reading the banner' => ['bannerUrlFor', 'OptimizedImageUrl::of($banner)'],
+        'replacing the banner' => ['replaceBanner', 'OptimizedImageUrl::of($banner)'],
+        'every gallery image' => ['galleryImageOf', 'url:OptimizedImageUrl::of($image)'],
+    ]);
+
+    it('builds every gallery image in one place, whether it was read or just added', function () {
+        expect(bookingPageImagesCompactSource('galleryFor'))->toContain('self::galleryImageOf($image)')
+            ->and(bookingPageImagesCompactSource('addGalleryImage'))->toContain('self::galleryImageOf($image)')
+            ->and(substr_count(bookingPageImagesSource(), 'new BookingPageImage('))->toBe(1);
+    });
+
+    it('reads the original banner as the file was uploaded, naming no conversion', function () {
+        expect(bookingPageImagesCompactSource('originalBannerUrlFor'))
+            ->toContain('?->getUrl()')
+            ->not->toContain('OptimizedImageUrl')
+            ->not->toContain('OptimizedImageConversion');
     });
 });
 

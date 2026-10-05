@@ -15,8 +15,8 @@ type Props = {
     className?: string;
 };
 
-const CTA_CLASS =
-    'flex min-h-12 items-center justify-center gap-2 px-6 py-2.5 text-center text-base font-medium text-pretty outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
+export const BOOKING_CTA_CLASS =
+    'flex min-h-12 items-center justify-center gap-2 px-6 py-2.5 text-center text-base font-medium text-pretty outline-none focus-visible:ring-3 focus-visible:ring-ring/50 motion-safe:transition-opacity hover:opacity-90';
 
 export function BookingCta({ href, accentColor, buttonShape, className }: Props) {
     const { t } = useTranslation('public');
@@ -28,8 +28,7 @@ export function BookingCta({ href, accentColor, buttonShape, className }: Props)
         <Link
             href={href}
             className={cn(
-                CTA_CLASS,
-                'motion-safe:transition-opacity hover:opacity-90',
+                BOOKING_CTA_CLASS,
                 accent.accent,
                 accent.accentForeground,
                 shape,

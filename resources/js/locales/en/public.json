@@ -87,10 +87,37 @@
                 }
             }
         },
+        "about": {
+            "nav": "About",
+            "eyebrow": "About {{name}}",
+            "heading": "One agenda between a business and the people who book it.",
+            "body": "{{name}} is an appointment booking platform. Businesses run their staff, services, opening hours and agenda from one dashboard, and their customers book online whenever it suits them.",
+            "points": {
+                "businesses": {
+                    "term": "For businesses",
+                    "body": "Staff, services, hours and the day's agenda on one dashboard."
+                },
+                "customers": {
+                    "term": "For customers",
+                    "body": "They book online in a few taps, with or without an account."
+                },
+                "always": {
+                    "term": "24/7",
+                    "body": "The booking page never closes: it takes appointments at any hour, every day."
+                }
+            }
+        },
         "closing": {
             "heading": "Open your agenda to bookings.",
             "body": "Create your business, add your services and share your booking link."
         }
+    },
+    "notFound": {
+        "title": "Page not found",
+        "code": "404",
+        "heading": "We couldn't find this page",
+        "body": "The link may be mistyped, or the page may no longer exist.",
+        "action": "Go to the home page"
     },
     "agendaPreview": {
         "services": {
@@ -134,6 +161,10 @@
     },
     "booking": {
         "pageTitle": "Booking page",
+        "head": {
+            "title": "{{name}} · Book now",
+            "titleWithCity": "{{name}} | {{city}} · Book now"
+        },
         "loading": "Loading the page…",
         "failed": {
             "title": "We could not load this page.",
@@ -169,6 +200,8 @@
         },
         "services": {
             "details": "Details",
+            "choose": "Choose this service",
+            "closeDetails": "Close details",
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} mins",
             "free": "Free",
@@ -186,7 +219,7 @@
             "description": "Photos of {{name}}",
             "showAll": "Show all photos",
             "close": "Close photos",
-            "openPhoto": "View photo {{position}}",
+            "photoAlt": "Photo {{position}} of {{business}}",
             "goToPhoto": "Go to photo {{position}}",
             "previous": "Previous photo",
             "next": "Next photo",

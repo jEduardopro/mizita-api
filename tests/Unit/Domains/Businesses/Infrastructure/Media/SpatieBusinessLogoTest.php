@@ -5,11 +5,29 @@ declare(strict_types=1);
 use App\Domains\Businesses\Contracts\BusinessLogo;
 use App\Domains\Businesses\Infrastructure\Media\SpatieBusinessLogo;
 use App\Shared\Infrastructure\Media\SafeFileName;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\Support\Shared\ImageFiles;
 
 function businessLogoMethod(string $method): ReflectionMethod
 {
     return new ReflectionMethod(SpatieBusinessLogo::class, $method);
+}
+
+function businessLogoSource(?string $method = null): string
+{
+    $file = (string) file_get_contents((string) (new ReflectionClass(SpatieBusinessLogo::class))->getFileName());
+
+    if ($method === null) {
+        return $file;
+    }
+
+    $reflection = businessLogoMethod($method);
+
+    return (string) preg_replace('/\s+/', '', implode("\n", array_slice(
+        explode("\n", $file),
+        $reflection->getStartLine() - 1,
+        $reflection->getEndLine() - $reflection->getStartLine() + 1,
+    )));
 }
 
 describe('the port it stands behind', function () {
@@ -26,6 +44,7 @@ describe('the port it stands behind', function () {
             ->and((string) (new ReflectionMethod(BusinessLogo::class, $method))->getReturnType())->toBe($returnType);
     })->with([
         'reading the url' => ['urlFor', '?string'],
+        'reading the original url' => ['originalUrlFor', '?string'],
         'replacing the file' => ['replace', 'string'],
         'removing the file' => ['remove', 'void'],
     ]);
@@ -36,7 +55,7 @@ describe('the port it stands behind', function () {
             (new ReflectionClass(SpatieBusinessLogo::class))->getMethods(ReflectionMethod::IS_PUBLIC),
         );
 
-        expect($public)->toBe(['urlFor', 'replace', 'remove']);
+        expect($public)->toBe(['urlFor', 'originalUrlFor', 'replace', 'remove']);
     });
 });
 
@@ -78,7 +97,37 @@ describe('keeping Illuminate\Http out of the application layer', function () {
 
         expect($first->getName())->toBe('businessId')
             ->and((string) $first->getType())->toBe('string');
-    })->with(['urlFor', 'replace', 'remove']);
+    })->with(['urlFor', 'originalUrlFor', 'replace', 'remove']);
+});
+
+describe('the url it hands out', function () {
+    it('reads both urls off one lookup of the logo, so the two can never disagree on which file it is', function () {
+        expect(businessLogoSource('urlFor'))->toContain('self::logoOf($businessId)')
+            ->and(businessLogoSource('originalUrlFor'))->toContain('self::logoOf($businessId)')
+            ->and(businessLogoSource('urlFor'))->not->toContain('->first()')
+            ->and(businessLogoSource('originalUrlFor'))->not->toContain('->first()');
+    });
+
+    it('looks the logo up by business uuid, and answers nothing for a business it cannot find', function () {
+        $returnType = businessLogoMethod('logoOf')->getReturnType();
+
+        expect(businessLogoSource('logoOf'))
+            ->toContain("->where('uuid',\$businessId)")
+            ->toContain('->first()?->getFirstMedia(BusinessModel::LOGO_COLLECTION)')
+            ->and((string) $returnType)->toBe('?'.Media::class)
+            ->and(businessLogoSource('originalUrlFor'))->not->toContain('throw');
+    });
+
+    it('serves the compressed copy wherever the dashboard and the public page show the logo', function (string $method) {
+        expect(businessLogoSource($method))->toContain('OptimizedImageUrl::of($logo)');
+    })->with(['urlFor', 'replace']);
+
+    it('reads the original as the file was uploaded, naming no conversion', function () {
+        expect(businessLogoSource('originalUrlFor'))
+            ->toContain('?->getUrl()')
+            ->not->toContain('OptimizedImageUrl')
+            ->not->toContain('OptimizedImageConversion');
+    });
 });
 
 describe('the file name it stores an upload under', function () {

@@ -23,7 +23,7 @@ import type { FieldErrors } from '@/lib/http';
 import { SUPPORTED_PHONE_COUNTRIES, type PhoneCountryCode } from '@/lib/phone';
 import { resolvedTimezone } from '@/lib/timezone';
 
-const DASHBOARD_URL = '/dashboard';
+const CALENDAR_URL = '/calendar';
 
 const DEFAULT_PHONE_COUNTRY: PhoneCountryCode = 'MX';
 
@@ -140,7 +140,7 @@ export function BusinessOnboardingForm({ industries }: Props) {
     async function enterBusiness(businessId: string) {
         await selectCurrentBusiness.mutateAsync(businessId).catch(() => undefined);
 
-        router.visit(DASHBOARD_URL);
+        router.visit(CALENDAR_URL);
     }
 
     async function submit(event: FormEvent<HTMLFormElement>) {

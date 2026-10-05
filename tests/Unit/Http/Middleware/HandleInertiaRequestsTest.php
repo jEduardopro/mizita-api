@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Preferences\CookiePreferences;
+use App\Http\PublicLinks\PublicLinks;
 use App\Shared\Contracts\BusinessContext;
 use Illuminate\Http\Request;
 use Tests\Support\FakeBusinessAuthorization;
@@ -46,6 +47,7 @@ beforeEach(function () {
         $this->plans,
         new FakeImpersonationStatus,
         new FakeSignedInPlatformAdmin,
+        new PublicLinks,
     );
 });
 
@@ -92,6 +94,7 @@ describe('the impersonation prop', function () {
             $this->plans,
             new FakeImpersonationStatus($impersonation),
             new FakeSignedInPlatformAdmin,
+            new PublicLinks,
         );
 
         $shared = inertiaSharedProp($middleware, 'impersonation');
@@ -113,6 +116,7 @@ describe('the impersonation prop', function () {
             $this->plans,
             $impersonations,
             new FakeSignedInPlatformAdmin,
+            new PublicLinks,
         );
 
         $middleware->share(Request::create('/calendar', 'GET'));
@@ -133,6 +137,7 @@ describe('the platformAdmin prop', function () {
             $this->plans,
             new FakeImpersonationStatus,
             new FakeSignedInPlatformAdmin(['name' => 'Grace Hopper', 'email' => 'grace@mizita.test']),
+            new PublicLinks,
         );
 
         expect(inertiaSharedProp($middleware, 'platformAdmin'))
@@ -147,10 +152,39 @@ describe('the platformAdmin prop', function () {
             $this->plans,
             new FakeImpersonationStatus,
             $admins,
+            new PublicLinks,
         );
 
         $middleware->share(Request::create('/calendar', 'GET'));
 
         expect($admins->descriptions)->toBe(0);
+    });
+});
+
+describe('the publicLinks prop', function () {
+    it('shares exactly the facebook, instagram and contact links', function () {
+        config(['public-links' => ['facebook' => null, 'instagram' => null, 'contact' => null]]);
+
+        expect(array_keys(inertiaSharedProp($this->middleware, 'publicLinks')))
+            ->toBe(['facebook', 'instagram', 'contact']);
+    });
+
+    it('shares the links the configuration describes', function () {
+        config(['public-links' => [
+            'facebook' => '  https://www.facebook.com/mizita  ',
+            'instagram' => 'javascript:alert(1)',
+            'contact' => 'mailto:hola@mizita.app',
+        ]]);
+
+        expect(inertiaSharedProp($this->middleware, 'publicLinks'))->toBe([
+            'facebook' => 'https://www.facebook.com/mizita',
+            'instagram' => null,
+            'contact' => 'mailto:hola@mizita.app',
+        ]);
+    });
+
+    it('shares the links lazily, as a closure the page resolves', function () {
+        expect($this->middleware->share(Request::create('/calendar', 'GET'))['publicLinks'])
+            ->toBeInstanceOf(Closure::class);
     });
 });

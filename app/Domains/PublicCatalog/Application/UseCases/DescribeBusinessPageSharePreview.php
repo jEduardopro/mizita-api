@@ -10,7 +10,6 @@ use App\Domains\PublicCatalog\Contracts\PublishedBanner;
 use App\Domains\PublicCatalog\Contracts\PublishedBusinesses;
 use App\Domains\PublicCatalog\Contracts\PublishedCity;
 use App\Domains\PublicCatalog\Exceptions\BusinessPageNotFound;
-use App\Domains\PublicCatalog\ValueObjects\PublicBusinessProfile;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\DomainFailure;
 
@@ -47,12 +46,13 @@ final class DescribeBusinessPageSharePreview
             name: $profile->name,
             city: $this->city->forBusiness($profile->id),
             about: $profile->about,
-            imageUrl: $this->imageOf($profile),
+            imageUrl: $this->imageOf($profile->id),
         );
     }
 
-    private function imageOf(PublicBusinessProfile $profile): ?string
+    private function imageOf(string $businessId): ?string
     {
-        return $this->banner->urlForBusiness($profile->id) ?? $profile->logoUrl;
+        return $this->banner->originalUrlForBusiness($businessId)
+            ?? $this->businesses->originalLogoUrlFor($businessId);
     }
 }

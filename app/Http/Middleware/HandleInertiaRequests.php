@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Preferences\CookiePreferences;
+use App\Http\PublicLinks\PublicLinks;
 use App\Shared\Contracts\BusinessAuthorization;
 use App\Shared\Contracts\BusinessContext;
 use App\Shared\Contracts\BusinessPlan;
@@ -27,6 +28,7 @@ class HandleInertiaRequests extends Middleware
         private readonly BusinessPlan $plans,
         private readonly ImpersonationStatus $impersonation,
         private readonly SignedInPlatformAdmin $platformAdmin,
+        private readonly PublicLinks $publicLinks,
     ) {}
 
     public function version(Request $request): ?string
@@ -52,6 +54,7 @@ class HandleInertiaRequests extends Middleware
             'plan' => fn (): ?array => $this->planOfCurrentBusiness(),
             'impersonation' => fn (): ?array => $this->impersonation->describe(),
             'platformAdmin' => fn (): ?array => $this->platformAdmin->describe(),
+            'publicLinks' => fn (): array => $this->publicLinks->describe(),
         ];
     }
 

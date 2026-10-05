@@ -89,15 +89,14 @@ export function BookingGalleryViewer({
                             {images.map((image, index) => (
                                 <CarouselItem
                                     key={image.id}
-                                    aria-label={t('booking.gallery.position', {
-                                        position: index + 1,
-                                        total,
-                                    })}
                                     className="h-full px-2 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-16 sm:pb-6"
                                 >
                                     <img
                                         src={image.url}
-                                        alt=""
+                                        alt={t('booking.gallery.photoAlt', {
+                                            position: index + 1,
+                                            business: businessName,
+                                        })}
                                         decoding="async"
                                         draggable={false}
                                         className="size-full object-contain select-none"

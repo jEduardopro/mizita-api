@@ -7,6 +7,7 @@ namespace App\Domains\Customers\Infrastructure\Eloquent\Models;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Customers\Infrastructure\Eloquent\Factories\CustomerModelFactory;
 use App\Shared\Infrastructure\Media\BusinessScopedMediaOwner;
+use App\Shared\Infrastructure\Media\OptimizedImageConversion;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Fillable(['uuid', 'business_id', 'name', 'email', 'birth_date', 'notes'])]
 class CustomerModel extends Model implements BusinessScopedMediaOwner, HasMedia
@@ -35,6 +37,8 @@ class CustomerModel extends Model implements BusinessScopedMediaOwner, HasMedia
         'image/webp',
     ];
 
+    private const OPTIMIZED_PHOTO_MAXIMUM_DIMENSION = 512;
+
     protected $table = 'customers';
 
     public function registerMediaCollections(): void
@@ -42,6 +46,11 @@ class CustomerModel extends Model implements BusinessScopedMediaOwner, HasMedia
         $this->addMediaCollection(self::PHOTO_COLLECTION)
             ->singleFile()
             ->acceptsMimeTypes(self::ACCEPTED_PHOTO_MIME_TYPES);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        OptimizedImageConversion::register($this, self::OPTIMIZED_PHOTO_MAXIMUM_DIMENSION, self::PHOTO_COLLECTION);
     }
 
     /**

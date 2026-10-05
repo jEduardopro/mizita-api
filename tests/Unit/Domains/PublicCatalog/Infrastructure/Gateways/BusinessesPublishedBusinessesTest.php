@@ -71,7 +71,8 @@ describe('describing the business a slug answers to', function () {
 
         ($this->find)();
 
-        expect($this->logo->reads)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+        expect($this->logo->reads)->toBe([PublicCatalogFixtures::BUSINESS_ID])
+            ->and($this->logo->originalReads)->toBe([]);
     });
 
     it('sends no logo for a business that uploaded none', function () {
@@ -148,6 +149,38 @@ describe('a slug no business answers to', function () {
 
         expect(fn () => (new BusinessesPublishedBusinesses($businesses, $this->logo))
             ->findBySlug(PublicCatalogFixtures::SLUG))->toThrow($bug);
+    });
+});
+
+describe('the logo as the business uploaded it', function () {
+    beforeEach(function () {
+        $this->optimizedLogoUrl = 'https://cdn.mizita.test/businesses/conversions/logo-optimized.webp';
+    });
+
+    it('hands back the uploaded file, never the compressed copy the profile carries', function () {
+        $this->logo
+            ->store(PublicCatalogFixtures::BUSINESS_ID, $this->optimizedLogoUrl)
+            ->storeOriginal(PublicCatalogFixtures::BUSINESS_ID, PublicCatalogFixtures::LOGO_URL);
+
+        expect($this->gateway->originalLogoUrlFor(PublicCatalogFixtures::BUSINESS_ID))
+            ->toBe(PublicCatalogFixtures::LOGO_URL)
+            ->and($this->logo->reads)->toBe([]);
+    });
+
+    it('asks for it under the business uuid it was given', function () {
+        $this->gateway->originalLogoUrlFor(PublicCatalogFixtures::BUSINESS_ID);
+
+        expect($this->logo->originalReads)->toBe([PublicCatalogFixtures::BUSINESS_ID]);
+    });
+
+    it('answers with nothing for a business that uploaded no logo', function () {
+        expect($this->gateway->originalLogoUrlFor(PublicCatalogFixtures::BUSINESS_ID))->toBeNull();
+    });
+
+    it('hands back nothing of a neighbouring business logo', function () {
+        $this->logo->storeOriginal(PublicCatalogFixtures::OTHER_BUSINESS_ID, PublicCatalogFixtures::LOGO_URL);
+
+        expect($this->gateway->originalLogoUrlFor(PublicCatalogFixtures::BUSINESS_ID))->toBeNull();
     });
 });
 

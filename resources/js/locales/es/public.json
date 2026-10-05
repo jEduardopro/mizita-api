@@ -87,10 +87,37 @@
                 }
             }
         },
+        "about": {
+            "nav": "Acerca de",
+            "eyebrow": "Acerca de {{name}}",
+            "heading": "Una sola agenda entre el negocio y quien reserva.",
+            "body": "{{name}} es una plataforma de reservas de citas. Los negocios llevan su equipo, sus servicios, sus horarios y su agenda desde un solo panel, y sus clientes reservan en línea cuando mejor les viene.",
+            "points": {
+                "businesses": {
+                    "term": "Para negocios",
+                    "body": "Equipo, servicios, horarios y la agenda del día en un mismo panel."
+                },
+                "customers": {
+                    "term": "Para clientes",
+                    "body": "Reservan en línea en unos pocos toques, con cuenta o sin ella."
+                },
+                "always": {
+                    "term": "24/7",
+                    "body": "La página de reservas no cierra: acepta citas a cualquier hora, todos los días."
+                }
+            }
+        },
         "closing": {
             "heading": "Abre tu agenda a reservas.",
             "body": "Crea tu negocio, carga tus servicios y comparte tu enlace de reservas."
         }
+    },
+    "notFound": {
+        "title": "Página no encontrada",
+        "code": "404",
+        "heading": "No encontramos esta página",
+        "body": "Puede que el enlace esté mal escrito o que la página ya no exista.",
+        "action": "Ir al inicio"
     },
     "agendaPreview": {
         "services": {
@@ -134,6 +161,10 @@
     },
     "booking": {
         "pageTitle": "Página de reservas",
+        "head": {
+            "title": "{{name}} · Reserva ahora",
+            "titleWithCity": "{{name}} | {{city}} · Reserva ahora"
+        },
         "loading": "Cargando la página…",
         "failed": {
             "title": "No pudimos cargar esta página.",
@@ -169,6 +200,8 @@
         },
         "services": {
             "details": "Detalles",
+            "choose": "Elegir este servicio",
+            "closeDetails": "Cerrar los detalles",
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} min",
             "free": "Gratis",
@@ -186,7 +219,7 @@
             "description": "Fotos de {{name}}",
             "showAll": "Mostrar todas las fotos",
             "close": "Cerrar las fotos",
-            "openPhoto": "Ver la foto {{position}}",
+            "photoAlt": "Foto {{position}} de {{business}}",
             "goToPhoto": "Ir a la foto {{position}}",
             "previous": "Foto anterior",
             "next": "Foto siguiente",

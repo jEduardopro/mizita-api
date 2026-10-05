@@ -61,6 +61,8 @@ export function BookingServiceRow({
                         <img
                             src={service.image_url}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="order-first aspect-[4/3] w-full rounded-xl object-cover sm:order-last"
                         />
                     )}

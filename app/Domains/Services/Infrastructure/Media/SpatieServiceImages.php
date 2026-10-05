@@ -7,6 +7,7 @@ namespace App\Domains\Services\Infrastructure\Media;
 use App\Domains\Services\Contracts\ServiceImages;
 use App\Domains\Services\Exceptions\ServiceNotFound;
 use App\Domains\Services\Infrastructure\Eloquent\Models\ServiceModel;
+use App\Shared\Infrastructure\Media\OptimizedImageUrl;
 use App\Shared\Infrastructure\Media\SafeFileName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -55,11 +56,12 @@ final class SpatieServiceImages implements ServiceImages
 
     public function replace(string $businessId, string $serviceId, string $sourcePath, string $fileName): string
     {
-        return $this->modelOrFail($businessId, $serviceId)
+        $image = $this->modelOrFail($businessId, $serviceId)
             ->addMedia($sourcePath)
             ->usingFileName(SafeFileName::from($sourcePath, $fileName, self::FALLBACK_FILE_NAME))
-            ->toMediaCollection(ServiceModel::IMAGE_COLLECTION)
-            ->getUrl();
+            ->toMediaCollection(ServiceModel::IMAGE_COLLECTION);
+
+        return OptimizedImageUrl::of($image);
     }
 
     public function remove(string $businessId, string $serviceId): void
@@ -108,8 +110,6 @@ final class SpatieServiceImages implements ServiceImages
 
     private static function urlOrNull(ServiceModel $model): ?string
     {
-        $url = $model->getFirstMediaUrl(ServiceModel::IMAGE_COLLECTION);
-
-        return $url === '' ? null : $url;
+        return OptimizedImageUrl::firstOf($model, ServiceModel::IMAGE_COLLECTION);
     }
 }

@@ -7,6 +7,7 @@ namespace App\Domains\Staff\Infrastructure\Media;
 use App\Domains\Staff\Contracts\StaffProfilePhotos;
 use App\Domains\Staff\Exceptions\StaffProfileNotFound;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffProfileModel;
+use App\Shared\Infrastructure\Media\OptimizedImageUrl;
 use App\Shared\Infrastructure\Media\SafeFileName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -69,9 +70,7 @@ final class SpatieStaffProfilePhotos implements StaffProfilePhotos
 
     private static function urlOrNull(StaffProfileModel $model): ?string
     {
-        $url = $model->getFirstMediaUrl(StaffProfileModel::PHOTO_COLLECTION);
-
-        return $url === '' ? null : $url;
+        return OptimizedImageUrl::firstOf($model, StaffProfileModel::PHOTO_COLLECTION);
     }
 
     private function modelOrFail(string $businessId, string $profileId): StaffProfileModel

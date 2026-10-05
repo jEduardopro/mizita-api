@@ -10,6 +10,7 @@ use App\Domains\BookingPages\ValueObjects\ButtonShape;
 use App\Domains\BookingPages\ValueObjects\PageTheme;
 use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Shared\Infrastructure\Media\BusinessScopedMediaOwner;
+use App\Shared\Infrastructure\Media\OptimizedImageConversion;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Fillable(['uuid', 'business_id', 'accent_color', 'button_shape', 'theme'])]
 class BookingPageModel extends Model implements BusinessScopedMediaOwner, HasMedia
@@ -40,6 +42,8 @@ class BookingPageModel extends Model implements BusinessScopedMediaOwner, HasMed
         'image/webp',
     ];
 
+    private const OPTIMIZED_IMAGE_MAXIMUM_DIMENSION = 1920;
+
     protected $table = 'booking_pages';
 
     public function registerMediaCollections(): void
@@ -50,6 +54,16 @@ class BookingPageModel extends Model implements BusinessScopedMediaOwner, HasMed
 
         $this->addMediaCollection(self::GALLERY_COLLECTION)
             ->acceptsMimeTypes(self::ACCEPTED_IMAGE_MIME_TYPES);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        OptimizedImageConversion::register(
+            $this,
+            self::OPTIMIZED_IMAGE_MAXIMUM_DIMENSION,
+            self::BANNER_COLLECTION,
+            self::GALLERY_COLLECTION,
+        );
     }
 
     /**

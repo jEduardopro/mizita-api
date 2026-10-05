@@ -15,7 +15,7 @@ final class BookingPagesPublishedBanner implements PublishedBanner
         private readonly BookingPageImages $images,
     ) {}
 
-    public function urlForBusiness(string $businessId): ?string
+    public function originalUrlForBusiness(string $businessId): ?string
     {
         $page = $this->pages->findForBusiness($businessId);
 
@@ -23,6 +23,6 @@ final class BookingPagesPublishedBanner implements PublishedBanner
             return null;
         }
 
-        return $this->images->bannerUrlFor($businessId, $page->id);
+        return $this->images->originalBannerUrlFor($businessId, $page->id);
     }
 }

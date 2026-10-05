@@ -8,6 +8,7 @@ use App\Domains\Businesses\Infrastructure\Eloquent\Factories\BusinessModelFactor
 use App\Domains\Industries\Infrastructure\Eloquent\Models\IndustryModel;
 use App\Models\User;
 use App\Shared\Infrastructure\Media\BusinessScopedMediaOwner;
+use App\Shared\Infrastructure\Media\OptimizedImageConversion;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Fillable([
     'uuid',
@@ -49,6 +51,8 @@ class BusinessModel extends Model implements BusinessScopedMediaOwner, HasMedia
         'image/webp',
     ];
 
+    private const OPTIMIZED_LOGO_MAXIMUM_DIMENSION = 512;
+
     protected $table = 'businesses';
 
     public function registerMediaCollections(): void
@@ -56,6 +60,11 @@ class BusinessModel extends Model implements BusinessScopedMediaOwner, HasMedia
         $this->addMediaCollection(self::LOGO_COLLECTION)
             ->singleFile()
             ->acceptsMimeTypes(self::ACCEPTED_LOGO_MIME_TYPES);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        OptimizedImageConversion::register($this, self::OPTIMIZED_LOGO_MAXIMUM_DIMENSION, self::LOGO_COLLECTION);
     }
 
     /**

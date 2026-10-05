@@ -5,10 +5,9 @@ import { usePublicBusinessPage } from '@/domains/public-catalog/queries';
 
 type Props = {
     slug: string;
-    serviceSlug?: string;
 };
 
-export default function BusinessBookingPage({ slug, serviceSlug }: Props) {
+export default function BusinessBookingPage({ slug }: Props) {
     const { data, isPending, isError, refetch } = usePublicBusinessPage(slug);
 
     if (isPending) {
@@ -19,5 +18,5 @@ export default function BusinessBookingPage({ slug, serviceSlug }: Props) {
         return <BookingPageLoadError onRetry={() => void refetch()} />;
     }
 
-    return <BookingPage page={data} openServiceSlug={serviceSlug ?? null} />;
+    return <BookingPage page={data} />;
 }

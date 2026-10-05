@@ -16,8 +16,10 @@ beforeEach(function () {
 
     $this->gateway = new BookingPagesPublishedBanner($this->pages, $this->images);
 
+    $this->optimizedBannerUrl = 'https://cdn.mizita.test/booking-pages/conversions/banner-optimized.webp';
+
     $this->read = fn (string $businessId = PublicCatalogFixtures::BUSINESS_ID): ?string => $this->gateway
-        ->urlForBusiness($businessId);
+        ->originalUrlForBusiness($businessId);
 });
 
 describe('a business that has never opened its booking page', function () {
@@ -28,7 +30,8 @@ describe('a business that has never opened its booking page', function () {
     it('asks the image port nothing about a page that does not exist', function () {
         ($this->read)();
 
-        expect($this->images->bannerReads)->toBe([]);
+        expect($this->images->originalBannerReads)->toBe([])
+            ->and($this->images->bannerReads)->toBe([]);
     });
 
     it('writes nothing, because an anonymous visit may not create a row', function () {
@@ -56,9 +59,18 @@ describe('a business with a booking page', function () {
     });
 
     it('publishes the banner the business uploaded', function () {
-        $this->images->withBanner($this->page, PublicCatalogFixtures::BANNER_URL);
+        $this->images->withOriginalBanner($this->page, PublicCatalogFixtures::BANNER_URL);
 
         expect(($this->read)())->toBe(PublicCatalogFixtures::BANNER_URL);
+    });
+
+    it('publishes the file as uploaded, never the compressed copy the page itself shows', function () {
+        $this->images
+            ->withBanner($this->page, $this->optimizedBannerUrl)
+            ->withOriginalBanner($this->page, PublicCatalogFixtures::BANNER_URL);
+
+        expect(($this->read)())->toBe(PublicCatalogFixtures::BANNER_URL)
+            ->and($this->images->bannerReads)->toBe([]);
     });
 
     it('answers with no banner for a page that has none', function () {
@@ -69,14 +81,14 @@ describe('a business with a booking page', function () {
         ($this->read)();
 
         expect($this->pages->businessIdsSeen)->toBe([PublicCatalogFixtures::BUSINESS_ID])
-            ->and($this->images->bannerReads)->toBe([[
+            ->and($this->images->originalBannerReads)->toBe([[
                 'businessId' => PublicCatalogFixtures::BUSINESS_ID,
                 'bookingPageId' => BookingPageFixtures::PAGE_ID,
             ]]);
     });
 
     it('publishes none of it for a neighbouring business whose page carries the same id', function () {
-        $this->images->withBanner($this->page, PublicCatalogFixtures::BANNER_URL);
+        $this->images->withOriginalBanner($this->page, PublicCatalogFixtures::BANNER_URL);
         $this->pages->store(BookingPageFixtures::page(businessId: PublicCatalogFixtures::OTHER_BUSINESS_ID));
 
         expect(($this->read)(PublicCatalogFixtures::OTHER_BUSINESS_ID))->toBeNull();

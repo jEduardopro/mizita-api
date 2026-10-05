@@ -1,5 +1,4 @@
 import { cn } from 'cn';
-import { useTranslation } from 'react-i18next';
 import type { BrandColorClasses, GalleryImage } from '@/lib/booking-brand';
 import { BookingGalleryViewer } from './BookingGalleryViewer';
 import { BookingHeroCarousel } from './BookingHeroCarousel';
@@ -29,7 +28,6 @@ function heroSlidesFrom(bannerUrl: string | null, gallery: GalleryImage[]): Gall
 }
 
 export function BookingHero({ bannerUrl, gallery, businessName, themeScope, accent }: Props) {
-    const { t } = useTranslation('public');
     const { openAt, viewerState } = useGalleryViewer();
 
     const slides = heroSlidesFrom(bannerUrl, gallery);
@@ -50,7 +48,7 @@ export function BookingHero({ bannerUrl, gallery, businessName, themeScope, acce
             >
                 <BookingHeroCarousel
                     slides={slides}
-                    label={t('booking.gallery.description', { name: businessName })}
+                    businessName={businessName}
                     onOpenSlide={openAt}
                 />
             </BookingHeroFrame>
@@ -60,7 +58,12 @@ export function BookingHero({ bannerUrl, gallery, businessName, themeScope, acce
                 className={cn('hidden sm:block', bannerUrl === null ? ACCENT_HEIGHT : WIDE_PHOTO_HEIGHT)}
             >
                 {bannerUrl === null ? null : (
-                    <img src={bannerUrl} alt="" className="size-full object-cover" />
+                    <img
+                        src={bannerUrl}
+                        alt={businessName}
+                        fetchPriority="high"
+                        className="size-full object-cover"
+                    />
                 )}
             </BookingHeroFrame>
 
