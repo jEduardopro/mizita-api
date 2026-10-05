@@ -92,6 +92,8 @@ final class PublicCatalogFixtures
 
     public const SERVICE_IMAGE_URL = 'https://cdn.mizita.test/services/corte.jpg';
 
+    public const SERVICE_BUFFER_MINUTES = 15;
+
     public const INSTAGRAM_URL = 'https://instagram.com/ada.salon';
 
     public const POLICY_MESSAGE = 'Cancela con 24 horas de anticipación.';
@@ -315,6 +317,7 @@ final class PublicCatalogFixtures
         string $price = '250.00',
         ?string $imageUrl = self::SERVICE_IMAGE_URL,
         ?array $staffIds = null,
+        int $bufferMinutes = self::SERVICE_BUFFER_MINUTES,
     ): PublicService {
         return new PublicService(
             id: $id,
@@ -322,6 +325,7 @@ final class PublicCatalogFixtures
             slug: $slug,
             description: $description,
             durationMinutes: $durationMinutes,
+            bufferMinutes: $bufferMinutes,
             price: $price,
             imageUrl: $imageUrl,
             staffIds: $staffIds ?? [self::TEAM_MEMBER_ID],

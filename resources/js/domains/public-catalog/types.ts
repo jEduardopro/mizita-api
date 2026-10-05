@@ -26,6 +26,7 @@ export type PublicService = {
     slug: string;
     description: string | null;
     duration_minutes: number;
+    buffer_minutes: number;
     price: string;
     image_url: string | null;
     staff_ids: string[];

@@ -197,7 +197,7 @@ return [
         'schedule_not_submitted' => 'Envía el horario semanal completo, aunque esté vacío.',
 
         'booking_page_not_found' => 'No hemos encontrado tu página de reservas.',
-        'booking_page_image_too_large' => 'Esa imagen es demasiado grande. Usa una de menos de 5 MB.',
+        'booking_page_image_too_large' => 'Esa imagen es demasiado grande. Usa una de menos de 2 MB.',
         'unsupported_booking_page_image' => 'Ese archivo no es una imagen compatible. Usa un JPG, PNG o WebP.',
         'booking_page_gallery_full' => 'Tu galería está llena. Quita una foto antes de agregar otra.',
         'booking_page_image_not_found' => 'No hemos encontrado esa foto.',

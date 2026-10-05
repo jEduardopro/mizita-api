@@ -23,8 +23,11 @@ const CONTENT_CLASSES =
 
 type Props = {
     name: string;
-    summary: string;
-    description: string;
+    imageUrl: string | null;
+    duration: string;
+    price: string;
+    bufferMinutes: number;
+    description: string | null;
     accent: BrandColorClasses;
     buttonShape: ButtonShape;
     themeScope: string | undefined;
@@ -34,7 +37,10 @@ type Props = {
 
 export function BookingServiceDetailsDialog({
     name,
-    summary,
+    imageUrl,
+    duration,
+    price,
+    bufferMinutes,
     description,
     accent,
     buttonShape,
@@ -49,28 +55,52 @@ export function BookingServiceDetailsDialog({
             <DialogTrigger asChild>{children}</DialogTrigger>
 
             <DialogContent showCloseButton={false} className={cn(CONTENT_CLASSES, themeScope)}>
-                <div className="flex items-start gap-3 px-5 pt-5 pb-3 sm:px-6 sm:pt-6">
-                    <div className="grid min-w-0 flex-1 gap-1">
-                        <DialogTitle className="font-heading text-lg leading-snug font-semibold tracking-[-0.01em] text-balance break-words">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                    {imageUrl === null ? null : (
+                        <img
+                            src={imageUrl}
+                            alt=""
+                            decoding="async"
+                            className="aspect-4/3 w-full object-cover"
+                        />
+                    )}
+
+                    <div className="sticky top-0 z-10 flex items-start gap-3 bg-popover px-5 pt-5 pb-3 sm:px-6 sm:pt-6">
+                        <DialogTitle className="min-w-0 flex-1 font-heading text-lg leading-snug font-semibold tracking-[-0.01em] text-balance break-words">
                             {name}
                         </DialogTitle>
 
-                        <p className="text-sm text-muted-foreground">{summary}</p>
+                        <DialogClose asChild>
+                            <Button variant="ghost" className="-mt-2 -mr-2.5 size-11 shrink-0 rounded-full p-0">
+                                <X aria-hidden="true" className="size-5" />
+                                <span className="sr-only">{t('booking.services.closeDetails')}</span>
+                            </Button>
+                        </DialogClose>
                     </div>
 
-                    <DialogClose asChild>
-                        <Button variant="ghost" className="-mt-2 -mr-2.5 size-11 shrink-0 rounded-full p-0">
-                            <X aria-hidden="true" className="size-5" />
-                            <span className="sr-only">{t('booking.services.closeDetails')}</span>
-                        </Button>
-                    </DialogClose>
-                </div>
+                    <div className="grid gap-5 px-5 pb-5 sm:px-6">
+                        <DialogDescription asChild>
+                            <dl className="flex flex-wrap gap-x-8 gap-y-3 text-foreground">
+                                <ServiceFact label={t('booking.services.durationLabel')} value={duration} />
 
-                <DialogDescription asChild>
-                    <p className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 text-[0.9375rem] leading-relaxed whitespace-pre-line text-pretty text-foreground sm:px-6">
-                        {description}
-                    </p>
-                </DialogDescription>
+                                <ServiceFact label={t('booking.services.priceLabel')} value={price} />
+
+                                {bufferMinutes > 0 ? (
+                                    <ServiceFact
+                                        label={t('booking.services.bufferLabel')}
+                                        value={t('booking.services.buffer', { count: bufferMinutes })}
+                                    />
+                                ) : null}
+                            </dl>
+                        </DialogDescription>
+
+                        {description === null ? null : (
+                            <p className="text-[0.9375rem] leading-relaxed whitespace-pre-line text-pretty text-foreground">
+                                {description}
+                            </p>
+                        )}
+                    </div>
+                </div>
 
                 <div className="border-t border-border px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-6 sm:pb-6">
                     <DialogClose asChild>
@@ -91,5 +121,22 @@ export function BookingServiceDetailsDialog({
                 </div>
             </DialogContent>
         </Dialog>
+    );
+}
+
+type ServiceFactProps = {
+    label: string;
+    value: string;
+};
+
+function ServiceFact({ label, value }: ServiceFactProps) {
+    return (
+        <div className="grid gap-1">
+            <dt className="text-[0.6875rem] font-medium tracking-[0.1em] text-muted-foreground uppercase">
+                {label}
+            </dt>
+
+            <dd className="text-[0.9375rem] font-medium tabular-nums">{value}</dd>
+        </div>
     );
 }

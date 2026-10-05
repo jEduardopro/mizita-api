@@ -1027,16 +1027,16 @@
         },
         "banner": {
             "label": "Cover image",
-            "hint": "Landscape 16:9, JPG, PNG or WebP, up to 5 MB. Recommended size: 1920 × 1080 px.",
+            "hint": "Landscape 16:9, JPG, PNG or WebP, up to 2 MB. Recommended size: 1920 × 1080 px.",
             "choose": "Drag your cover image here, or tap to choose it",
-            "tooLarge": "That cover image is over 5 MB. Choose a smaller one."
+            "tooLarge": "That cover image is over 2 MB. Choose a smaller one."
         },
         "gallery": {
             "label": "Gallery",
             "count": "{{used}} of {{max}} photos",
             "add": "Add",
             "remove": "Remove photo {{position}}",
-            "tooLarge": "Each photo can weigh up to 5 MB. Choose smaller ones.",
+            "tooLarge": "Each photo can weigh up to 2 MB. Choose smaller ones.",
             "full": "You can upload up to {{max}} photos.",
             "showAll": "See all photos",
             "sheetTitle": "Your photos",

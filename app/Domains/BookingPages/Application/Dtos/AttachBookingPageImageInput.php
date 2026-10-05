@@ -9,7 +9,7 @@ use App\Domains\BookingPages\Exceptions\UnsupportedBookingPageImage;
 
 final readonly class AttachBookingPageImageInput
 {
-    public const MAXIMUM_BYTES = 5 * 1024 * 1024;
+    public const MAXIMUM_BYTES = 2 * 1024 * 1024;
 
     /**
      * @var list<string>

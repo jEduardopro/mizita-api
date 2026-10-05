@@ -1027,16 +1027,16 @@
         },
         "banner": {
             "label": "Portada",
-            "hint": "Apaisada 16:9, JPG, PNG o WebP, hasta 5 MB. Tamaño recomendado: 1920 × 1080 px.",
+            "hint": "Apaisada 16:9, JPG, PNG o WebP, hasta 2 MB. Tamaño recomendado: 1920 × 1080 px.",
             "choose": "Arrastra tu portada o toca para elegirla",
-            "tooLarge": "La portada pesa más de 5 MB. Elige una más ligera."
+            "tooLarge": "La portada pesa más de 2 MB. Elige una más ligera."
         },
         "gallery": {
             "label": "Galería",
             "count": "{{used}} de {{max}} fotos",
             "add": "Añadir",
             "remove": "Quitar la foto {{position}}",
-            "tooLarge": "Cada foto puede pesar hasta 5 MB. Elige otras más ligeras.",
+            "tooLarge": "Cada foto puede pesar hasta 2 MB. Elige otras más ligeras.",
             "full": "Puedes subir hasta {{max}} fotos.",
             "showAll": "Ver todas las fotos",
             "sheetTitle": "Tus fotos",

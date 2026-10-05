@@ -197,7 +197,7 @@ return [
         'schedule_not_submitted' => 'Send the full weekly schedule, even if it is empty.',
 
         'booking_page_not_found' => 'We could not find your booking page.',
-        'booking_page_image_too_large' => 'That image is too large. Please use one under 5 MB.',
+        'booking_page_image_too_large' => 'That image is too large. Please use one under 2 MB.',
         'unsupported_booking_page_image' => 'That file is not an image we support. Please use a JPG, PNG or WebP.',
         'booking_page_gallery_full' => 'Your gallery is full. Remove a photo before adding another.',
         'booking_page_image_not_found' => 'We could not find that photo.',

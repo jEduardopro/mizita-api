@@ -42,16 +42,33 @@ describe('the services a visitor may book', function () {
             ->and($published[0]->slug)->toBe(ServiceFixtures::SLUG)
             ->and($published[0]->description)->toBe('Incluye lavado.')
             ->and($published[0]->durationMinutes)->toBe(45)
+            ->and($published[0]->bufferMinutes)->toBe(10)
             ->and($published[0]->price)->toBe('250.00');
     });
 
-    it('publishes the duration a customer waits, never the buffer the business keeps', function () {
+    it('publishes the buffer the business keeps apart from the duration a customer waits', function () {
         $this->services->store(ServiceFixtures::service(
             businessId: PublicCatalogFixtures::BUSINESS_ID,
             durationMinutes: 45,
             bufferMinutes: 15,
         ));
 
+        $published = ($this->read)()[0];
+
+        expect($published->durationMinutes)->toBe(45)
+            ->and($published->bufferMinutes)->toBe(15);
+    });
+
+    it('publishes a service with no buffer as zero minutes', function () {
+        $this->services->store(ServiceFixtures::service(
+            businessId: PublicCatalogFixtures::BUSINESS_ID,
+            bufferMinutes: 0,
+        ));
+
+        expect(($this->read)()[0]->bufferMinutes)->toBe(0);
+    });
+
+    it('declares exactly the fields a visitor may see, so a new one has to be added deliberately', function () {
         $fields = array_map(
             static fn (ReflectionProperty $property): string => $property->getName(),
             (new ReflectionClass(PublicService::class))->getProperties(),
@@ -63,13 +80,11 @@ describe('the services a visitor may book', function () {
             'slug',
             'description',
             'durationMinutes',
+            'bufferMinutes',
             'price',
             'imageUrl',
             'staffIds',
-        ])
-            ->and($fields)->not->toContain('bufferMinutes')
-            ->and($fields)->not->toContain('color')
-            ->and(($this->read)()[0]->durationMinutes)->toBe(45);
+        ])->and($fields)->not->toContain('color');
     });
 
     it('publishes the staff a visitor may pick for the service', function () {

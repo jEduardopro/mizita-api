@@ -334,6 +334,19 @@ describe('the staff a service may be booked with', function () {
             ->toBe('["'.PublicCatalogFixtures::TEAM_MEMBER_ID.'"]');
     });
 
+    it('narrows the staff and leaves every other detail of the service untouched, buffer included', function () {
+        ($this->publishWith)(
+            [PublicCatalogFixtures::TEAM_MEMBER_ID, PublicCatalogFixtures::SECOND_TEAM_MEMBER_ID],
+            [PublicCatalogFixtures::teamMember()],
+        );
+
+        $service = ($this->describe)()->services[0];
+
+        expect($service)->toEqual(PublicCatalogFixtures::service(staffIds: [PublicCatalogFixtures::TEAM_MEMBER_ID]))
+            ->and($service->bufferMinutes)->toBe(PublicCatalogFixtures::SERVICE_BUFFER_MINUTES)
+            ->and($service->durationMinutes)->toBe(45);
+    });
+
     it('carries the staff uuid, never an internal key', function () {
         ($this->publishWith)([PublicCatalogFixtures::TEAM_MEMBER_ID], [PublicCatalogFixtures::teamMember()]);
 

@@ -199,13 +199,18 @@
             "social": "Redes sociales"
         },
         "services": {
-            "details": "Detalles",
+            "details": "Ver detalles",
             "choose": "Elegir este servicio",
             "closeDetails": "Cerrar los detalles",
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} min",
             "free": "Gratis",
-            "summary": "{{duration}} · {{price}}"
+            "summary": "{{duration}} · {{price}}",
+            "durationLabel": "Duración",
+            "priceLabel": "Precio",
+            "bufferLabel": "Tiempo de margen",
+            "buffer_one": "{{count}} min",
+            "buffer_other": "{{count}} min"
         },
         "hours": {
             "title": "Horarios",

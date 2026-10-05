@@ -9,8 +9,9 @@ use App\Shared\ValueObjects\DomainFailureKind;
 use Tests\Support\BookingPages\BookingPageFixtures;
 
 describe('the limits the upload is held to', function () {
-    it('accepts an image of up to five megabytes', function () {
-        expect(AttachBookingPageImageInput::MAXIMUM_BYTES)->toBe(5 * 1024 * 1024);
+    it('accepts an image of up to two megabytes', function () {
+        expect(AttachBookingPageImageInput::MAXIMUM_BYTES)->toBe(2 * 1024 * 1024)
+            ->and(AttachBookingPageImageInput::MAXIMUM_BYTES)->toBe(2_097_152);
     });
 
     it('accepts the three image types the media collection declares', function () {
@@ -86,11 +87,16 @@ describe('an upload it refuses', function () {
         )->validate())->toThrow(BookingPageImageTooLarge::class);
     });
 
+    it('refuses an image the former five megabyte limit let through', function () {
+        expect(fn () => BookingPageFixtures::attachInput(sizeInBytes: 5 * 1024 * 1024)->validate())
+            ->toThrow(BookingPageImageTooLarge::class);
+    });
+
     it('says how big the image was and how big it may be', function () {
-        expect(fn () => BookingPageFixtures::attachInput(sizeInBytes: 6_000_000)->validate())
+        expect(fn () => BookingPageFixtures::attachInput(sizeInBytes: 3_000_000)->validate())
             ->toThrow(
                 BookingPageImageTooLarge::class,
-                'A booking page image takes up to [5242880] bytes, got [6000000].',
+                'A booking page image takes up to [2097152] bytes, got [3000000].',
             );
     });
 

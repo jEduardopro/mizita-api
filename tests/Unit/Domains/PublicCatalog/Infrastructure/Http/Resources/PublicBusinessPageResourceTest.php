@@ -84,7 +84,6 @@ dataset('keys a visitor may never see', [
     'state_id',
     'role',
     'active',
-    'buffer_minutes',
     'color',
     'created_at',
 ]);
@@ -130,6 +129,7 @@ describe('what a visitor is allowed to see', function () {
             'services',
             'description',
             'duration_minutes',
+            'buffer_minutes',
             'price',
             'image_url',
             'staff_ids',
@@ -209,7 +209,7 @@ describe('the client contract', function () {
 
         expect(array_keys($serialized['schedule'][0]))->toBe(['weekday', 'starts_at', 'ends_at'])
             ->and(array_keys($serialized['services'][0]))
-            ->toBe(['id', 'name', 'slug', 'description', 'duration_minutes', 'price', 'image_url', 'staff_ids'])
+            ->toBe(['id', 'name', 'slug', 'description', 'duration_minutes', 'buffer_minutes', 'price', 'image_url', 'staff_ids'])
             ->and(array_keys($serialized['team'][0]))
             ->toBe(['id', 'name', 'photo_url', 'job_title', 'about', 'booking_url'])
             ->and(array_keys($serialized['brand']['gallery'][0]))->toBe(['id', 'url'])
@@ -251,6 +251,7 @@ describe('the client contract', function () {
                     'slug' => 'corte-de-pelo',
                     'description' => 'Incluye lavado.',
                     'duration_minutes' => 45,
+                    'buffer_minutes' => PublicCatalogFixtures::SERVICE_BUFFER_MINUTES,
                     'price' => '250.00',
                     'image_url' => PublicCatalogFixtures::SERVICE_IMAGE_URL,
                     'staff_ids' => [PublicCatalogFixtures::TEAM_MEMBER_ID],
@@ -645,6 +646,25 @@ describe('values that must survive untouched', function () {
         ));
 
         expect($serialized['services'][0]['price'])->toBe('1250.50')->toBeString();
+    });
+
+    it('sends the buffer of a service apart from its duration, as integer minutes', function () {
+        $service = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            services: [PublicCatalogFixtures::service(durationMinutes: 60, bufferMinutes: 20)],
+        ))['services'][0];
+
+        expect($service['duration_minutes'])->toBe(60)
+            ->and($service['buffer_minutes'])->toBe(20)->toBeInt();
+    });
+
+    it('sends a service with no buffer as the integer zero, never as null or a dropped key', function () {
+        $service = serializedPublicBusinessPage(PublicCatalogFixtures::page(
+            services: [PublicCatalogFixtures::service(bufferMinutes: 0)],
+        ))['services'][0];
+
+        expect($service)->toHaveKey('buffer_minutes')
+            ->and($service['buffer_minutes'])->toBe(0)
+            ->and(json_encode($service, JSON_THROW_ON_ERROR))->toContain('"buffer_minutes":0');
     });
 
     it('keeps the local times of the week as HH:mm strings, never instants', function () {

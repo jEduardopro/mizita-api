@@ -32,6 +32,7 @@ export function BookingServiceOption({
 }: Props) {
     const { t } = useTranslation('public');
     const nameId = useId();
+    const summaryId = useId();
 
     const duration = t('booking.services.duration', { count: service.duration_minutes });
     const price = isFreeAmount(service.price)
@@ -40,57 +41,70 @@ export function BookingServiceOption({
     const summary = t('booking.services.summary', { duration, price });
 
     return (
-        <li className="relative">
-            <button
-                type="button"
-                onClick={() => onSelect(service.id)}
-                aria-current={isSelected ? true : undefined}
-                className={cn(
-                    'flex min-h-16 w-full items-center gap-4 border border-border px-5 py-3.5 text-left outline-none motion-safe:transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-                    BUTTON_SHAPE_CLASSES[buttonShape],
-                    isSelected ? accent.surface : 'hover:bg-muted/60',
-                    service.description !== null && 'pb-13',
-                )}
-            >
-                <span className="grid min-w-0 flex-1 gap-1">
-                    <span
-                        id={nameId}
-                        className="text-[0.9375rem] leading-snug font-medium text-pretty"
-                    >
-                        {service.name}
-                    </span>
-
-                    <span className="text-sm text-muted-foreground">{summary}</span>
-                </span>
-
-                <ChevronRight
-                    aria-hidden="true"
-                    className={cn(
-                        'size-5 shrink-0',
-                        isSelected ? 'text-foreground' : 'text-muted-foreground',
-                    )}
-                />
-            </button>
-
-            {service.description === null ? null : (
-                <BookingServiceDetailsDialog
-                    name={service.name}
-                    summary={summary}
-                    description={service.description}
-                    accent={accent}
-                    buttonShape={buttonShape}
-                    themeScope={themeScope}
-                    onChoose={() => onSelect(service.id)}
-                >
-                    <button
-                        type="button"
-                        aria-describedby={nameId}
-                        className="absolute bottom-1.5 left-3.5 z-10 inline-flex h-11 items-center rounded-md px-1.5 text-sm text-muted-foreground underline underline-offset-4 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                    >
-                        {t('booking.services.details')}
-                    </button>
-                </BookingServiceDetailsDialog>
+        <li
+            className={cn(
+                'relative flex min-h-16 items-center gap-4 border border-border px-5 py-3.5 motion-safe:transition-colors has-[[data-service-select]:focus-visible]:ring-3 has-[[data-service-select]:focus-visible]:ring-ring/50',
+                BUTTON_SHAPE_CLASSES[buttonShape],
+                isSelected ? accent.surface : 'hover:bg-muted/60',
             )}
+        >
+            {service.image_url === null ? null : (
+                <img
+                    src={service.image_url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-12 shrink-0 rounded-md object-cover"
+                />
+            )}
+
+            <div className="grid min-w-0 flex-1 gap-1">
+                <button
+                    type="button"
+                    data-service-select
+                    onClick={() => onSelect(service.id)}
+                    aria-current={isSelected ? true : undefined}
+                    aria-describedby={summaryId}
+                    className="text-left text-[0.9375rem] leading-snug font-medium text-pretty outline-none after:absolute after:inset-0"
+                >
+                    <span id={nameId}>{service.name}</span>
+                </button>
+
+                <p className="text-sm text-pretty text-muted-foreground">
+                    <span id={summaryId}>{summary}</span>{' '}
+                    <span className="whitespace-nowrap">
+                        <span aria-hidden="true">·</span>{' '}
+                        <BookingServiceDetailsDialog
+                            name={service.name}
+                            imageUrl={service.image_url}
+                            duration={duration}
+                            price={price}
+                            bufferMinutes={service.buffer_minutes}
+                            description={service.description}
+                            accent={accent}
+                            buttonShape={buttonShape}
+                            themeScope={themeScope}
+                            onChoose={() => onSelect(service.id)}
+                        >
+                            <button
+                                type="button"
+                                aria-describedby={nameId}
+                                className="relative z-10 rounded-sm underline underline-offset-4 outline-none after:absolute after:-inset-x-2 after:-inset-y-3 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                            >
+                                {t('booking.services.details')}
+                            </button>
+                        </BookingServiceDetailsDialog>
+                    </span>
+                </p>
+            </div>
+
+            <ChevronRight
+                aria-hidden="true"
+                className={cn(
+                    'size-5 shrink-0',
+                    isSelected ? 'text-foreground' : 'text-muted-foreground',
+                )}
+            />
         </li>
     );
 }

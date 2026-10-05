@@ -118,7 +118,7 @@ final class PublicBusinessPageResource extends JsonResource
     }
 
     /**
-     * @return array{id: string, name: string, slug: string, description: string|null, duration_minutes: int, price: string, image_url: string|null, staff_ids: list<string>}
+     * @return array{id: string, name: string, slug: string, description: string|null, duration_minutes: int, buffer_minutes: int, price: string, image_url: string|null, staff_ids: list<string>}
      */
     private static function describeService(PublicService $service): array
     {
@@ -128,6 +128,7 @@ final class PublicBusinessPageResource extends JsonResource
             'slug' => $service->slug,
             'description' => $service->description,
             'duration_minutes' => $service->durationMinutes,
+            'buffer_minutes' => $service->bufferMinutes,
             'price' => $service->price,
             'image_url' => $service->imageUrl,
             'staff_ids' => $service->staffIds,

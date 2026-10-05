@@ -42,6 +42,7 @@ final class ServicesPublishedServices implements PublishedServices
                 slug: $service->slug(),
                 description: $service->description(),
                 durationMinutes: $service->durationMinutes(),
+                bufferMinutes: $service->bufferMinutes(),
                 price: $service->price(),
                 imageUrl: $imageUrls[$service->id] ?? null,
                 staffIds: $service->staffIds(),

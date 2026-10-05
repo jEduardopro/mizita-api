@@ -7,9 +7,14 @@ use App\Domains\Businesses\Infrastructure\Eloquent\Models\BusinessModel;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
 use App\Domains\Services\Infrastructure\Eloquent\Models\ServiceModel;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffProfileModel;
+use App\Shared\Infrastructure\Eloquent\Models\MediaModel;
 use App\Shared\Infrastructure\Media\OptimizedImageConversion;
+use App\Shared\Infrastructure\Media\OptimizedImageUrl;
+use Illuminate\Support\Facades\Queue;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\Conversions\Conversion;
+use Spatie\MediaLibrary\Conversions\FileManipulator;
+use Spatie\MediaLibrary\Conversions\Jobs\PerformConversionsJob;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\MediaCollection;
 use Tests\Support\Media\OptimizedImageOwnerModel;
@@ -26,6 +31,31 @@ function optimizedConversionsOf(HasMedia $owner): array
         $owner->mediaConversions,
         static fn (Conversion $conversion): bool => $conversion->getName() === OptimizedImageConversion::NAME,
     ));
+}
+
+function queuedOptimizableImage(string $collection = OptimizedImageOwnerModel::PHOTO_COLLECTION): MediaModel
+{
+    $media = (new MediaModel)->forceFill([
+        'id' => 42,
+        'model_type' => OptimizedImageOwnerModel::class,
+        'model_id' => 1,
+        'collection_name' => $collection,
+        'name' => 'banner',
+        'file_name' => 'banner.jpg',
+        'mime_type' => 'image/jpeg',
+        'disk' => 'public',
+        'conversions_disk' => 'public',
+        'size' => 1024,
+        'manipulations' => [],
+        'custom_properties' => [],
+        'generated_conversions' => [],
+        'responsive_images' => [],
+        'order_column' => 1,
+        'updated_at' => '2026-01-01 12:00:00',
+    ]);
+    $media->exists = true;
+
+    return $media;
 }
 
 describe('the conversion it registers', function () {
@@ -61,8 +91,8 @@ describe('the conversion it registers', function () {
         expect($this->conversion->getManipulations()->getManipulationArgument('fit'))->toBe([Fit::Max, 1200, 1200]);
     });
 
-    it('runs while the upload is stored, so the url handed back already points at a file that exists', function () {
-        expect($this->conversion->shouldBeQueued())->toBeFalse()
+    it('runs on the queue rather than while the upload is stored, so the upload request does not wait for it', function () {
+        expect($this->conversion->shouldBeQueued())->toBeTrue()
             ->and($this->conversion->shouldBeDeferred())->toBeFalse();
     });
 
@@ -99,7 +129,7 @@ describe('the models that compress what they store', function () {
             ->and($conversions[0]->getManipulations()->getManipulationArgument('fit'))
             ->toBe([Fit::Max, $maximumDimension, $maximumDimension])
             ->and($conversions[0]->getPerformOnCollections())->toBe($collections)
-            ->and($conversions[0]->shouldBeQueued())->toBeFalse();
+            ->and($conversions[0]->shouldBeQueued())->toBeTrue();
     })->with('media owning models');
 
     it('names only collections the model actually declares', function (string $modelClass, int $maximumDimension, array $collections) {
@@ -113,6 +143,58 @@ describe('the models that compress what they store', function () {
 
         expect(array_values(array_diff($collections, $declared)))->toBe([]);
     })->with('media owning models');
+});
+
+describe('a stored image whose compressed copy waits on the queue', function () {
+    beforeEach(function () {
+        Queue::fake();
+
+        $this->versionStamp = '?v='.(new DateTimeImmutable('2026-01-01 12:00:00 UTC'))->getTimestamp();
+        $this->fileManipulator = new FileManipulator;
+    });
+
+    it('pushes the conversion job instead of converting while the upload is stored', function () {
+        $this->fileManipulator->createDerivedFiles(queuedOptimizableImage());
+
+        Queue::assertPushed(PerformConversionsJob::class, 1);
+    });
+
+    it('queues the optimized conversion of the image that was stored, and nothing else', function () {
+        $image = queuedOptimizableImage();
+
+        $this->fileManipulator->createDerivedFiles($image);
+
+        Queue::assertPushed(PerformConversionsJob::class, function (PerformConversionsJob $job) use ($image): bool {
+            $conversionNames = (fn (): array => $this->conversions->map(
+                static fn (Conversion $conversion): string => $conversion->getName(),
+            )->values()->all())->call($job);
+
+            return $conversionNames === [OptimizedImageConversion::NAME]
+                && (fn (): object => $this->media)->call($job) === $image;
+        });
+    });
+
+    it('holds the job back until the transaction storing the image has committed', function () {
+        $this->fileManipulator->createDerivedFiles(queuedOptimizableImage());
+
+        Queue::assertPushed(PerformConversionsJob::class, fn (PerformConversionsJob $job): bool => $job->afterCommit === true);
+    });
+
+    it('queues nothing for an image in a collection the conversion does not cover', function () {
+        $this->fileManipulator->createDerivedFiles(queuedOptimizableImage(collection: 'default'));
+
+        Queue::assertNotPushed(PerformConversionsJob::class);
+    });
+
+    it('keeps handing out the original upload while the job has not run', function () {
+        $image = queuedOptimizableImage();
+
+        $this->fileManipulator->createDerivedFiles($image);
+
+        expect(OptimizedImageUrl::of($image))
+            ->toEndWith('/42/banner.jpg'.$this->versionStamp)
+            ->not->toContain('-optimized.webp');
+    });
 });
 
 dataset('media owning models', [

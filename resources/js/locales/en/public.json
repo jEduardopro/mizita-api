@@ -199,13 +199,18 @@
             "social": "Social media"
         },
         "services": {
-            "details": "Details",
+            "details": "View details",
             "choose": "Choose this service",
             "closeDetails": "Close details",
             "duration_one": "{{count}} min",
             "duration_other": "{{count}} mins",
             "free": "Free",
-            "summary": "{{duration}} · {{price}}"
+            "summary": "{{duration}} · {{price}}",
+            "durationLabel": "Duration",
+            "priceLabel": "Price",
+            "bufferLabel": "Buffer time",
+            "buffer_one": "{{count}} min",
+            "buffer_other": "{{count}} mins"
         },
         "hours": {
             "title": "Opening hours",

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domains\BookingPages\Application\Dtos\AttachBookingPageImageInput;
 use App\Domains\BookingPages\Infrastructure\Http\Requests\UploadBookingPageImageRequest;
 use Tests\Support\Shared\ImageFiles;
 use Tests\Support\Shared\UploadValidation;
@@ -42,3 +43,17 @@ it('refuses content that is not an allowed image, whatever the client named it',
     'plain text' => ImageFiles::text(...),
     'a gif' => ImageFiles::gif(...),
 ]);
+
+it('caps the upload at the size the input holds it to, in kilobytes', function () {
+    expect((new UploadBookingPageImageRequest)->rules()['image'])->toContain('max:2048');
+});
+
+it('lets a file of exactly the maximum size past the size rule', function () {
+    expect(bookingPageImageUploadFailures(ImageFiles::text(str_repeat('a', AttachBookingPageImageInput::MAXIMUM_BYTES))))
+        ->not->toContain('Max');
+});
+
+it('refuses a file one byte past the maximum size', function () {
+    expect(bookingPageImageUploadFailures(ImageFiles::text(str_repeat('a', AttachBookingPageImageInput::MAXIMUM_BYTES + 1))))
+        ->toContain('Max');
+});

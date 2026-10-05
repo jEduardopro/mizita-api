@@ -22,7 +22,7 @@ final class OptimizedImageConversion
             ->quality(self::QUALITY)
             ->fit(Fit::Max, $maximumDimension, $maximumDimension)
             ->nonOptimized()
-            ->nonQueued()
+            ->queued()
             ->performOnCollections(...$collections);
     }
 }
