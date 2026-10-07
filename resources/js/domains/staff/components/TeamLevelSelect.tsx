@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ASSIGNABLE_STAFF_ROLES, type AssignableStaffRole } from '../types';
-import { ROLE_DESCRIPTION_KEYS, ROLE_LABEL_KEYS } from './profile-role';
+import { Select, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { AssignableStaffRole } from '../types';
+import { assignableStaffRoleFrom, ROLE_LABEL_KEYS } from './profile-role';
+import { TeamLevelOptions } from './TeamLevelOptions';
 
 type Props = {
     id: string;
@@ -15,7 +16,7 @@ export function TeamLevelSelect({ id, value, onChange, invalid, describedBy }: P
     const { t } = useTranslation('admin');
 
     function select(next: string) {
-        const level = ASSIGNABLE_STAFF_ROLES.find((assignable) => assignable === next);
+        const level = assignableStaffRoleFrom(next);
 
         if (level !== undefined) {
             onChange(level);
@@ -33,23 +34,7 @@ export function TeamLevelSelect({ id, value, onChange, invalid, describedBy }: P
                 <SelectValue>{t(ROLE_LABEL_KEYS[value])}</SelectValue>
             </SelectTrigger>
 
-            <SelectContent
-                position="popper"
-                align="end"
-                className="w-(--radix-select-trigger-width) max-w-[calc(100vw-2rem)] min-w-72"
-            >
-                {ASSIGNABLE_STAFF_ROLES.map((level) => (
-                    <SelectItem key={level} value={level} className="min-h-11 py-2">
-                        <span className="grid gap-0.5 text-left">
-                            <span className="font-medium">{t(ROLE_LABEL_KEYS[level])}</span>
-
-                            <span className="text-xs text-pretty text-muted-foreground">
-                                {t(ROLE_DESCRIPTION_KEYS[level])}
-                            </span>
-                        </span>
-                    </SelectItem>
-                ))}
-            </SelectContent>
+            <TeamLevelOptions align="end" />
         </Select>
     );
 }

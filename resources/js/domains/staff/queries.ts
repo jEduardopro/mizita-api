@@ -35,6 +35,7 @@ import {
     type MyProfile,
     type TeamListParams,
     type TeamMember,
+    type UpdateTeamMemberLevelPayload,
     type UpdateTeamMemberPayload,
 } from './types';
 
@@ -186,7 +187,8 @@ export function useInviteTeamMembers() {
 
 export function useUpdateTeamMember() {
     return useTeamMemberIdentityMutation(
-        ({ id, payload }: { id: string; payload: UpdateTeamMemberPayload }) => updateTeamMember(id, payload),
+        ({ id, payload }: { id: string; payload: UpdateTeamMemberPayload | UpdateTeamMemberLevelPayload }) =>
+            updateTeamMember(id, payload),
     );
 }
 

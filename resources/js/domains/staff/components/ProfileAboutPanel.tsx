@@ -1,4 +1,4 @@
-import { ChevronDown, CircleUserRound, Clock, Lock, Mail, Phone, QrCode, type LucideIcon } from 'lucide-react';
+import { CircleUserRound, Clock, Lock, Mail, Phone, QrCode, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatPhoneNumber } from '@/lib/phone';
@@ -42,9 +42,9 @@ type Props = {
     phone: ProfilePhone | null;
     email: string;
     about: string | null;
-    roleLabel: string;
     hoursSummary: ReactNode;
     bookingLink: ReactNode;
+    level?: ReactNode;
     onAddPhone?: () => void;
     onAddAbout?: () => void;
 };
@@ -53,9 +53,9 @@ export function ProfileAboutPanel({
     phone,
     email,
     about,
-    roleLabel,
     hoursSummary,
     bookingLink,
+    level,
     onAddPhone,
     onAddAbout,
 }: Props) {
@@ -105,12 +105,11 @@ export function ProfileAboutPanel({
                 </InfoRow>
             )}
 
-            <InfoRow icon={Lock} label={t('profile.about.role')}>
-                <span className="inline-flex w-fit items-center gap-1.5 text-muted-foreground">
-                    {roleLabel}
-                    <ChevronDown aria-hidden="true" className="size-3.5 opacity-60" />
-                </span>
-            </InfoRow>
+            {level === undefined ? null : (
+                <InfoRow icon={Lock} label={t('profile.about.role')}>
+                    {level}
+                </InfoRow>
+            )}
         </dl>
     );
 }

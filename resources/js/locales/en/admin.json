@@ -1639,13 +1639,15 @@
             "invited_one": "Team member added",
             "invited_other": "{{count}} team members added",
             "removed": "Team member removed",
-            "invitationResent": "Invitation sent again"
+            "invitationResent": "Invitation sent again",
+            "levelChanged": "Permission level changed"
         },
         "errors": {
             "removeFailed": "We could not remove this team member. Try again.",
             "removalCheckFailed": "We could not check whether this team member can be removed. Try again.",
             "ownerCannotBeRemoved": "The business owner can’t be removed from the team.",
-            "resendFailed": "We could not resend the invitation. Try again."
+            "resendFailed": "We could not resend the invitation. Try again.",
+            "levelChangeFailed": "We could not change the permission level. Try again."
         }
     },
     "plan": {

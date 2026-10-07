@@ -137,6 +137,10 @@ export type UpdateTeamMemberPayload = UpdateMyProfilePayload & {
     level?: AssignableStaffRole;
 };
 
+export type UpdateTeamMemberLevelPayload = {
+    level: AssignableStaffRole;
+};
+
 export type StaffProfileDetails = Pick<
     MyProfile,
     | 'staff_member_id'

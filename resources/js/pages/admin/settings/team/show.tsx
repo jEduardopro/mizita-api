@@ -14,6 +14,7 @@ import { ProfileLoadError } from '@/domains/staff/components/ProfileLoadError';
 import { staffProfilePaneFrom, type StaffProfilePane } from '@/domains/staff/components/profile-panes';
 import { StaffProfileScreen } from '@/domains/staff/components/StaffProfileScreen';
 import { StaffProfileSkeleton } from '@/domains/staff/components/StaffProfileSkeleton';
+import { TeamMemberLevelSelect } from '@/domains/staff/components/TeamMemberLevelSelect';
 import { TeamMemberProfileMenu } from '@/domains/staff/components/TeamMemberProfileMenu';
 import { editableLevelOf, staffProfileDetailsFrom } from '@/domains/staff/components/team-member-profile';
 import { EDIT_PANE_PARAMETER, TEAM_SETTINGS_URL } from '@/domains/staff/components/team-urls';
@@ -54,6 +55,7 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
     const profile = useMemo(() => staffProfileDetailsFrom(member), [member]);
     const isTeamMemberPaused = useIsTeamMemberPaused();
     const isPaused = isTeamMemberPaused(member.level);
+    const editableLevel = editableLevelOf(member);
 
     const businessSchedule = businessScheduleFor(schedule.data, calendarSettings?.schedule);
     const retrySchedule = () => void schedule.refetch();
@@ -95,7 +97,12 @@ function TeamMemberScreen({ member, initialPane, readOnly }: ScreenProps) {
                 dialogTitle={t('team.member.dialogTitle')}
                 initialPane={initialPane}
                 readOnly={readOnly}
-                editableLevel={editableLevelOf(member)}
+                editableLevel={editableLevel}
+                level={
+                    editableLevel === undefined ? undefined : (
+                        <TeamMemberLevelSelect memberId={member.id} savedLevel={editableLevel} />
+                    )
+                }
                 onSaveProfile={(payload) => updateMember.mutateAsync({ id: member.id, payload })}
                 onUploadPhoto={(photo) => attachPhoto.mutateAsync({ id: member.id, photo })}
                 onRemovePhoto={() => removePhoto.mutateAsync(member.id)}

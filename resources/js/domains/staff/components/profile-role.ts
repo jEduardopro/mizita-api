@@ -14,3 +14,7 @@ export const ROLE_DESCRIPTION_KEYS = {
 export function isAssignableStaffRole(role: StaffRole): role is AssignableStaffRole {
     return ASSIGNABLE_STAFF_ROLES.some((assignable) => assignable === role);
 }
+
+export function assignableStaffRoleFrom(value: string): AssignableStaffRole | undefined {
+    return ASSIGNABLE_STAFF_ROLES.find((assignable) => assignable === value);
+}

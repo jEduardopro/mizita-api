@@ -1639,13 +1639,15 @@
             "invited_one": "Miembro añadido",
             "invited_other": "{{count}} miembros añadidos",
             "removed": "Miembro removido del equipo",
-            "invitationResent": "Invitación reenviada"
+            "invitationResent": "Invitación reenviada",
+            "levelChanged": "Nivel de permiso cambiado"
         },
         "errors": {
             "removeFailed": "No hemos podido remover a este miembro del equipo. Inténtalo otra vez.",
             "removalCheckFailed": "No hemos podido comprobar si se puede remover a este miembro del equipo. Inténtalo otra vez.",
             "ownerCannotBeRemoved": "El propietario del negocio no se puede remover del equipo.",
-            "resendFailed": "No hemos podido reenviar la invitación. Inténtalo otra vez."
+            "resendFailed": "No hemos podido reenviar la invitación. Inténtalo otra vez.",
+            "levelChangeFailed": "No hemos podido cambiar el nivel de permiso. Inténtalo otra vez."
         }
     },
     "plan": {

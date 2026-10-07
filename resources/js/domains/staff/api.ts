@@ -11,6 +11,7 @@ import type {
     TeamMemberRemoval,
     TemporaryPassword,
     UpdateMyProfilePayload,
+    UpdateTeamMemberLevelPayload,
     UpdateTeamMemberPayload,
 } from './types';
 
@@ -85,7 +86,10 @@ export async function inviteTeamMembers(payload: InviteTeamMembersPayload): Prom
     return data.data;
 }
 
-export async function updateTeamMember(id: string, payload: UpdateTeamMemberPayload): Promise<TeamMember> {
+export async function updateTeamMember(
+    id: string,
+    payload: UpdateTeamMemberPayload | UpdateTeamMemberLevelPayload,
+): Promise<TeamMember> {
     const { data } = await api.patch<{ data: TeamMember }>(teamMemberUrl(id), payload);
 
     return data.data;

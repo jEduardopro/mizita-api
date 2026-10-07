@@ -23,6 +23,7 @@ type Props = {
     initialPane?: StaffProfilePane;
     readOnly?: boolean;
     editableLevel?: AssignableStaffRole;
+    level?: ReactNode;
     onSaveProfile: (payload: UpdateTeamMemberPayload) => Promise<unknown>;
     onUploadPhoto: (photo: File) => Promise<unknown>;
     onRemovePhoto: () => Promise<unknown>;
@@ -39,6 +40,7 @@ export function StaffProfileScreen({
     initialPane,
     readOnly = false,
     editableLevel,
+    level,
     onSaveProfile,
     onUploadPhoto,
     onRemovePhoto,
@@ -79,6 +81,7 @@ export function StaffProfileScreen({
                 hoursSummary={renderHoursSummary(editHours)}
                 services={services}
                 hours={renderHoursPanel?.()}
+                level={level}
                 headerActions={headerActions}
             />
 

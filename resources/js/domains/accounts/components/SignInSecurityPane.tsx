@@ -106,7 +106,7 @@ function SecurityMethods({
 type Props = {
     email: string;
     hasPassword: boolean;
-    roleLabel: string;
+    roleLabel?: string;
     onPasswordSaved: () => void;
 };
 

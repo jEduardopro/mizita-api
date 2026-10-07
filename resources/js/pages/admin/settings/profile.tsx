@@ -50,6 +50,7 @@ export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) 
 
     const businessSchedule = businessScheduleFor(schedule.data, calendarSettings?.schedule);
     const retrySchedule = () => void schedule.refetch();
+    const ownerRoleLabel = profile.role === 'owner' ? t(ROLE_LABEL_KEYS.owner) : undefined;
 
     const hoursNotice = can('view_business_settings') ? (
         <BusinessHoursNotice businessSettingsHref={BRAND_SETTINGS_URL} />
@@ -99,7 +100,7 @@ export function MyProfileScreen({ profile, initialPane }: MyProfileScreenProps) 
                         <SignInSecurityPane
                             email={profile.email}
                             hasPassword={profile.has_password}
-                            roleLabel={t(ROLE_LABEL_KEYS[profile.role])}
+                            roleLabel={ownerRoleLabel}
                             onPasswordSaved={refreshProfile}
                         />
                     ),

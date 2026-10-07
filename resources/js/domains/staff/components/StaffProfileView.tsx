@@ -6,7 +6,6 @@ import { ProfileAboutPanel } from './ProfileAboutPanel';
 import { ProfileHeader } from './ProfileHeader';
 import { StaffBookingLink } from './StaffBookingLink';
 import type { StaffProfilePane } from './profile-panes';
-import { ROLE_LABEL_KEYS } from './profile-role';
 
 const PROFILE_TABS = ['about', 'services', 'hours'] as const;
 
@@ -28,10 +27,11 @@ type Props = {
     hoursSummary: ReactNode;
     services: ReactNode;
     hours?: ReactNode;
+    level?: ReactNode;
     headerActions?: ReactNode;
 };
 
-export function StaffProfileView({ profile, onEdit, hoursSummary, services, hours, headerActions }: Props) {
+export function StaffProfileView({ profile, onEdit, hoursSummary, services, hours, level, headerActions }: Props) {
     const { t } = useTranslation('admin');
     const [tab, setTab] = useState<ProfileTab>('about');
 
@@ -44,7 +44,6 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                 phone={profile.phone}
                 email={profile.email}
                 about={profile.about}
-                roleLabel={t(ROLE_LABEL_KEYS[profile.role])}
                 hoursSummary={hoursSummary}
                 bookingLink={
                     <StaffBookingLink
@@ -55,6 +54,7 @@ export function StaffProfileView({ profile, onEdit, hoursSummary, services, hour
                         blockers={profile.booking_link_blockers}
                     />
                 }
+                level={level}
                 onAddPhone={editProfile}
                 onAddAbout={editProfile}
             />

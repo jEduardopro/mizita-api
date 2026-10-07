@@ -86,7 +86,7 @@ function PasskeyStatusBadge({ passkeyCount }: { passkeyCount: number }) {
 type Props = {
     email: string;
     hasPassword: boolean;
-    roleLabel: string;
+    roleLabel?: string;
     twoFactorStatus: TwoFactorStatus | undefined;
     passkeyCount: number | undefined;
     isLoadingMethods: boolean;
@@ -136,9 +136,11 @@ export function SignInOverview({
                 </StatusLine>
             </ActionRow>
 
-            <dl className="grid">
-                <StaticRow label={t('security.permission')}>{roleLabel}</StaticRow>
-            </dl>
+            {roleLabel === undefined ? null : (
+                <dl className="grid">
+                    <StaticRow label={t('security.permission')}>{roleLabel}</StaticRow>
+                </dl>
+            )}
         </SettingsPaneBody>
     );
 }
