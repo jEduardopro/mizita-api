@@ -12,5 +12,5 @@ interface BookedAppointments
     /**
      * @throws NotifiedAppointmentNotFound
      */
-    public function recipientOf(string $appointmentId): BookedAppointment;
+    public function describe(string $appointmentId): BookedAppointment;
 }

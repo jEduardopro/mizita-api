@@ -39,8 +39,8 @@ describe('the recipient', function () {
             ->and($data->id)->toBe(NotificationsFixtures::NOTIFICATION_ID)
             ->and($data->type)->toBe('appointment_booked')
             ->and($data->recipient->id)->toBe(NotificationsFixtures::MEMBER_ID)
-            ->and($data->appointment?->id)->toBe(NotificationsFixtures::APPOINTMENT_ID)
-            ->and($data->customer?->id)->toBe(NotificationsFixtures::CUSTOMER_ID)
+            ->and($data->details['appointment']['id'])->toBe(NotificationsFixtures::APPOINTMENT_ID)
+            ->and($data->details['customer']['id'])->toBe(NotificationsFixtures::CUSTOMER_ID)
             ->and($data->readAt)->toBeNull();
     });
 

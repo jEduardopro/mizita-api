@@ -13,6 +13,6 @@ final readonly class NotifiedAppointment
         public DateTimeImmutable $startsAt,
         public DateTimeImmutable $endsAt,
         public string $serviceName,
-        public ?string $referenceCode,
+        public string $referenceCode,
     ) {}
 }

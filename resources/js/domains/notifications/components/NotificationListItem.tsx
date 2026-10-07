@@ -7,6 +7,7 @@ import type { StaffNotification } from '../types';
 import { NotificationAppointmentTime } from './NotificationAppointmentTime';
 import { NotificationDateLeaf } from './NotificationDateLeaf';
 import { NotificationReceivedAgo } from './NotificationReceivedAgo';
+import { appointmentStartOf } from './notification-appointment-start';
 import { notificationShowUrl } from './notification-urls';
 import { useNotificationMessage } from './use-notification-message';
 
@@ -27,7 +28,7 @@ export function NotificationListItem({
 }: Props) {
     const { t } = useTranslation('admin');
     const message = useNotificationMessage(notification);
-    const { appointment } = notification;
+    const appointmentStartsAt = appointmentStartOf(notification);
     const unread = notification.read_at === null;
 
     return (
@@ -39,7 +40,7 @@ export function NotificationListItem({
         >
             <div className="flex min-w-0 flex-1 items-start gap-3">
                 <NotificationDateLeaf
-                    startsAt={appointment?.starts_at ?? null}
+                    startsAt={appointmentStartsAt}
                     timezone={timezone}
                     unread={unread}
                 />
@@ -60,8 +61,8 @@ export function NotificationListItem({
                         <NotificationReceivedAgo createdAt={notification.created_at} timezone={timezone} />
                     </div>
 
-                    {appointment === null ? null : (
-                        <NotificationAppointmentTime startsAt={appointment.starts_at} timezone={timezone} />
+                    {appointmentStartsAt === null ? null : (
+                        <NotificationAppointmentTime startsAt={appointmentStartsAt} timezone={timezone} />
                     )}
 
                     {recipientName === null ? null : (

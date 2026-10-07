@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domains\Notifications\Entities;
 
 use App\Domains\Notifications\Exceptions\NotificationNotAddressedToReader;
-use App\Domains\Notifications\ValueObjects\NotificationType;
 use DateTimeImmutable;
 
 final class StaffNotification
@@ -13,10 +12,9 @@ final class StaffNotification
     private function __construct(
         public readonly string $id,
         public readonly string $businessId,
+        public readonly string $eventId,
         public readonly string $recipientStaffMemberId,
-        public readonly NotificationType $type,
-        public readonly ?string $appointmentId,
-        public readonly ?string $subjectStaffMemberId,
+        public readonly string $collapseKey,
         private ?DateTimeImmutable $readAt,
         public readonly DateTimeImmutable $createdAt,
     ) {}
@@ -24,37 +22,17 @@ final class StaffNotification
     public static function create(
         string $id,
         string $businessId,
+        string $eventId,
         string $recipientStaffMemberId,
-        NotificationType $type,
-        ?string $appointmentId,
+        string $collapseKey,
         DateTimeImmutable $now,
     ): self {
         return new self(
             id: $id,
             businessId: $businessId,
+            eventId: $eventId,
             recipientStaffMemberId: $recipientStaffMemberId,
-            type: $type,
-            appointmentId: $appointmentId,
-            subjectStaffMemberId: null,
-            readAt: null,
-            createdAt: $now,
-        );
-    }
-
-    public static function staffScheduleChanged(
-        string $id,
-        string $businessId,
-        string $recipientStaffMemberId,
-        string $subjectStaffMemberId,
-        DateTimeImmutable $now,
-    ): self {
-        return new self(
-            id: $id,
-            businessId: $businessId,
-            recipientStaffMemberId: $recipientStaffMemberId,
-            type: NotificationType::StaffScheduleChanged,
-            appointmentId: null,
-            subjectStaffMemberId: $subjectStaffMemberId,
+            collapseKey: $collapseKey,
             readAt: null,
             createdAt: $now,
         );
@@ -63,20 +41,18 @@ final class StaffNotification
     public static function restore(
         string $id,
         string $businessId,
+        string $eventId,
         string $recipientStaffMemberId,
-        NotificationType $type,
-        ?string $appointmentId,
-        ?string $subjectStaffMemberId,
+        string $collapseKey,
         ?DateTimeImmutable $readAt,
         DateTimeImmutable $createdAt,
     ): self {
         return new self(
             id: $id,
             businessId: $businessId,
+            eventId: $eventId,
             recipientStaffMemberId: $recipientStaffMemberId,
-            type: $type,
-            appointmentId: $appointmentId,
-            subjectStaffMemberId: $subjectStaffMemberId,
+            collapseKey: $collapseKey,
             readAt: $readAt,
             createdAt: $createdAt,
         );

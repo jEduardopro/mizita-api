@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Notifications\Contracts;
 
+use App\Domains\Notifications\Entities\NotificationEvent;
 use App\Domains\Notifications\Entities\StaffNotification;
 use App\Domains\Notifications\Exceptions\StaffNotificationNotFound;
 
@@ -14,11 +15,9 @@ interface StaffNotificationRepository
      */
     public function findForBusiness(string $businessId, string $id): StaffNotification;
 
-    public function addOnce(StaffNotification $notification): void;
+    public function record(NotificationEvent $event, StaffNotification ...$deliveries): void;
 
-    public function addOrRefreshUnread(StaffNotification $notification): void;
-
-    public function save(StaffNotification $notification): void;
+    public function markAsRead(StaffNotification $notification): void;
 
     /**
      * @throws StaffNotificationNotFound

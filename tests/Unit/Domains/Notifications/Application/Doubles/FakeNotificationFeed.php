@@ -122,11 +122,8 @@ final class FakeNotificationFeed implements NotificationFeed
 
         return new NotificationRecord(
             id: $record->id,
-            type: $record->type,
             recipient: $record->recipient,
-            appointment: $record->appointment,
-            customer: $record->customer,
-            staffMember: $record->staffMember,
+            payload: $record->payload,
             readAt: $persisted->readAt(),
             createdAt: $record->createdAt,
         );

@@ -1843,11 +1843,8 @@
         },
         "message": {
             "booked": "{{customer}} reservó {{service}}",
-            "bookedWithoutService": "{{customer}} reservó una cita",
             "scheduleChanged": "{{name}} cambió su horario"
         },
-        "unknownCustomer": "Un cliente",
-        "unknownStaffMember": "Un miembro del equipo",
         "unread": "No leída",
         "recipient": "Para {{name}}",
         "receivedAgo": {
@@ -1893,7 +1890,6 @@
         "show": {
             "title": "Notificación",
             "received": "Recibida el {{when}}",
-            "appointmentGone": "Esta cita ya no está disponible.",
             "appointmentFailed": "No pudimos abrir esta cita. Inténtalo de nuevo.",
             "fields": {
                 "customer": "Cliente",

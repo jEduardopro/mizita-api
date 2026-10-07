@@ -7,6 +7,7 @@ use App\Domains\Addresses\ValueObjects\AddressOwnerType;
 use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Businesses\Infrastructure\Purge\DatabaseTenantDataEraser;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
+use App\Domains\Notifications\Infrastructure\Eloquent\Models\NotificationEventModel;
 use App\Domains\Notifications\Infrastructure\Eloquent\Models\StaffNotificationModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentMethodModel;
 use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
@@ -36,15 +37,14 @@ const PURGE_SUBSCRIPTION_PERIOD_ENDS_AT = '2026-04-01T00:00:00+00:00';
 
 function purgeSeedStaffNotification(PurgeFixtures $tenant): void
 {
-    StaffNotificationModel::factory()->create([
-        'business_id' => $tenant->business->id,
-        'recipient_staff_member_id' => $tenant->staffMember->id,
-        'appointment_id' => AppointmentModel::query()
-            ->where('business_id', $tenant->business->id)
-            ->where('staff_member_id', $tenant->staffMember->id)
-            ->sole()
-            ->id,
-    ]);
+    $appointment = AppointmentModel::query()
+        ->where('business_id', $tenant->business->id)
+        ->where('staff_member_id', $tenant->staffMember->id)
+        ->sole();
+
+    StaffNotificationModel::factory()
+        ->forEvent(NotificationEventModel::factory()->aboutAppointment($appointment)->create())
+        ->create(['recipient_staff_member_id' => $tenant->staffMember->id]);
 }
 
 beforeEach(function () {

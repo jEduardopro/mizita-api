@@ -27,15 +27,15 @@ final class FakeBookedAppointments implements BookedAppointments
     public function add(BookedAppointment ...$appointments): self
     {
         foreach ($appointments as $appointment) {
-            $this->appointments[$appointment->appointmentId] = $appointment;
+            $this->appointments[$appointment->appointment->appointmentId] = $appointment;
         }
 
         return $this;
     }
 
-    public function recipientOf(string $appointmentId): BookedAppointment
+    public function describe(string $appointmentId): BookedAppointment
     {
-        $this->journal->record('appointments.recipientOf');
+        $this->journal->record('appointments.describe');
         $this->lookups[] = $appointmentId;
 
         return $this->appointments[$appointmentId] ?? throw NotifiedAppointmentNotFound::withId($appointmentId);

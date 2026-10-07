@@ -6,6 +6,7 @@ import type { StaffNotification } from '../types';
 import { NotificationAppointmentTime } from './NotificationAppointmentTime';
 import { NotificationDateLeaf } from './NotificationDateLeaf';
 import { NotificationReceivedAgo } from './NotificationReceivedAgo';
+import { appointmentStartOf } from './notification-appointment-start';
 import { notificationShowUrl } from './notification-urls';
 import { useNotificationMessage } from './use-notification-message';
 
@@ -28,11 +29,11 @@ export function NotificationPopoverItem({
 }: Props) {
     const { t } = useTranslation('admin');
     const message = useNotificationMessage(notification);
-    const { appointment } = notification;
+    const appointmentStartsAt = appointmentStartOf(notification);
 
     return (
         <li className="relative flex items-start gap-3 px-3 py-2.5 hover:bg-muted has-[a:focus-visible]:bg-muted motion-safe:transition-colors">
-            <NotificationDateLeaf startsAt={appointment?.starts_at ?? null} timezone={timezone} />
+            <NotificationDateLeaf startsAt={appointmentStartsAt} timezone={timezone} />
 
             <div className="grid min-w-0 flex-1 gap-0.5 py-0.5">
                 <div className="flex items-start gap-2">
@@ -47,8 +48,8 @@ export function NotificationPopoverItem({
                     <NotificationReceivedAgo createdAt={notification.created_at} timezone={timezone} />
                 </div>
 
-                {appointment === null ? null : (
-                    <NotificationAppointmentTime startsAt={appointment.starts_at} timezone={timezone} />
+                {appointmentStartsAt === null ? null : (
+                    <NotificationAppointmentTime startsAt={appointmentStartsAt} timezone={timezone} />
                 )}
 
                 {recipientName === null ? null : (

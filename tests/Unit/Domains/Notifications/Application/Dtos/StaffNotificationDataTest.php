@@ -6,7 +6,7 @@ use App\Domains\Notifications\Application\Dtos\StaffNotificationData;
 use App\Domains\Notifications\ValueObjects\NotificationReader;
 use Tests\Unit\Domains\Notifications\Application\Doubles\NotificationsFixtures;
 
-it('copies the notification and its neighbours under their uuids', function () {
+it('copies a booking notification, its recipient and its snapshot under their uuids', function () {
     $data = StaffNotificationData::forReader(
         NotificationsFixtures::record(),
         NotificationReader::member(NotificationsFixtures::MEMBER_ID),
@@ -18,14 +18,7 @@ it('copies the notification and its neighbours under their uuids', function () {
         ->and($data->createdAt)->toEqual(new DateTimeImmutable(NotificationsFixtures::CREATED_AT))
         ->and($data->recipient->id)->toBe(NotificationsFixtures::MEMBER_ID)
         ->and($data->recipient->name)->toBe(NotificationsFixtures::MEMBER_NAME)
-        ->and($data->appointment?->id)->toBe(NotificationsFixtures::APPOINTMENT_ID)
-        ->and($data->appointment?->startsAt)->toEqual(new DateTimeImmutable(NotificationsFixtures::STARTS_AT))
-        ->and($data->appointment?->endsAt)->toEqual(new DateTimeImmutable(NotificationsFixtures::ENDS_AT))
-        ->and($data->appointment?->serviceName)->toBe(NotificationsFixtures::SERVICE_NAME)
-        ->and($data->appointment?->referenceCode)->toBe(NotificationsFixtures::REFERENCE_CODE)
-        ->and($data->customer?->id)->toBe(NotificationsFixtures::CUSTOMER_ID)
-        ->and($data->customer?->name)->toBe(NotificationsFixtures::CUSTOMER_NAME)
-        ->and($data->staffMember)->toBeNull();
+        ->and($data->details)->toBe(NotificationsFixtures::bookingSnapshot());
 });
 
 it('copies the staff member a schedule change is about under their uuid', function () {
@@ -37,21 +30,13 @@ it('copies the staff member a schedule change is about under their uuid', functi
     expect($data->type)->toBe('staff_schedule_changed')
         ->and($data->recipient->id)->toBe(NotificationsFixtures::OWNER_MEMBER_ID)
         ->and($data->recipient->name)->toBe(NotificationsFixtures::OWNER_NAME)
-        ->and($data->staffMember?->id)->toBe(NotificationsFixtures::MEMBER_ID)
-        ->and($data->staffMember?->name)->toBe(NotificationsFixtures::MEMBER_NAME)
-        ->and($data->appointment)->toBeNull()
-        ->and($data->customer)->toBeNull()
+        ->and($data->details)->toBe([
+            'staff_member' => [
+                'id' => NotificationsFixtures::MEMBER_ID,
+                'name' => NotificationsFixtures::MEMBER_NAME,
+            ],
+        ])
         ->and($data->canMarkAsRead)->toBeTrue();
-});
-
-it('carries no appointment and no customer when the notification has none', function () {
-    $data = StaffNotificationData::forReader(
-        NotificationsFixtures::record(withAppointment: false, withCustomer: false),
-        NotificationReader::member(NotificationsFixtures::MEMBER_ID),
-    );
-
-    expect($data->appointment)->toBeNull()
-        ->and($data->customer)->toBeNull();
 });
 
 it('tells the reader whether it may mark the notification as read', function (?string $readAt, NotificationReader $reader, bool $canMarkAsRead) {

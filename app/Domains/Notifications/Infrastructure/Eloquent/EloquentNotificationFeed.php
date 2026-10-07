@@ -11,9 +11,7 @@ use App\Domains\Notifications\ValueObjects\NotificationRecipient;
 use App\Domains\Notifications\ValueObjects\NotificationRecord;
 use App\Domains\Notifications\ValueObjects\NotificationStatus;
 use App\Domains\Notifications\ValueObjects\NotificationType;
-use App\Domains\Notifications\ValueObjects\NotifiedAppointment;
-use App\Domains\Notifications\ValueObjects\NotifiedCustomer;
-use App\Domains\Notifications\ValueObjects\NotifiedStaffMember;
+use App\Domains\Notifications\ValueObjects\Payloads\NotificationPayload;
 use App\Shared\ValueObjects\Paginated;
 use App\Shared\ValueObjects\Pagination;
 use DateTimeImmutable;
@@ -30,20 +28,12 @@ final class EloquentNotificationFeed implements NotificationFeed
 
     private const SELECTED_COLUMNS = [
         'staff_notifications.uuid as notification_id',
-        'staff_notifications.type as type',
         'staff_notifications.read_at as read_at',
         'staff_notifications.created_at as created_at',
+        'notification_events.type as type',
+        'notification_events.payload as payload',
         'staff_members.uuid as recipient_id',
         'users.name as recipient_name',
-        'appointments.uuid as appointment_id',
-        'appointments.starts_at as starts_at',
-        'appointments.ends_at as ends_at',
-        'appointments.reference_code as reference_code',
-        'services.name as service_name',
-        'customers.uuid as customer_id',
-        'customers.name as customer_name',
-        'subject_members.uuid as subject_id',
-        'subject_users.name as subject_name',
     ];
 
     /**
@@ -127,68 +117,29 @@ final class EloquentNotificationFeed implements NotificationFeed
     private function withDetails(Builder $query): Builder
     {
         return $query
-            ->join('users', 'users.id', '=', 'staff_members.account_id')
-            ->leftJoin('appointments', 'appointments.id', '=', 'staff_notifications.appointment_id')
-            ->leftJoin('services', 'services.id', '=', 'appointments.service_id')
-            ->leftJoin('customers', 'customers.id', '=', 'appointments.customer_id')
-            ->leftJoin('staff_members as subject_members', 'subject_members.id', '=', 'staff_notifications.subject_staff_member_id')
-            ->leftJoin('users as subject_users', 'subject_users.id', '=', 'subject_members.account_id');
+            ->join('notification_events', 'notification_events.id', '=', 'staff_notifications.notification_event_id')
+            ->join('users', 'users.id', '=', 'staff_members.account_id');
     }
 
     private static function recordFrom(stdClass $row): NotificationRecord
     {
         return new NotificationRecord(
             id: (string) $row->notification_id,
-            type: NotificationType::from((string) $row->type),
             recipient: new NotificationRecipient(
                 staffMemberId: (string) $row->recipient_id,
                 name: (string) $row->recipient_name,
             ),
-            appointment: self::appointmentFrom($row),
-            customer: self::customerFrom($row),
-            staffMember: self::staffMemberFrom($row),
+            payload: self::payloadFrom($row),
             readAt: $row->read_at === null ? null : self::instantFrom($row->read_at),
             createdAt: self::instantFrom($row->created_at),
         );
     }
 
-    private static function appointmentFrom(stdClass $row): ?NotifiedAppointment
+    private static function payloadFrom(stdClass $row): NotificationPayload
     {
-        if ($row->appointment_id === null) {
-            return null;
-        }
+        $snapshot = json_decode((string) $row->payload, associative: true, flags: JSON_THROW_ON_ERROR);
 
-        return new NotifiedAppointment(
-            appointmentId: (string) $row->appointment_id,
-            startsAt: self::instantFrom($row->starts_at),
-            endsAt: self::instantFrom($row->ends_at),
-            serviceName: (string) $row->service_name,
-            referenceCode: $row->reference_code === null ? null : (string) $row->reference_code,
-        );
-    }
-
-    private static function customerFrom(stdClass $row): ?NotifiedCustomer
-    {
-        if ($row->customer_id === null) {
-            return null;
-        }
-
-        return new NotifiedCustomer(
-            customerId: (string) $row->customer_id,
-            name: (string) $row->customer_name,
-        );
-    }
-
-    private static function staffMemberFrom(stdClass $row): ?NotifiedStaffMember
-    {
-        if ($row->subject_id === null) {
-            return null;
-        }
-
-        return new NotifiedStaffMember(
-            staffMemberId: (string) $row->subject_id,
-            name: (string) $row->subject_name,
-        );
+        return NotificationType::from((string) $row->type)->payloadFrom(is_array($snapshot) ? $snapshot : []);
     }
 
     private static function instantFrom(mixed $value): DateTimeImmutable

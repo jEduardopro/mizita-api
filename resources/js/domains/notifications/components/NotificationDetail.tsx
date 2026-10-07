@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StaffNotification } from '../types';
 import { NotificationDateLeaf } from './NotificationDateLeaf';
+import { appointmentStartOf } from './notification-appointment-start';
 import { dateAndTime } from './notification-dates';
 import {
     type NotificationDetailField,
@@ -39,15 +40,13 @@ export function NotificationDetail({ notification, timezone, customerHref, staff
     const { t, i18n } = useTranslation('admin');
     const message = useNotificationMessage(notification);
     const fields = useNotificationDetailFields(notification, timezone, { customerHref, staffMemberHref });
-    const { appointment } = notification;
-    const appointmentGone = notification.type === 'appointment_booked' && appointment === null;
 
     return (
         <article className="grid max-w-2xl gap-6">
             <header className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="flex min-w-0 flex-1 items-start gap-4">
                     <NotificationDateLeaf
-                        startsAt={appointment?.starts_at ?? null}
+                        startsAt={appointmentStartOf(notification)}
                         timezone={timezone}
                         size="lg"
                     />
@@ -69,10 +68,6 @@ export function NotificationDetail({ notification, timezone, customerHref, staff
                     <div className="flex shrink-0 sm:pt-1">{headerAction}</div>
                 )}
             </header>
-
-            {appointmentGone ? (
-                <p className="text-sm text-muted-foreground">{t('notifications.show.appointmentGone')}</p>
-            ) : null}
 
             {fields.length === 0 ? null : (
                 <dl className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 sm:p-5">

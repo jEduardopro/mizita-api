@@ -11,10 +11,12 @@ import { customerShowUrl } from '@/domains/customers/components/customer-urls';
 import { NotificationDetail } from '@/domains/notifications/components/NotificationDetail';
 import { NotificationDetailSkeleton } from '@/domains/notifications/components/NotificationDetailSkeleton';
 import { NotificationLoadError } from '@/domains/notifications/components/NotificationLoadError';
+import { dispatchByType } from '@/domains/notifications/components/dispatch-by-type';
 import { linkFromNotification, NOTIFICATIONS_URL } from '@/domains/notifications/components/notification-urls';
 import { useMarkAsReadOnView } from '@/domains/notifications/components/use-mark-as-read-on-view';
+import type { NotificationDetailLinks } from '@/domains/notifications/components/use-notification-detail-fields';
 import { useNotification } from '@/domains/notifications/queries';
-import type { NotificationType, StaffNotification } from '@/domains/notifications/types';
+import type { NotificationHandlers } from '@/domains/notifications/types';
 import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
 import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
 import { teamMemberEditUrl, teamMemberShowUrl } from '@/domains/staff/components/team-urls';
@@ -128,41 +130,37 @@ function ViewScheduleAction({ href }: ViewScheduleActionProps) {
 }
 
 type HeaderActionContext = {
-    notification: StaffNotification;
     timezone: string;
     can: Authorization['can'];
 };
 
-type HeaderActionBuilder = (context: HeaderActionContext) => ReactNode;
-
-const HEADER_ACTIONS: Record<NotificationType, HeaderActionBuilder> = {
-    appointment_booked: ({ notification, timezone, can }) =>
-        notification.appointment !== null && can('view_appointments') ? (
-            <ViewAppointmentAction appointmentId={notification.appointment.id} timezone={timezone} />
+const HEADER_ACTIONS: NotificationHandlers<HeaderActionContext, ReactNode> = {
+    appointment_booked: ({ details }, { timezone, can }) =>
+        can('view_appointments') ? (
+            <ViewAppointmentAction appointmentId={details.appointment.id} timezone={timezone} />
         ) : undefined,
-    staff_schedule_changed: ({ notification, can }) =>
-        notification.staff_member !== null && can('view_staff_members') ? (
-            <ViewScheduleAction
-                href={linkFromNotification(teamMemberEditUrl(notification.staff_member.id, 'hours'), notification.id)}
-            />
+    staff_schedule_changed: ({ id, details }, { can }) =>
+        can('view_staff_members') ? (
+            <ViewScheduleAction href={linkFromNotification(teamMemberEditUrl(details.staff_member.id, 'hours'), id)} />
         ) : undefined,
 };
 
-function staffMemberHrefFor({ id, staff_member }: Pick<StaffNotification, 'id' | 'staff_member'>): string | undefined {
-    if (staff_member === null) {
-        return undefined;
-    }
+type DetailLinksContext = {
+    can: Authorization['can'];
+};
 
-    return linkFromNotification(teamMemberShowUrl(staff_member.id), id);
-}
-
-function customerHrefFor({ id, customer }: Pick<StaffNotification, 'id' | 'customer'>): string | undefined {
-    if (customer === null) {
-        return undefined;
-    }
-
-    return linkFromNotification(customerShowUrl(customer.id), id);
-}
+const DETAIL_LINKS: NotificationHandlers<DetailLinksContext, NotificationDetailLinks> = {
+    appointment_booked: ({ id, details }, { can }) => ({
+        customerHref: can('view_customers')
+            ? linkFromNotification(customerShowUrl(details.customer.id), id)
+            : undefined,
+    }),
+    staff_schedule_changed: ({ id, details }, { can }) => ({
+        staffMemberHref: can('view_staff_members')
+            ? linkFromNotification(teamMemberShowUrl(details.staff_member.id), id)
+            : undefined,
+    }),
+};
 
 type Props = {
     notificationId: string;
@@ -197,17 +195,8 @@ export default function ShowNotification({ notificationId }: Props) {
                 <NotificationDetail
                     notification={notification.data}
                     timezone={timezone}
-                    customerHref={
-                        can('view_customers') ? customerHrefFor(notification.data) : undefined
-                    }
-                    staffMemberHref={
-                        can('view_staff_members') ? staffMemberHrefFor(notification.data) : undefined
-                    }
-                    headerAction={HEADER_ACTIONS[notification.data.type]({
-                        notification: notification.data,
-                        timezone,
-                        can,
-                    })}
+                    {...dispatchByType(notification.data, DETAIL_LINKS, { can })}
+                    headerAction={dispatchByType(notification.data, HEADER_ACTIONS, { timezone, can })}
                 />
             ) : null}
         </AdminLayout>

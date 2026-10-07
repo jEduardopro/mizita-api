@@ -1843,11 +1843,8 @@
         },
         "message": {
             "booked": "{{customer}} booked {{service}}",
-            "bookedWithoutService": "{{customer}} booked an appointment",
             "scheduleChanged": "{{name}} changed their schedule"
         },
-        "unknownCustomer": "A customer",
-        "unknownStaffMember": "A team member",
         "unread": "Unread",
         "recipient": "For {{name}}",
         "receivedAgo": {
@@ -1893,7 +1890,6 @@
         "show": {
             "title": "Notification",
             "received": "Received {{when}}",
-            "appointmentGone": "This appointment is no longer available.",
             "appointmentFailed": "We could not open this appointment. Try again.",
             "fields": {
                 "customer": "Customer",

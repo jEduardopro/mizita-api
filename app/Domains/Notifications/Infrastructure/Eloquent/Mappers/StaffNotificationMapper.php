@@ -6,16 +6,12 @@ namespace App\Domains\Notifications\Infrastructure\Eloquent\Mappers;
 
 use App\Domains\Notifications\Entities\StaffNotification;
 use App\Domains\Notifications\Infrastructure\Eloquent\Models\StaffNotificationModel;
-use App\Domains\Notifications\ValueObjects\NotificationType;
 use DateTimeImmutable;
 
 final class StaffNotificationMapper
 {
     public function toEntity(StaffNotificationModel $model, string $businessId): StaffNotification
     {
-        /** @var NotificationType $type */
-        $type = $model->type;
-
         /** @var ?DateTimeImmutable $readAt */
         $readAt = $model->read_at;
 
@@ -25,10 +21,9 @@ final class StaffNotificationMapper
         return StaffNotification::restore(
             id: $model->uuid,
             businessId: $businessId,
+            eventId: $model->event->uuid,
             recipientStaffMemberId: $model->recipient->uuid,
-            type: $type,
-            appointmentId: $model->appointment?->uuid,
-            subjectStaffMemberId: $model->subject?->uuid,
+            collapseKey: $model->collapse_key,
             readAt: $readAt,
             createdAt: $createdAt,
         );
@@ -40,17 +35,15 @@ final class StaffNotificationMapper
     public function toAttributes(
         StaffNotification $notification,
         int $businessKey,
+        int $eventKey,
         int $recipientKey,
-        ?int $appointmentKey,
-        ?int $subjectKey,
     ): array {
         return [
             'uuid' => $notification->id,
             'business_id' => $businessKey,
+            'notification_event_id' => $eventKey,
             'recipient_staff_member_id' => $recipientKey,
-            'type' => $notification->type,
-            'appointment_id' => $appointmentKey,
-            'subject_staff_member_id' => $subjectKey,
+            'collapse_key' => $notification->collapseKey,
             'read_at' => $notification->readAt(),
             'created_at' => $notification->createdAt,
         ];

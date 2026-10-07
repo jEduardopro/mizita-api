@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace App\Domains\Notifications\Infrastructure\Eloquent;
 
-use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Notifications\Contracts\StaffNotificationRepository;
+use App\Domains\Notifications\Entities\NotificationEvent;
 use App\Domains\Notifications\Entities\StaffNotification;
 use App\Domains\Notifications\Exceptions\StaffNotificationNotFound;
+use App\Domains\Notifications\Infrastructure\Eloquent\Mappers\NotificationEventMapper;
 use App\Domains\Notifications\Infrastructure\Eloquent\Mappers\StaffNotificationMapper;
+use App\Domains\Notifications\Infrastructure\Eloquent\Models\NotificationEventModel;
 use App\Domains\Notifications\Infrastructure\Eloquent\Models\StaffNotificationModel;
+use App\Domains\Notifications\ValueObjects\NotificationSubject;
 use App\Domains\Staff\Infrastructure\Eloquent\Models\StaffMemberModel;
 use App\Shared\Contracts\BusinessTeamKey;
+use DateTimeImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 final class EloquentStaffNotificationRepository implements StaffNotificationRepository
@@ -20,46 +28,47 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
 
     private const BUSINESSES_TABLE = 'businesses';
 
-    private const EAGER_LOADED_RELATIONS = ['recipient', 'appointment', 'subject'];
+    private const EAGER_LOADED_RELATIONS = ['recipient', 'event'];
 
     private const NO_ROWS = 0;
 
     public function __construct(
-        private readonly StaffNotificationMapper $mapper,
+        private readonly StaffNotificationMapper $deliveryMapper,
+        private readonly NotificationEventMapper $eventMapper,
         private readonly BusinessTeamKey $businessKeys,
     ) {}
 
     public function findForBusiness(string $businessId, string $id): StaffNotification
     {
-        return $this->mapper->toEntity($this->modelOrFail($businessId, $id), $businessId);
+        return $this->deliveryMapper->toEntity($this->modelOrFail($businessId, $id), $businessId);
     }
 
-    public function addOnce(StaffNotification $notification): void
+    public function record(NotificationEvent $event, StaffNotification ...$deliveries): void
     {
-        $this->insertUnlessConflicting($this->rowOf($notification));
-    }
-
-    public function addOrRefreshUnread(StaffNotification $notification): void
-    {
-        $row = $this->rowOf($notification);
-
-        if ($this->insertUnlessConflicting($row)) {
+        if (! $this->insertUnlessConflicting(NotificationEventModel::query(), $this->eventRowOf($event))) {
             return;
         }
 
-        if ($this->refreshUnreadMatching($row)) {
+        $eventKey = $this->eventKeyFor($event->id);
+
+        foreach ($deliveries as $delivery) {
+            $this->deliver($this->deliveryRowOf($delivery, $eventKey));
+        }
+    }
+
+    public function markAsRead(StaffNotification $notification): void
+    {
+        $readAt = $notification->readAt();
+
+        if ($readAt === null) {
             return;
         }
 
-        $this->insertUnlessConflicting($row);
-    }
-
-    public function save(StaffNotification $notification): void
-    {
-        StaffNotificationModel::query()->updateOrCreate(
-            ['uuid' => $notification->id],
-            $this->attributesOf($notification),
-        );
+        StaffNotificationModel::query()
+            ->where('uuid', $notification->id)
+            ->where('business_id', $this->businessKeys->teamKeyFor($notification->businessId))
+            ->whereNull('read_at')
+            ->update($this->readStateRowOf($readAt));
     }
 
     public function delete(string $businessId, string $id): void
@@ -67,58 +76,105 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
         $this->modelOrFail($businessId, $id)->delete();
     }
 
-    private function rowOf(StaffNotification $notification): StaffNotificationModel
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function deliver(array $row): void
     {
-        return (new StaffNotificationModel)->forceFill([
-            ...$this->attributesOf($notification),
-            'updated_at' => $notification->createdAt,
-        ]);
+        if ($this->insertUnlessConflicting(StaffNotificationModel::query(), $row)) {
+            return;
+        }
+
+        if ($this->collapseIntoUnreadDelivery($row)) {
+            return;
+        }
+
+        $this->insertUnlessConflicting(StaffNotificationModel::query(), $row);
     }
 
-    private function insertUnlessConflicting(StaffNotificationModel $row): bool
+    /**
+     * @param  Builder<covariant Model>  $query
+     * @param  array<string, mixed>  $row
+     */
+    private function insertUnlessConflicting(Builder $query, array $row): bool
     {
-        return StaffNotificationModel::query()->insertOrIgnore($row->getAttributes()) > self::NO_ROWS;
+        return $query->insertOrIgnore($row) > self::NO_ROWS;
     }
 
-    private function refreshUnreadMatching(StaffNotificationModel $row): bool
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function collapseIntoUnreadDelivery(array $row): bool
     {
-        $attributes = $row->getAttributes();
-
         return StaffNotificationModel::query()
-            ->where('business_id', $attributes['business_id'])
-            ->where('type', $attributes['type'])
-            ->where('recipient_staff_member_id', $attributes['recipient_staff_member_id'])
-            ->where('subject_staff_member_id', $attributes['subject_staff_member_id'])
+            ->where('business_id', $row['business_id'])
+            ->where('recipient_staff_member_id', $row['recipient_staff_member_id'])
+            ->where('collapse_key', $row['collapse_key'])
             ->whereNull('read_at')
             ->update([
-                'created_at' => $attributes['created_at'],
-                'updated_at' => $attributes['updated_at'],
+                'notification_event_id' => $row['notification_event_id'],
+                'created_at' => $row['created_at'],
+                'updated_at' => $row['updated_at'],
             ]) > self::NO_ROWS;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function attributesOf(StaffNotification $notification): array
+    private function eventRowOf(NotificationEvent $event): array
     {
-        $businessKey = $this->businessKeys->teamKeyFor($notification->businessId);
+        $attributes = $this->eventMapper->toAttributes(
+            $event,
+            $this->businessKeys->teamKeyFor($event->businessId),
+            $this->subjectKeyFor($event->subject),
+        );
 
-        return $this->mapper->toAttributes(
-            $notification,
+        return (new NotificationEventModel)->forceFill($attributes)->getAttributes();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function deliveryRowOf(StaffNotification $delivery, int $eventKey): array
+    {
+        return (new StaffNotificationModel)->forceFill([
+            ...$this->deliveryAttributesOf($delivery, $eventKey),
+            'updated_at' => $delivery->createdAt,
+        ])->getAttributes();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function readStateRowOf(DateTimeImmutable $readAt): array
+    {
+        return (new StaffNotificationModel)->forceFill([
+            'read_at' => $readAt,
+            'updated_at' => $readAt,
+        ])->getAttributes();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function deliveryAttributesOf(StaffNotification $delivery, int $eventKey): array
+    {
+        $businessKey = $this->businessKeys->teamKeyFor($delivery->businessId);
+
+        return $this->deliveryMapper->toAttributes(
+            $delivery,
             $businessKey,
-            $this->staffMemberKeyFor($businessKey, $notification->recipientStaffMemberId),
-            $this->appointmentKeyFor($businessKey, $notification->appointmentId),
-            $this->subjectKeyFor($businessKey, $notification->subjectStaffMemberId),
+            $eventKey,
+            $this->staffMemberKeyFor($businessKey, $delivery->recipientStaffMemberId),
         );
     }
 
-    private function subjectKeyFor(int $businessKey, ?string $staffMemberId): ?int
+    private function eventKeyFor(string $eventId): int
     {
-        if ($staffMemberId === null) {
-            return null;
-        }
-
-        return $this->staffMemberKeyFor($businessKey, $staffMemberId);
+        return (int) NotificationEventModel::query()
+            ->withTrashed()
+            ->where('uuid', $eventId)
+            ->valueOrFail(self::PRIMARY_KEY);
     }
 
     private function staffMemberKeyFor(int $businessKey, string $staffMemberId): int
@@ -130,17 +186,27 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
             ->valueOrFail(self::PRIMARY_KEY);
     }
 
-    private function appointmentKeyFor(int $businessKey, ?string $appointmentId): ?int
+    private function subjectKeyFor(NotificationSubject $subject): int
     {
-        if ($appointmentId === null) {
-            return null;
+        return (int) $this->subjectModel($subject)::query()
+            ->withoutGlobalScopes()
+            ->where('uuid', $subject->id)
+            ->valueOrFail(self::PRIMARY_KEY);
+    }
+
+    /**
+     * @return class-string<Model>
+     */
+    private function subjectModel(NotificationSubject $subject): string
+    {
+        /** @var class-string<Model>|null $model */
+        $model = Relation::getMorphedModel($subject->type->value);
+
+        if ($model === null) {
+            throw (new ModelNotFoundException)->setModel($subject->type->value, [$subject->id]);
         }
 
-        return (int) AppointmentModel::query()
-            ->withTrashed()
-            ->where('business_id', $businessKey)
-            ->where('uuid', $appointmentId)
-            ->valueOrFail(self::PRIMARY_KEY);
+        return $model;
     }
 
     /**

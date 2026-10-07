@@ -7,19 +7,20 @@ namespace App\Domains\Notifications\Application\UseCases;
 use App\Domains\Notifications\Application\Dtos\NotifyAppointmentBookedInput;
 use App\Domains\Notifications\Contracts\BookedAppointments;
 use App\Domains\Notifications\Contracts\StaffNotificationRepository;
-use App\Domains\Notifications\Entities\StaffNotification;
-use App\Domains\Notifications\Exceptions\NotifiedAppointmentNotFound;
-use App\Domains\Notifications\ValueObjects\NotificationType;
+use App\Domains\Notifications\Entities\NotificationEvent;
+use App\Domains\Notifications\ValueObjects\BookedAppointment;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\Contracts\Clock;
 use App\Shared\Contracts\DomainFailure;
 use App\Shared\Contracts\IdGenerator;
+use App\Shared\Contracts\TransactionManager;
 
 final class NotifyAppointmentBooked
 {
     public function __construct(
         private readonly BookedAppointments $appointments,
         private readonly StaffNotificationRepository $notifications,
+        private readonly TransactionManager $transactions,
         private readonly IdGenerator $ids,
         private readonly Clock $clock,
     ) {}
@@ -32,7 +33,7 @@ final class NotifyAppointmentBooked
         try {
             $input->validate();
 
-            $this->notifications->addOnce($this->notificationFor($input->appointmentId));
+            $this->notifyStaffMemberOf($this->appointments->describe($input->appointmentId));
         } catch (DomainFailure $failure) {
             return UseCaseResponse::failure($failure);
         }
@@ -40,20 +41,17 @@ final class NotifyAppointmentBooked
         return UseCaseResponse::success();
     }
 
-    /**
-     * @throws NotifiedAppointmentNotFound
-     */
-    private function notificationFor(string $appointmentId): StaffNotification
+    private function notifyStaffMemberOf(BookedAppointment $appointment): void
     {
-        $appointment = $this->appointments->recipientOf($appointmentId);
-
-        return StaffNotification::create(
+        $event = NotificationEvent::record(
             id: $this->ids->next(),
             businessId: $appointment->businessId,
-            recipientStaffMemberId: $appointment->staffMemberId,
-            type: NotificationType::AppointmentBooked,
-            appointmentId: $appointment->appointmentId,
-            now: $this->clock->now(),
+            payload: $appointment->payload(),
+            occurredAt: $this->clock->now(),
         );
+
+        $delivery = $event->deliverTo($this->ids->next(), $appointment->staffMemberId);
+
+        $this->transactions->run(fn () => $this->notifications->record($event, $delivery));
     }
 }

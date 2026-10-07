@@ -17,6 +17,7 @@ use App\Domains\Appointments\Contracts\ReferenceCodeGenerator;
 use App\Domains\Appointments\Contracts\ServiceCatalog;
 use App\Domains\Appointments\Contracts\StaffDirectory;
 use App\Domains\Appointments\Infrastructure\Eloquent\EloquentAppointmentRepository;
+use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Appointments\Infrastructure\Gateways\AvailabilityBookableSlots;
 use App\Domains\Appointments\Infrastructure\Gateways\BookingPoliciesCancellationPolicy;
 use App\Domains\Appointments\Infrastructure\Gateways\CustomersCustomerDirectory;
@@ -28,6 +29,7 @@ use App\Domains\Appointments\Infrastructure\Gateways\StaffStaffDirectory;
 use App\Domains\Appointments\Infrastructure\Gateways\SubscriptionsBookingPreferencesAllowance;
 use App\Domains\Appointments\Infrastructure\RandomManageTokenFactory;
 use App\Domains\Appointments\Infrastructure\RandomReferenceCodeGenerator;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -51,6 +53,8 @@ final class AppointmentsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Relation::enforceMorphMap(['appointment' => AppointmentModel::class]);
+
         Route::prefix('api')
             ->middleware(['api', 'auth:sanctum', 'business'])
             ->group(__DIR__.'/Infrastructure/Http/routes.php');

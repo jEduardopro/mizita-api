@@ -4,20 +4,31 @@ declare(strict_types=1);
 
 namespace App\Domains\Notifications\ValueObjects;
 
+use App\Domains\Notifications\ValueObjects\Payloads\NotificationPayload;
 use DateTimeImmutable;
 
 final readonly class NotificationRecord
 {
     public function __construct(
         public string $id,
-        public NotificationType $type,
         public NotificationRecipient $recipient,
-        public ?NotifiedAppointment $appointment,
-        public ?NotifiedCustomer $customer,
-        public ?NotifiedStaffMember $staffMember,
+        public NotificationPayload $payload,
         public ?DateTimeImmutable $readAt,
         public DateTimeImmutable $createdAt,
     ) {}
+
+    public function type(): NotificationType
+    {
+        return $this->payload->type();
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    public function details(): array
+    {
+        return $this->payload->toArray();
+    }
 
     public function isVisibleTo(NotificationReader $reader): bool
     {

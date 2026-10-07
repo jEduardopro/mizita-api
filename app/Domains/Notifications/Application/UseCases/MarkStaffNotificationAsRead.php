@@ -63,6 +63,6 @@ final class MarkStaffNotificationAsRead
 
         $notification->markAsReadBy($reader->staffMemberId, $this->clock->now());
 
-        $this->notifications->save($notification);
+        $this->notifications->markAsRead($notification);
     }
 }

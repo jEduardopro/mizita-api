@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Domains\Notifications\Application\Doubles;
 
 use App\Domains\Notifications\Contracts\StaffNotificationRepository;
+use App\Domains\Notifications\Entities\NotificationEvent;
 use App\Domains\Notifications\Entities\StaffNotification;
 use App\Domains\Notifications\Exceptions\StaffNotificationNotFound;
 use DateTimeImmutable;
+use Tests\Support\FakeTransactionManager;
 
 final class FakeStaffNotificationRepository implements StaffNotificationRepository
 {
@@ -17,19 +19,14 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
     private array $notifications = [];
 
     /**
-     * @var list<StaffNotification>
+     * @var list<array{event: NotificationEvent, deliveries: list<StaffNotification>, insideTransaction: ?bool}>
      */
-    public array $added = [];
+    public array $recorded = [];
 
     /**
      * @var list<StaffNotification>
      */
-    public array $addedOrRefreshed = [];
-
-    /**
-     * @var list<StaffNotification>
-     */
-    public array $saved = [];
+    public array $markedAsRead = [];
 
     /**
      * @var list<array{businessId: string, id: string}>
@@ -38,6 +35,7 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
 
     public function __construct(
         private readonly NotificationsJournal $journal = new NotificationsJournal,
+        private readonly ?FakeTransactionManager $transactions = null,
     ) {}
 
     public function store(StaffNotification ...$notifications): self
@@ -68,34 +66,33 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
         return self::copyOf($notification);
     }
 
-    public function addOnce(StaffNotification $notification): void
+    public function record(NotificationEvent $event, StaffNotification ...$deliveries): void
     {
-        $this->journal->record('notifications.addOnce');
-        $this->added[] = $notification;
-        $this->notifications[$notification->id] = self::copyOf($notification);
+        $this->journal->record('notifications.record');
+        $this->recorded[] = [
+            'event' => $event,
+            'deliveries' => array_values($deliveries),
+            'insideTransaction' => $this->transactions?->isRunning(),
+        ];
+
+        foreach ($deliveries as $delivery) {
+            $this->notifications[$delivery->id] = self::copyOf($delivery);
+        }
     }
 
-    public function addOrRefreshUnread(StaffNotification $notification): void
+    public function markAsRead(StaffNotification $notification): void
     {
-        $this->journal->record('notifications.addOrRefreshUnread');
-        $this->addedOrRefreshed[] = $notification;
+        $this->journal->record('notifications.markAsRead');
+        $this->markedAsRead[] = $notification;
 
-        $unread = $this->unreadMatching($notification);
+        $readAt = $notification->readAt();
+        $stored = $this->notifications[$notification->id] ?? null;
 
-        if ($unread === null) {
-            $this->notifications[$notification->id] = self::copyOf($notification);
-
+        if ($readAt === null || $stored === null || ! $stored->isUnread()) {
             return;
         }
 
-        $this->notifications[$unread->id] = self::copyOf($unread, createdAt: $notification->createdAt);
-    }
-
-    public function save(StaffNotification $notification): void
-    {
-        $this->journal->record('notifications.save');
-        $this->saved[] = $notification;
-        $this->notifications[$notification->id] = self::copyOf($notification);
+        $this->notifications[$notification->id] = self::copyOf($stored, $readAt);
     }
 
     /**
@@ -103,7 +100,7 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
      */
     public function all(): array
     {
-        return array_values(array_map(self::copyOf(...), $this->notifications));
+        return array_values(array_map(static fn (StaffNotification $notification) => self::copyOf($notification), $this->notifications));
     }
 
     public function delete(string $businessId, string $id): void
@@ -117,32 +114,16 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
         unset($this->notifications[$id]);
     }
 
-    private function unreadMatching(StaffNotification $notification): ?StaffNotification
-    {
-        foreach ($this->notifications as $stored) {
-            if ($stored->isUnread()
-                && $stored->businessId === $notification->businessId
-                && $stored->type === $notification->type
-                && $stored->recipientStaffMemberId === $notification->recipientStaffMemberId
-                && $stored->subjectStaffMemberId === $notification->subjectStaffMemberId) {
-                return $stored;
-            }
-        }
-
-        return null;
-    }
-
-    private static function copyOf(StaffNotification $notification, ?DateTimeImmutable $createdAt = null): StaffNotification
+    private static function copyOf(StaffNotification $notification, ?DateTimeImmutable $readAt = null): StaffNotification
     {
         return StaffNotification::restore(
             id: $notification->id,
             businessId: $notification->businessId,
+            eventId: $notification->eventId,
             recipientStaffMemberId: $notification->recipientStaffMemberId,
-            type: $notification->type,
-            appointmentId: $notification->appointmentId,
-            subjectStaffMemberId: $notification->subjectStaffMemberId,
-            readAt: $notification->readAt(),
-            createdAt: $createdAt ?? $notification->createdAt,
+            collapseKey: $notification->collapseKey,
+            readAt: $readAt ?? $notification->readAt(),
+            createdAt: $notification->createdAt,
         );
     }
 }

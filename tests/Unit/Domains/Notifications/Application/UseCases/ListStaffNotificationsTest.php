@@ -67,8 +67,8 @@ describe('a team member reading their own notifications', function () {
             ->and($data->type)->toBe('appointment_booked')
             ->and($data->recipient->id)->toBe(NotificationsFixtures::MEMBER_ID)
             ->and($data->recipient->name)->toBe(NotificationsFixtures::MEMBER_NAME)
-            ->and($data->appointment?->id)->toBe(NotificationsFixtures::APPOINTMENT_ID)
-            ->and($data->customer?->id)->toBe(NotificationsFixtures::CUSTOMER_ID)
+            ->and($data->details['appointment']['id'])->toBe(NotificationsFixtures::APPOINTMENT_ID)
+            ->and($data->details['customer']['id'])->toBe(NotificationsFixtures::CUSTOMER_ID)
             ->and($data->readAt)->toBeNull()
             ->and($data->createdAt)->toEqual(new DateTimeImmutable(NotificationsFixtures::CREATED_AT))
             ->and($data->canMarkAsRead)->toBeTrue();

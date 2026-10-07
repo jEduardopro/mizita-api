@@ -3,7 +3,28 @@
 declare(strict_types=1);
 
 use App\Domains\Notifications\ValueObjects\NotificationReader;
+use App\Domains\Notifications\ValueObjects\NotificationType;
 use Tests\Unit\Domains\Notifications\Application\Doubles\NotificationsFixtures;
+
+describe('what it is about', function () {
+    it('takes its type from its payload', function () {
+        expect(NotificationsFixtures::record()->type())->toBe(NotificationType::AppointmentBooked)
+            ->and(NotificationsFixtures::scheduleChangeRecord()->type())->toBe(NotificationType::StaffScheduleChanged);
+    });
+
+    it('details a booking as its appointment and customer snapshot', function () {
+        expect(NotificationsFixtures::record()->details())->toBe(NotificationsFixtures::bookingSnapshot());
+    });
+
+    it('details a schedule change as the staff member it is about', function () {
+        expect(NotificationsFixtures::scheduleChangeRecord()->details())->toBe([
+            'staff_member' => [
+                'id' => NotificationsFixtures::MEMBER_ID,
+                'name' => NotificationsFixtures::MEMBER_NAME,
+            ],
+        ]);
+    });
+});
 
 describe('visibility', function () {
     it('is visible to its recipient', function () {
@@ -18,6 +39,11 @@ describe('visibility', function () {
 
     it('is invisible to another team member', function () {
         expect(NotificationsFixtures::record()->isVisibleTo(NotificationReader::member(NotificationsFixtures::OTHER_MEMBER_ID)))
+            ->toBeFalse();
+    });
+
+    it('is invisible to the staff member a schedule change is about', function () {
+        expect(NotificationsFixtures::scheduleChangeRecord()->isVisibleTo(NotificationReader::member(NotificationsFixtures::MEMBER_ID)))
             ->toBeFalse();
     });
 });

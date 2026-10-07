@@ -41,11 +41,11 @@ beforeEach(function () {
 });
 
 describe('the recipient', function () {
-    it('stores the notification as read at the instant of the clock', function () {
+    it('marks the notification as read at the instant of the clock', function () {
         ($this->mark)(NotificationsFixtures::MEMBER_ACCOUNT_ID);
 
-        expect($this->notifications->saved)->toHaveCount(1)
-            ->and($this->notifications->saved[0]->id)->toBe(NotificationsFixtures::NOTIFICATION_ID)
+        expect($this->notifications->markedAsRead)->toHaveCount(1)
+            ->and($this->notifications->markedAsRead[0]->id)->toBe(NotificationsFixtures::NOTIFICATION_ID)
             ->and($this->notifications->stored(NotificationsFixtures::NOTIFICATION_ID)?->readAt())->toEqual(NotificationsFixtures::now());
     });
 
@@ -59,13 +59,13 @@ describe('the recipient', function () {
             ->and($data->canMarkAsRead)->toBeFalse();
     });
 
-    it('reads the notification back only after storing it', function () {
+    it('reads the notification back only after marking it', function () {
         ($this->mark)(NotificationsFixtures::MEMBER_ACCOUNT_ID);
 
         expect($this->journal->entries)->toBe([
             'readers.readerFor',
             'notifications.findForBusiness',
-            'notifications.save',
+            'notifications.markAsRead',
             'feed.find',
         ]);
     });
@@ -78,6 +78,15 @@ describe('the recipient', function () {
         expect($data->readAt)->toEqual(new DateTimeImmutable(NotificationsFixtures::READ_AT))
             ->and($this->notifications->stored(NotificationsFixtures::SECOND_NOTIFICATION_ID)?->readAt())
             ->toEqual(new DateTimeImmutable(NotificationsFixtures::READ_AT));
+    });
+
+    it('hands an already read notification to the port still carrying its first read time', function () {
+        $this->clock->advance('PT2H');
+
+        ($this->mark)(NotificationsFixtures::MEMBER_ACCOUNT_ID, NotificationsFixtures::SECOND_NOTIFICATION_ID);
+
+        expect($this->notifications->markedAsRead)->toHaveCount(1)
+            ->and($this->notifications->markedAsRead[0]->readAt())->toEqual(new DateTimeImmutable(NotificationsFixtures::READ_AT));
     });
 
     it('treats marking an already read notification as a success', function () {
@@ -95,10 +104,10 @@ describe('the owner', function () {
             ->and($response->error()->kind)->toBe(DomainFailureKind::Forbidden);
     });
 
-    it('leaves a team member notification unread and unsaved', function () {
+    it('leaves a team member notification unread and never marks it', function () {
         ($this->mark)(NotificationsFixtures::OWNER_ACCOUNT_ID);
 
-        expect($this->notifications->saved)->toBe([])
+        expect($this->notifications->markedAsRead)->toBe([])
             ->and($this->notifications->stored(NotificationsFixtures::NOTIFICATION_ID)?->isUnread())->toBeTrue();
     });
 
@@ -107,7 +116,7 @@ describe('the owner', function () {
 
         expect($data->id)->toBe(NotificationsFixtures::THIRD_NOTIFICATION_ID)
             ->and($data->readAt)->toEqual(NotificationsFixtures::now())
-            ->and($this->notifications->saved)->toHaveCount(1);
+            ->and($this->notifications->markedAsRead)->toHaveCount(1);
     });
 });
 
@@ -120,22 +129,22 @@ describe('another team member', function () {
             ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound);
     });
 
-    it('leaves the notification unread and unsaved', function () {
+    it('leaves the notification unread and never marks it', function () {
         ($this->mark)(NotificationsFixtures::OTHER_MEMBER_ACCOUNT_ID);
 
-        expect($this->notifications->saved)->toBe([])
+        expect($this->notifications->markedAsRead)->toBe([])
             ->and($this->notifications->stored(NotificationsFixtures::NOTIFICATION_ID)?->isUnread())->toBeTrue();
     });
 });
 
 describe('a notification that is not there', function () {
-    it('answers not found for an unknown notification and saves nothing', function () {
+    it('answers not found for an unknown notification and marks nothing', function () {
         $response = ($this->mark)(NotificationsFixtures::MEMBER_ACCOUNT_ID, NotificationsFixtures::UNKNOWN_NOTIFICATION_ID);
 
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('staff_notification_not_found')
             ->and($response->error()->kind)->toBe(DomainFailureKind::NotFound)
-            ->and($this->notifications->saved)->toBe([]);
+            ->and($this->notifications->markedAsRead)->toBe([]);
     });
 
     it('answers not found for a notification identifier that is no uuid, before reading anything', function (string $notificationId) {
@@ -163,7 +172,7 @@ describe('tenant isolation', function () {
             ->and($this->readers->lookups[0]['businessId'])->toBe(NotificationsFixtures::BUSINESS_ID);
     });
 
-    it('answers not found for the recipient notification seen from another business, and saves nothing', function () {
+    it('answers not found for the recipient notification seen from another business, and marks nothing', function () {
         $this->readers->add(
             NotificationsFixtures::OTHER_BUSINESS_ID,
             NotificationsFixtures::MEMBER_ACCOUNT_ID,
@@ -178,7 +187,7 @@ describe('tenant isolation', function () {
 
         expect($response->failed())->toBeTrue()
             ->and($response->error()->code)->toBe('staff_notification_not_found')
-            ->and($this->notifications->saved)->toBe([])
+            ->and($this->notifications->markedAsRead)->toBe([])
             ->and($this->notifications->stored(NotificationsFixtures::NOTIFICATION_ID)?->isUnread())->toBeTrue();
     });
 
