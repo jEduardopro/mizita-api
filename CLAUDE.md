@@ -61,7 +61,7 @@ Three route stacks follow, and the stack — not the controller — is what guar
 | `Statistics` | tenant | **exists** (owner only) | Read-only reporting over appointments and payments |
 | `Integrations` | tenant | **exists** | Google Calendar connection: publishes appointments as events and reads busy time back |
 | `PublicCatalog` | root | **exists** (search planned) | The entire anonymous surface: business page, availability, guest booking and its manage link. Cross-tenant search is not built yet |
-| `Notifications` | tenant | planned | Confirmations and reminders |
+| `Notifications` | tenant | **exists** | In-app notifications for staff, addressed to one staff member. First one: a booking made from the public page. Only the recipient marks as read; the owner sees the whole team's read-only |
 | `Subscriptions` | tenant | **exists** | The business's paid plan, billed by Stripe. One row per business; Stripe is the source of truth |
 
 Three structural decisions worth knowing before you touch any of them:

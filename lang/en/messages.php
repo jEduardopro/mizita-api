@@ -318,6 +318,13 @@ return [
         'platform_session_expired' => 'Your admin session has expired. Please sign in again.',
         'impersonation_ended' => 'The owner session has ended.',
 
+        'staff_notification_not_found' => 'We could not find that notification.',
+        'notification_not_addressed_to_reader' => 'Only the person this notification is addressed to can mark it as read.',
+        'team_notifications_require_owner' => 'Only the business owner can see the whole team\'s notifications.',
+        'invalid_notification_scope' => 'That notification filter is not valid.',
+        'invalid_notification_status' => 'That notification status is not valid.',
+        'notified_appointment_not_found' => 'We could not find the appointment for that notification.',
+
     ],
 
     /*

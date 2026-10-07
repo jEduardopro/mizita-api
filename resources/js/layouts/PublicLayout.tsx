@@ -10,7 +10,7 @@ import {
     FacebookIcon,
     InstagramIcon,
     type SocialIconProps,
-} from '@/components/public/shell/SocialIcons';
+} from '@/components/shared/SocialIcons';
 import { Wordmark } from '@/components/shared/Wordmark';
 import { Button } from '@/components/ui/button';
 import { legalDocuments } from '@/content/legal/entity';

@@ -18,7 +18,22 @@
         "createBusiness": "Create business",
         "businesses": "Businesses",
         "switchingBusiness": "Switching business…",
-        "switchFailed": "Couldn't switch business. Try again."
+        "switchFailed": "Couldn't switch business. Try again.",
+        "shareBookingPage": {
+            "trigger": "Share your booking page",
+            "title": "Share your booking page link",
+            "close": "Close",
+            "copy": "Copy link",
+            "copied": "Link copied",
+            "copyFailed": "We could not copy the link. Copy it by hand.",
+            "email": "Email",
+            "emailSubject": "Book with {{name}}",
+            "emailBody": "Book your next appointment with {{name}} online:\n\n{{url}}",
+            "facebook": "Facebook",
+            "messenger": "Messenger",
+            "whatsapp": "WhatsApp",
+            "message": "Book your next appointment with {{name}}: {{url}}"
+        }
     },
     "account": {
         "menu": "Your account",
@@ -1808,6 +1823,73 @@
             "range": {
                 "title": "This period can't be shown",
                 "body": "Choose a period that ends today or earlier and spans one year at most."
+            }
+        }
+    },
+    "notifications": {
+        "title": "Notifications",
+        "bell": {
+            "label": "Notifications",
+            "labelWithUnread_one": "Notifications, {{count}} unread",
+            "labelWithUnread_other": "Notifications, {{count}} unread"
+        },
+        "popover": {
+            "title": "Notifications",
+            "viewAll": "View all",
+            "empty": "No unread notifications",
+            "failed": "We could not load your notifications."
+        },
+        "message": {
+            "booked": "{{customer}} booked {{service}}",
+            "bookedWithoutService": "{{customer}} booked an appointment"
+        },
+        "unknownCustomer": "A customer",
+        "unread": "Unread",
+        "recipient": "For {{name}}",
+        "markAsReadFailed": "We could not mark this notification as read. Try again.",
+        "actions": {
+            "markAsRead": "Mark as read",
+            "viewAppointment": "View appointment"
+        },
+        "tabs": {
+            "unread": "Unread",
+            "all": "All"
+        },
+        "scope": {
+            "label": "Show notifications for",
+            "mine": "Mine",
+            "team": "Whole team"
+        },
+        "empty": {
+            "unread": {
+                "title": "No unread notifications",
+                "body": "You're up to date. New bookings from your booking page show up here."
+            },
+            "all": {
+                "title": "No notifications yet",
+                "body": "When a guest books from your booking page, the person who attends gets a notification here."
+            }
+        },
+        "show": {
+            "title": "Notification",
+            "received": "Received {{when}}",
+            "appointmentGone": "This appointment is no longer available.",
+            "appointmentFailed": "We could not open this appointment. Try again.",
+            "fields": {
+                "customer": "Customer",
+                "service": "Service",
+                "date": "Date",
+                "time": "Time",
+                "reference": "Reference",
+                "recipient": "Recipient"
+            },
+            "notFound": {
+                "title": "This notification is not available",
+                "body": "It may have been removed, or it was sent to someone else."
+            },
+            "failed": {
+                "title": "We could not load this notification.",
+                "body": "Check your connection and try again."
             }
         }
     }

@@ -12,6 +12,7 @@ import { NewAppointmentLauncher } from '@/domains/appointments/components/NewApp
 import { DEFAULT_CURRENCY_CODE } from '@/domains/businesses/components/settings/location-options';
 import { useCalendarSettings } from '@/domains/businesses/queries';
 import { CreateCustomerDialog } from '@/domains/customers/components/CreateCustomerDialog';
+import { NotificationBell } from '@/domains/notifications/components/NotificationBell';
 import { BusinessCurrencyProvider } from '@/hooks/use-business-currency';
 import { CustomerCreationProvider } from '@/hooks/use-customer-creation';
 import { useFlashToast } from '@/hooks/use-flash-toast';
@@ -90,11 +91,15 @@ export function AdminLayout({
                                     title={title}
                                     breadcrumbs={breadcrumbs}
                                     actions={
-                                        newAppointment ? (
-                                            <NewAppointmentLauncher
-                                                timezone={calendarSettings?.timezone}
-                                            />
-                                        ) : undefined
+                                        <>
+                                            {newAppointment ? (
+                                                <NewAppointmentLauncher
+                                                    timezone={calendarSettings?.timezone}
+                                                />
+                                            ) : null}
+
+                                            <NotificationBell timezone={calendarSettings?.timezone ?? null} />
+                                        </>
                                     }
                                 />
 

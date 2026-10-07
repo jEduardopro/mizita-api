@@ -9,7 +9,7 @@ import {
     WhatsappIcon,
     YoutubeIcon,
     type SocialIconProps,
-} from '@/components/public/shell/SocialIcons';
+} from '@/components/shared/SocialIcons';
 import type { LinkPlatform } from '@/lib/booking-brand';
 import type { PublicLink } from '../types';
 

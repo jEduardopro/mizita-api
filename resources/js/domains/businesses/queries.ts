@@ -16,7 +16,7 @@ import {
     selectCurrentBusiness,
     updateBusinessSettings,
 } from './api';
-import type { BookingPage, BusinessSettings } from './types';
+import type { AccountBusiness, BookingPage, BusinessSettings } from './types';
 
 const MIN_NAME_LENGTH_FOR_CHECK = 2;
 
@@ -35,6 +35,18 @@ export function useMyBusinesses() {
     return useQuery({
         queryKey: businessKeys.mine(),
         queryFn: ({ signal }) => fetchMyBusinesses(signal),
+    });
+}
+
+function currentBusinessOf(businesses: AccountBusiness[]): AccountBusiness | undefined {
+    return businesses.find((business) => business.is_current) ?? businesses[0];
+}
+
+export function useCurrentBusiness() {
+    return useQuery({
+        queryKey: businessKeys.mine(),
+        queryFn: ({ signal }) => fetchMyBusinesses(signal),
+        select: currentBusinessOf,
     });
 }
 

@@ -1,7 +1,7 @@
 import { Phone } from 'lucide-react';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SocialIconProps } from '@/components/public/shell/SocialIcons';
+import type { SocialIconProps } from '@/components/shared/SocialIcons';
 import type { PublicLink } from '../types';
 import { ABOUT_ENTRY_CLASSES } from './booking-about-entry';
 import { linkLabelFor, PLATFORM_ICONS } from './booking-links';

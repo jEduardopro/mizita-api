@@ -18,7 +18,22 @@
         "createBusiness": "Crear negocio",
         "businesses": "Negocios",
         "switchingBusiness": "Cambiando de negocio…",
-        "switchFailed": "No se pudo cambiar de negocio. Inténtalo de nuevo."
+        "switchFailed": "No se pudo cambiar de negocio. Inténtalo de nuevo.",
+        "shareBookingPage": {
+            "trigger": "Comparte tu página de reservas",
+            "title": "Comparte el enlace de tu página de reservas",
+            "close": "Cerrar",
+            "copy": "Copiar enlace",
+            "copied": "Enlace copiado",
+            "copyFailed": "No pudimos copiar el enlace. Cópialo a mano.",
+            "email": "Correo",
+            "emailSubject": "Reserva con {{name}}",
+            "emailBody": "Reserva tu próxima cita con {{name}} en línea:\n\n{{url}}",
+            "facebook": "Facebook",
+            "messenger": "Messenger",
+            "whatsapp": "WhatsApp",
+            "message": "Reserva tu próxima cita con {{name}}: {{url}}"
+        }
     },
     "account": {
         "menu": "Tu cuenta",
@@ -1808,6 +1823,73 @@
             "range": {
                 "title": "No se puede mostrar este periodo",
                 "body": "Elige un periodo que termine hoy o antes y que dure un año como máximo."
+            }
+        }
+    },
+    "notifications": {
+        "title": "Notificaciones",
+        "bell": {
+            "label": "Notificaciones",
+            "labelWithUnread_one": "Notificaciones, {{count}} sin leer",
+            "labelWithUnread_other": "Notificaciones, {{count}} sin leer"
+        },
+        "popover": {
+            "title": "Notificaciones",
+            "viewAll": "Ver todas",
+            "empty": "Sin notificaciones pendientes",
+            "failed": "No pudimos cargar tus notificaciones."
+        },
+        "message": {
+            "booked": "{{customer}} reservó {{service}}",
+            "bookedWithoutService": "{{customer}} reservó una cita"
+        },
+        "unknownCustomer": "Un cliente",
+        "unread": "No leída",
+        "recipient": "Para {{name}}",
+        "markAsReadFailed": "No pudimos marcar esta notificación como leída. Inténtalo de nuevo.",
+        "actions": {
+            "markAsRead": "Marcar como leída",
+            "viewAppointment": "Ver cita"
+        },
+        "tabs": {
+            "unread": "No leídas",
+            "all": "Todas"
+        },
+        "scope": {
+            "label": "Mostrar notificaciones de",
+            "mine": "Mías",
+            "team": "Todo el equipo"
+        },
+        "empty": {
+            "unread": {
+                "title": "Sin notificaciones pendientes",
+                "body": "Estás al día. Las nuevas reservas de tu página de reservas aparecen aquí."
+            },
+            "all": {
+                "title": "Aún no hay notificaciones",
+                "body": "Cuando alguien reserva desde tu página de reservas, quien atiende la cita recibe una notificación aquí."
+            }
+        },
+        "show": {
+            "title": "Notificación",
+            "received": "Recibida el {{when}}",
+            "appointmentGone": "Esta cita ya no está disponible.",
+            "appointmentFailed": "No pudimos abrir esta cita. Inténtalo de nuevo.",
+            "fields": {
+                "customer": "Cliente",
+                "service": "Servicio",
+                "date": "Fecha",
+                "time": "Hora",
+                "reference": "Referencia",
+                "recipient": "Destinatario"
+            },
+            "notFound": {
+                "title": "Esta notificación no está disponible",
+                "body": "Puede que se haya eliminado o que se haya enviado a otra persona."
+            },
+            "failed": {
+                "title": "No pudimos cargar esta notificación.",
+                "body": "Revisa tu conexión e inténtalo de nuevo."
             }
         }
     }

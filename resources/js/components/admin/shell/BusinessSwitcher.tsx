@@ -20,7 +20,11 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMyBusinesses, useSelectCurrentBusiness } from '@/domains/businesses/queries';
+import {
+    useCurrentBusiness,
+    useMyBusinesses,
+    useSelectCurrentBusiness,
+} from '@/domains/businesses/queries';
 import { useErrorToast } from '@/hooks/use-error-toast';
 import { formMessageFrom } from '@/lib/http';
 import { initialsFrom } from '@/lib/initials';
@@ -99,10 +103,6 @@ function BusinessIdentitySkeleton() {
     );
 }
 
-function currentOf<T extends { is_current: boolean }>(businesses: readonly T[]): T | undefined {
-    return businesses.find((business) => business.is_current) ?? businesses[0];
-}
-
 function ownsAnyOf(businesses: readonly { role: string }[]): boolean {
     return businesses.some((business) => business.role === OWNER_ROLE);
 }
@@ -139,9 +139,9 @@ export function BusinessSwitcher() {
     const { name } = usePage().props;
     const { isMobile } = useSidebar();
     const { data: businesses = [], isPending } = useMyBusinesses();
+    const { data: current } = useCurrentBusiness();
     const { switchTo, isSwitching } = useBusinessSwitch();
 
-    const current = currentOf(businesses);
     const offersCreation = ! isPending && ! ownsAnyOf(businesses);
 
     function selectBusiness(businessId: string) {

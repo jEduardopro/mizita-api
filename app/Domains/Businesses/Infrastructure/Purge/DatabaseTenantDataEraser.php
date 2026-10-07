@@ -20,6 +20,7 @@ final class DatabaseTenantDataEraser implements TenantDataEraser
         'payment_transactions',
         'payment_items',
         'payments',
+        'staff_notifications',
         'appointments',
         'phones',
         'addresses',

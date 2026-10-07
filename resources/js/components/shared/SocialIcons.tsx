@@ -59,6 +59,15 @@ export function LinkedinIcon(props: SocialIconProps) {
     );
 }
 
+export function MessengerIcon(props: SocialIconProps) {
+    return (
+        <Glyph {...props}>
+            <path d="M12 2.5c-5.3 0-9.5 3.9-9.5 9 0 2.7 1.2 5.1 3.1 6.7v3.3l3.2-1.8c1 .3 2.1.4 3.2.4 5.3 0 9.5-3.9 9.5-8.6s-4.2-9-9.5-9z" />
+            <path d="m7.5 13.8 3.2-3.4 2.6 2.4 3.2-3.4" />
+        </Glyph>
+    );
+}
+
 export function TiktokIcon(props: SocialIconProps) {
     return (
         <Glyph {...props}>

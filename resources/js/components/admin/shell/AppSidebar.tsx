@@ -9,6 +9,7 @@ import {
 import { AccountMenu } from './AccountMenu';
 import { AdminNav } from './AdminNav';
 import { BusinessSwitcher } from './BusinessSwitcher';
+import { ShareBookingPageEntry } from './ShareBookingPageEntry';
 
 export function AppSidebar() {
     const { t } = useTranslation('admin');
@@ -24,6 +25,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
+                <ShareBookingPageEntry />
                 <AccountMenu />
             </SidebarFooter>
 

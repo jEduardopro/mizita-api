@@ -11,6 +11,7 @@ use App\Domains\Customers\CustomersServiceProvider;
 use App\Domains\Industries\IndustriesServiceProvider;
 use App\Domains\Integrations\IntegrationsServiceProvider;
 use App\Domains\Links\LinksServiceProvider;
+use App\Domains\Notifications\NotificationsServiceProvider;
 use App\Domains\Payments\PaymentsServiceProvider;
 use App\Domains\Phones\PhonesServiceProvider;
 use App\Domains\Platform\PlatformServiceProvider;
@@ -46,4 +47,5 @@ return [
     SubscriptionsServiceProvider::class,
     StatisticsServiceProvider::class,
     PlatformServiceProvider::class,
+    NotificationsServiceProvider::class,
 ];

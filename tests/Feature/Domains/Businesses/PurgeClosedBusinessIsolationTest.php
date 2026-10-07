@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Domains\Addresses\Infrastructure\Eloquent\Models\AddressModel;
 use App\Domains\Addresses\ValueObjects\AddressOwnerType;
+use App\Domains\Appointments\Infrastructure\Eloquent\Models\AppointmentModel;
 use App\Domains\Businesses\Infrastructure\Purge\DatabaseTenantDataEraser;
 use App\Domains\Customers\Infrastructure\Eloquent\Models\CustomerModel;
+use App\Domains\Notifications\Infrastructure\Eloquent\Models\StaffNotificationModel;
 use App\Domains\Payments\Infrastructure\Eloquent\Models\PaymentMethodModel;
 use App\Domains\Phones\Infrastructure\Eloquent\Models\PhoneModel;
 use App\Domains\Phones\ValueObjects\PhoneOwnerType;
@@ -32,6 +34,19 @@ const PURGE_SUBSCRIPTION_STARTED_AT = '2026-03-01T00:00:00+00:00';
 
 const PURGE_SUBSCRIPTION_PERIOD_ENDS_AT = '2026-04-01T00:00:00+00:00';
 
+function purgeSeedStaffNotification(PurgeFixtures $tenant): void
+{
+    StaffNotificationModel::factory()->create([
+        'business_id' => $tenant->business->id,
+        'recipient_staff_member_id' => $tenant->staffMember->id,
+        'appointment_id' => AppointmentModel::query()
+            ->where('business_id', $tenant->business->id)
+            ->where('staff_member_id', $tenant->staffMember->id)
+            ->sole()
+            ->id,
+    ]);
+}
+
 beforeEach(function () {
     $this->seed(AuthorizationSeeder::class);
 
@@ -44,9 +59,11 @@ beforeEach(function () {
     $paymentMethod = PaymentMethodModel::factory()->create();
 
     $this->kept = PurgeFixtures::seedTenant($paymentMethod);
+    purgeSeedStaffNotification($this->kept);
     $this->keptRows = PurgeFixtures::rowsOf(DatabaseTenantDataEraser::coveredTables());
 
     $this->closing = PurgeFixtures::seedTenant($paymentMethod);
+    purgeSeedStaffNotification($this->closing);
     PurgeFixtures::enrol($this->kept->staffAccount, $this->closing->business);
     $this->rowsBeforePurge = PurgeFixtures::rowsOf(DatabaseTenantDataEraser::coveredTables());
 });

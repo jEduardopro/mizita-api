@@ -318,6 +318,13 @@ return [
         'platform_session_expired' => 'Tu sesión de administrador ha caducado. Vuelve a iniciar sesión.',
         'impersonation_ended' => 'La sesión como owner ha terminado.',
 
+        'staff_notification_not_found' => 'No hemos encontrado esa notificación.',
+        'notification_not_addressed_to_reader' => 'Solo la persona a quien va dirigida esta notificación puede marcarla como leída.',
+        'team_notifications_require_owner' => 'Solo el owner del negocio puede ver las notificaciones de todo el equipo.',
+        'invalid_notification_scope' => 'Ese filtro de notificaciones no es válido.',
+        'invalid_notification_status' => 'Ese estado de notificación no es válido.',
+        'notified_appointment_not_found' => 'No hemos encontrado la cita de esa notificación.',
+
     ],
 
     /*
