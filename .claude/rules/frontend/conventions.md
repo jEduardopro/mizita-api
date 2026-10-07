@@ -25,6 +25,13 @@ Other conventions:
 
 **A form-level server message is a toast, not an inline alert.** `useServerErrors` splits what the server said in two: field messages go to the fields through `FieldMessage`, and the one sentence that is about the submission as a whole goes to `sonner`, mounted once as `components/shared/AppToaster` in `app.tsx` so a toast survives the navigation that follows a successful submit. `hooks/use-error-toast.ts` owns the lifetime, and the rule it enforces is that **a server error toast never auto-closes** — a flat 422 carries no `errors` key, so no field turns red and that sentence is the only explanation there is. The earlier `FormAlert` is gone: one message belongs in one place, and an alert re-rendered with an identical message announced nothing on a second identical refusal, while an imperative toast does.
 
+**Breadcrumbs follow where the user came from, not where the page lives.** When one admin detail page links to another detail page, the link carries the origin and the target page builds its trail from it. A link that skips this leaves the user on a trail they never walked: they open a staff member from a notification and see `Settings › Team › Name` instead of `Notifications › Notification › Name`. It has already shipped twice.
+
+- **The link side**: every outgoing link from a detail page goes through `withReturnTo(url, currentPageUrl)` (`lib/return-to.ts`), which adds `?from=`. A page with several such links wraps it in one helper so a new link cannot forget it. The notification detail uses `linkFromNotification(url, notificationId)` in `domains/notifications/components/notification-urls.ts`.
+- **The target side**: a page reachable from more than one place never hardcodes its parent crumbs. It calls `useOriginBreadcrumbs(defaultTrail, origins)` (`hooks/use-origin-breadcrumbs.ts`), which reads `from`, validates it with `safeReturnTo`, and returns the trail of the first matching `BreadcrumbOrigin`, or `defaultTrail` otherwise. The page appends its own last crumb: `[...parentTrail, { label: title }]`.
+- **An origin is owned by the domain it describes**: `useNotificationBreadcrumbOrigin()` lives in `domains/notifications/`. A new place to come from is a new origin object, added to the `origins` list of every page it links to. The hook never changes.
+- **When you add a link between detail pages, check both sides in the same change**: the link carries `from`, and the target page lists the origin. A modal opened through a query param (`?edit=hours`) must not drop `from`.
+
 ```sh
 npx tsc --noEmit     # typecheck
 npm run build

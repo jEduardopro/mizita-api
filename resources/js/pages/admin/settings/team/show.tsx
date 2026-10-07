@@ -8,6 +8,7 @@ import { WorkingHoursSummary } from '@/domains/availability/components/WorkingHo
 import { useReplaceStaffSchedule, useStaffSchedule } from '@/domains/availability/queries';
 import { BRAND_SETTINGS_URL } from '@/domains/businesses/components/settings-urls';
 import { useBusinessTimezone, useCalendarSettings } from '@/domains/businesses/queries';
+import { useNotificationBreadcrumbOrigin } from '@/domains/notifications/components/use-notification-breadcrumb-origin';
 import { StaffServicesSection } from '@/domains/services/components/StaffServicesSection';
 import { StaffServicesTab } from '@/domains/services/components/StaffServicesTab';
 import { ProfileLoadError } from '@/domains/staff/components/ProfileLoadError';
@@ -30,6 +31,7 @@ import {
 import type { MyProfile, TeamMember } from '@/domains/staff/types';
 import { useAuthorization } from '@/hooks/use-authorization';
 import { useIsTeamMemberPaused } from '@/hooks/use-is-team-member-paused';
+import { useOriginBreadcrumbs } from '@/hooks/use-origin-breadcrumbs';
 import { useUrlQueryState } from '@/hooks/use-url-query-state';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { isNotFoundError } from '@/lib/http';
@@ -157,16 +159,16 @@ export default function ShowTeamMember({ staffMemberId }: Props) {
     const selfProfile = access === 'self' ? myProfile.data : undefined;
     const title = selfProfile?.name ?? member.data?.name ?? t('team.member.title');
     const isResolvingAccess = member.data !== undefined && access === undefined;
+    const parentTrail = useOriginBreadcrumbs(
+        [
+            { label: t('nav.settings'), href: BRAND_SETTINGS_URL },
+            { label: t('nav.team'), href: TEAM_SETTINGS_URL },
+        ],
+        [useNotificationBreadcrumbOrigin()],
+    );
 
     return (
-        <AdminLayout
-            title={title}
-            breadcrumbs={[
-                { label: t('nav.settings'), href: BRAND_SETTINGS_URL },
-                { label: t('nav.team'), href: TEAM_SETTINGS_URL },
-                { label: title },
-            ]}
-        >
+        <AdminLayout title={title} breadcrumbs={[...parentTrail, { label: title }]}>
             {member.data && access !== undefined ? (
                 <TeamMemberProfile
                     member={member.data}

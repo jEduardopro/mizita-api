@@ -128,6 +128,8 @@ The file path is the Inertia page name verbatim, so `pages/admin/customers/index
 
 Route parameters arrive as Inertia props and are **identity only** — `{ slug }`, `{ customerId }`. The value is the **uuid**, because that is the backend's route key. Type them explicitly; never type an id as `number`.
 
+**Breadcrumbs follow where the user came from.** A link from one detail page to another goes through `withReturnTo()` (adds `?from=`), and a page reachable from more than one place builds its parent trail with `useOriginBreadcrumbs(defaultTrail, origins)` instead of hardcoding it. Whenever you add or change such a link, check both sides in the same change. The full rule is in `.claude/rules/frontend/conventions.md`.
+
 **A new URL is a backend handoff.** `routes/web.php` and controllers are not yours. Build the page component, then ask `mizita-backend` for the route and the `Inertia::render` call, naming the exact page string you used. Never claim a screen is reachable before that route exists.
 
 ### Data layer

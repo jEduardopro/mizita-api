@@ -1,7 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Breadcrumb } from '@/components/admin/shell/AdminBreadcrumbs';
 import { AppointmentDetailsLauncher } from '@/domains/appointments/components/AppointmentDetailsLauncher';
 import { CustomerAppointmentsTimeline } from '@/domains/appointments/components/CustomerAppointmentsTimeline';
 import { NewAppointmentDialog } from '@/domains/appointments/components/NewAppointmentDialog';
@@ -23,35 +22,16 @@ import { CustomerShowTabs } from '@/domains/customers/components/CustomerShowTab
 import { CUSTOMERS_URL } from '@/domains/customers/components/customer-urls';
 import { useCustomerShowTab } from '@/domains/customers/components/use-customer-show-tab';
 import { useCustomer } from '@/domains/customers/queries';
-import {
-    isNotificationShowUrl,
-    NOTIFICATIONS_URL,
-} from '@/domains/notifications/components/notification-urls';
+import { useNotificationBreadcrumbOrigin } from '@/domains/notifications/components/use-notification-breadcrumb-origin';
 import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
 import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
-import { useUrlQueryState } from '@/hooks/use-url-query-state';
+import { useOriginBreadcrumbs } from '@/hooks/use-origin-breadcrumbs';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { httpStatusFrom } from '@/lib/http';
 import { centsFromDecimalString } from '@/lib/money';
-import { RETURN_PARAMETER, safeReturnTo } from '@/lib/return-to';
 import { resolvedTimezone } from '@/lib/timezone';
 
 const NOT_FOUND_STATUS = 404;
-
-function useCustomerBreadcrumbs(customerName: string): Breadcrumb[] {
-    const { t } = useTranslation('admin');
-    const returnTo = safeReturnTo(useUrlQueryState().read(RETURN_PARAMETER), CUSTOMERS_URL);
-
-    if (isNotificationShowUrl(returnTo)) {
-        return [
-            { label: t('notifications.title'), href: NOTIFICATIONS_URL },
-            { label: t('notifications.show.title'), href: returnTo },
-            { label: customerName },
-        ];
-    }
-
-    return [{ label: t('customers.title'), href: CUSTOMERS_URL }, { label: customerName }];
-}
 
 type Props = {
     customerId: string;
@@ -71,7 +51,11 @@ export default function ShowCustomer({ customerId }: Props) {
     const timezone = calendarSettings?.timezone ?? resolvedTimezone();
     const currencyCode = calendarSettings?.currency_code ?? DEFAULT_CURRENCY_CODE;
     const title = customer.data?.name ?? t('customers.show.title');
-    const breadcrumbs = useCustomerBreadcrumbs(title);
+    const parentTrail = useOriginBreadcrumbs(
+        [{ label: t('customers.title'), href: CUSTOMERS_URL }],
+        [useNotificationBreadcrumbOrigin()],
+    );
+    const breadcrumbs = [...parentTrail, { label: title }];
 
     const renderPaymentPanel = useCallback(
         (appointment: Appointment) => (

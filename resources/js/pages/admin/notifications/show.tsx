@@ -11,20 +11,19 @@ import { customerShowUrl } from '@/domains/customers/components/customer-urls';
 import { NotificationDetail } from '@/domains/notifications/components/NotificationDetail';
 import { NotificationDetailSkeleton } from '@/domains/notifications/components/NotificationDetailSkeleton';
 import { NotificationLoadError } from '@/domains/notifications/components/NotificationLoadError';
-import { NOTIFICATIONS_URL, notificationShowUrl } from '@/domains/notifications/components/notification-urls';
+import { linkFromNotification, NOTIFICATIONS_URL } from '@/domains/notifications/components/notification-urls';
 import { useMarkAsReadOnView } from '@/domains/notifications/components/use-mark-as-read-on-view';
 import { useNotification } from '@/domains/notifications/queries';
 import type { NotificationType, StaffNotification } from '@/domains/notifications/types';
 import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
 import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
-import { teamMemberShowUrl } from '@/domains/staff/components/team-urls';
+import { teamMemberEditUrl, teamMemberShowUrl } from '@/domains/staff/components/team-urls';
 import { type Authorization, useAuthorization } from '@/hooks/use-authorization';
 import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { useErrorToast } from '@/hooks/use-error-toast';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { formMessageFrom, httpStatusFrom } from '@/lib/http';
 import { centsFromDecimalString } from '@/lib/money';
-import { withReturnTo } from '@/lib/return-to';
 
 const NOT_FOUND_STATUS = 404;
 
@@ -143,16 +142,18 @@ const HEADER_ACTIONS: Record<NotificationType, HeaderActionBuilder> = {
         ) : undefined,
     staff_schedule_changed: ({ notification, can }) =>
         notification.staff_member !== null && can('view_staff_members') ? (
-            <ViewScheduleAction href={teamMemberShowUrl(notification.staff_member.id)} />
+            <ViewScheduleAction
+                href={linkFromNotification(teamMemberEditUrl(notification.staff_member.id, 'hours'), notification.id)}
+            />
         ) : undefined,
 };
 
-function staffMemberHrefFor({ staff_member }: Pick<StaffNotification, 'staff_member'>): string | undefined {
+function staffMemberHrefFor({ id, staff_member }: Pick<StaffNotification, 'id' | 'staff_member'>): string | undefined {
     if (staff_member === null) {
         return undefined;
     }
 
-    return teamMemberShowUrl(staff_member.id);
+    return linkFromNotification(teamMemberShowUrl(staff_member.id), id);
 }
 
 function customerHrefFor({ id, customer }: Pick<StaffNotification, 'id' | 'customer'>): string | undefined {
@@ -160,7 +161,7 @@ function customerHrefFor({ id, customer }: Pick<StaffNotification, 'id' | 'custo
         return undefined;
     }
 
-    return withReturnTo(customerShowUrl(customer.id), notificationShowUrl(id));
+    return linkFromNotification(customerShowUrl(customer.id), id);
 }
 
 type Props = {
