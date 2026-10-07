@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import type { StaffNotification } from '../types';
 import { NotificationAppointmentTime } from './NotificationAppointmentTime';
 import { NotificationDateLeaf } from './NotificationDateLeaf';
+import { NotificationReceivedAgo } from './NotificationReceivedAgo';
 import { notificationShowUrl } from './notification-urls';
 import { useNotificationMessage } from './use-notification-message';
 
@@ -34,13 +35,17 @@ export function NotificationPopoverItem({
             <NotificationDateLeaf startsAt={appointment?.starts_at ?? null} timezone={timezone} />
 
             <div className="grid min-w-0 flex-1 gap-0.5 py-0.5">
-                <Link
-                    href={notificationShowUrl(notification.id)}
-                    onClick={onNavigate}
-                    className="text-sm font-medium text-pretty outline-none after:absolute after:inset-0 focus-visible:underline"
-                >
-                    {message}
-                </Link>
+                <div className="flex items-start gap-2">
+                    <Link
+                        href={notificationShowUrl(notification.id)}
+                        onClick={onNavigate}
+                        className="min-w-0 flex-1 text-sm font-medium text-pretty outline-none after:absolute after:inset-0 focus-visible:underline"
+                    >
+                        {message}
+                    </Link>
+
+                    <NotificationReceivedAgo createdAt={notification.created_at} timezone={timezone} />
+                </div>
 
                 {appointment === null ? null : (
                     <NotificationAppointmentTime startsAt={appointment.starts_at} timezone={timezone} />

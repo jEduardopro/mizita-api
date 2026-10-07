@@ -62,6 +62,39 @@ export function weekdayAndTime(instant: string, timezone: string, locale: string
     return `${weekday}${DETAIL_SEPARATOR}${formatInstantTimeOfDay(instant, timezone)}`;
 }
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
+const MINUTES_PER_HOUR = 60;
+
+const HOURS_PER_DAY = 24;
+
+const MINUTES_PER_DAY = MINUTES_PER_HOUR * HOURS_PER_DAY;
+
+export type ElapsedUnit = 'now' | 'minutes' | 'hours' | 'days';
+
+export type ElapsedTime = {
+    unit: ElapsedUnit;
+    value: number;
+};
+
+export function elapsedSince(instant: string, now: number): ElapsedTime {
+    const elapsedMinutes = Math.floor((now - new Date(instant).getTime()) / MILLISECONDS_PER_MINUTE);
+
+    if (! (elapsedMinutes >= 1)) {
+        return { unit: 'now', value: 0 };
+    }
+
+    if (elapsedMinutes < MINUTES_PER_HOUR) {
+        return { unit: 'minutes', value: elapsedMinutes };
+    }
+
+    if (elapsedMinutes < MINUTES_PER_DAY) {
+        return { unit: 'hours', value: Math.floor(elapsedMinutes / MINUTES_PER_HOUR) };
+    }
+
+    return { unit: 'days', value: Math.floor(elapsedMinutes / MINUTES_PER_DAY) };
+}
+
 export function dateAndTime(instant: string, timezone: string, locale: string): string {
     const date = formatInstant(instant, timezone, locale, SHORT_DATE_FORMAT);
 

@@ -1846,6 +1846,21 @@
         "unknownCustomer": "Un cliente",
         "unread": "No leída",
         "recipient": "Para {{name}}",
+        "receivedAgo": {
+            "now": "ahora",
+            "minutes": "{{count}}m",
+            "hours": "{{count}}h",
+            "days": "{{count}}d",
+            "spoken": {
+                "now": "Recibida justo ahora",
+                "minutes_one": "Recibida hace {{count}} minuto",
+                "minutes_other": "Recibida hace {{count}} minutos",
+                "hours_one": "Recibida hace {{count}} hora",
+                "hours_other": "Recibida hace {{count}} horas",
+                "days_one": "Recibida hace {{count}} día",
+                "days_other": "Recibida hace {{count}} días"
+            }
+        },
         "markAsReadFailed": "No pudimos marcar esta notificación como leída. Inténtalo de nuevo.",
         "actions": {
             "markAsRead": "Marcar como leída",
@@ -1881,7 +1896,7 @@
                 "date": "Fecha",
                 "time": "Hora",
                 "reference": "Referencia",
-                "recipient": "Destinatario"
+                "recipient": "Atiende"
             },
             "notFound": {
                 "title": "Esta notificación no está disponible",

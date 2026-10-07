@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { StaffNotification } from '../types';
 import { NotificationAppointmentTime } from './NotificationAppointmentTime';
 import { NotificationDateLeaf } from './NotificationDateLeaf';
+import { NotificationReceivedAgo } from './NotificationReceivedAgo';
 import { notificationShowUrl } from './notification-urls';
 import { useNotificationMessage } from './use-notification-message';
 
@@ -44,16 +45,20 @@ export function NotificationListItem({
                 />
 
                 <div className="grid min-w-0 flex-1 gap-0.5 py-0.5">
-                    <Link
-                        href={notificationShowUrl(notification.id)}
-                        className={cn(
-                            'text-sm text-pretty outline-none after:absolute after:inset-0 after:rounded-xl',
-                            unread ? 'font-medium' : 'text-muted-foreground',
-                        )}
-                    >
-                        {unread ? <span className="sr-only">{`${t('notifications.unread')}: `}</span> : null}
-                        {message}
-                    </Link>
+                    <div className="flex items-start gap-2">
+                        <Link
+                            href={notificationShowUrl(notification.id)}
+                            className={cn(
+                                'min-w-0 flex-1 text-sm text-pretty outline-none after:absolute after:inset-0 after:rounded-xl',
+                                unread ? 'font-medium' : 'text-muted-foreground',
+                            )}
+                        >
+                            {unread ? <span className="sr-only">{`${t('notifications.unread')}: `}</span> : null}
+                            {message}
+                        </Link>
+
+                        <NotificationReceivedAgo createdAt={notification.created_at} timezone={timezone} />
+                    </div>
 
                     {appointment === null ? null : (
                         <NotificationAppointmentTime startsAt={appointment.starts_at} timezone={timezone} />

@@ -1846,6 +1846,21 @@
         "unknownCustomer": "A customer",
         "unread": "Unread",
         "recipient": "For {{name}}",
+        "receivedAgo": {
+            "now": "now",
+            "minutes": "{{count}}m",
+            "hours": "{{count}}h",
+            "days": "{{count}}d",
+            "spoken": {
+                "now": "Received just now",
+                "minutes_one": "Received {{count}} minute ago",
+                "minutes_other": "Received {{count}} minutes ago",
+                "hours_one": "Received {{count}} hour ago",
+                "hours_other": "Received {{count}} hours ago",
+                "days_one": "Received {{count}} day ago",
+                "days_other": "Received {{count}} days ago"
+            }
+        },
         "markAsReadFailed": "We could not mark this notification as read. Try again.",
         "actions": {
             "markAsRead": "Mark as read",
@@ -1881,7 +1896,7 @@
                 "date": "Date",
                 "time": "Time",
                 "reference": "Reference",
-                "recipient": "Recipient"
+                "recipient": "Attended by"
             },
             "notFound": {
                 "title": "This notification is not available",
