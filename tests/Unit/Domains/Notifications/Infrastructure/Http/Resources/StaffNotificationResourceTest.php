@@ -43,6 +43,7 @@ it('renders the notification and its neighbours under their uuids, with instants
             'id' => NotificationsFixtures::CUSTOMER_ID,
             'name' => NotificationsFixtures::CUSTOMER_NAME,
         ],
+        'staff_member' => null,
     ]);
 });
 
@@ -56,7 +57,7 @@ it('renders the read time of a read notification in atom', function () {
         ->and($body['can_mark_as_read'])->toBeFalse();
 });
 
-it('renders a missing appointment and customer as null rather than dropping the keys', function () {
+it('renders a missing appointment, customer and staff member as null rather than dropping the keys', function () {
     $body = staffNotificationBody(StaffNotificationData::forReader(
         NotificationsFixtures::record(withAppointment: false, withCustomer: false),
         NotificationReader::member(NotificationsFixtures::MEMBER_ID),
@@ -65,5 +66,32 @@ it('renders a missing appointment and customer as null rather than dropping the 
     expect($body)->toHaveKey('appointment')
         ->and($body['appointment'])->toBeNull()
         ->and($body)->toHaveKey('customer')
-        ->and($body['customer'])->toBeNull();
+        ->and($body['customer'])->toBeNull()
+        ->and($body)->toHaveKey('staff_member')
+        ->and($body['staff_member'])->toBeNull();
+});
+
+it('renders a schedule change about the staff member under their uuid, with no appointment and no customer', function () {
+    $body = staffNotificationBody(StaffNotificationData::forReader(
+        NotificationsFixtures::scheduleChangeRecord(),
+        NotificationReader::owner(NotificationsFixtures::OWNER_MEMBER_ID),
+    ));
+
+    expect($body)->toBe([
+        'id' => NotificationsFixtures::NOTIFICATION_ID,
+        'type' => 'staff_schedule_changed',
+        'read_at' => null,
+        'created_at' => NotificationsFixtures::CREATED_AT,
+        'can_mark_as_read' => true,
+        'recipient' => [
+            'id' => NotificationsFixtures::OWNER_MEMBER_ID,
+            'name' => NotificationsFixtures::OWNER_NAME,
+        ],
+        'appointment' => null,
+        'customer' => null,
+        'staff_member' => [
+            'id' => NotificationsFixtures::MEMBER_ID,
+            'name' => NotificationsFixtures::MEMBER_NAME,
+        ],
+    ]);
 });

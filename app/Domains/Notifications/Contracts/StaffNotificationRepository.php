@@ -16,6 +16,8 @@ interface StaffNotificationRepository
 
     public function addOnce(StaffNotification $notification): void;
 
+    public function addOrRefreshUnread(StaffNotification $notification): void;
+
     public function save(StaffNotification $notification): void;
 
     /**

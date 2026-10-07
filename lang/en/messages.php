@@ -324,6 +324,7 @@ return [
         'invalid_notification_scope' => 'That notification filter is not valid.',
         'invalid_notification_status' => 'That notification status is not valid.',
         'notified_appointment_not_found' => 'We could not find the appointment for that notification.',
+        'notified_staff_member_not_found' => 'We could not find the team member for that notification.',
 
     ],
 

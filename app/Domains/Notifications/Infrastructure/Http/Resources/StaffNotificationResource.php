@@ -6,6 +6,7 @@ namespace App\Domains\Notifications\Infrastructure\Http\Resources;
 
 use App\Domains\Notifications\Application\Dtos\NotifiedAppointmentData;
 use App\Domains\Notifications\Application\Dtos\NotifiedCustomerData;
+use App\Domains\Notifications\Application\Dtos\NotifiedStaffMemberData;
 use App\Domains\Notifications\Application\Dtos\StaffNotificationData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,6 +33,7 @@ final class StaffNotificationResource extends JsonResource
             ],
             'appointment' => self::appointmentOf($this->resource->appointment),
             'customer' => self::customerOf($this->resource->customer),
+            'staff_member' => self::staffMemberOf($this->resource->staffMember),
         ];
     }
 
@@ -65,6 +67,21 @@ final class StaffNotificationResource extends JsonResource
         return [
             'id' => $customer->id,
             'name' => $customer->name,
+        ];
+    }
+
+    /**
+     * @return array{id: string, name: string}|null
+     */
+    private static function staffMemberOf(?NotifiedStaffMemberData $staffMember): ?array
+    {
+        if ($staffMember === null) {
+            return null;
+        }
+
+        return [
+            'id' => $staffMember->id,
+            'name' => $staffMember->name,
         ];
     }
 }

@@ -1843,9 +1843,11 @@
         },
         "message": {
             "booked": "{{customer}} booked {{service}}",
-            "bookedWithoutService": "{{customer}} booked an appointment"
+            "bookedWithoutService": "{{customer}} booked an appointment",
+            "scheduleChanged": "{{name}} changed their schedule"
         },
         "unknownCustomer": "A customer",
+        "unknownStaffMember": "A team member",
         "unread": "Unread",
         "recipient": "For {{name}}",
         "receivedAgo": {
@@ -1866,7 +1868,8 @@
         "markAsReadFailed": "We could not mark this notification as read. Try again.",
         "actions": {
             "markAsRead": "Mark as read",
-            "viewAppointment": "View appointment"
+            "viewAppointment": "View appointment",
+            "viewSchedule": "View schedule"
         },
         "tabs": {
             "unread": "Unread",
@@ -1898,7 +1901,8 @@
                 "date": "Date",
                 "time": "Time",
                 "reference": "Reference",
-                "recipient": "Attended by"
+                "recipient": "Attended by",
+                "staffMember": "Team member"
             },
             "notFound": {
                 "title": "This notification is not available",

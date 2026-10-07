@@ -19,6 +19,7 @@ final readonly class StaffNotificationData
         public NotificationRecipientData $recipient,
         public ?NotifiedAppointmentData $appointment,
         public ?NotifiedCustomerData $customer,
+        public ?NotifiedStaffMemberData $staffMember,
     ) {}
 
     public static function forReader(NotificationRecord $record, NotificationReader $reader): self
@@ -36,6 +37,9 @@ final readonly class StaffNotificationData
             customer: $record->customer === null
                 ? null
                 : NotifiedCustomerData::fromCustomer($record->customer),
+            staffMember: $record->staffMember === null
+                ? null
+                : NotifiedStaffMemberData::fromStaffMember($record->staffMember),
         );
     }
 }

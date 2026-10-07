@@ -16,6 +16,7 @@ final class StaffNotification
         public readonly string $recipientStaffMemberId,
         public readonly NotificationType $type,
         public readonly ?string $appointmentId,
+        public readonly ?string $subjectStaffMemberId,
         private ?DateTimeImmutable $readAt,
         public readonly DateTimeImmutable $createdAt,
     ) {}
@@ -34,6 +35,26 @@ final class StaffNotification
             recipientStaffMemberId: $recipientStaffMemberId,
             type: $type,
             appointmentId: $appointmentId,
+            subjectStaffMemberId: null,
+            readAt: null,
+            createdAt: $now,
+        );
+    }
+
+    public static function staffScheduleChanged(
+        string $id,
+        string $businessId,
+        string $recipientStaffMemberId,
+        string $subjectStaffMemberId,
+        DateTimeImmutable $now,
+    ): self {
+        return new self(
+            id: $id,
+            businessId: $businessId,
+            recipientStaffMemberId: $recipientStaffMemberId,
+            type: NotificationType::StaffScheduleChanged,
+            appointmentId: null,
+            subjectStaffMemberId: $subjectStaffMemberId,
             readAt: null,
             createdAt: $now,
         );
@@ -45,6 +66,7 @@ final class StaffNotification
         string $recipientStaffMemberId,
         NotificationType $type,
         ?string $appointmentId,
+        ?string $subjectStaffMemberId,
         ?DateTimeImmutable $readAt,
         DateTimeImmutable $createdAt,
     ): self {
@@ -54,6 +76,7 @@ final class StaffNotification
             recipientStaffMemberId: $recipientStaffMemberId,
             type: $type,
             appointmentId: $appointmentId,
+            subjectStaffMemberId: $subjectStaffMemberId,
             readAt: $readAt,
             createdAt: $createdAt,
         );

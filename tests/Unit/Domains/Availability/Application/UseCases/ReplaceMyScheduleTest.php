@@ -8,12 +8,14 @@ use App\Domains\Availability\Application\Dtos\ScheduleRuleData;
 use App\Domains\Availability\Application\UseCases\ReplaceMySchedule;
 use App\Domains\Availability\Contracts\ScheduleRuleRepository;
 use App\Domains\Availability\Entities\ScheduleRule;
+use App\Domains\Availability\Events\StaffScheduleChanged;
 use App\Domains\Availability\Exceptions\ScheduleIntervalInverted;
 use App\Domains\Availability\Services\WeeklySchedule;
 use App\Domains\Availability\ValueObjects\ScheduleOwnerType;
 use App\Domains\Availability\ValueObjects\Weekday;
 use App\Shared\Application\UseCaseResponse;
 use App\Shared\ValueObjects\DomainFailureKind;
+use Illuminate\Contracts\Events\Dispatcher;
 use Tests\Support\Availability\FakeScheduleRuleRepository;
 use Tests\Support\Availability\FakeStaffMembership;
 use Tests\Support\Availability\ScheduleFixtures;
@@ -34,6 +36,38 @@ beforeEach(function () {
     $this->transactions = new FakeTransactionManager;
     $this->ids = new FixedIdGenerator(...[...$this->ruleIds, $this->spareId]);
     $this->clock = new FakeClock(ScheduleFixtures::now());
+
+    $this->dispatched = [];
+    $this->transactionStateAtDispatch = [];
+    $this->events = Mockery::mock(Dispatcher::class);
+    $this->events->shouldReceive('dispatch')->andReturnUsing(function (object $event): array {
+        $this->dispatched[] = $event;
+        $this->transactionStateAtDispatch[] = [
+            'running' => $this->transactions->isRunning(),
+            'runs' => $this->transactions->runs(),
+            'replacements' => count($this->rules->replacements),
+        ];
+
+        return [];
+    });
+
+    $this->storeOwnWeek = fn (array $intervals) => $this->rules->store(
+        ScheduleOwnerType::StaffMember,
+        ScheduleFixtures::STAFF_ID,
+        ...array_map(
+            static fn (array $interval, int $position): ScheduleRule => ScheduleFixtures::rule(
+                id: sprintf('01930000-0000-7000-8000-0000000001%02d', $position),
+                ownerType: ScheduleOwnerType::StaffMember,
+                ownerId: ScheduleFixtures::STAFF_ID,
+                weekday: Weekday::fromNumber($interval[0]),
+                startsAt: $interval[1],
+                endsAt: $interval[2],
+                now: new DateTimeImmutable('2025-06-01T08:00:00+00:00'),
+            ),
+            $intervals,
+            array_keys($intervals),
+        ),
+    );
 
     $this->businessRules = [
         ScheduleFixtures::rule(
@@ -68,6 +102,7 @@ beforeEach(function () {
         $this->transactions,
         $this->ids,
         $this->clock,
+        $this->events,
     );
 
     $this->replace = fn (array $payload, ?string $accountId = null, mixed ...$dependencies) => ($this->useCaseWith)(...$dependencies)
@@ -128,6 +163,7 @@ describe('replacing the staff member\'s own week', function () {
     it('writes inside one transaction', function () {
         $wroteInsideTransaction = null;
         $rules = Mockery::mock(ScheduleRuleRepository::class);
+        $rules->shouldReceive('allForOwner')->andReturn([]);
         $rules->shouldReceive('replaceForOwner')->andReturnUsing(function () use (&$wroteInsideTransaction) {
             $wroteInsideTransaction = $this->transactions->isRunning();
         });
@@ -305,12 +341,33 @@ describe('an empty schedule', function () {
     });
 
     it('reads the business hours only after the staff rules were removed', function () {
-        ($this->replace)(['schedule' => []]);
+        $journal = [];
+        $rules = Mockery::mock(ScheduleRuleRepository::class);
+        $rules->shouldReceive('allForOwner')->andReturnUsing(
+            function (ScheduleOwnerType $ownerType, string $ownerId) use (&$journal): array {
+                $journal[] = 'read '.$ownerType->value;
 
-        expect($this->rules->reads)->toBe([[
-            'ownerType' => ScheduleOwnerType::Business,
-            'ownerId' => FakeBusinessContext::BUSINESS_ID,
-        ]]);
+                return $this->rules->allForOwner($ownerType, $ownerId);
+            },
+        );
+        $rules->shouldReceive('replaceForOwner')->andReturnUsing(
+            function (string $businessId, ScheduleOwnerType $ownerType, string $ownerId, array $replacement) use (&$journal): void {
+                $journal[] = 'replace '.$ownerType->value;
+                $this->rules->replaceForOwner($businessId, $ownerType, $ownerId, $replacement);
+            },
+        );
+
+        ($this->replace)(['schedule' => []], null, $rules);
+
+        $businessRead = array_search('read business', $journal, true);
+
+        expect(array_count_values($journal)['read business'] ?? 0)->toBe(1)
+            ->and($businessRead)->toBe(array_key_last($journal))
+            ->and($businessRead)->toBeGreaterThan(array_search('replace staff_member', $journal, true))
+            ->and($this->rules->reads[array_key_last($this->rules->reads)])->toBe([
+                'ownerType' => ScheduleOwnerType::Business,
+                'ownerId' => FakeBusinessContext::BUSINESS_ID,
+            ]);
     });
 
     it('answers with an empty inherited week when the business has no hours either', function () {
@@ -395,6 +452,136 @@ describe('a caller who is not a staff member of the business', function () {
 
         expect($response->error()->code)->toBe('business_not_accessible')
             ->and($this->rules->replacements)->toBe([]);
+    });
+});
+
+describe('announcing that the week changed', function () {
+    beforeEach(function () {
+        ($this->storeOwnWeek)([
+            [1, '09:00', '14:00'],
+            [1, '16:00', '20:00'],
+            [6, '10:00', '13:30'],
+        ]);
+
+        $this->storedWeekReordered = ['schedule' => [
+            ($this->entry)(6, '10:00', '13:30'),
+            ($this->entry)(1, '16:00', '20:00'),
+            ($this->entry)(1, '09:00', '14:00'),
+        ]];
+
+        $this->storedWeekWithLaterClose = ['schedule' => [
+            ($this->entry)(1, '09:00', '14:00'),
+            ($this->entry)(1, '16:00', '21:00'),
+            ($this->entry)(6, '10:00', '13:30'),
+        ]];
+    });
+
+    it('dispatches the change exactly once when an interval closes later', function () {
+        ($this->replace)($this->storedWeekWithLaterClose);
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0])->toBeInstanceOf(StaffScheduleChanged::class);
+    });
+
+    it('names the business and the staff member by uuid', function () {
+        ($this->replace)($this->storedWeekWithLaterClose);
+
+        expect($this->dispatched[0]->businessId)->toBe(FakeBusinessContext::BUSINESS_ID)
+            ->and($this->dispatched[0]->staffMemberId)->toBe(ScheduleFixtures::STAFF_ID)
+            ->and(array_filter([$this->dispatched[0]->businessId, $this->dispatched[0]->staffMemberId], is_numeric(...)))
+            ->toBe([]);
+    });
+
+    it('names the business the caller operates and the membership it resolved to', function () {
+        $this->memberships->grant(ScheduleFixtures::OTHER_BUSINESS_ID, $this->accountId, ScheduleFixtures::OTHER_STAFF_ID);
+
+        ($this->replace)(['schedule' => [($this->entry)()]], null, null, new FakeBusinessContext(ScheduleFixtures::OTHER_BUSINESS_ID));
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0]->businessId)->toBe(ScheduleFixtures::OTHER_BUSINESS_ID)
+            ->and($this->dispatched[0]->staffMemberId)->toBe(ScheduleFixtures::OTHER_STAFF_ID);
+    });
+
+    it('dispatches the change when a weekday is added', function () {
+        ($this->replace)(['schedule' => [
+            ...$this->storedWeekReordered['schedule'],
+            ($this->entry)(7, '10:00', '12:00'),
+        ]]);
+
+        expect($this->dispatched)->toHaveCount(1);
+    });
+
+    it('dispatches the change when an empty schedule clears the stored week', function () {
+        ($this->replace)(['schedule' => []]);
+
+        expect($this->dispatched)->toHaveCount(1)
+            ->and($this->dispatched[0]->staffMemberId)->toBe(ScheduleFixtures::STAFF_ID);
+    });
+
+    it('dispatches nothing when the same intervals arrive in another order', function () {
+        ($this->replace)($this->storedWeekReordered);
+
+        expect($this->dispatched)->toBe([]);
+    });
+
+    it('still replaces the stored rules when the week is unchanged', function () {
+        $response = ($this->replace)($this->storedWeekReordered);
+
+        expect($response->succeeded())->toBeTrue()
+            ->and($this->rules->replacements)->toHaveCount(1)
+            ->and($this->rules->lastReplacement())->toHaveCount(3)
+            ->and($this->rules->lastReplacement()[0]->id)->toBe(ScheduleFixtures::RULE_ID);
+    });
+
+    it('dispatches only after the transaction has closed', function () {
+        ($this->replace)($this->storedWeekWithLaterClose);
+
+        expect($this->transactionStateAtDispatch)->toBe([[
+            'running' => false,
+            'runs' => 1,
+            'replacements' => 1,
+        ]]);
+    });
+
+    it('dispatches nothing when the commit fails', function () {
+        $this->transactions->failAtCommit(new RuntimeException('connection lost at commit'));
+
+        expect(fn () => ($this->replace)($this->storedWeekWithLaterClose))
+            ->toThrow(RuntimeException::class, 'connection lost at commit')
+            ->and($this->dispatched)->toBe([]);
+    });
+
+    it('dispatches nothing when it refuses the week', function (array $payload) {
+        ($this->replace)($payload);
+
+        expect($this->dispatched)->toBe([]);
+    })->with('refused my schedules');
+
+    it('dispatches nothing for a caller with no membership', function (array $payload) {
+        $response = ($this->replace)($payload, $this->strangerAccountId);
+
+        expect($response->failed())->toBeTrue()
+            ->and($this->dispatched)->toBe([]);
+    })->with([
+        'a different week' => [['schedule' => [['weekday' => 2, 'starts_at' => '08:00', 'ends_at' => '12:00']]]],
+        'an empty week' => [['schedule' => []]],
+    ]);
+});
+
+describe('announcing a week that had no own hours', function () {
+    it('dispatches nothing when nothing was stored and nothing is submitted', function () {
+        ($this->replace)(['schedule' => []]);
+
+        expect($this->dispatched)->toBe([]);
+    });
+
+    it('dispatches the change when the first own hours copy the business hours exactly', function () {
+        ($this->replace)(['schedule' => [
+            ($this->entry)(1, '09:00', '18:00'),
+            ($this->entry)(2, '10:00', '14:00'),
+        ]]);
+
+        expect($this->dispatched)->toHaveCount(1);
     });
 });
 

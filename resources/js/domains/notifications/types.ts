@@ -6,7 +6,7 @@ export const NOTIFICATION_STATUSES = ['unread', 'all'] as const;
 
 export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number];
 
-export type NotificationType = 'appointment_booked';
+export type NotificationType = 'appointment_booked' | 'staff_schedule_changed';
 
 export type NotificationRecipient = {
     id: string;
@@ -26,6 +26,11 @@ export type NotifiedCustomer = {
     name: string;
 };
 
+export type NotifiedStaffMember = {
+    id: string;
+    name: string;
+};
+
 export type StaffNotification = {
     id: string;
     type: NotificationType;
@@ -35,6 +40,7 @@ export type StaffNotification = {
     recipient: NotificationRecipient;
     appointment: NotifiedAppointment | null;
     customer: NotifiedCustomer | null;
+    staff_member: NotifiedStaffMember | null;
 };
 
 export type NotificationListFilters = {

@@ -24,7 +24,24 @@ it('copies the notification and its neighbours under their uuids', function () {
         ->and($data->appointment?->serviceName)->toBe(NotificationsFixtures::SERVICE_NAME)
         ->and($data->appointment?->referenceCode)->toBe(NotificationsFixtures::REFERENCE_CODE)
         ->and($data->customer?->id)->toBe(NotificationsFixtures::CUSTOMER_ID)
-        ->and($data->customer?->name)->toBe(NotificationsFixtures::CUSTOMER_NAME);
+        ->and($data->customer?->name)->toBe(NotificationsFixtures::CUSTOMER_NAME)
+        ->and($data->staffMember)->toBeNull();
+});
+
+it('copies the staff member a schedule change is about under their uuid', function () {
+    $data = StaffNotificationData::forReader(
+        NotificationsFixtures::scheduleChangeRecord(),
+        NotificationReader::owner(NotificationsFixtures::OWNER_MEMBER_ID),
+    );
+
+    expect($data->type)->toBe('staff_schedule_changed')
+        ->and($data->recipient->id)->toBe(NotificationsFixtures::OWNER_MEMBER_ID)
+        ->and($data->recipient->name)->toBe(NotificationsFixtures::OWNER_NAME)
+        ->and($data->staffMember?->id)->toBe(NotificationsFixtures::MEMBER_ID)
+        ->and($data->staffMember?->name)->toBe(NotificationsFixtures::MEMBER_NAME)
+        ->and($data->appointment)->toBeNull()
+        ->and($data->customer)->toBeNull()
+        ->and($data->canMarkAsRead)->toBeTrue();
 });
 
 it('carries no appointment and no customer when the notification has none', function () {

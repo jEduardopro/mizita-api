@@ -14,6 +14,7 @@ final readonly class NotificationRecord
         public NotificationRecipient $recipient,
         public ?NotifiedAppointment $appointment,
         public ?NotifiedCustomer $customer,
+        public ?NotifiedStaffMember $staffMember,
         public ?DateTimeImmutable $readAt,
         public DateTimeImmutable $createdAt,
     ) {}

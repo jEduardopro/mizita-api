@@ -126,6 +126,7 @@ final class FakeNotificationFeed implements NotificationFeed
             recipient: $record->recipient,
             appointment: $record->appointment,
             customer: $record->customer,
+            staffMember: $record->staffMember,
             readAt: $persisted->readAt(),
             createdAt: $record->createdAt,
         );

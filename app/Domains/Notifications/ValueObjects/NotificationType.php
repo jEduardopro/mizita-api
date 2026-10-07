@@ -7,4 +7,5 @@ namespace App\Domains\Notifications\ValueObjects;
 enum NotificationType: string
 {
     case AppointmentBooked = 'appointment_booked';
+    case StaffScheduleChanged = 'staff_schedule_changed';
 }

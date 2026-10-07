@@ -1,5 +1,6 @@
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import type { StaffNotification } from '../types';
+import type { NotificationType, StaffNotification } from '../types';
 import { longDate, timeRange } from './notification-dates';
 
 export type NotificationDetailField = {
@@ -10,14 +11,25 @@ export type NotificationDetailField = {
     href?: string;
 };
 
-type FieldSource = Pick<StaffNotification, 'appointment' | 'customer' | 'recipient'>;
+export type NotificationDetailLinks = {
+    customerHref?: string;
+    staffMemberHref?: string;
+};
 
-export function useNotificationDetailFields(
+type FieldSource = Pick<StaffNotification, 'type' | 'appointment' | 'customer' | 'recipient' | 'staff_member'>;
+
+type FieldContext = NotificationDetailLinks & {
+    t: TFunction<'admin'>;
+    locale: string;
+    timezone: string;
+};
+
+type FieldsBuilder = (source: FieldSource, context: FieldContext) => NotificationDetailField[];
+
+function appointmentBookedFields(
     { appointment, customer, recipient }: FieldSource,
-    timezone: string,
-    customerHref?: string,
+    { t, locale, timezone, customerHref }: FieldContext,
 ): NotificationDetailField[] {
-    const { t, i18n } = useTranslation('admin');
     const fields: NotificationDetailField[] = [];
 
     if (customer !== null) {
@@ -35,7 +47,7 @@ export function useNotificationDetailFields(
             {
                 id: 'date',
                 label: t('notifications.show.fields.date'),
-                value: longDate(appointment.starts_at, timezone, i18n.language),
+                value: longDate(appointment.starts_at, timezone, locale),
                 className: 'first-letter:uppercase',
             },
             {
@@ -59,4 +71,37 @@ export function useNotificationDetailFields(
     fields.push({ id: 'recipient', label: t('notifications.show.fields.recipient'), value: recipient.name });
 
     return fields;
+}
+
+function staffScheduleChangedFields(
+    { staff_member }: FieldSource,
+    { t, staffMemberHref }: FieldContext,
+): NotificationDetailField[] {
+    if (staff_member === null) {
+        return [];
+    }
+
+    return [
+        {
+            id: 'staffMember',
+            label: t('notifications.show.fields.staffMember'),
+            value: staff_member.name,
+            href: staffMemberHref,
+        },
+    ];
+}
+
+const FIELDS_BUILDERS: Record<NotificationType, FieldsBuilder> = {
+    appointment_booked: appointmentBookedFields,
+    staff_schedule_changed: staffScheduleChangedFields,
+};
+
+export function useNotificationDetailFields(
+    source: FieldSource,
+    timezone: string,
+    links: NotificationDetailLinks,
+): NotificationDetailField[] {
+    const { t, i18n } = useTranslation('admin');
+
+    return FIELDS_BUILDERS[source.type](source, { ...links, t, locale: i18n.language, timezone });
 }

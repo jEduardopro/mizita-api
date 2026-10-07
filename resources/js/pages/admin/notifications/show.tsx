@@ -1,5 +1,6 @@
-import { CalendarDays, LoaderCircle } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { Link } from '@inertiajs/react';
+import { CalendarDays, Clock, LoaderCircle } from 'lucide-react';
+import { type ReactNode, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { AppointmentDetailsLauncher } from '@/domains/appointments/components/AppointmentDetailsLauncher';
@@ -13,10 +14,11 @@ import { NotificationLoadError } from '@/domains/notifications/components/Notifi
 import { NOTIFICATIONS_URL, notificationShowUrl } from '@/domains/notifications/components/notification-urls';
 import { useMarkAsReadOnView } from '@/domains/notifications/components/use-mark-as-read-on-view';
 import { useNotification } from '@/domains/notifications/queries';
-import type { StaffNotification } from '@/domains/notifications/types';
+import type { NotificationType, StaffNotification } from '@/domains/notifications/types';
 import { AppointmentChargeLauncher } from '@/domains/payments/components/AppointmentChargeLauncher';
 import { AppointmentPaymentPanel } from '@/domains/payments/components/AppointmentPaymentPanel';
-import { useAuthorization } from '@/hooks/use-authorization';
+import { teamMemberShowUrl } from '@/domains/staff/components/team-urls';
+import { type Authorization, useAuthorization } from '@/hooks/use-authorization';
 import { useBusinessCurrency } from '@/hooks/use-business-currency';
 import { useErrorToast } from '@/hooks/use-error-toast';
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -109,6 +111,50 @@ function ViewAppointmentAction({ appointmentId, timezone }: AppointmentActionPro
     );
 }
 
+type ViewScheduleActionProps = {
+    href: string;
+};
+
+function ViewScheduleAction({ href }: ViewScheduleActionProps) {
+    const { t } = useTranslation('admin');
+
+    return (
+        <Button asChild variant="brand" className={ACTION_CLASS}>
+            <Link href={href}>
+                <Clock aria-hidden="true" />
+                {t('notifications.actions.viewSchedule')}
+            </Link>
+        </Button>
+    );
+}
+
+type HeaderActionContext = {
+    notification: StaffNotification;
+    timezone: string;
+    can: Authorization['can'];
+};
+
+type HeaderActionBuilder = (context: HeaderActionContext) => ReactNode;
+
+const HEADER_ACTIONS: Record<NotificationType, HeaderActionBuilder> = {
+    appointment_booked: ({ notification, timezone, can }) =>
+        notification.appointment !== null && can('view_appointments') ? (
+            <ViewAppointmentAction appointmentId={notification.appointment.id} timezone={timezone} />
+        ) : undefined,
+    staff_schedule_changed: ({ notification, can }) =>
+        notification.staff_member !== null && can('view_staff_members') ? (
+            <ViewScheduleAction href={teamMemberShowUrl(notification.staff_member.id)} />
+        ) : undefined,
+};
+
+function staffMemberHrefFor({ staff_member }: Pick<StaffNotification, 'staff_member'>): string | undefined {
+    if (staff_member === null) {
+        return undefined;
+    }
+
+    return teamMemberShowUrl(staff_member.id);
+}
+
 function customerHrefFor({ id, customer }: Pick<StaffNotification, 'id' | 'customer'>): string | undefined {
     if (customer === null) {
         return undefined;
@@ -153,14 +199,14 @@ export default function ShowNotification({ notificationId }: Props) {
                     customerHref={
                         can('view_customers') ? customerHrefFor(notification.data) : undefined
                     }
-                    headerAction={
-                        notification.data.appointment !== null && can('view_appointments') ? (
-                            <ViewAppointmentAction
-                                appointmentId={notification.data.appointment.id}
-                                timezone={timezone}
-                            />
-                        ) : undefined
+                    staffMemberHref={
+                        can('view_staff_members') ? staffMemberHrefFor(notification.data) : undefined
                     }
+                    headerAction={HEADER_ACTIONS[notification.data.type]({
+                        notification: notification.data,
+                        timezone,
+                        can,
+                    })}
                 />
             ) : null}
         </AdminLayout>

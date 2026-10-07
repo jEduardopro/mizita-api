@@ -16,5 +16,5 @@ it('excludes read notifications only when asked for the unread ones', function (
 it('keeps the wire values the client sends and reads', function () {
     expect(array_map(static fn (NotificationScope $scope) => $scope->value, NotificationScope::cases()))->toBe(['mine', 'team'])
         ->and(array_map(static fn (NotificationStatus $status) => $status->value, NotificationStatus::cases()))->toBe(['unread', 'all'])
-        ->and(array_map(static fn (NotificationType $type) => $type->value, NotificationType::cases()))->toBe(['appointment_booked']);
+        ->and(array_map(static fn (NotificationType $type) => $type->value, NotificationType::cases()))->toBe(['appointment_booked', 'staff_schedule_changed']);
 });

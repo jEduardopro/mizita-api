@@ -7,6 +7,7 @@ namespace Tests\Unit\Domains\Notifications\Application\Doubles;
 use App\Domains\Notifications\Contracts\StaffNotificationRepository;
 use App\Domains\Notifications\Entities\StaffNotification;
 use App\Domains\Notifications\Exceptions\StaffNotificationNotFound;
+use DateTimeImmutable;
 
 final class FakeStaffNotificationRepository implements StaffNotificationRepository
 {
@@ -19,6 +20,11 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
      * @var list<StaffNotification>
      */
     public array $added = [];
+
+    /**
+     * @var list<StaffNotification>
+     */
+    public array $addedOrRefreshed = [];
 
     /**
      * @var list<StaffNotification>
@@ -69,11 +75,35 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
         $this->notifications[$notification->id] = self::copyOf($notification);
     }
 
+    public function addOrRefreshUnread(StaffNotification $notification): void
+    {
+        $this->journal->record('notifications.addOrRefreshUnread');
+        $this->addedOrRefreshed[] = $notification;
+
+        $unread = $this->unreadMatching($notification);
+
+        if ($unread === null) {
+            $this->notifications[$notification->id] = self::copyOf($notification);
+
+            return;
+        }
+
+        $this->notifications[$unread->id] = self::copyOf($unread, createdAt: $notification->createdAt);
+    }
+
     public function save(StaffNotification $notification): void
     {
         $this->journal->record('notifications.save');
         $this->saved[] = $notification;
         $this->notifications[$notification->id] = self::copyOf($notification);
+    }
+
+    /**
+     * @return list<StaffNotification>
+     */
+    public function all(): array
+    {
+        return array_values(array_map(self::copyOf(...), $this->notifications));
     }
 
     public function delete(string $businessId, string $id): void
@@ -87,7 +117,22 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
         unset($this->notifications[$id]);
     }
 
-    private static function copyOf(StaffNotification $notification): StaffNotification
+    private function unreadMatching(StaffNotification $notification): ?StaffNotification
+    {
+        foreach ($this->notifications as $stored) {
+            if ($stored->isUnread()
+                && $stored->businessId === $notification->businessId
+                && $stored->type === $notification->type
+                && $stored->recipientStaffMemberId === $notification->recipientStaffMemberId
+                && $stored->subjectStaffMemberId === $notification->subjectStaffMemberId) {
+                return $stored;
+            }
+        }
+
+        return null;
+    }
+
+    private static function copyOf(StaffNotification $notification, ?DateTimeImmutable $createdAt = null): StaffNotification
     {
         return StaffNotification::restore(
             id: $notification->id,
@@ -95,8 +140,9 @@ final class FakeStaffNotificationRepository implements StaffNotificationReposito
             recipientStaffMemberId: $notification->recipientStaffMemberId,
             type: $notification->type,
             appointmentId: $notification->appointmentId,
+            subjectStaffMemberId: $notification->subjectStaffMemberId,
             readAt: $notification->readAt(),
-            createdAt: $notification->createdAt,
+            createdAt: $createdAt ?? $notification->createdAt,
         );
     }
 }

@@ -13,6 +13,7 @@ use App\Domains\Notifications\ValueObjects\NotificationStatus;
 use App\Domains\Notifications\ValueObjects\NotificationType;
 use App\Domains\Notifications\ValueObjects\NotifiedAppointment;
 use App\Domains\Notifications\ValueObjects\NotifiedCustomer;
+use App\Domains\Notifications\ValueObjects\NotifiedStaffMember;
 use App\Shared\ValueObjects\Paginated;
 use App\Shared\ValueObjects\Pagination;
 use DateTimeImmutable;
@@ -41,6 +42,8 @@ final class EloquentNotificationFeed implements NotificationFeed
         'services.name as service_name',
         'customers.uuid as customer_id',
         'customers.name as customer_name',
+        'subject_members.uuid as subject_id',
+        'subject_users.name as subject_name',
     ];
 
     /**
@@ -127,7 +130,9 @@ final class EloquentNotificationFeed implements NotificationFeed
             ->join('users', 'users.id', '=', 'staff_members.account_id')
             ->leftJoin('appointments', 'appointments.id', '=', 'staff_notifications.appointment_id')
             ->leftJoin('services', 'services.id', '=', 'appointments.service_id')
-            ->leftJoin('customers', 'customers.id', '=', 'appointments.customer_id');
+            ->leftJoin('customers', 'customers.id', '=', 'appointments.customer_id')
+            ->leftJoin('staff_members as subject_members', 'subject_members.id', '=', 'staff_notifications.subject_staff_member_id')
+            ->leftJoin('users as subject_users', 'subject_users.id', '=', 'subject_members.account_id');
     }
 
     private static function recordFrom(stdClass $row): NotificationRecord
@@ -141,6 +146,7 @@ final class EloquentNotificationFeed implements NotificationFeed
             ),
             appointment: self::appointmentFrom($row),
             customer: self::customerFrom($row),
+            staffMember: self::staffMemberFrom($row),
             readAt: $row->read_at === null ? null : self::instantFrom($row->read_at),
             createdAt: self::instantFrom($row->created_at),
         );
@@ -170,6 +176,18 @@ final class EloquentNotificationFeed implements NotificationFeed
         return new NotifiedCustomer(
             customerId: (string) $row->customer_id,
             name: (string) $row->customer_name,
+        );
+    }
+
+    private static function staffMemberFrom(stdClass $row): ?NotifiedStaffMember
+    {
+        if ($row->subject_id === null) {
+            return null;
+        }
+
+        return new NotifiedStaffMember(
+            staffMemberId: (string) $row->subject_id,
+            name: (string) $row->subject_name,
         );
     }
 

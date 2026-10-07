@@ -20,7 +20,9 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
 
     private const BUSINESSES_TABLE = 'businesses';
 
-    private const EAGER_LOADED_RELATIONS = ['recipient', 'appointment'];
+    private const EAGER_LOADED_RELATIONS = ['recipient', 'appointment', 'subject'];
+
+    private const NO_ROWS = 0;
 
     public function __construct(
         private readonly StaffNotificationMapper $mapper,
@@ -34,12 +36,22 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
 
     public function addOnce(StaffNotification $notification): void
     {
-        $row = (new StaffNotificationModel)->forceFill([
-            ...$this->attributesOf($notification),
-            'updated_at' => $notification->createdAt,
-        ]);
+        $this->insertUnlessConflicting($this->rowOf($notification));
+    }
 
-        StaffNotificationModel::query()->insertOrIgnore($row->getAttributes());
+    public function addOrRefreshUnread(StaffNotification $notification): void
+    {
+        $row = $this->rowOf($notification);
+
+        if ($this->insertUnlessConflicting($row)) {
+            return;
+        }
+
+        if ($this->refreshUnreadMatching($row)) {
+            return;
+        }
+
+        $this->insertUnlessConflicting($row);
     }
 
     public function save(StaffNotification $notification): void
@@ -55,6 +67,35 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
         $this->modelOrFail($businessId, $id)->delete();
     }
 
+    private function rowOf(StaffNotification $notification): StaffNotificationModel
+    {
+        return (new StaffNotificationModel)->forceFill([
+            ...$this->attributesOf($notification),
+            'updated_at' => $notification->createdAt,
+        ]);
+    }
+
+    private function insertUnlessConflicting(StaffNotificationModel $row): bool
+    {
+        return StaffNotificationModel::query()->insertOrIgnore($row->getAttributes()) > self::NO_ROWS;
+    }
+
+    private function refreshUnreadMatching(StaffNotificationModel $row): bool
+    {
+        $attributes = $row->getAttributes();
+
+        return StaffNotificationModel::query()
+            ->where('business_id', $attributes['business_id'])
+            ->where('type', $attributes['type'])
+            ->where('recipient_staff_member_id', $attributes['recipient_staff_member_id'])
+            ->where('subject_staff_member_id', $attributes['subject_staff_member_id'])
+            ->whereNull('read_at')
+            ->update([
+                'created_at' => $attributes['created_at'],
+                'updated_at' => $attributes['updated_at'],
+            ]) > self::NO_ROWS;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -65,12 +106,22 @@ final class EloquentStaffNotificationRepository implements StaffNotificationRepo
         return $this->mapper->toAttributes(
             $notification,
             $businessKey,
-            $this->recipientKeyFor($businessKey, $notification->recipientStaffMemberId),
+            $this->staffMemberKeyFor($businessKey, $notification->recipientStaffMemberId),
             $this->appointmentKeyFor($businessKey, $notification->appointmentId),
+            $this->subjectKeyFor($businessKey, $notification->subjectStaffMemberId),
         );
     }
 
-    private function recipientKeyFor(int $businessKey, string $staffMemberId): int
+    private function subjectKeyFor(int $businessKey, ?string $staffMemberId): ?int
+    {
+        if ($staffMemberId === null) {
+            return null;
+        }
+
+        return $this->staffMemberKeyFor($businessKey, $staffMemberId);
+    }
+
+    private function staffMemberKeyFor(int $businessKey, string $staffMemberId): int
     {
         return (int) StaffMemberModel::query()
             ->withTrashed()

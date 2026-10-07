@@ -7,6 +7,7 @@ use App\Domains\Notifications\Exceptions\InvalidNotificationStatus;
 use App\Domains\Notifications\Exceptions\NotificationNotAddressedToReader;
 use App\Domains\Notifications\Exceptions\NotificationsNotAccessible;
 use App\Domains\Notifications\Exceptions\NotifiedAppointmentNotFound;
+use App\Domains\Notifications\Exceptions\NotifiedStaffMemberNotFound;
 use App\Domains\Notifications\Exceptions\StaffNotificationNotFound;
 use App\Domains\Notifications\Exceptions\TeamNotificationsRequireOwner;
 use App\Shared\Contracts\DomainFailure;
@@ -43,6 +44,11 @@ function notificationsFailures(): array
         'an appointment that is gone' => [
             NotifiedAppointmentNotFound::withId($id),
             'notified_appointment_not_found',
+            DomainFailureKind::NotFound,
+        ],
+        'a staff member to notify about that is gone' => [
+            NotifiedStaffMemberNotFound::inBusiness($id, $id),
+            'notified_staff_member_not_found',
             DomainFailureKind::NotFound,
         ],
         'a notification the caller cannot see' => [
@@ -115,4 +121,9 @@ it('keeps the membership lookup that failed as the cause of an inaccessible busi
 it('names the notification and the reader it turned down', function () {
     expect(NotificationNotAddressedToReader::forStaffMember('the-notification', 'the-reader')->getMessage())
         ->toBe('Staff notification [the-notification] is not addressed to staff member [the-reader].');
+});
+
+it('names the business and the staff member it could not find', function () {
+    expect(NotifiedStaffMemberNotFound::inBusiness('the-business', 'the-staff-member')->getMessage())
+        ->toBe('Staff member [the-staff-member] of business [the-business] to notify about was not found.');
 });

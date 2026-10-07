@@ -5,7 +5,11 @@ import { useTranslation } from 'react-i18next';
 import type { StaffNotification } from '../types';
 import { NotificationDateLeaf } from './NotificationDateLeaf';
 import { dateAndTime } from './notification-dates';
-import { type NotificationDetailField, useNotificationDetailFields } from './use-notification-detail-fields';
+import {
+    type NotificationDetailField,
+    type NotificationDetailLinks,
+    useNotificationDetailFields,
+} from './use-notification-detail-fields';
 import { useNotificationMessage } from './use-notification-message';
 
 const FIELD_LINK_CLASS =
@@ -25,18 +29,18 @@ function FieldValue({ value, href }: FieldValueProps) {
     );
 }
 
-type Props = {
+type Props = NotificationDetailLinks & {
     notification: StaffNotification;
     timezone: string;
-    customerHref?: string;
     headerAction?: ReactNode;
 };
 
-export function NotificationDetail({ notification, timezone, customerHref, headerAction }: Props) {
+export function NotificationDetail({ notification, timezone, customerHref, staffMemberHref, headerAction }: Props) {
     const { t, i18n } = useTranslation('admin');
     const message = useNotificationMessage(notification);
-    const fields = useNotificationDetailFields(notification, timezone, customerHref);
+    const fields = useNotificationDetailFields(notification, timezone, { customerHref, staffMemberHref });
     const { appointment } = notification;
+    const appointmentGone = notification.type === 'appointment_booked' && appointment === null;
 
     return (
         <article className="grid max-w-2xl gap-6">
@@ -66,20 +70,22 @@ export function NotificationDetail({ notification, timezone, customerHref, heade
                 )}
             </header>
 
-            {appointment === null ? (
+            {appointmentGone ? (
                 <p className="text-sm text-muted-foreground">{t('notifications.show.appointmentGone')}</p>
             ) : null}
 
-            <dl className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 sm:p-5">
-                {fields.map((field) => (
-                    <div key={field.id} className="grid min-w-0 gap-0.5">
-                        <dt className="text-xs text-muted-foreground">{field.label}</dt>
-                        <dd className={cn('text-sm font-medium break-words', field.className)}>
-                            <FieldValue value={field.value} href={field.href} />
-                        </dd>
-                    </div>
-                ))}
-            </dl>
+            {fields.length === 0 ? null : (
+                <dl className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 sm:p-5">
+                    {fields.map((field) => (
+                        <div key={field.id} className="grid min-w-0 gap-0.5">
+                            <dt className="text-xs text-muted-foreground">{field.label}</dt>
+                            <dd className={cn('text-sm font-medium break-words', field.className)}>
+                                <FieldValue value={field.value} href={field.href} />
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
         </article>
     );
 }

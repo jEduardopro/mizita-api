@@ -48,9 +48,61 @@ describe('creating a notification', function () {
 
         expect($notification->appointmentId)->toBeNull();
     });
+
+    it('is about no staff member', function () {
+        expect($this->notification->subjectStaffMemberId)->toBeNull();
+    });
+});
+
+describe('notifying a schedule change', function () {
+    beforeEach(function () {
+        $this->notification = StaffNotification::staffScheduleChanged(
+            id: NotificationsFixtures::NOTIFICATION_ID,
+            businessId: NotificationsFixtures::BUSINESS_ID,
+            recipientStaffMemberId: NotificationsFixtures::OWNER_MEMBER_ID,
+            subjectStaffMemberId: NotificationsFixtures::MEMBER_ID,
+            now: NotificationsFixtures::now(),
+        );
+    });
+
+    it('carries the uuids it was handed for itself, its business, its recipient and its subject', function () {
+        expect($this->notification->id)->toBe(NotificationsFixtures::NOTIFICATION_ID)
+            ->and($this->notification->businessId)->toBe(NotificationsFixtures::BUSINESS_ID)
+            ->and($this->notification->recipientStaffMemberId)->toBe(NotificationsFixtures::OWNER_MEMBER_ID)
+            ->and($this->notification->subjectStaffMemberId)->toBe(NotificationsFixtures::MEMBER_ID);
+    });
+
+    it('is filed as a schedule change about no appointment', function () {
+        expect($this->notification->type)->toBe(NotificationType::StaffScheduleChanged)
+            ->and($this->notification->appointmentId)->toBeNull();
+    });
+
+    it('is created unread at the instant it was handed', function () {
+        expect($this->notification->isUnread())->toBeTrue()
+            ->and($this->notification->readAt())->toBeNull()
+            ->and($this->notification->createdAt)->toEqual(NotificationsFixtures::now());
+    });
+
+    it('is addressed to its recipient, never to the staff member it is about', function () {
+        expect($this->notification->isAddressedTo(NotificationsFixtures::OWNER_MEMBER_ID))->toBeTrue()
+            ->and($this->notification->isAddressedTo(NotificationsFixtures::MEMBER_ID))->toBeFalse();
+    });
+
+    it('refuses to be marked as read by the staff member it is about', function () {
+        expect(fn () => $this->notification->markAsReadBy(NotificationsFixtures::MEMBER_ID, NotificationsFixtures::now()))
+            ->toThrow(NotificationNotAddressedToReader::class);
+    });
 });
 
 describe('restoring a notification', function () {
+    it('keeps the staff member it is about', function () {
+        $notification = NotificationsFixtures::scheduleChangeNotification(readAt: NotificationsFixtures::READ_AT);
+
+        expect($notification->subjectStaffMemberId)->toBe(NotificationsFixtures::MEMBER_ID)
+            ->and($notification->type)->toBe(NotificationType::StaffScheduleChanged)
+            ->and($notification->readAt())->toEqual(new DateTimeImmutable(NotificationsFixtures::READ_AT));
+    });
+
     it('keeps the read time it was stored with', function () {
         $notification = NotificationsFixtures::notification(readAt: NotificationsFixtures::READ_AT);
 

@@ -324,6 +324,7 @@ return [
         'invalid_notification_scope' => 'Ese filtro de notificaciones no es válido.',
         'invalid_notification_status' => 'Ese estado de notificación no es válido.',
         'notified_appointment_not_found' => 'No hemos encontrado la cita de esa notificación.',
+        'notified_staff_member_not_found' => 'No hemos encontrado a la persona del equipo de esa notificación.',
 
     ],
 

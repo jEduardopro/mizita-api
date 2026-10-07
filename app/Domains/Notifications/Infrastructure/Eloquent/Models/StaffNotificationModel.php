@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['uuid', 'business_id', 'recipient_staff_member_id', 'type', 'appointment_id', 'read_at', 'created_at', 'updated_at'])]
+#[Fillable(['uuid', 'business_id', 'recipient_staff_member_id', 'type', 'appointment_id', 'subject_staff_member_id', 'read_at', 'created_at', 'updated_at'])]
 class StaffNotificationModel extends Model
 {
     use HasFactory;
@@ -61,6 +61,14 @@ class StaffNotificationModel extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(AppointmentModel::class, 'appointment_id')->withTrashed();
+    }
+
+    /**
+     * @return BelongsTo<StaffMemberModel, $this>
+     */
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(StaffMemberModel::class, 'subject_staff_member_id')->withTrashed();
     }
 
     /**

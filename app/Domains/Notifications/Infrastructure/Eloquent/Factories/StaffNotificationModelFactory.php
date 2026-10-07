@@ -29,6 +29,7 @@ final class StaffNotificationModelFactory extends Factory
                 ->id,
             'type' => NotificationType::AppointmentBooked,
             'appointment_id' => null,
+            'subject_staff_member_id' => null,
             'read_at' => null,
         ];
     }

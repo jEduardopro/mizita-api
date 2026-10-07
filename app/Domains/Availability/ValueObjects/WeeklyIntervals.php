@@ -49,6 +49,11 @@ final readonly class WeeklyIntervals
         return $this->isEmpty() ? $inherited : $this;
     }
 
+    public function equals(self $other): bool
+    {
+        return $this->minutesByWeekday === $other->minutesByWeekday;
+    }
+
     /**
      * @return list<array{int, int}>
      */
@@ -70,6 +75,8 @@ final readonly class WeeklyIntervals
 
             $sorted[$weekday] = array_values($intervals);
         }
+
+        ksort($sorted);
 
         return $sorted;
     }

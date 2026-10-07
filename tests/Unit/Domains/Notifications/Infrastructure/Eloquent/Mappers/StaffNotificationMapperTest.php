@@ -16,10 +16,20 @@ const STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY = 17;
 
 const STAFF_NOTIFICATION_MAPPER_APPOINTMENT_KEY = 99;
 
+const STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY = 23;
+
+function mappedStaffMemberRow(int $key, string $uuid): StaffMemberModel
+{
+    $staffMember = new StaffMemberModel;
+    $staffMember->setRawAttributes(['id' => $key, 'uuid' => $uuid], true);
+
+    return $staffMember;
+}
+
 /**
  * @param  array<string, mixed>  $overrides
  */
-function mappedStaffNotificationRow(array $overrides = [], bool $withAppointment = true): StaffNotificationModel
+function mappedStaffNotificationRow(array $overrides = [], bool $withAppointment = true, bool $withSubject = false): StaffNotificationModel
 {
     $model = new StaffNotificationModel;
 
@@ -30,14 +40,13 @@ function mappedStaffNotificationRow(array $overrides = [], bool $withAppointment
         'recipient_staff_member_id' => STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY,
         'type' => 'appointment_booked',
         'appointment_id' => $withAppointment ? STAFF_NOTIFICATION_MAPPER_APPOINTMENT_KEY : null,
+        'subject_staff_member_id' => $withSubject ? STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY : null,
         'read_at' => null,
         'created_at' => NotificationsFixtures::CREATED_AT,
         ...$overrides,
     ], true);
 
-    $recipient = new StaffMemberModel;
-    $recipient->setRawAttributes(['id' => STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY, 'uuid' => NotificationsFixtures::MEMBER_ID], true);
-    $model->setRelation('recipient', $recipient);
+    $model->setRelation('recipient', mappedStaffMemberRow(STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY, NotificationsFixtures::MEMBER_ID));
 
     $appointment = null;
 
@@ -47,8 +56,16 @@ function mappedStaffNotificationRow(array $overrides = [], bool $withAppointment
     }
 
     $model->setRelation('appointment', $appointment);
+    $model->setRelation('subject', $withSubject
+        ? mappedStaffMemberRow(STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY, NotificationsFixtures::OTHER_MEMBER_ID)
+        : null);
 
     return $model;
+}
+
+function mappedScheduleChangeRow(): StaffNotificationModel
+{
+    return mappedStaffNotificationRow(['type' => 'staff_schedule_changed'], withAppointment: false, withSubject: true);
 }
 
 beforeEach(function () {
@@ -62,12 +79,14 @@ describe('writing a row', function () {
             STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY,
             STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY,
             STAFF_NOTIFICATION_MAPPER_APPOINTMENT_KEY,
+            null,
         ))->toEqual([
             'uuid' => NotificationsFixtures::NOTIFICATION_ID,
             'business_id' => STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY,
             'recipient_staff_member_id' => STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY,
             'type' => NotificationType::AppointmentBooked,
             'appointment_id' => STAFF_NOTIFICATION_MAPPER_APPOINTMENT_KEY,
+            'subject_staff_member_id' => null,
             'read_at' => null,
             'created_at' => new DateTimeImmutable(NotificationsFixtures::CREATED_AT),
         ]);
@@ -79,6 +98,7 @@ describe('writing a row', function () {
             STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY,
             STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY,
             STAFF_NOTIFICATION_MAPPER_APPOINTMENT_KEY,
+            null,
         );
 
         expect($attributes['business_id'])->toBeInt()
@@ -94,10 +114,26 @@ describe('writing a row', function () {
         $notification = NotificationsFixtures::notification();
         $notification->markAsReadBy(NotificationsFixtures::MEMBER_ID, NotificationsFixtures::now());
 
-        $attributes = $this->mapper->toAttributes($notification, STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY, STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY, null);
+        $attributes = $this->mapper->toAttributes($notification, STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY, STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY, null, null);
 
         expect($attributes['read_at'])->toEqual(NotificationsFixtures::now())
             ->and($attributes['appointment_id'])->toBeNull();
+    });
+
+    it('writes a schedule change about its subject as the int key it was handed, with no appointment', function () {
+        $attributes = $this->mapper->toAttributes(
+            NotificationsFixtures::scheduleChangeNotification(),
+            STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY,
+            STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY,
+            null,
+            STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY,
+        );
+
+        expect($attributes['type'])->toBe(NotificationType::StaffScheduleChanged)
+            ->and($attributes['subject_staff_member_id'])->toBe(STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY)
+            ->and($attributes['appointment_id'])->toBeNull()
+            ->and($attributes)->not->toContain(NotificationsFixtures::MEMBER_ID)
+            ->and($attributes)->not->toContain(NotificationsFixtures::OWNER_MEMBER_ID);
     });
 });
 
@@ -110,6 +146,7 @@ describe('reading a row', function () {
             ->and($notification->businessId)->toBe(NotificationsFixtures::BUSINESS_ID)
             ->and($notification->recipientStaffMemberId)->toBe(NotificationsFixtures::MEMBER_ID)
             ->and($notification->appointmentId)->toBe(NotificationsFixtures::APPOINTMENT_ID)
+            ->and($notification->subjectStaffMemberId)->toBeNull()
             ->and($notification->type)->toBe(NotificationType::AppointmentBooked)
             ->and($notification->isUnread())->toBeTrue()
             ->and($notification->createdAt->getTimestamp())->toBe((new DateTimeImmutable(NotificationsFixtures::CREATED_AT))->getTimestamp());
@@ -138,4 +175,37 @@ describe('reading a row', function () {
 
         expect($notification->appointmentId)->toBeNull();
     });
+
+    it('reads the subject of a schedule change under its uuid, never its int key', function () {
+        $notification = $this->mapper->toEntity(mappedScheduleChangeRow(), NotificationsFixtures::BUSINESS_ID);
+
+        expect($notification->type)->toBe(NotificationType::StaffScheduleChanged)
+            ->and($notification->subjectStaffMemberId)->toBe(NotificationsFixtures::OTHER_MEMBER_ID)
+            ->and($notification->subjectStaffMemberId)->not->toBe((string) STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY)
+            ->and($notification->appointmentId)->toBeNull();
+    });
+});
+
+it('survives a full round trip of a schedule change without losing its subject', function () {
+    $notification = NotificationsFixtures::scheduleChangeNotification();
+
+    $attributes = $this->mapper->toAttributes(
+        $notification,
+        STAFF_NOTIFICATION_MAPPER_BUSINESS_KEY,
+        STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY,
+        null,
+        STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY,
+    );
+
+    $row = new StaffNotificationModel;
+    $row->setRawAttributes([
+        ...$attributes,
+        'type' => $attributes['type']->value,
+        'created_at' => $attributes['created_at']->format(DATE_ATOM),
+    ], true);
+    $row->setRelation('recipient', mappedStaffMemberRow(STAFF_NOTIFICATION_MAPPER_RECIPIENT_KEY, $notification->recipientStaffMemberId));
+    $row->setRelation('appointment', null);
+    $row->setRelation('subject', mappedStaffMemberRow(STAFF_NOTIFICATION_MAPPER_SUBJECT_KEY, (string) $notification->subjectStaffMemberId));
+
+    expect($this->mapper->toEntity($row, NotificationsFixtures::BUSINESS_ID))->toEqual($notification);
 });

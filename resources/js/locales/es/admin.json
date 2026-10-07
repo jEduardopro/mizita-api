@@ -1843,9 +1843,11 @@
         },
         "message": {
             "booked": "{{customer}} reservó {{service}}",
-            "bookedWithoutService": "{{customer}} reservó una cita"
+            "bookedWithoutService": "{{customer}} reservó una cita",
+            "scheduleChanged": "{{name}} cambió su horario"
         },
         "unknownCustomer": "Un cliente",
+        "unknownStaffMember": "Un miembro del equipo",
         "unread": "No leída",
         "recipient": "Para {{name}}",
         "receivedAgo": {
@@ -1866,7 +1868,8 @@
         "markAsReadFailed": "No pudimos marcar esta notificación como leída. Inténtalo de nuevo.",
         "actions": {
             "markAsRead": "Marcar como leída",
-            "viewAppointment": "Ver cita"
+            "viewAppointment": "Ver cita",
+            "viewSchedule": "Ver horario"
         },
         "tabs": {
             "unread": "No leídas",
@@ -1898,7 +1901,8 @@
                 "date": "Fecha",
                 "time": "Hora",
                 "reference": "Referencia",
-                "recipient": "Atiende"
+                "recipient": "Atiende",
+                "staffMember": "Miembro del equipo"
             },
             "notFound": {
                 "title": "Esta notificación no está disponible",

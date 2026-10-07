@@ -10,6 +10,7 @@ use App\Domains\Notifications\ValueObjects\NotificationRecord;
 use App\Domains\Notifications\ValueObjects\NotificationType;
 use App\Domains\Notifications\ValueObjects\NotifiedAppointment;
 use App\Domains\Notifications\ValueObjects\NotifiedCustomer;
+use App\Domains\Notifications\ValueObjects\NotifiedStaffMember;
 use DateTimeImmutable;
 use Tests\Support\FakeBusinessContext;
 
@@ -43,6 +44,8 @@ final class NotificationsFixtures
 
     public const NEW_NOTIFICATION_ID = '01930000-0000-7000-8000-000000000299';
 
+    public const NEXT_NOTIFICATION_ID = '01930000-0000-7000-8000-000000000298';
+
     public const APPOINTMENT_ID = '01930000-0000-7000-8000-000000000101';
 
     public const SECOND_APPOINTMENT_ID = '01930000-0000-7000-8000-000000000102';
@@ -52,6 +55,8 @@ final class NotificationsFixtures
     public const CUSTOMER_ID = '01930000-0000-7000-8000-0000000000c1';
 
     public const MEMBER_NAME = 'Ana Muñoz';
+
+    public const OWNER_NAME = 'Begoña Ibáñez';
 
     public const CUSTOMER_NAME = 'José Ñúñez';
 
@@ -87,6 +92,39 @@ final class NotificationsFixtures
             recipientStaffMemberId: $recipientStaffMemberId,
             type: NotificationType::AppointmentBooked,
             appointmentId: $appointmentId,
+            subjectStaffMemberId: null,
+            readAt: $readAt === null ? null : new DateTimeImmutable($readAt),
+            createdAt: new DateTimeImmutable(self::CREATED_AT),
+        );
+    }
+
+    public static function scheduleChangeNotification(
+        string $id = self::NOTIFICATION_ID,
+        string $recipientStaffMemberId = self::OWNER_MEMBER_ID,
+        string $subjectStaffMemberId = self::MEMBER_ID,
+        ?string $readAt = null,
+    ): StaffNotification {
+        return StaffNotification::restore(
+            id: $id,
+            businessId: self::BUSINESS_ID,
+            recipientStaffMemberId: $recipientStaffMemberId,
+            type: NotificationType::StaffScheduleChanged,
+            appointmentId: null,
+            subjectStaffMemberId: $subjectStaffMemberId,
+            readAt: $readAt === null ? null : new DateTimeImmutable($readAt),
+            createdAt: new DateTimeImmutable(self::CREATED_AT),
+        );
+    }
+
+    public static function scheduleChangeRecord(?string $readAt = null): NotificationRecord
+    {
+        return new NotificationRecord(
+            id: self::NOTIFICATION_ID,
+            type: NotificationType::StaffScheduleChanged,
+            recipient: new NotificationRecipient(self::OWNER_MEMBER_ID, self::OWNER_NAME),
+            appointment: null,
+            customer: null,
+            staffMember: new NotifiedStaffMember(self::MEMBER_ID, self::MEMBER_NAME),
             readAt: $readAt === null ? null : new DateTimeImmutable($readAt),
             createdAt: new DateTimeImmutable(self::CREATED_AT),
         );
@@ -106,6 +144,7 @@ final class NotificationsFixtures
             recipient: new NotificationRecipient($recipientStaffMemberId, $recipientName),
             appointment: $withAppointment ? self::appointment() : null,
             customer: $withCustomer ? new NotifiedCustomer(self::CUSTOMER_ID, self::CUSTOMER_NAME) : null,
+            staffMember: null,
             readAt: $readAt === null ? null : new DateTimeImmutable($readAt),
             createdAt: new DateTimeImmutable(self::CREATED_AT),
         );

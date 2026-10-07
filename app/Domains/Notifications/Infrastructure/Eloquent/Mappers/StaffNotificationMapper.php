@@ -28,6 +28,7 @@ final class StaffNotificationMapper
             recipientStaffMemberId: $model->recipient->uuid,
             type: $type,
             appointmentId: $model->appointment?->uuid,
+            subjectStaffMemberId: $model->subject?->uuid,
             readAt: $readAt,
             createdAt: $createdAt,
         );
@@ -41,6 +42,7 @@ final class StaffNotificationMapper
         int $businessKey,
         int $recipientKey,
         ?int $appointmentKey,
+        ?int $subjectKey,
     ): array {
         return [
             'uuid' => $notification->id,
@@ -48,6 +50,7 @@ final class StaffNotificationMapper
             'recipient_staff_member_id' => $recipientKey,
             'type' => $notification->type,
             'appointment_id' => $appointmentKey,
+            'subject_staff_member_id' => $subjectKey,
             'read_at' => $notification->readAt(),
             'created_at' => $notification->createdAt,
         ];
